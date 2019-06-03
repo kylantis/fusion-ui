@@ -1,6 +1,6 @@
 {
     "@name": "",
-    "@value": "",
+    "@value": "", 
     "@type": "primary | secondary | info | warning | danger",
     "@buttonStyle": "basic | animated | labeled | icon | disabled | outline | circular",
     "@iconUrl": "",

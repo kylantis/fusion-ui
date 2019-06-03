@@ -6,12 +6,10 @@ $('.ui.menu a.item').on('click', function () {
     .removeClass('active');
 })
 
-
-
-class NavBar {
+class NavBar extends BaseComponent {
 
   constructor() {
-    window.dataX = this.getJson();// This is only a prototype
+    super();
     this.data = this.getJson();// This is only a prototype
   }
 
@@ -37,11 +35,12 @@ class NavBar {
       "@menuStyle": "text",
       ">": [{
         "@tag": "group",
-        "@position": "right",
+        "@position": "left",
         ">": [{
           "@tag": "item",
           "@title": "Home",
           "@iconName": "",
+          "@badge": 5,
           "@iconOnly": false,
           "@iconPosition": "",
           "@active": false,
@@ -78,7 +77,8 @@ class NavBar {
             }, {
               "@tag": "item",
               "@title": "Golf News",
-              "@url": ""
+              "@url": "",
+              "@badge": 3
             }, {
               "@tag": "item",
               "@title": "Tennis News",
@@ -86,7 +86,8 @@ class NavBar {
               ">": [{
                 "@tag": "item",
                 "@title": "Sports News",
-                "@url": ""
+                "@url": "",
+                "@badge": 1,
               }, {
                 "@tag": "item",
                 "@title": "Football News",
@@ -109,6 +110,7 @@ class NavBar {
                   "@url": ""
                 }, {
                   "@tag": "item",
+                  "@badge": 2,
                   "@title": "Football News",
                   "@url": ""
                 }, {
@@ -129,7 +131,8 @@ class NavBar {
           }, {
             "@tag": "item",
             "@title": "BasketBall News",
-            "@url": ""
+            "@url": "",
+            "@badge": 9,
           }, {
             "@tag": "item",
             "@title": "Golf News",
@@ -194,7 +197,11 @@ class NavBar {
 
     let uiDiv = document.createElement('div');
     uiDiv.setAttribute('id', `${node.getAttribute('id')}-component`);
-    uiDiv.className = "ui menu";
+    uiDiv.className = "ui";
+
+    if (this.data["@orientation"] === "vertical") {
+      uiDiv.classList.add("vertical");
+    }
 
     // Iterate groups
 
@@ -228,6 +235,10 @@ class NavBar {
             itemContainer = document.createElement("div");
             itemContainer.className = 'ui pointing dropdown link item';
 
+            if (this.data["@orientation"] === "vertical") {
+              itemContainer.classList.add("left");
+            }
+
             // Generate unique dropdown id
             const id = uiDiv.getAttribute('id') + "-" + this.getRandomInt(10000, 20000);
             dropdownIds.push('#' + id);
@@ -238,19 +249,21 @@ class NavBar {
 
         }
 
-        // Todo: Based on horizontal orientation, set CSS alignment
-        switch (group['@position']) {
-          case 'center':
+        if (this.data["@orientation"] === "horizontal") {
+          // Todo: Based on horizontal orientation, set CSS alignment
+          switch (group['@position']) {
+            case 'center':
 
-            break;
-          case 'left':
-          case 'right':
-            itemContainer.style.float = group['@position'];
-            console.log(isFirstNode);
-            if (isFirstNode && group['@position'] === 'right') {
-              itemContainer.style.marginLeft = 'auto';
-            }
-            break;
+              break;
+            case 'left':
+            case 'right':
+              itemContainer.style.float = group['@position'];
+              console.log(isFirstNode);
+              if (isFirstNode && group['@position'] === 'right') {
+                itemContainer.style.marginLeft = 'auto';
+              }
+              break;
+          }
         }
 
         if (isFirstNode) {
@@ -260,30 +273,38 @@ class NavBar {
         uiDiv.appendChild(itemContainer);
       }
 
-
-
-
     }
+    uiDiv.classList.add("menu");
 
     node.append(uiDiv);
 
     $(dropdownIds.join(','))
       .dropdown({
         on: 'hover',
-        allowTab: false
+        allowTab: false,
+        action: "nothing"
       });
   }
 
-  getRandomInt = (min, max) => {
-    min = Math.ceil(min);
-    max = Math.floor(max);
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  }
+  // getRandomInt = (min, max) => {
+  //   min = Math.ceil(min);
+  //   max = Math.floor(max);
+  //   return Math.floor(Math.random() * (max - min + 1)) + min;
+  // }
 
   renderChildren(parentNode, item, recursive) {
 
     if (!item['>'] || (!item['>'].length)) {
       parentNode.appendChild(document.createTextNode(item['@title']));
+
+      // Create badge, if availble
+      if (item['@badge']) {
+        const badgeDiv = document.createElement("div");
+        badgeDiv.innerHTML = item['@badge'];
+        badgeDiv.className = 'ui teal left label';
+
+        parentNode.appendChild(badgeDiv);
+      }
       return;
     }
 

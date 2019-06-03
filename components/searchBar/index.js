@@ -1,6 +1,19 @@
-class SearchBar {
+class SearchBar extends BaseComponent {
     constructor() {
+        super();
+        this.data = this.getJson();
+    }
 
+    getCssDependencies() {
+        const cssDependencies = super.getCssDependencies();
+        cssDependencies.push['/css/search.css', '/css/icon.css', '/shared/css/site.css', '/shared/css/reset.css'];
+        return cssDependencies;
+    }
+
+    getJsDependencies() {
+        const jsDepenedencies = super.getJsDependencies();
+        jsDepenedencies.push['/js/search.js', '/shared/js/jquery-3.4.1.min.js'];
+        return jsDepenedencies;
     }
 
     content = [
@@ -54,10 +67,15 @@ class SearchBar {
     }
 
     render(node) {
-        let jsonData = this.getJson();
+        let jsonData = this.data;
         let uiDiv = document.createElement('div');
         uiDiv.className="ui category ";
         let inputTag = document.createElement('input');
+
+        let searchBarIds = [];
+        uiDiv.setAttribute('id', `${node.getAttribute('id')}-component`);
+
+
 
         if(jsonData['@searchIcon']) {
             let iconDiv = document.createElement('div');
@@ -87,6 +105,11 @@ class SearchBar {
         if(jsonData['@disabled']) {
             uiDiv.classList.add("disabled");
         }
+
+        const id = uiDiv.getAttribute('id') + "-" + this.getRandomInt(10000, 20000);
+        searchBarIds.push('#' + id);
+        uiDiv.setAttribute("id", id);
+
         uiDiv.classList.add("search");
         node.append(uiDiv);
 

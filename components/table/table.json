@@ -6,7 +6,7 @@
     "@hasBorders": false,
     "@isPaginated": false,
     "@isDataTable": false,
-    "@isEditableTable": false,
+    "@isEditableTable": false, 
     "@isFixed": false,
     ">": [{
         "@tag": "columns-definitions",
