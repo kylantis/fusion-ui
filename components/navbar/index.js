@@ -6,9 +6,7 @@ $('.ui.menu a.item').on('click', function () {
     .removeClass('active');
 })
 
-//Initialize dropdown menu
-$('.ui.dropdown')
-  .dropdown();
+
 
 class NavBar {
 
@@ -195,16 +193,13 @@ class NavBar {
     return jsonData;
   }
 
-  dropdown(id) {
-    $(`#${id}`)
-      .dropdown();
-  }
-
   render(node) {
 
     let uiDiv = document.createElement('div');
     uiDiv.setAttribute('id', `${node.getAttribute('id')}-component`);
     uiDiv.className = "ui menu";
+
+    const dropdownIds = [];
 
     // Iterate groups
 
@@ -232,9 +227,13 @@ class NavBar {
           itemContainer = document.createElement("div");
           itemContainer.className = 'ui pointing dropdown link item';
 
+          // Generate unique dropdown id
+         const id =  uiDiv.getAttribute('id') + "-" + this.getRandomInt(10000, 20000);
+         dropdownIds.push('#' + id);
+         itemContainer.setAttribute("id", id);
+
           this.renderChildren(itemContainer, item, false);
         }
-
 
         // Todo: Based on horizontal orientation, set CSS alignment
 
@@ -245,9 +244,18 @@ class NavBar {
     }
 
     node.append(uiDiv);
+    console.log(dropdownIds);
+    $(dropdownIds.join(','))
+      .dropdown({
+        on: 'hover',
+        allowTab: false
+      });
+  }
 
-    let id = node.getAttribute('id');
-    this.dropdown(id);
+  getRandomInt = (min, max) => {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
   renderChildren(parentNode, item, recursive) {
