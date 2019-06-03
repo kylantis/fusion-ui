@@ -37,7 +37,7 @@ class NavBar {
       "@menuStyle": "text",
       ">": [{
         "@tag": "group",
-        "@position": "left",
+        "@position": "right",
         ">": [{
           "@tag": "item",
           "@title": "Home",
@@ -184,9 +184,6 @@ class NavBar {
           "@iconPosition": "left",
           "@active": false,
           "@url": ""
-        }, {
-          "@tag": "item",
-          "@title": "searchBar"
         }]
       }]
     }
@@ -199,52 +196,77 @@ class NavBar {
     uiDiv.setAttribute('id', `${node.getAttribute('id')}-component`);
     uiDiv.className = "ui menu";
 
-    const dropdownIds = [];
-
     // Iterate groups
+
+    const dropdownIds = [];
 
     for (const group of this.data['>']) {
 
+      let isFirstNode = true;
+
       for (let item of group['>']) {
+
+        let itemContainer;
 
         if (item['@tag'] != 'item') {
           // Render external component
           // Note: This is not fleshed out yet
 
-          return;
-        }
-        let itemContainer;
 
-        if (!item['>']) {
 
-          itemContainer = document.createElement("a");
-          //Todo: Add logic to handling item action
-          itemContainer.className = "item";
-
-          this.renderChildren(itemContainer, item);
         } else {
 
-          itemContainer = document.createElement("div");
-          itemContainer.className = 'ui pointing dropdown link item';
+          if (!item['>']) {
 
-          // Generate unique dropdown id
-         const id =  uiDiv.getAttribute('id') + "-" + this.getRandomInt(10000, 20000);
-         dropdownIds.push('#' + id);
-         itemContainer.setAttribute("id", id);
+            itemContainer = document.createElement("a");
+            //Todo: Add logic to handling item action
+            itemContainer.className = "item";
 
-          this.renderChildren(itemContainer, item, false);
+            this.renderChildren(itemContainer, item);
+          } else {
+
+            itemContainer = document.createElement("div");
+            itemContainer.className = 'ui pointing dropdown link item';
+
+            // Generate unique dropdown id
+            const id = uiDiv.getAttribute('id') + "-" + this.getRandomInt(10000, 20000);
+            dropdownIds.push('#' + id);
+            itemContainer.setAttribute("id", id);
+
+            this.renderChildren(itemContainer, item, false);
+          }
+
         }
 
         // Todo: Based on horizontal orientation, set CSS alignment
+        switch (group['@position']) {
+          case 'center':
 
-        itemContainer.style.float = group['@position'];
+            break;
+          case 'left':
+          case 'right':
+            itemContainer.style.float = group['@position'];
+            console.log(isFirstNode);
+            if (isFirstNode && group['@position'] === 'right') {
+              itemContainer.style.marginLeft = 'auto';
+            }
+            break;
+        }
+
+        if (isFirstNode) {
+          isFirstNode = false;
+        }
+
         uiDiv.appendChild(itemContainer);
       }
+
+
+
 
     }
 
     node.append(uiDiv);
-    console.log(dropdownIds);
+
     $(dropdownIds.join(','))
       .dropdown({
         on: 'hover',
