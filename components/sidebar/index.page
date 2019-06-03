@@ -1,0 +1,76 @@
+<?xml version='1.0' encoding='utf-8'?>
+<sidebar title="" position="left" collapsible="true" colorScheme="light | dark | inherit" 
+        displayStyle="accordion | classic", hoverEffect="true" multiple="false">
+
+    
+    <head>
+        
+        <profile>
+            <name value="JOSEPH LARSON"/>
+            <image url="" style="style-a | style-b | style-c"/>
+            
+            <group name="main">
+                <item title="dashboard">
+                    <icon name="" icon=""></icon>
+                </item>
+                <item title="widgets">
+                    <icon name="" icon=""></icon>
+                </item>
+                <item title="color systems">
+                    <icon name="" icon=""></icon>
+                </item>
+            <group>
+            
+        </profile>
+        
+    </head>
+
+
+    <body>
+        
+        <groups>
+            
+            <group name="Main">
+                <item title="dashboard" icon-name="" icon-url="">
+                    
+                </item>
+                <item title="dashboard" icon-name="" icon-url="">
+                    
+                </item>
+                <item title="dashboard" icon-name="" icon-url="">
+                    
+                </item>
+            <group>
+            
+            <group name="Applications">
+                <item title="Apps">
+                        <item title="App 1"></item>
+                        <item title="App 2"></item>
+                        <item title="App 3"></item>
+                </item>
+            <group>
+
+            <group name="Settings">
+                <item title="General Settings">
+                    <item title="Export/Import Settings"></item>
+                    <item title="User Settings"></item>
+                    <item title="Password"></item>
+                    <item title="Account Settings"></item>
+                </item>
+                <item title="Tools" />
+                <item title="Admin Settings" />
+                <item title="Appearance" />
+            <group>
+
+        </groups>
+        
+    </body> 
+
+    <bottom>
+        <progressbar name="" value="" displayBadge="true"/>
+        <progressbar name="" value="" displayBadge="true"/>
+        <progressbar name="" value="" displayBadge="true"/>
+    </bottom>
+
+
+</sidebar>

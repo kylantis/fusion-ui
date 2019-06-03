@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<tabs style="basic | classic" title="">
+
+        <tab title="" loading="false" active="true">
+            <tab-body> </tab-body>
+        </tab>
+        <tab title="">
+            <tab-body> </tab-body>
+        </tab>
+
+</tabs>

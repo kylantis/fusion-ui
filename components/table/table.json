@@ -1,0 +1,27 @@
+{
+    "@title": "",
+    "@isHoverable": true,
+    "@isResponsive": false,
+    "@isStriped": false,
+    "@hasBorders": false,
+    "@isPaginated": false,
+    "@isDataTable": false,
+    "@isEditableTable": false,
+    "@isFixed": false,
+    ">": [{
+        "@tag": "columns-definitions",
+        ">": [{
+            "@tag": "column",
+            "@textAlign": "center | left | right",
+            "@title": "abc" 
+        }, {
+            "@tag": "column",
+            "@textAlign": "center | left | right",
+            "@title": "abc"
+        }, {
+            "@tag": "column",
+            "@textAlign": "center | left | right",
+            "@title": "abc"
+        }]
+    }]
+}

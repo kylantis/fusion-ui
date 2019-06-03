@@ -1,0 +1,16 @@
+{
+    "@text": true,
+    "@radio": false,
+    "@checkbox": false,
+    "@month": false,
+    "@search": false,
+    "@email": false,
+    "@time": false,
+    "@url": false,
+    "@textarea": false,
+    "@number": false,
+    "@range": false,
+    "@name": "",
+    "@value": "",
+    "@checked": false
+}

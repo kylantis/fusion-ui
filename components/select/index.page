@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8'?>
+<select title="" iconName="" displayStyle="search selection | selection | multiple selection | multiple search selection | label | in-menu | searchable in-menu | multiselect in-menu" 
+    scrolling="true | false" >
+    
+    <item title="Geography" iconName="" imageUrl="" />
+    <item title="Biology" iconName="" imageUrl="" />
+    <item title="Mathematics" iconName="" imageUrl="" />
+    <item title="English" iconName="" imageUrl="" />
+    <item title="Computer" iconName="" imageUrl="" />
+    <item title="Chemistry" iconName="" imageUrl="" />
+    <item title="Igbo" iconName="" imageUrl="" />
+    <item title="Physics" iconName="" imageUrl="">
+        <item title="metaphysics" iconName="" imageUrl="" />
+        <item title="astrophysics" iconName="" imageUrl="" />
+    <item title="French" iconName="" imageUrl="" />
+</select>

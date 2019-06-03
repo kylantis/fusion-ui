@@ -1,0 +1,160 @@
+{
+    "@title": "",
+    "@icon": "",
+    "@logo": "true | false",
+    "@logoUrl": "",
+    "@navBarType": "standard | secondary | standart | popup | secondary pointing",
+    "@orientation": "vertical | horizontal",
+    "@navPointer": "true | false",
+    "@separator": "true | false",
+    "@navBarAlignment": "left | center | right",
+    "@menuStyle": "text | icon",
+    ">": [{
+        "@tag": "groups",
+        ">": [
+        {
+            "@tag": "group",
+            "@position": "left",
+            ">": [{
+                "@tag": "item",
+                "@title": "Home", 
+                "@iconMenu": "true | false",
+                "@iconName": "",
+                "@iconPosition": "left | right",
+                "@active": "true | false",
+                "@destinationUrl": "",
+                "@dropDownMenu": "true | false"
+            }, {
+                "@tag": "item",
+                "@title": "News",
+                "@iconMenu": "true | false",
+                "@iconName": "",
+                "@iconPosition": "left | right",
+                "@active": "true | false",
+                "@destinationUrl": "",
+                "@dropDownMenu": "true | false",
+                ">": [{
+                    "@tag": "item",
+                    "@title": "Sports News",
+                    "@destinationUrl": "",
+                    "@dropDownMenu": "true | false"
+                }, {
+                    "@tag": "item",
+                    "@title": "Football News",
+                    "@destinationUrl": "",
+                    "@dropDownMenu": "true | false"
+                }, {
+                    "@tag": "item",
+                    "@title": "BasketBall News",
+                    "@destinationUrl": "",
+                    "@dropDownMenu": "true | false"
+                }]
+            }, { 
+                "@tag": "item",
+                "@title": "About",
+                "@iconMenu": "true | false",
+                "@iconName": "",
+                "@iconPosition": "left | right",
+                "@active": "true | false",
+                "@destinationUrl": "",
+                "@dropDownMenu": "true | false"
+            }, {
+                "@tag": "item",
+                "@title": "searchBar"
+            }]
+        }, 
+        {
+            "@tag": "group",
+            "@position": "right",
+            ">": [{
+                "@tag": "item",
+                "@title": "searchbar",
+                "@iconMenu": false,
+                "@autoSuggestion": true
+            }, {
+                "@tag": "item",
+                "@title": "notifications",
+                "@iconMenu": true,
+                "@iconName": "icon bell",
+                "@iconPosition": "",
+                "@active": "",
+                "@destinationUrl": "",
+                "@dropDownMenu": true,
+                ">": [{
+                    "@tag": "item",
+                    "@title": "notification",
+                    "@notificationStatus": "seen | unseen",
+                    "@time": ""
+                }, {
+                    "@tag": "item",
+                    "@title": "notification",
+                    "@notificationStatus": "seen | unseen",
+                    "@time": ""
+                }, {
+                    "@tag": "item",
+                    "@title": "notification",
+                    "@notificationStatus": "seen | unseen",
+                    "@time": ""
+                }]
+            }, {
+                "@tag": "item",
+                "@title": "User",
+                "@iconMenu": false,
+                "@profilePicture": "true | false",
+                "@ImageUrl": "",
+                "@iconName": "icon user",
+                "@iconPosition": "",
+                "@destinationUrl": "",
+                "@dropDownMenu": true,
+                ">": [{
+                    "@tag": "item",
+                    "@title": "Inbox",
+                    "@iconMenu": false,
+                    "@destinationUrl": "",
+                    "@dropDownMenu": false
+                }, {
+                    "@tag": "item",
+                    "@title": "Profile",
+                    "@iconMenu": false,
+                    "@destinationUrl": "",
+                    "@dropDownMenu": false
+                }, {
+                    "@tag": "item",
+                    "@title": "Settings",
+                    "@iconMenu": false,
+                    "@destinationUrl": "",
+                    "@dropDownMenu": false
+                }, {
+                    "@tag": "item",
+                    "@title": "Settings",
+                    "@iconMenu": false,
+                    "@destinationUrl": "",
+                    "@dropDownMenu": false
+                }, {
+                    "@tag": "item",
+                    "@title": "Need Help?",
+                    "@iconMenu": false,
+                    "@destinationUrl": "",
+                    "@dropDownMenu": false
+                }, {
+                    "@tag": "item",
+                    "@title": "Sign Out",
+                    "@iconMenu": false,
+                    "@destinationUrl": "",
+                    "@dropDownMenu": false
+                }]  
+            }, {
+                "@tag": "item",
+                "@title": "logout",
+                "@iconMenu": false,
+                "@iconName": "",
+                "@iconPosition": "",
+                "@active": "",
+                "@destinationUrl": "",
+                "@dropDownMenu": false
+            }, {
+                //another item
+            }]
+        }]
+    }]
+} 

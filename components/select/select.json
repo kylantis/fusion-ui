@@ -1,0 +1,72 @@
+{
+    "@title":"",
+    "@iconName": "",
+    "@displayStyle": "search selection | selection | multiple selection | multiple search selection | label | in-menu | searchable in-menu | multiselect in-menu",
+    "@defaultTitle": "",    
+    "@required": "true | false",
+    "@scrolling": "true | false",
+    ">": [{
+        "@tag": "item",
+        "@title": "Geography",
+        "@data-value": "Geography",
+        "@imageUrl": "",
+        "@iconName": ""      
+    }, {
+        "@tag": "item",
+        "@title": "Biology",
+        "@data-value": "Biology",
+        "@imageUrl": "",
+        "@iconName": "" 
+    }, {
+        "@tag": "item",
+        "@title": "Mathematics",
+        "@data-value": "Mathematics",
+        "@imageUrl": "",
+        "@iconName": "" 
+    }, {
+        "@tag": "item",
+        "@title": "English",
+        "@data-value": "English",
+        "@imageUrl": "",
+        "@iconName": "" 
+    }, {
+        "@tag": "item",
+        "@title": "Computer",
+        "@data-value": "Computer",
+        "@imageUrl": "",
+        "@iconName": "" 
+    }, {
+        "@tag": "item",
+        "@title": "Chemistry",
+        "@data-value": "Chemistry",
+        "@imageUrl": "",
+        "@iconName": "" 
+    }, {
+        "@tag": "item",
+        "@title": "Igbo",
+        "@data-value": "Igbo",
+        "@imageUrl": "",
+        "@iconName": "" 
+    }, {
+        "@tag": "item",
+        "@title": "Physics",
+        "@data-value": "Physics",
+        "@imageUrl": "",
+        "@iconName": "",
+        ">": [{
+            "@tag": "item",
+            "@title": "Metaphysics",
+            "@data-value": "Metaphysics",
+            "@imageUrl": "",
+            "@iconName": ""
+        }, {
+            "@tag": "item",
+            "@title": "Astrophysics",
+            "@data-value": "Astrophysics",
+            "@imageUrl": "",
+            "@iconName": ""
+        }]
+    }]
+
+}
+

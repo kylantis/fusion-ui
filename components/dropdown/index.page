@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='utf-8'?>
+<select title="" iconName="" displayStyle="dropdown | selection | multiple selection | scrolling | label " >
+    <item title="New" />
+    <item title="Open" description="ctrl + o" iconName="" imageUrl="" />
+    <item title="Save As" description="ctrl + s" iconName="" imageUrl="" />
+    <item title="Rename" description="ctrl + r" iconName="" imageUrl="" />
+    <item title="Make a Copy" iconName="" imageUrl="" />
+    <item title="Move to folder" description="" iconName="folder icon" imageUrl="" />
+    <item title="Move to Trash" description="" iconName="trash icon" imageUrl="" />
+    <item title="Download as..." description="" iconName="" imageUrl="" />
+    <item title="Publish to Web" description="" iconName="dropdown icon" imageUrl="" >
+        <item title="Google Docs" />
+        <item title="Google Drive" />
+        <item title="Dropbox" />
+        <item title="Adobe Creative Cloud" />
+        <item title="Private FTP" />
+        <item title="Another Service..." />
+    </item>
+    <item title="Email Collaborators" description="" iconName="" imageUrl="" />
+</select>

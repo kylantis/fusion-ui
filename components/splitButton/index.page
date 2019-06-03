@@ -1,0 +1,4 @@
+<?xml version='1.0' encoding='utf-8'?>
+<splitButton type="primary | secondary | info | warning | danger" icon="true" iconPos="left | right"  
+            options="upload | save" name="" value="" />
+<!-- This is a split button usually used for uploads and for saving documents or stuff. It usually has a drop down by the side. -->

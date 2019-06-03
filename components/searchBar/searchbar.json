@@ -1,0 +1,12 @@
+{
+    "@title": "",
+    "@placeholder": "",
+    "@searchBarStyle": "",
+    "@animated": "true | false",
+    "@searchIcon": "true | false",
+    "@iconName": "",
+    "@autoComplete": "true | false",
+    "@disabled": "true | false",
+    "@transparent": "true | false",
+    "@inverted": "true | false"
+}

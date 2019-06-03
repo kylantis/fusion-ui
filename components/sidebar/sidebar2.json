@@ -1,0 +1,144 @@
+
+{
+ "@collapsible": true, 
+ "@hoverable": false,
+ "@dark": false,
+ "@light": true,
+ "@accordion": true,
+ "@classic": false,
+ "@position": "left",
+  ">": [{
+    "@tag": "head",
+    "@icon": false,
+    ">": [{
+      "@tag": "profile",
+      ">": [{
+        "@tag":"name",
+        "@value": "JOSEPH LARSON"
+      },{
+        "@tag":"image",
+        "@url":"",
+        "@style": "style-a | style-b | style-c"
+      },{
+        "@tag": "group",
+        "@name": "main",
+        ">": [{
+          "@tag": "item",
+          "@title": "dashboard",
+          ">": [{
+            "@tag": "icon",
+            "@title": "",
+            "@icon": ""
+          }]
+        }, {
+          "@tag": "item",
+          "@title": "dashboard",
+          ">": [{
+            "@tag": "icon",
+            "@title": "",
+            "@icon": ""
+          }]
+        }, {
+            "@tag": "item",
+            "@title": "dashboard",
+            ">": [{
+              "@tag": "icon",
+              "@title": "",
+              "@icon": ""
+            }]
+          }]
+      }]
+    }]
+    },
+    {
+      "@tag": "body",
+      "@icon": false,
+      ">": [{
+        "@tag": "groups",
+        ">": [{
+          "@tag": "group",
+          "name": "main",
+          ">": [{
+            "@tag": "item",
+            "@icon-name": "",
+            "@icon-url": ""
+          }, {
+            "@tag": "item",
+            "@icon-name": "",
+            "@icon-url": ""
+          }, {
+            "@tag": "item",
+            "@icon-name": "",
+            "@icon-url": ""
+          }]
+        }, {
+          "@tag": "group",
+          "name": "applications",
+          ">": [{
+            "@tag": "item",
+            "@title": "apps",
+            ">": [{
+              "@tag": "item",
+              "@title": "App1"
+            }, {
+              "@tag":"item",
+              "@title":"App2"
+            }, {
+              "@tag":"item",
+              "@title":"App3"
+            }]
+          }]
+        }, {
+          "@tag": "group",
+          "@name": "settings",
+          "@icon": false,
+          ">": [{
+            "@tag": "item",
+            "@title": "general settings",
+            ">": [{
+              "@tag": "item",
+              "@title": "Export/Import Settings"
+            }, {
+              "@tag": "item",
+              "@title": "User Settings"
+            }, {
+              "@tag": "item",
+              "@title": "Password"
+            }, {
+              "@tag": "item",
+              "@title": "Account Settings"
+            }]
+          }]
+        }, {
+          "@tag":"item",
+          "@title": "tools"
+        }, {
+          "@tag":"item",
+          "@title": "Admin Settings"
+        }, {
+          "@tag":"item",
+          "@title": "Admin Settings"
+        }]
+      }]
+    }, 
+    {
+      "@tag": "bottom",
+      "@icon": "false",
+      ">": [{
+        "@tag": "progressbar",
+        "@name": "",
+        "@value": "",
+        "@displayBadge": true
+      }, {
+        "@tag": "progressbar",
+        "@name": "",
+        "@value": "",
+        "@displayBadge": true
+      }, {
+        "@tag": "progressbar",
+        "@name": "",
+        "@value": "",
+        "@displayBadge": true
+    }]
+  }]
+}

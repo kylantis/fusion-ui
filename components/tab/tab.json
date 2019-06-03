@@ -1,0 +1,15 @@
+{
+    "@style": "basic | classic",
+    "@title": "",
+    ">": [{
+        "@tag": "tab",
+        "@title": "",
+        "@loading": false,
+        "@active": true,
+        ">": [{
+            "@tag": "tab-body"
+        }, {
+            "@tag": "tab-body"
+        }]
+    }]
+}

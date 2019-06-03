@@ -1,0 +1,4 @@
+<?xml version='1.0' encoding='utf-8'?>
+<button type="primary | secondary | info | warning | danger" icon-name="" iconPosition="left | right" buttonStyle= "basic | animated | labeled | icon | disabled | outline | circular"
+        displayStyle="default | raised | rounded" size="small | medium | large" color="green | yellow | red | ..." animationStyle="vertical fade" 
+/>

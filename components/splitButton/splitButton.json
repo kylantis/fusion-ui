@@ -1,0 +1,8 @@
+{
+    "@type": "primary | secondary | info | warning | danger",
+    "@name": "",
+    "@value": "",
+    "@options": "Upload | Save",
+    "icon": true,
+    "icon-pos": "left | right"
+}

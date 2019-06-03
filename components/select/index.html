@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="./../../css/dropdown.css" type='text/css'>
+    <link rel="stylesheet" href="./../../css/icon.css" type='text/css'>
+    <link rel="stylesheet" href="./../../shared/css/semantic.css" type='text/css'>
+    <link rel="stylesheet" href="./../../shared/css/site.css" type='text/css'>
+    <link rel="stylesheet" href="./../../shared/css/reset.css" type='text/css'>
+    <link rel="stylesheet" href="./../../shared/css/transition.css" type='text/css'>
+</head>
+<body>
+    <div id="select" class="ui dropdown"></div>
+
+
+    <div class="ui menu">
+  
+        <a class="item">
+          Home
+        </a>
+        
+        <div class="ui pointing dropdown link item">
+
+          <span class="text">Shopping</span>
+          <i class="dropdown icon"></i>
+          
+          <div class="menu">
+              
+            <div class="header">Categories</div>
+            <div class="item">
+              <i class="dropdown icon"></i>
+              <span class="text">Clothing</span>
+              <div class="menu">
+                
+              
+                <div class="header">Mens</div>
+                
+                <div class="item">Shirts</div>
+                <div class="item">
+                
+                    <i class="dropdown icon"></i>
+                      <span class="text">Pants</span>
+                      <div class="menu">
+                
+                        <div class="header">Mens</div>
+                
+                        <div class="item">Shirts</div>
+                        <div class="item">Pants</div>
+                        <div class="item">Jeans</div>
+                        <div class="item">Shoes</div>
+                
+                        <div class="divider"></div>
+                
+                        <div class="header">Womens</div>
+                
+                        <div class="item">Dresses</div>
+                        <div class="item">Shoes</div>
+                        <div class="item">Bags</div>
+                      </div>
+                
+                </div>
+                <div class="item">Jeans</div>
+                <div class="item">Shoes</div>
+                
+                <div class="divider"></div>
+                
+                <div class="header">Womens</div>
+                
+                <div class="item">Dresses</div>
+                <div class="item">Shoes</div>
+                <div class="item">
+
+                    
+                    <i class="dropdown icon"></i>
+                      <span class="text">Pants</span>
+                      <div class="menu">
+                
+                        <div class="header">Mens</div>
+                
+                        <div class="item">Shirts</div>
+                        <div class="item">
+
+                            
+                    <i class="dropdown icon"></i>
+                    <span class="text">Pants</span>
+                    <div class="menu">
+              
+                      <div class="header">Mens</div>
+              
+                      <div class="item">Shirts</div>
+                      <div class="item">Pants</div>
+                      <div class="item">Jeans</div>
+                      <div class="item">Shoes</div>
+              
+                      <div class="divider"></div>
+              
+                      <div class="header">Womens</div>
+              
+                      <div class="item">Dresses</div>
+                      <div class="item">Shoes</div>
+                      <div class="item">Bags</div>
+                    </div>
+
+                        </div>
+                        <div class="item">Jeans</div>
+                        <div class="item">Shoes</div>
+                
+                        <div class="divider"></div>
+                
+                        <div class="header">Womens</div>
+                
+                        <div class="item">Dresses</div>
+                        <div class="item">Shoes</div>
+                        <div class="item">Bags</div>
+                      </div>
+
+                </div>
+              </div>
+            </div>
+            <div class="item">Home Goods</div>
+            
+            <div class="item">Bedroom</div>
+            <div class="divider"></div>
+            <div class="header">Order</div>
+            
+            <div class="item">Status</div>
+            
+            <div class="item">Cancellations</div>
+          </div>
+        </div>
+        
+        <a class="item">
+          Forums
+        </a>
+        
+        <a class="item">
+          Contact Us
+        </a>
+        
+      </div>
+
+
+
+    <script src="./../../shared/js/jquery-3.4.1.min.js"></script>
+    <script src="./../../js/dropdown.js"></script>
+    <script src="./../../shared/js/site.js"></script>
+    <script src="./../../shared/js/transition.js"></script>
+    <script src="./index.js"></script>
+    <script>
+        new Select().render(document.querySelector("#select")); 
+
+        $('.ui.dropdown').dropdown();
+    </script>
+
+</body>
+</html>
