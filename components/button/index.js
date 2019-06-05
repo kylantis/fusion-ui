@@ -1,159 +1,149 @@
+class Button extends BaseComponent {
 
-class Button {
+    // class Button {
     constructor() {
-
+        super();
+        this.data = this.getJson();
     }
-//buttonStyle
-    getJson () {
+
+    tagName() {
+        return "button";
+    }
+    //buttonStyle 
+    getJson() {
         let jsonData = {
             "@name": "",
             "@value": "",
-            "@buttonStyle": "basic",
+            "@buttonStyle": "social",
             "@state": "",
-            "@type": "info",
+            "@type": "primary",
             "@iconUrl": "",
             "@displayStyle": "default",
             "@size": "",
-            "@animated": "animated",
             "@visible": "visible",
             "@visibleContent": "text",
             "@hiddenContent": "icon",
             "@transition": "fade",
-            "@iconName": "secret user",
+            "@iconName": "user",
             "@tabIndex": 0,
             "@buttonText": "Hello Button",
             "@transitionContent": "Hello",
             "@iconPosition": "right",
-            "@color": "green",
-            "@socialButton": "twitter logo"
+            "@color": "",
+            "@socialButton": "linkedin"
         }
         return jsonData;
     }
-    // getCssDependencies() {}
+    getCssDependencies() {
+        const baseDependencies = super.getCssDependencies();
+        baseDependencies.push(['/css/button.css', '/css/icon.css', '/shared/css/site.css', '/shared/css/reset.css']);
+        return baseDependencies;
+    }
 
-    // selectButton(buttonName) {
-    //     let jsonData = this.getJson();
-    //     buttonName = jsonData["@name"];
-    //     console.log(buttonName);
-    //     switch(buttonName) {
-    //         case "basic": 
-    //             this.loadBasicButton();
-    //             break;
-    //         case "animated": 
-    //             this.loadAnimatedButton();
-    //             break;
-    //         case "labeled":
-    //             this.loadLabeledButton();
-    //             break;
-    //         case "inverted":
-    //             this.loadInvertedButton();
-    //             break;
-    //         case "icon":
-    //             this.loadIconButton();
-    //             break;
-    //     }
-    //     return buttonName;
-    // }
+    getJsDependencies() {
+        const jsDependencies = super.getJsDependencies();
+        jsDependencies.push(['/components/button/index.js']);
+        return jsDependencies;
+    }
 
-    // loadBasicButton(node) {
-    //     let firstDiv = document.createElement('button');
-    //     firstDiv.className = "ui button";
-    //     firstDiv.textContent = "Follow";
-    //     node.append(firstDiv);
-    //     return firstDiv;
-    // }
+    render(node) {
+        let jsonData = this.data;
+        let button = document.createElement('button');
+        let buttonId = [];
+        button.setAttribute('id', `${node.getAttribute('id')}-component`);
 
-    loadButtons(node) {
-        let jsonData = this.getJson();
 
-        if(jsonData['@buttonStyle'] == "basic" || jsonData['@buttonStyle'].length < 1) {
-            let button = document.createElement('button');
+        if (jsonData['@buttonStyle'] == "basic" || jsonData['@buttonStyle'].length < 1) {
             button.className = jsonData['@size'] + " " + "ui button ";
-            button.className += jsonData['@type'] + jsonData['@color'];
+            button.className += jsonData['@type'] + " " + jsonData['@color'];
             button.textContent = jsonData['@buttonText'];
-            node.append(button);
         }
-        else if(jsonData['@buttonStyle'] == "animated") {
-            let button = document.createElement('div');
-            let firstDiv = document.createElement('div');
-            let secondDiv = document.createElement('div');
+        else if (jsonData['@buttonStyle'] == "animated") {
+            let visibleDiv = document.createElement('div');
+            let hiddenDiv = document.createElement('div');
             let itag = document.createElement('i');
 
-            button.className = jsonData['@size'] + " " + "ui animated button";
+            button.className = "ui animated button " + jsonData['@size'];
             button.classList.add(jsonData['@transition']);
             button.setAttribute('tab-index', jsonData['@tabIndex']);
-            button.appendChild(firstDiv);
-            firstDiv.className = "visible content";
-            firstDiv.innerHTML = jsonData['@buttonText'];
-            if(jsonData['@iconName'].length > 0) {
-                button.appendChild(secondDiv);
-                secondDiv.className = "hidden content";
-                secondDiv.appendChild(itag);
+            button.appendChild(visibleDiv);
+            visibleDiv.className = "visible content";
+            visibleDiv.innerHTML = jsonData['@buttonText'];
+            if (jsonData['@iconName'].length > 0) {
+                button.appendChild(hiddenDiv);
+                hiddenDiv.className = "hidden content";
+                hiddenDiv.appendChild(itag);
                 itag.className = "icon ";
                 itag.className += jsonData['@iconName'];
-                node.append(button);
             } else {
-                button.appendChild(secondDiv);
-                secondDiv.className = "hidden content";
-                secondDiv.textContent = jsonData['@transitionContent'];
-                node.append(button);
-            }     
+                button.appendChild(hiddenDiv);
+                hiddenDiv.className = "hidden content";
+                hiddenDiv.textContent = jsonData['@transitionContent'];
+            }
         }
-        else if(jsonData['@buttonStyle'] == "labeled") {
-            let button = document.createElement('button');
+        else if (jsonData['@buttonStyle'] === "labeled") {
             let iTag = document.createElement('i');
-            button.className = jsonData['@size'] + " " + "ui ";
+            button.className = "ui " + jsonData['@size'];
             button.classList.add(jsonData['@iconPosition']);
             button.className += " labeled icon button"
             button.textContent = jsonData['@buttonText'];
             button.appendChild(iTag);
-            iTag.className="icon ";
+            iTag.className = "icon ";
             iTag.className += jsonData['@iconName'];
-            
-            node.append(button);
         }
-        else if(jsonData['@buttonStyle'] == "icon") {
-            let button = document.createElement('button');
+        else if (jsonData['@buttonStyle'] === "icon") {
             let iTag = document.createElement('i');
-            button.className = jsonData['@size'] + " " + "ui icon button";
+            button.className = "ui icon button" + " " + jsonData['@size'];
             button.appendChild(iTag);
-            iTag.className="icon ";
-            iTag.className += jsonData['@iconName'];
-            node.append(button);
+            iTag.className += "icon ";
+            iTag.className += (jsonData['@iconName'] || jsonData['@socialButton']);
         }
-        else if(jsonData['@buttonStyle'] == "circular") {
-            let button = document.createElement('button');
+        else if (jsonData['@buttonStyle'] === "circular") {
             let iTag = document.createElement('i');
             button.className = jsonData['@size'] + " " + "circular ui icon button";
             button.appendChild(iTag);
-            iTag.className="icon ";
+            iTag.className = "icon ";
             iTag.className += jsonData['@iconName'];
-            node.append(button);
         }
-        else if(jsonData['@buttonStyle'] == "outline") {
-            let button = document.createElement('button');
-            button.className = jsonData['@size'] + " " + "ui inverted ";
-            button.textContent = (jsonData['@type'] || jsonData['@color']);
-            if(jsonData['@type'].length > 1) {
-                button.className += jsonData['@type'] + " button";
-                node.append(button);
-            } 
+        else if (jsonData['@buttonStyle'] === "outline") {
+            button.className = "ui inverted ";
+            if (jsonData['@size'].length > 1) {
+                button.classList.add(jsonData['@size']);
+            }
+            button.textContent = jsonData['@buttonText'];
+            if (jsonData['@type'].length > 1) {
+                button.classList.add(jsonData['@type']);
+                if (jsonData['@color'].length > 1) {
+                    button.classList.add(jsonData['@color']);
+                }
+                button.className += " button";
+            }
             else if (jsonData['@color'].length > 1) {
                 button.className += jsonData['@color'] + " button";
-                node.append(button);
             }
-        } 
-        else if(jsonData['@buttonStyle'] == "disabled") { 
-            let button = document.createElement('button');
-            button.className = jsonData['@size'] + " " + "ui disabled button";
+        }
+        else if (jsonData['@buttonStyle'] === "disabled") {
+            button.className = "ui disabled button " + jsonData['@size'];
             let iTag = document.createElement('i');
-            button.textContent=jsonData['@buttonText'];
+            button.textContent = jsonData['@buttonText'];
             button.appendChild(iTag);
             iTag.className = jsonData['@iconName'];
-            node.append(button);
+        } else if (jsonData['@buttonStyle'] === "social") {
+            button.className = "ui " + jsonData['@socialButton'];
+            let iTag = document.createElement('i');
+            button.textContent = jsonData['@socialButton'];
+            button.prepend(iTag);
+            iTag.className = jsonData['@socialButton'];
+            iTag.classList.add('icon');
+            button.classList.add('button');
         }
+
+        const id = button.getAttribute('id') + "-" + this.getRandomInt(10000, 20000);
+        buttonId.push('#' + id);
+        button.setAttribute("id", id);
+
+        node.append(button);
+
     }
 
 }
-
-new Button().loadButtons(document.querySelector("#button"));

@@ -1,16 +1,10 @@
 {
-    "@text": true,
-    "@radio": false,
-    "@checkbox": false,
-    "@month": false,
-    "@search": false,
-    "@email": false,
-    "@time": false,
-    "@url": false,
-    "@textarea": false,
-    "@number": false,
-    "@range": false,
-    "@name": "",
+    "@title": "",
+    "type": "text | radio | checkbox | month | search | email | time | url | textarea | number | range",
+    "@placeholder": "",
+    "@maxlength": "",
     "@value": "",
-    "@checked": false
+    "@checked": false,
+    "@autofocus": false,
+    "@required": false
 }

@@ -1,12 +1,13 @@
 {
     "@title":"",
     "@value":"",
-    "@label":"true | false",
+    "@label":"",
     "@size": "small | standard | large",
     "@multiple": "true | false",
     "@animated": "true | false",
     "@state": "active | success | error | warning | disabled",
     "@type": "standard |indicating",
-    "@content": "bar | progress"
+    "@content": "bar | progress",
+    "@color": ""
 
 }

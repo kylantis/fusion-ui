@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
-<table title="" isHoverable="true" isResponsive="false" isStriped="false" hasBorders=false isPaginated="false" isDataTable="false" isEditableTable="false" >
+<table title="" isHoverable="true | false" isResponsive="true | false" isStriped="true | false" hasBorder="true | false" singleLine="true | false" isFixed="true | false" isInverted="true | false"
+        color="">
     
     <columns-definitions>
         <column textAlign="center | left | right" title="abc"/> 
@@ -7,12 +8,7 @@
         <column textAlign="center | left | right" title="abc"/>
     </columns-definitions>
 
-
-    <standard  title="" isHoverable="true" isResponsive="false" isStriped="false" singleLine="false" "isFixed"="false" >
-    
-     </standard>
-
-
 </table>
 
 
+ 
