@@ -9,18 +9,17 @@ class Button extends BaseComponent {
     tagName() {
         return "button";
     }
-    //buttonStyle
+    //buttonStyle 
     getJson() {
         let jsonData = {
             "@name": "",
             "@value": "",
-            "@buttonStyle": "basic",
+            "@buttonStyle": "social",
             "@state": "",
-            "@type": "info",
+            "@type": "primary",
             "@iconUrl": "",
             "@displayStyle": "default",
             "@size": "",
-            "@animated": "animated",
             "@visible": "visible",
             "@visibleContent": "text",
             "@hiddenContent": "icon",
@@ -30,8 +29,8 @@ class Button extends BaseComponent {
             "@buttonText": "Hello Button",
             "@transitionContent": "Hello",
             "@iconPosition": "right",
-            "@color": "green",
-            "@socialButton": "twitter logo"
+            "@color": "",
+            "@socialButton": "linkedin"
         }
         return jsonData;
     }
@@ -60,31 +59,31 @@ class Button extends BaseComponent {
             button.textContent = jsonData['@buttonText'];
         }
         else if (jsonData['@buttonStyle'] == "animated") {
-            let firstDiv = document.createElement('div');
-            let secondDiv = document.createElement('div');
+            let visibleDiv = document.createElement('div');
+            let hiddenDiv = document.createElement('div');
             let itag = document.createElement('i');
 
-            button.className = jsonData['@size'] + " " + "ui animated button";
+            button.className = "ui animated button " + jsonData['@size'];
             button.classList.add(jsonData['@transition']);
             button.setAttribute('tab-index', jsonData['@tabIndex']);
-            button.appendChild(firstDiv);
-            firstDiv.className = "visible content";
-            firstDiv.innerHTML = jsonData['@buttonText'];
+            button.appendChild(visibleDiv);
+            visibleDiv.className = "visible content";
+            visibleDiv.innerHTML = jsonData['@buttonText'];
             if (jsonData['@iconName'].length > 0) {
-                button.appendChild(secondDiv);
-                secondDiv.className = "hidden content";
-                secondDiv.appendChild(itag);
+                button.appendChild(hiddenDiv);
+                hiddenDiv.className = "hidden content";
+                hiddenDiv.appendChild(itag);
                 itag.className = "icon ";
                 itag.className += jsonData['@iconName'];
             } else {
-                button.appendChild(secondDiv);
-                secondDiv.className = "hidden content";
-                secondDiv.textContent = jsonData['@transitionContent'];
+                button.appendChild(hiddenDiv);
+                hiddenDiv.className = "hidden content";
+                hiddenDiv.textContent = jsonData['@transitionContent'];
             }
         }
-        else if (jsonData['@buttonStyle'] == "labeled") {
+        else if (jsonData['@buttonStyle'] === "labeled") {
             let iTag = document.createElement('i');
-            button.className = jsonData['@size'] + " " + "ui ";
+            button.className = "ui " + jsonData['@size'];
             button.classList.add(jsonData['@iconPosition']);
             button.className += " labeled icon button"
             button.textContent = jsonData['@buttonText'];
@@ -92,21 +91,21 @@ class Button extends BaseComponent {
             iTag.className = "icon ";
             iTag.className += jsonData['@iconName'];
         }
-        else if (jsonData['@buttonStyle'] == "icon") {
+        else if (jsonData['@buttonStyle'] === "icon") {
             let iTag = document.createElement('i');
             button.className = "ui icon button" + " " + jsonData['@size'];
             button.appendChild(iTag);
             iTag.className += "icon ";
             iTag.className += (jsonData['@iconName'] || jsonData['@socialButton']);
         }
-        else if (jsonData['@buttonStyle'] == "circular") {
+        else if (jsonData['@buttonStyle'] === "circular") {
             let iTag = document.createElement('i');
             button.className = jsonData['@size'] + " " + "circular ui icon button";
             button.appendChild(iTag);
             iTag.className = "icon ";
             iTag.className += jsonData['@iconName'];
         }
-        else if (jsonData['@buttonStyle'] == "outline") {
+        else if (jsonData['@buttonStyle'] === "outline") {
             button.className = "ui inverted ";
             if (jsonData['@size'].length > 1) {
                 button.classList.add(jsonData['@size']);
@@ -123,12 +122,20 @@ class Button extends BaseComponent {
                 button.className += jsonData['@color'] + " button";
             }
         }
-        else if (jsonData['@buttonStyle'] == "disabled") {
-            button.className = jsonData['@size'] + " " + "ui disabled button";
+        else if (jsonData['@buttonStyle'] === "disabled") {
+            button.className = "ui disabled button " + jsonData['@size'];
             let iTag = document.createElement('i');
             button.textContent = jsonData['@buttonText'];
             button.appendChild(iTag);
             iTag.className = jsonData['@iconName'];
+        } else if (jsonData['@buttonStyle'] === "social") {
+            button.className = "ui " + jsonData['@socialButton'];
+            let iTag = document.createElement('i');
+            button.textContent = jsonData['@socialButton'];
+            button.prepend(iTag);
+            iTag.className = jsonData['@socialButton'];
+            iTag.classList.add('icon');
+            button.classList.add('button');
         }
 
         const id = button.getAttribute('id') + "-" + this.getRandomInt(10000, 20000);

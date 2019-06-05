@@ -13,7 +13,7 @@ class Table extends BaseComponent {
         const cssDependencies = super.getCssDependencies();
         cssDependencies.push['/css/table.css', '/shared/css/site.css', '/shared/css/reset.css'];
         return cssDependencies;
-    }
+    } 
 
     getJsDependencies() {
         const jsDepenedencies = super.getJsDependencies();
@@ -57,7 +57,6 @@ class Table extends BaseComponent {
             "@isStriped": true,
             "@hasBorder": false,
             "@singleLine": true,
-            "@isPaginated": false,
             "@isInverted": true,
             "@color": "blue",
             "@isDataTable": false,

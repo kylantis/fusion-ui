@@ -20,8 +20,7 @@ class ProgressBar extends BaseComponent {
             "@state": "active",
             "@type": "indicating",
             "@content": "progress",
-            "@color": "",
-            "@size": ""
+            "@color": ""
         }
         return jsonData;
     }
@@ -38,10 +37,12 @@ class ProgressBar extends BaseComponent {
         return jsDepenedencies;
     }
 
+    initialize(id) {
+        $('#'+id).progress();
+    }
     render(node) {
         let jsonDep = this.data;
         let progressBarIds = [];
-
 
         // let body = document.querySelector('body');
         let uiDiv = document.createElement('div');
@@ -50,7 +51,7 @@ class ProgressBar extends BaseComponent {
         let labelDiv = document.createElement('div');
         uiDiv.setAttribute('id', `${node.getAttribute('id')}-component`);
 
-        uiDiv.className = "ui progress";
+        uiDiv.className = "ui ";
         for (let key of Object.keys(jsonDep)) {
             if (jsonDep['@state'].length > 0) {
                 uiDiv.classList.add(jsonDep['@state']);
@@ -69,20 +70,25 @@ class ProgressBar extends BaseComponent {
                 labelDiv.className = "label";
                 labelDiv.innerHTML = jsonDep['@label'];
             }
-        }
+        } 
 
-        //Still looking for a way to reference the id
+        uiDiv.classList.add("progress");
 
         const id = uiDiv.getAttribute('id') + "-" + this.getRandomInt(10000, 20000);
-
-        $('#' + id).progress('increment');
-
-
+        
         progressBarIds.push('#' + id);
         uiDiv.setAttribute("id", id);
+        uiDiv.setAttribute('data-value', 20);
+        uiDiv.setAttribute('data-total', 100);
+        this.initialize(id);
+        uiDiv.setAttribute("onload", "initialize()");
+
 
         node.append(uiDiv);
     }
+
+    
+    
 
 }
 

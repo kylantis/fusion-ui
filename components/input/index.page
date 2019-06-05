@@ -1,3 +1,3 @@
 <?xml version='1.0' encoding='utf-8'?>
 <input type="text | radio | checkbox | month | search | email | time | url | textarea | date |
-            password | number | range | radio-slider | slider | toggle" name="" value="" checked="false"/>
+            password | number | range | radio-slider | slider | toggle" name="" value="" checked="false"/> 

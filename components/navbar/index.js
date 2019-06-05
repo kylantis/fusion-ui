@@ -23,6 +23,12 @@ class NavBar extends BaseComponent {
     return baseDependencies
   }
 
+  getjsDependencies() {
+    const baseDependencies = super.getCssDependencies();
+    baseDependencies.push(['/css/dropdown.css', '/css/icons.css', '/shared/css/extra_colors.css', '/shared/css/ionicons.css']);
+    return baseDependencies;
+  }
+
   getJson() {
     let jsonData = {
       "@title": "",

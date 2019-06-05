@@ -48,12 +48,11 @@ class SearchBar extends BaseComponent {
         let jsonData = {
             "@title": "",
             "@placeholder": "Search...",
-            "@searchBarStyle": "",
             "@animated": true,
             "@searchIcon": true,
             "@iconName": "icon input",
             "@autoComplete": true,
-            "@size": "",
+            "@size": "small",
             "@disabled":false
         }
         return jsonData;
@@ -74,8 +73,6 @@ class SearchBar extends BaseComponent {
 
         let searchBarIds = [];
         uiDiv.setAttribute('id', `${node.getAttribute('id')}-component`);
-
-
 
         if(jsonData['@searchIcon']) {
             let iconDiv = document.createElement('div');
