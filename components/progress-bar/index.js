@@ -1,50 +1,39 @@
 
 class ProgressBar extends BaseComponent {
-    constructor() {
-        super();
-        this.data = this.getJson();
+    constructor(data, node) {
+        super(data, node);
+        this.data = data;
+        this.node = node;
     }
 
     tagName() {
         return "progressBar";
     }
 
-    getJson() {
-        let jsonData = {
-            "@title": "first progress bar",
-            "@value": "50",
-            "@label": "Everything worked just fine",
-            "@size": "small",
-            "@multiple": "true",
-            "@animated": "true",
-            "@state": "active",
-            "@type": "indicating",
-            "@content": "progress",
-            "@color": ""
-        }
-        return jsonData;
-    }
+    
 
     getCssDependencies() {
-        const cssDependencies = super.getCssDependencies();
-        cssDependencies.push['/css/progress.css', '/css/icon.css', '/shared/css/site.css', '/shared/css/reset.css'];
-        return cssDependencies;
+        const baseDependencies = super.getCssDependencies();
+        baseDependencies.push(['/css/icon.css']);
+        baseDependencies.push(['/css/progress.css']);
+        return baseDependencies;
     }
 
-    getJsDependencies() {
-        const jsDepenedencies = super.getJsDependencies();
-        jsDepenedencies.push['/js/progress.js', '/shared/js/jquery-3.4.1.min.js'];
-        return jsDepenedencies;
+    getJsDependencies() { 
+        const baseDependencies = super.getJsDependencies();
+        baseDependencies.push('/js/progress.js');
+        return baseDependencies;
     }
 
-    initialize(id) {
-        $('#'+id).progress();
-    }
+    // initialize(id) {
+    //     $('#'+id).progress();
+    // }
+
     render(node) {
+        node = this.node;
         let jsonDep = this.data;
         let progressBarIds = [];
 
-        // let body = document.querySelector('body');
         let uiDiv = document.createElement('div');
         let barDiv = document.createElement('div');
         let progressDiv = document.createElement('div');
@@ -80,7 +69,7 @@ class ProgressBar extends BaseComponent {
         uiDiv.setAttribute("id", id);
         uiDiv.setAttribute('data-value', 20);
         uiDiv.setAttribute('data-total', 100);
-        this.initialize(id);
+        // this.initialize(id);
         uiDiv.setAttribute("onload", "initialize()");
 
 

@@ -1,158 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <link rel="stylesheet" href="./../../css/dropdown.css" type='text/css'>
-    <link rel="stylesheet" href="./../../css/icon.css" type='text/css'>
-    <link rel="stylesheet" href="./../../shared/css/semantic.css" type='text/css'>
-    <link rel="stylesheet" href="./../../shared/css/site.css" type='text/css'>
-    <link rel="stylesheet" href="./../../shared/css/reset.css" type='text/css'>
-    <link rel="stylesheet" href="./../../shared/css/transition.css" type='text/css'>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
 </head>
+
 <body>
-    <div id="select" class="ui dropdown"></div>
+  <div id="select"></div>
 
+  <script>
+    let jsonData = {
+      "@title": "Test",
+      "@iconName": "",
+      "@displayStyle": "multiple select",
+      "@labelIcon": "",
+      "@defaultTitle": "Subject",
+      "@isRequired": false,
+      "@scrolling": false,
+      ">": [{
+        "@tag": "item",
+        "@title": "Geography",
+        "@dataValue": "Geography",
+        "@imageUrl": "http://testcreative.co.uk/wp-content/uploads/2017/10/Test-Logo-Small-Black-transparent-1.png",
+        "@iconName": "red"
+      }, {
+        "@tag": "item",
+        "@title": "Biology",
+        "@dataValue": "Biology",
+        "@imageUrl": "http://testcreative.co.uk/wp-content/uploads/2017/10/Test-Logo-Small-Black-transparent-1.png",
+        "@iconName": "black"
+      }, {
+        "@tag": "item",
+        "@title": "Mathematics",
+        "@dataValue": "Mathematics",
+        "@imageUrl": "http://testcreative.co.uk/wp-content/uploads/2017/10/Test-Logo-Small-Black-transparent-1.png",
+        "@iconName": "blue"
+      }, {
+        "@tag": "item",
+        "@title": "English",
+        "@dataValue": "English",
+        "@imageUrl": "",
+        "@iconName": "yellow"
+      }, {
+        "@tag": "item",
+        "@title": "Computer",
+        "@dataValue": "Computer",
+        "@imageUrl": "",
+        "@iconName": "purple"
+      }, {
+        "@tag": "item",
+        "@title": "Chemistry",
+        "@dataValue": "Chemistry",
+        "@imageUrl": "",
+        "@iconName": "orange"
+      }, {
+        "@tag": "item",
+        "@title": "Igbo",
+        "@dataValue": "Igbo",
+        "@imageUrl": "",
+        "@iconName": "pink"
+      }, {
+        "@tag": "item",
+        "@title": "Physics",
+        "@dataValue": "Physics",
+        "@imageUrl": "",
+        "@iconName": "",
+        ">": [{
+          "@tag": "item",
+          "@title": "Metaphysics",
+          "@dataValue": "Metaphysics",
+          "@imageUrl": "",
+          "@iconName": ""
+        }, {
+          "@tag": "item",
+          "@title": "Astrophysics",
+          "@dataValue": "Astrophysics",
+          "@imageUrl": "",
+          "@iconName": ""
+        }]
+      }]
+    }
+  </script>
 
-    <div class="ui menu">
-  
-        <a class="item">
-          Home
-        </a>
-        
-        <div class="ui pointing dropdown link item">
-
-          <span class="text">Shopping</span>
-          <i class="dropdown icon"></i>
-          
-          <div class="menu">
-              
-            <div class="header">Categories</div>
-            <div class="item">
-              <i class="dropdown icon"></i>
-              <span class="text">Clothing</span>
-              <div class="menu">
-                
-              
-                <div class="header">Mens</div>
-                
-                <div class="item">Shirts</div>
-                <div class="item">
-                
-                    <i class="dropdown icon"></i>
-                      <span class="text">Pants</span>
-                      <div class="menu">
-                
-                        <div class="header">Mens</div>
-                
-                        <div class="item">Shirts</div>
-                        <div class="item">Pants</div>
-                        <div class="item">Jeans</div>
-                        <div class="item">Shoes</div>
-                
-                        <div class="divider"></div>
-                
-                        <div class="header">Womens</div>
-                
-                        <div class="item">Dresses</div>
-                        <div class="item">Shoes</div>
-                        <div class="item">Bags</div>
-                      </div>
-                
-                </div>
-                <div class="item">Jeans</div>
-                <div class="item">Shoes</div>
-                
-                <div class="divider"></div>
-                
-                <div class="header">Womens</div>
-                
-                <div class="item">Dresses</div>
-                <div class="item">Shoes</div>
-                <div class="item">
-
-                    
-                    <i class="dropdown icon"></i>
-                      <span class="text">Pants</span>
-                      <div class="menu">
-                
-                        <div class="header">Mens</div>
-                
-                        <div class="item">Shirts</div>
-                        <div class="item">
-
-                            
-                    <i class="dropdown icon"></i>
-                    <span class="text">Pants</span>
-                    <div class="menu">
-              
-                      <div class="header">Mens</div>
-              
-                      <div class="item">Shirts</div>
-                      <div class="item">Pants</div>
-                      <div class="item">Jeans</div>
-                      <div class="item">Shoes</div>
-              
-                      <div class="divider"></div>
-              
-                      <div class="header">Womens</div>
-              
-                      <div class="item">Dresses</div>
-                      <div class="item">Shoes</div>
-                      <div class="item">Bags</div>
-                    </div>
-
-                        </div>
-                        <div class="item">Jeans</div>
-                        <div class="item">Shoes</div>
-                
-                        <div class="divider"></div>
-                
-                        <div class="header">Womens</div>
-                
-                        <div class="item">Dresses</div>
-                        <div class="item">Shoes</div>
-                        <div class="item">Bags</div>
-                      </div>
-
-                </div>
-              </div>
-            </div>
-            <div class="item">Home Goods</div>
-            
-            <div class="item">Bedroom</div>
-            <div class="divider"></div>
-            <div class="header">Order</div>
-            
-            <div class="item">Status</div>
-            
-            <div class="item">Cancellations</div>
-          </div>
-        </div>
-        
-        <a class="item">
-          Forums
-        </a>
-        
-        <a class="item">
-          Contact Us
-        </a>
-        
-      </div>
-
-
-
-    <script src="./../../shared/js/jquery-3.4.1.min.js"></script>
-    <script src="./../../js/dropdown.js"></script>
-    <script src="./../../shared/js/site.js"></script>
-    <script src="./../../shared/js/transition.js"></script>
-    <script src="./index.js"></script>
-    <script>
-        new Select().render(document.querySelector("#select")); 
-
-        $('.ui.dropdown').dropdown();
-    </script>
+  <script src="/components/base.js"></script>
+  <script src="./index.js"></script>
+  <script>
+    new Select(jsonData, document.querySelector("#select"));
+  </script>
 
 </body>
+
 </html>

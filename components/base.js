@@ -89,7 +89,7 @@ class BaseComponent {
     console.log('Loading JS dependencies');
 
     return new Promise((resolve, reject) => {
-      
+
       const loaded = [];
       let scripts = this.getJsDependencies();
 
@@ -116,8 +116,6 @@ class BaseComponent {
 
         script.onload = function () {
 
-          console.log(`Loaded ${this.src}`);
-
           loaded.push(this.src);
           BaseComponent.loadedScripts.push(this.src);
 
@@ -128,6 +126,8 @@ class BaseComponent {
           if (loaded.length == scripts.length) {
             return resolve();
           }
+          
+          console.log(`Loaded ${this.src}`);
         };
 
         script.onerror = function () {

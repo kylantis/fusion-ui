@@ -3,24 +3,33 @@
 
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="./../../css/checkbox.css">
-    <link rel="stylesheet" href="./../../css/input.css">
-    <link rel="stylesheet" href="/shared/css/site.css">
-    <link rel="stylesheet" href="/shared/css/reset.css">
+
 </head>
 
 <body>
-    
+
     <div id="input"></div>
 
-    <hr>
     <div class="ui input">
-        <input type="text" placeholder="email">
+        <input type="text" name="example" placeholder="enter name">
     </div>
 
-
+    <script>
+        let jsonData = {
+            "@title": "Email",
+            "@type": "toggle",
+            "@placeholder": "Enter Email",
+            "@maxlength": "",
+            "@value": "",
+            "@checked": false,
+            "@autofocus": false,
+            "@required": false,
+            "@disabled": true
+        }
+    </script>
     <script src="/components/base.js"></script>
     <script src="./index.js"></script>
+    <script>new Input(jsonData, document.querySelector("#input"));</script>
 
 </body>
 

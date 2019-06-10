@@ -19,13 +19,13 @@ class NavBar extends BaseComponent {
 
   getCssDependencies() {
     const baseDependencies = super.getCssDependencies();
-    baseDependencies.push(['']);
+    baseDependencies.push('/css/dropdown.css', '/css/icons.css', '/shared/css/extra_colors.css', '/shared/css/ionicons.css');
     return baseDependencies
   }
 
   getjsDependencies() {
     const baseDependencies = super.getCssDependencies();
-    baseDependencies.push(['/css/dropdown.css', '/css/icons.css', '/shared/css/extra_colors.css', '/shared/css/ionicons.css']);
+    baseDependencies.push();
     return baseDependencies;
   }
 

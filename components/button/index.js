@@ -1,52 +1,25 @@
 class Button extends BaseComponent {
 
     // class Button {
-    constructor() {
-        super();
-        this.data = this.getJson();
+    constructor(data, node) {
+        super(data, node);
+        this.data = data;
+        this.node = node;
     }
 
     tagName() {
         return "button";
     }
-    //buttonStyle 
-    getJson() {
-        let jsonData = {
-            "@name": "",
-            "@value": "",
-            "@buttonStyle": "social",
-            "@state": "",
-            "@type": "primary",
-            "@iconUrl": "",
-            "@displayStyle": "default",
-            "@size": "",
-            "@visible": "visible",
-            "@visibleContent": "text",
-            "@hiddenContent": "icon",
-            "@transition": "fade",
-            "@iconName": "user",
-            "@tabIndex": 0,
-            "@buttonText": "Hello Button",
-            "@transitionContent": "Hello",
-            "@iconPosition": "right",
-            "@color": "",
-            "@socialButton": "linkedin"
-        }
-        return jsonData;
-    }
+    
     getCssDependencies() {
         const baseDependencies = super.getCssDependencies();
-        baseDependencies.push(['/css/button.css', '/css/icon.css', '/shared/css/site.css', '/shared/css/reset.css']);
+        baseDependencies.push(["/css/button.css"]);
+        baseDependencies.push(["/css/icon.css"]);
         return baseDependencies;
     }
 
-    getJsDependencies() {
-        const jsDependencies = super.getJsDependencies();
-        jsDependencies.push(['/components/button/index.js']);
-        return jsDependencies;
-    }
-
     render(node) {
+        node = this.node;
         let jsonData = this.data;
         let button = document.createElement('button');
         let buttonId = [];

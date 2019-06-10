@@ -1,0 +1,288 @@
+class Select {
+    constructor() {
+
+    }
+
+    dropdown(id) {
+        $(`#${id}`)
+            .dropdown();      
+    }
+
+    getJson() { 
+        let jsonData = {
+            "@title":"Test",
+            "@iconName": "",
+            "@displayStyle": "multiple select",
+            "@labelIcon": "", 
+            "@defaultTitle": "Subject",
+            "@isRequired": false,
+            "@scrolling": false,
+            ">": [{ 
+                "@tag": "item",
+                "@title": "Geography",
+                "@dataValue": "Geography",
+                "@imageUrl": "http://testcreative.co.uk/wp-content/uploads/2017/10/Test-Logo-Small-Black-transparent-1.png",
+                "@iconName": "red"      
+            }, {
+                "@tag": "item",
+                "@title": "Biology",
+                "@dataValue": "Biology",
+                "@imageUrl": "http://testcreative.co.uk/wp-content/uploads/2017/10/Test-Logo-Small-Black-transparent-1.png",
+                "@iconName": "black" 
+            }, {
+                "@tag": "item",
+                "@title": "Mathematics",
+                "@dataValue": "Mathematics",
+                "@imageUrl": "http://testcreative.co.uk/wp-content/uploads/2017/10/Test-Logo-Small-Black-transparent-1.png",
+                "@iconName": "blue" 
+            }, {
+                "@tag": "item",
+                "@title": "English",
+                "@dataValue": "English",
+                "@imageUrl": "",
+                "@iconName": "yellow" 
+            }, {
+                "@tag": "item",
+                "@title": "Computer",
+                "@dataValue": "Computer",
+                "@imageUrl": "",
+                "@iconName": "purple" 
+            }, {
+                "@tag": "item",
+                "@title": "Chemistry",
+                "@dataValue": "Chemistry",
+                "@imageUrl": "",
+                "@iconName": "orange" 
+            }, {
+                "@tag": "item",
+                "@title": "Igbo",
+                "@dataValue": "Igbo",
+                "@imageUrl": "",
+                "@iconName": "pink" 
+            }, {
+                "@tag": "item",
+                "@title": "Physics",
+                "@dataValue": "Physics",
+                "@imageUrl": "",
+                "@iconName": "",
+                ">": [{
+                    "@tag": "item",
+                    "@title": "Metaphysics",
+                    "@dataValue": "Metaphysics",
+                    "@imageUrl": "",
+                    "@iconName": ""
+                }, {
+                    "@tag": "item",
+                    "@title": "Astrophysics",
+                    "@dataValue": "Astrophysics",
+                    "@imageUrl": "",
+                    "@iconName": ""
+                }]
+            }]
+        }
+        return jsonData;
+    }
+
+    render(node) {
+        let jsonData = this.getJson();
+        let uiDiv = document.createElement('div');
+        uiDiv.setAttribute('id', `${node.getAttribute('id')}-component`);
+
+        if(jsonData['@displayStyle'] === "select" || jsonData['@displayStyle'] === "search selection") {
+            uiDiv.className = "ui fluid selection";
+            if(jsonData['@displayStyle'] === "search selection") {
+                uiDiv.classList.add("search");
+            }
+
+            let hiddenInput = document.createElement('input');
+            hiddenInput.setAttribute('type', 'hidden');
+            hiddenInput.setAttribute('name', jsonData['@title']);
+            uiDiv.appendChild(hiddenInput);
+
+            let iTag = document.createElement('i');
+            iTag.className="dropdown icon";
+
+            let defaultTextDiv = document.createElement('div');
+            defaultTextDiv.className = "default text";
+            defaultTextDiv.innerHTML= jsonData['@title'];
+            uiDiv.appendChild(iTag);
+            uiDiv.appendChild(defaultTextDiv);
+
+            let menuDiv = document.createElement('div');
+            menuDiv.className = "menu";
+            uiDiv.append(menuDiv);
+
+            for(let key of Object.keys(jsonData['>'])) {
+                if(jsonData['>'][key]['@imageUrl'].length > 0) {
+
+                    let itemDiv = document.createElement('div');
+                    let imgTag = document.createElement('img');
+                    itemDiv.append(imgTag);
+                    imgTag.className = "ui mini avatar image";
+                    imgTag.setAttribute('src', jsonData['>'][key]['@imageUrl'])
+                    itemDiv.append(jsonData['>'][key]['@title']);
+                    itemDiv.className = "item";
+                    itemDiv.setAttribute('data-value', jsonData['>'][key]['@dataValue'])
+                    menuDiv.append(itemDiv);
+
+                } else {
+
+                    let itemDiv = document.createElement('div');
+                    itemDiv.append(jsonData['>'][key]['@title']);
+                    itemDiv.className = "item";
+                    itemDiv.setAttribute('data-value', jsonData['>'][key]['@dataValue'])
+                    menuDiv.append(itemDiv);
+
+                }
+            }
+
+            if(jsonData['@isRequired']) {
+                uiDiv.setAttribute("required","");
+            }
+            uiDiv.classList.add("dropdown");
+            node.append(uiDiv);
+
+        } else if(jsonData['@displayStyle']  === "labeled" || jsonData['@displayStyle']  === "labeled multiple" || jsonData['@displayStyle']  === "labeled dropdown") {
+            uiDiv.className = "ui floating labeled icon dropdown button";
+            if(jsonData['@displayStyle']  === "labeled multiple") {
+                uiDiv.classList.remove("floating");
+                uiDiv.classList.remove("labeled");
+                uiDiv.classList.remove("icon");
+                uiDiv.classList.remove("button");
+                uiDiv.classList.add("multiple");
+            }
+
+            let iTag = document.createElement('i');
+            iTag.className = "filter icon";
+            uiDiv.append(iTag);
+
+            let textSpan = document.createElement('span');
+            textSpan.className = "text";
+            textSpan.innerHTML = "Filter Posts"; //to be changed to 
+            uiDiv.append(textSpan);
+
+            let menuDiv = document.createElement('div');
+            menuDiv.className = "menu";
+            uiDiv.append(menuDiv);
+
+            if(jsonData['@displayStyle'] === "labeled dropdown") {
+                for(let key of Object.keys(jsonData['>'])) {
+                    let itemDiv = document.createElement('div');
+                    itemDiv.append(jsonData['>'][key]['@title']);
+                    itemDiv.className = "item";
+                    menuDiv.append(itemDiv);
+                    node.append(uiDiv);
+                }
+                return;
+            }
+
+            let searchDiv = document.createElement('div');
+            searchDiv.className = "ui icon search input";
+            menuDiv.append(searchDiv);
+
+            let iSearchTag = document.createElement('i');
+            searchDiv.append(iSearchTag);
+            iSearchTag.className = "search icon";
+
+            let searchInput = document.createElement('input');
+            searchInput.setAttribute('type', 'text');
+            searchInput.setAttribute('placeholder', 'Search Tags...');
+            searchDiv.append(searchInput);
+
+            let dividerDiv = document.createElement('div');
+            dividerDiv.className = "divider";
+            menuDiv.append(dividerDiv);
+
+            let headerDiv = document.createElement('div');
+            headerDiv.className = "header";
+            menuDiv.append(headerDiv);
+
+            let iTagIcon = document.createElement('i');
+            iTagIcon.className = "tags icon";
+            iTagIcon.innerHTML = "Tag Label";
+            headerDiv.append(iTagIcon);
+
+            let scrollingDiv = document.createElement('div');
+            scrollingDiv.className="scrolling menu";
+            menuDiv.append(scrollingDiv);
+
+            // if(jsonData['>'][1]['@dataValue'].length > 0) {
+            //     for(let key of Object.keys(jsonData['>'])) {
+            //         let itemDiv = document.createElement('div');
+            //         let classDiv = document.createElement('div');
+            //         classDiv.className = "ui empty circular label ";
+            //         classDiv.className += jsonData['>'][key]['@iconName'];
+            //         itemDiv.appendChild(classDiv);
+            //         itemDiv.setAttribute('data-value', jsonData['>'][key]['@dataValue']);
+            //         itemDiv.append(jsonData['>'][key]['@title']);
+            //         itemDiv.className = "item";
+            //         scrollingDiv.append(itemDiv);
+            //     }
+            // } else {
+            //     for(let key of Object.keys(jsonData['>'])) {
+            //         let itemDiv = document.createElement('div');
+            //         let classDiv = document.createElement('div');
+            //         classDiv.className = "ui empty circular label ";
+            //         classDiv.className += jsonData['>'][key]['@iconName'];
+            //         itemDiv.appendChild(classDiv);
+            //         itemDiv.append(jsonData['>'][key]['@title']);
+            //         itemDiv.className = "item";
+            //         scrollingDiv.append(itemDiv);
+            //     }
+            // }
+
+            for(let key of Object.keys(jsonData['>'])) {
+                if(jsonData['>'][key]['@dataValue'].length > 0) {
+                    let itemDiv = document.createElement('div');
+                    let classDiv = document.createElement('div');
+                    classDiv.className = "ui empty circular label ";
+                    classDiv.className += jsonData['>'][key]['@iconName'];
+                    itemDiv.appendChild(classDiv);
+                    itemDiv.setAttribute('data-value', jsonData['>'][key]['@dataValue']);
+                    itemDiv.append(jsonData['>'][key]['@title']);
+                    itemDiv.className = "item";
+                    scrollingDiv.append(itemDiv);
+                } else {
+                    let itemDiv = document.createElement('div');
+                    let classDiv = document.createElement('div');
+                    classDiv.className = "ui empty circular label ";
+                    classDiv.className += jsonData['>'][key]['@iconName'];
+                    itemDiv.appendChild(classDiv);
+                    itemDiv.append(jsonData['>'][key]['@title']);
+                    itemDiv.className = "item";
+                    scrollingDiv.append(itemDiv);
+                }
+                
+            }
+
+        } else if (jsonData['@displayStyle']  === "multiple select" || jsonData['@displayStyle']  === "multiple search select") {
+            let select = document.createElement('select');
+            select.className = "ui fluid";
+            select.setAttribute('multiple', ' ');
+            select.setAttribute('name', 'subjects');
+            jsonData['@displayStyle']  === "multiple search select" ? select.classList.add('search') : '';
+            let defaultOption = document.createElement('option');
+            defaultOption.textContent = jsonData['@defaultTitle'];
+            select.appendChild(defaultOption);
+
+            for(let key of Object.keys(jsonData['>'])) {
+                if(jsonData['>'][key]['@title'].length > 0) {
+                    let option = document.createElement('option');
+                    option.setAttribute('value', jsonData['>'][key]['@title']);
+                    option.textContent = jsonData['>'][key]['@title'];
+                    select.append(option);
+                }
+            }
+            select.classList.add('dropdown')
+            uiDiv.appendChild(select);
+
+        }
+    
+        node.append(uiDiv);
+        this.dropdown(uiDiv.getAttribute('id'));
+
+    }
+    
+}
+
+// new Select().render(document.querySelector("#select"));
