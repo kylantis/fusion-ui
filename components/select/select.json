@@ -6,7 +6,7 @@
     "@required": "true | false",
     "@scrolling": "true | false",
     ">": [{
-        "@tag": "item",
+        "@tag": "item", 
         "@title": "Geography",
         "@data-value": "Geography",
         "@imageUrl": "",

@@ -1,21 +1,161 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
-    <link rel="stylesheet" href="./../../css/table.css">
-    <link rel="stylesheet" href="./../../shared/css/site.css">
-    <link rel="stylesheet" href="./../../shared/css/reset.css">
+
 </head>
-<body> 
+
+<body>
     <div id="table"></div>
-    
-    <!-- jquery -->
-    <script src="./../../shared/js/jquery-3.4.1.min.js"></script>
+
+    <script>
+       
+        const myTable = [
+            {
+                "0": "James",
+                "1": "24",
+                "2": "Engineer",
+                "3": "125000.60",
+                "4": "James is an interesting boy but sometimes" +
+                    " you don't really have enough room to describe everything you'd like"
+            },
+            {
+                "Name": "Jill",
+                "Age": "26",
+                "Job": "Engineer",
+                "Salary": "516000.00",
+                "Description": "Jill is an alright girl but sometimes you don't" +
+                    " really have enough room to describe everything you'd like"
+            },
+            {
+                "Name": "Elyse",
+                "Age": "24",
+                "Job": "Designer",
+                "Salary": "210000.40",
+                "Description": "Elyse is a kind girl but sometimes you don't really have" +
+                    " enough room to describe everything you'd like"
+            }
+        ];
+
+        const appendRowData = [
+            {
+                "0": "Emeka",
+                "1": "24",
+                "2": "Engineer",
+                "3": "125000.60",
+                "4": "James is an interesting boy but sometimes" +
+                    " you don't really have enough room to describe everything you'd like"
+            },
+            {
+                "0": "Johnny",
+                "1": "26",
+                "2": "Engineer",
+                "3": "516000.00",
+                "4": "Jill is an alright girl but sometimes you don't" +
+                    " really have enough room to describe everything you'd like"
+            }
+        ];
+
+        const jsonData = {
+            "@title": "People Of The World",
+            "@tableStyle": "standard",
+            "@isHoverable": true,
+            "@isResponsive": true,
+            "@textAlign": "center",
+            "@isStriped": true,
+            "@hasBorder": false,
+            "@singleLine": false,
+            "@isInverted": true,
+            "@color": "blue",
+            "@isDataTable": false,
+            "@isEditableTable": false,
+            "@isFixed": true,
+            ">": [{
+                "@tag": "columns-definitions",
+                ">": [{
+                    "@tag": "column",
+                    "@title": "name"
+                }, {
+                    "@tag": "column",
+                    "@title": "age"
+                }, {
+                    "@tag": "column",
+                    "@title": "job"
+                }, {
+                    "@tag": "column",
+                    "@title": "salary"
+                }, {
+                    "@tag": "column",
+                    "@title": "description"
+                }]
+            }, {
+                "@tag": "rows",
+                ">": [{
+                    "@tag": "row",
+                    ">": [{
+                        "@tag": "column",
+                        "@value": "James"
+                    }, {
+                        "@tag": "column",
+                        "@value": "24"
+                    }, {
+                        "@tag": "column",
+                        "@value": "Engineer"
+                    }, {
+                        "@tag": "column",
+                        "@value": "125000.60"
+                    }, {
+                        "@tag": "column",
+                        "@value": "James is an interesting boy but sometimes you don't really have enough room to describe everything you'd like"
+                    }]
+                }, {
+                    "@tag": "row",
+                    ">": [{
+                        "@tag": "column",
+                        "@value": "Jill"
+                    }, {
+                        "@tag": "column",
+                        "@value": "26"
+                    }, {
+                        "@tag": "column",
+                        "@value": "Engineer"
+                    }, {
+                        "@tag": "column",
+                        "@value": "516000.00"
+                    }, {
+                        "@tag": "column",
+                        "@value": "Jill is an alright girl but sometimes you don't really have enough room to describe everything you'd like"
+                    }]
+                }, {
+                    "@tag": "row",
+                    ">": [{
+                        "@tag": "column",
+                        "@value": "Elyse"
+                    }, {
+                        "@tag": "column",
+                        "@value": "24"
+                    }, {
+                        "@tag": "column",
+                        "@value": "Designer"
+                    }, {
+                        "@tag": "column",
+                        "@value": "210000.40"
+                    }, {
+                        "@tag": "column",
+                        "@value": "Elyse is a kind girl but sometimes you don't really have enough room to describe everything you'd like"
+                    }]
+                }]
+            }]
+        }
+    </script>
     <!-- js dependencies -->
     <script src="/components/base.js"></script>
     <script src="./index.js"></script>
-    <script>new Table().render(document.querySelector("#table"));</script>
+    <script>new Table(jsonData, document.querySelector("#table"));</script>
+
 </body>
-</html>  
+
+</html>

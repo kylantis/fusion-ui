@@ -1,19 +1,22 @@
 class SearchBar extends BaseComponent {
-    constructor() {
-        super();
-        this.data = this.getJson();
+    constructor(data, node) {
+        super(data, node);
+        this.data = data;
+        this.node = node;
     }
 
     getCssDependencies() {
-        const cssDependencies = super.getCssDependencies();
-        cssDependencies.push['/css/search.css', '/css/icon.css', '/shared/css/site.css', '/shared/css/reset.css'];
-        return cssDependencies;
+        const baseDependencies = super.getCssDependencies();
+        baseDependencies.push(['/css/search.css']);
+        baseDependencies.push(['/css/icon.css']);
+        baseDependencies.push(['/css/input.css']);
+        return baseDependencies;
     }
 
     getJsDependencies() {
-        const jsDepenedencies = super.getJsDependencies();
-        jsDepenedencies.push['/js/search.js', '/shared/js/jquery-3.4.1.min.js'];
-        return jsDepenedencies;
+        const baseDependencies = super.getJsDependencies();
+        // baseDependencies.push(['/js/search.js']);
+        return baseDependencies;
     }
 
     content = [
@@ -44,28 +47,15 @@ class SearchBar extends BaseComponent {
         { title: 'United Arab Emirates' }
     ];
 
-    getJson() {
-        let jsonData = {
-            "@title": "",
-            "@placeholder": "Search...",
-            "@animated": true,
-            "@searchIcon": true,
-            "@iconName": "icon input",
-            "@autoComplete": true,
-            "@size": "small",
-            "@disabled":false
-        }
-        return jsonData;
-    }
-
-    autoComplete() {
-        $('.ui.search')
-        .search({
-            source: this.content
-        });
-    }
+    // autoComplete() {
+    //     $('.ui.search')
+    //     .search({
+    //         source: this.content
+    //     });
+    // }
 
     render(node) {
+        node = this.node;
         let jsonData = this.data;
         let uiDiv = document.createElement('div');
         uiDiv.className="ui category ";
@@ -110,9 +100,9 @@ class SearchBar extends BaseComponent {
         uiDiv.classList.add("search");
         node.append(uiDiv);
 
-        if(jsonData['@autoComplete']) {
-            this.autoComplete();
-        }
+        // if(jsonData['@autoComplete']) {
+        //     this.autoComplete();
+        // }
     }
     
 }

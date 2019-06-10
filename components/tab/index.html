@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="./../../css/icon.css" type='text/css'>
+    <link rel="stylesheet" href="./../../shared/css/site.css" type='text/css'>
+    <link rel="stylesheet" href="./../../shared/css/reset.css" type='text/css'>
+    <link rel="stylesheet" href="./../../css/dropdown.css" type='text/css'>
+    <link rel="stylesheet" href="./../../shared/css/transition.css" type='text/css'>
+</head>
+<body>
+    <div id="select"></div>
+
+    <script src="./../../shared/js/jquery-3.4.1.min.js"></script>
+    <script src="./../../js/dropdown.js"></script>
+    <script src="./../../shared/js/transition.js"></script>
+    <script src="./index.js"></script>
+    <script>
+        new Select().render(document.querySelector("#select")); 
+
+        $('.ui.dropdown').dropdown();
+    </script>
+
+</body>
+</html>

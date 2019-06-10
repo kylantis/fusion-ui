@@ -3,10 +3,21 @@
         color="">
     
     <columns-definitions>
-        <column textAlign="center | left | right" title="abc"/> 
-        <column textAlign="center | left | right" title="abc"/>
-        <column textAlign="center | left | right" title="abc"/>
+        <column textAlign="center | left | right" title="name"/> 
+        <column textAlign="center | left | right" title="age"/>
+        <column textAlign="center | left | right" title="salary"/>
+        <column textAlign="center | left | right" title="description"/>
     </columns-definitions>
+
+
+    <rows>
+        <row>
+            <column value="" />
+            <column value="" />
+            <column value="" />
+            <column value="" />
+        </row>
+    </rows>
 
 </table>
 

@@ -1,10 +1,11 @@
 {
     "@title": "",
-    "type": "text | radio | checkbox | month | search | email | time | url | textarea | number | range",
+    "type": "text | radio | checkbox | month | email | time | url | textarea | number | range",
     "@placeholder": "",
     "@maxlength": "",
     "@value": "",
     "@checked": false,
     "@autofocus": false,
-    "@required": false
+    "@required": false,
+    "@disabled": false
 }

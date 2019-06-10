@@ -4,18 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <link rel="stylesheet" href="./../../css/icon.css" type='text/css'>
-    <link rel="stylesheet" href="./../../css/input.css">
-    <link rel="stylesheet" href="./../../css/search.css" type='text/css'>
-    <link rel="stylesheet" href="./../../shared/css/site.css">
 <body>
 
     <div id="searchBar"></div>
 
-    <script src="./../../shared/js/jquery-3.4.1.min.js"></script>
+    <script>  
+    let jsonData = {
+        "@title": "",
+        "@placeholder": "Search...",
+        "@animated": true,
+        "@searchIcon": true,
+        "@iconName": "icon input",
+        "@autoComplete": true,
+        "@size": "small",
+        "@disabled":false
+    }
+    </script>
     <script src="./../../js/search.js"></script>
     <script src="/components/base.js"></script>
     <script src="./index.js"></script>
-    <script>new SearchBar().render(document.querySelector("#searchBar"));</script>
+    <script>new SearchBar(jsonData, document.querySelector("#searchBar"));</script>
 </body>
 </html>

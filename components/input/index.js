@@ -1,35 +1,24 @@
 class Input extends BaseComponent {
-    constructor() {
-        super();
-        this.data = this.getJson();
+    constructor(data, node) {
+        super(data, node);
+        this.data = data;
+        this.node = node;
+    }
+
+    tagName() {
+        return "input";
     }
 
     getCssDependencies() {
         const baseDependencies = super.getCssDependencies();
-        baseDependencies.push([]);
+        baseDependencies.push(["/css/input.css"]);
+        baseDependencies.push(["/css/checkbox.css"]);
         return baseDependencies;
     }
-
-    getJsDependencies() {
-        const baseDependencies = super.getJsDependencies;
-        baseDependencies.push([]);
-        return baseDependencies;
-    }
-
-    getJson () {
-        let jsonData = {
-            "@title": "Email",
-            "@type": "checkbox",
-            "@placeholder": "Enter Email",
-            "@maxlength": "",
-            "@value": "",
-            "@checked": false,
-            "@autofocus": false,
-            "@required": false
-        }
-        return jsonData;
-    }
+ 
     render(node) {
+        node = this.node;
+
         const uiDiv = document.createElement('div');
         const inputDiv = document.createElement('input');
         uiDiv.classList.add('ui');
@@ -43,19 +32,50 @@ class Input extends BaseComponent {
             uiDiv.classList.add("checkbox");
             uiDiv.append(inputDiv);
             inputDiv.setAttribute("type", "checkbox");
+            this.data['@checked'] ? inputDiv.setAttribute('checked', 'checked') : '';
+            this.data['@disabled'] ? inputDiv.setAttribute('disabled', 'disabled') : '';
             let labelDiv = document.createElement('label');
             labelDiv.textContent = this.data['@title'];
             uiDiv.append(labelDiv);
+        } else if (this.data['@type'] === "radio") {
+            uiDiv.classList.add("radio");
+            uiDiv.classList.add("checkbox");
+            uiDiv.append(inputDiv);
+            inputDiv.setAttribute("type", "radio");
+            this.data['@checked'] ? inputDiv.setAttribute('checked', 'checked') : '';
+            this.data['@disabled'] ? inputDiv.setAttribute('disabled', 'disabled') : '';
+            let labelDiv = document.createElement('label');
+            labelDiv.textContent = this.data['@title'];
+            uiDiv.append(labelDiv);
+        } else if (this.data['@type'] === "slider") {
+            uiDiv.classList.add("slider");
+            uiDiv.classList.add("checkbox");
+            uiDiv.append(inputDiv);
+            inputDiv.setAttribute("type", "checkbox");
+            this.data['@checked'] ? inputDiv.setAttribute('checked', 'checked') : '';
+            this.data['@disabled'] ? inputDiv.setAttribute('disabled', 'disabled') : '';
+            let labelDiv = document.createElement('label');
+            labelDiv.textContent = this.data['@title'];
+            uiDiv.append(labelDiv);
+        } else if (this.data['@type'] === "toggle") {
+            uiDiv.classList.add("toggle");
+            uiDiv.classList.add("checkbox");
+            uiDiv.append(inputDiv);
+            inputDiv.setAttribute("type", "checkbox");
+            this.data['@checked'] ? inputDiv.setAttribute('checked', 'checked') : '';
+            this.data['@disabled'] ? inputDiv.setAttribute('disabled', 'disabled') : '';
+            let labelDiv = document.createElement('label');
+            labelDiv.textContent = this.data['@title'];
+            uiDiv.append(labelDiv);
+        } else {
+            uiDiv.classList.add("input");
+            uiDiv.append(inputDiv);
+            inputDiv.setAttribute("type", this.data['@type']);
+            inputDiv.setAttribute("placeholder", this.data['@title']);
         }
 
         node.append(uiDiv);
 
     } 
     
-    // <div class="ui checkbox">
-    //     <input type="checkbox" name="example">
-    //     <label>Make my profile visible</label>
-    // </div>
 }
-
-new Input().render(document.querySelector("#input"));

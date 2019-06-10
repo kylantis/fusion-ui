@@ -1,8 +1,9 @@
 class Table extends BaseComponent {
-    
-    constructor() {
-        super();
-        this.data = this.getJson();
+
+    constructor(data, node) {
+        super(data, node);
+        this.data = data;
+        this.node = node;
     }
 
     tagName() {
@@ -11,80 +12,45 @@ class Table extends BaseComponent {
 
     getCssDependencies() {
         const cssDependencies = super.getCssDependencies();
-        cssDependencies.push['/css/table.css', '/shared/css/site.css', '/shared/css/reset.css'];
+        cssDependencies.push(['/css/table.css']);
         return cssDependencies;
-    } 
-
-    getJsDependencies() {
-        const jsDepenedencies = super.getJsDependencies();
-        jsDepenedencies.push['/shared/js/jquery-3.4.1.min.js'];
-        return jsDepenedencies;
     }
 
-    myTable = [
-        {
-            "Name": "James",
-            "Age": "24",
-            "Job": "Engineer",
-            "Salary": "125000.60",
-            "Description": "James is an interesting boy but sometimes" +
-                " you don't really have enough room to describe everything you'd like"
-        },
-        {
-            "Name": "Jill",
-            "Age": "26",
-            "Job": "Engineer",
-            "Salary": "516000.00",
-            "Description": "Jill is an alright girl but sometimes you don't" +
-                " really have enough room to describe everything you'd like"
-        },
-        {
-            "Name": "Elyse",
-            "Age": "24",
-            "Job": "Designer",
-            "Salary": "210000.40",
-            "Description": "Elyse is a kind girl but sometimes you don't really have" +
-                " enough room to describe everything you'd like"
-        }
-    ]
 
-    getJson() {
-        let tablejson = {
-            "@title": "People Of The World",
-            "@tableStyle": "standard",
-            "@isHoverable": true,
-            "@isResponsive": true,
-            "@isStriped": true,
-            "@hasBorder": false,
-            "@singleLine": true,
-            "@isInverted": true,
-            "@color": "blue",
-            "@isDataTable": false,
-            "@isEditableTable": false,
-            "@isFixed": true,
-            ">": [{
-                "@tag": "columns-definitions",
-                ">": [{
-                    "@tag": "column",
-                    "@textAlign": "center | left | right",
-                    "@title": "abc"
-                }, {
-                    "@tag": "column",
-                    "@textAlign": "center | left | right",
-                    "@title": "abc"
-                }, {
-                    "@tag": "column",
-                    "@textAlign": "center | left | right",
-                    "@title": "abc"
-                }]
-            }]
+    update(node) {
+        let table = this.newTable;
+        console.log(table);
+        for (let i = 0; i < table.length; i++) {
+            let tr = tbody.insertRow(-1);
+            for (let j = 0; j < col.length; j++) {
+                let tableCell = tr.insertCell(-1);
+                tableCell.innerHTML = table[i][col[j]];
+                node.append(tableCell);
+            }
         }
-        return tablejson;
+    }
+
+    traverse(data) {
+        if(data && typeof data == "object") {
+            Object.entries(data).forEach(([key, value]) => {
+            this.traverse(value)
+        });
+        } else { 
+            if(data === "row") {
+                let tr = tbody.insertRow(-1);
+                let tableCell = tr.insertCell(-1);
+                if(data !== "column") {
+                    tableCell.textContent = data;
+                }
+            }
+        }
     }
 
     render(node) {
+        node = this.node;
         let tableData = this.myTable;
         let jsonData = this.data;
+
         let tableId = [];
 
         if (jsonData['@tableStyle'] === "standard") {
@@ -140,6 +106,7 @@ class Table extends BaseComponent {
                 table.classList.add("celled");
             }
             table.classList.add("table");
+
             table.append(thead);
             table.append(tbody);
 
@@ -147,34 +114,78 @@ class Table extends BaseComponent {
             let tr = thead.insertRow(-1);
             let trOne = thead.insertRow(-1);
 
-            //Add title
-            if (jsonData['@title'].length > 0) {
-                let thOne = document.createElement('th');
-                thOne.innerHTML = jsonData['@title'];
-                thOne.setAttribute("colspan", col.length);
-                trOne.appendChild(thOne);
-                thead.prepend(trOne);
+            // Add title
+            // if (jsonData['@title'].length > 0) {
+            //     let thOne = document.createElement('th');
+            //     thOne.innerHTML = jsonData['@title'];
+            //     thOne.setAttribute("colspan", col.length);
+            //     trOne.appendChild(thOne);
+            //     thead.prepend(trOne);
+            // }
+
+            // for (let i = 0; i < col.length; i++) {
+            //     let th = document.createElement('th');
+            //     th.innerHTML = col[i];
+            //     tr.appendChild(th);
+            // }
+            //Add JSON data to table as rows
+            // for (let i = 0; i < tableData.length; i++) {
+            //     let tr = tbody.insertRow(-1);
+            //     for (let j = 0; j < col.length; j++) {
+            //         let tableCell = tr.insertCell(-1);
+            //         tableCell.innerHTML = tableData[i][col[j]];
+            //     }
+            // }
+
+            const columns = this.data['>'][0]['>'];
+            const columnTitles = {};
+            for(let i = 0; i < columns.length; i++) {
+                columnTitles[i.toString()] = columns[i]['@title'];
             }
 
-            for (let i = 0; i < col.length; i++) {
+            for(let value of Object.keys(columnTitles)) {
                 let th = document.createElement('th');
-                th.innerHTML = col[i];
+                th.textContent = columnTitles[value];
                 tr.appendChild(th);
+                thead.append(th);
             }
-            //Add JSON data to table as rows
-            for (let i = 0; i < tableData.length; i++) {
-                let tr = tbody.insertRow(-1);
-                for (let j = 0; j < col.length; j++) {
-                    let tableCell = tr.insertCell(-1);
-                    tableCell.innerHTML = tableData[i][col[j]];
+
+            if(jsonData['>'].length > 1) {
+
+                for(let i = 1; i < this.data['>'].length; i++) {
+
+                    const rowData = this.data['>'][i];
+
+                    
+
                 }
+                
             }
+            
             const id = table.getAttribute('id') + "-" + this.getRandomInt(10000, 20000);
             tableId.push('#' + id);
             table.setAttribute("id", id);
+
             node.appendChild(table);
+
         }
 
     }
 
+
 }
+
+
+
+
+// function traverse(data) {
+// 	if(data && typeof data == "object") {
+// 		Object.entries(data).forEach(([key, value]) => {
+// 		traverse(value)
+// 	});
+// 	} else { 
+// 		if(data !== "column" && data !== "row") {
+//             console.log(data) 
+//         }
+// 	}
+// }

@@ -1,94 +1,37 @@
-class Select {
-    constructor() {
-
+class Select extends BaseComponent {
+    constructor(data, node) {
+        super(data, node);
     }
+    
+    getCssDependencies() {
+        const baseDependencies = super.getCssDependencies();
+        baseDependencies.push('/css/dropdown.css', '/css/icon.css', '/shared/css/transition.css');
+        return baseDependencies;
+    }
+
+    getJsDependencies() { 
+        const baseDependencies = super.getJsDependencies();
+        baseDependencies.push('/shared/js/site.js', '/shared/js/transition.js', '/js/dropdown.js');
+        return baseDependencies;
+    }
+
 
     dropdown(id) {
         $(`#${id}`)
-            .dropdown();  
+            .dropdown();      
     }
 
-    getJson() {
-        let jsonData = {
-            "@title":"Test",
-            "@iconName": "",
-            "@displayStyle": "labeled",
-            "@labelIcon": "", 
-            "@defaultTitle": "Subject",
-            "@isRequired": false,
-            "@scrolling": false,
-            ">": [{
-                "@tag": "item",
-                "@title": "Geography",
-                "@dataValue": "Geography",
-                "@imageUrl": "",
-                "@iconName": "red"      
-            }, {
-                "@tag": "item",
-                "@title": "Biology",
-                "@dataValue": "Biology",
-                "@imageUrl": "",
-                "@iconName": "black" 
-            }, {
-                "@tag": "item",
-                "@title": "Mathematics",
-                "@dataValue": "Mathematics",
-                "@imageUrl": "",
-                "@iconName": "blue" 
-            }, {
-                "@tag": "item",
-                "@title": "English",
-                "@dataValue": "English",
-                "@imageUrl": "",
-                "@iconName": "yellow" 
-            }, {
-                "@tag": "item",
-                "@title": "Computer",
-                "@dataValue": "Computer",
-                "@imageUrl": "",
-                "@iconName": "purple" 
-            }, {
-                "@tag": "item",
-                "@title": "Chemistry",
-                "@dataValue": "Chemistry",
-                "@imageUrl": "",
-                "@iconName": "orange" 
-            }, {
-                "@tag": "item",
-                "@title": "Igbo",
-                "@dataValue": "Igbo",
-                "@imageUrl": "",
-                "@iconName": "pink" 
-            }, {
-                "@tag": "item",
-                "@title": "Physics",
-                "@dataValue": "Physics",
-                "@imageUrl": "",
-                "@iconName": "",
-                ">": [{
-                    "@tag": "item",
-                    "@title": "Metaphysics",
-                    "@dataValue": "Metaphysics",
-                    "@imageUrl": "",
-                    "@iconName": ""
-                }, {
-                    "@tag": "item",
-                    "@title": "Astrophysics",
-                    "@dataValue": "Astrophysics",
-                    "@imageUrl": "",
-                    "@iconName": ""
-                }]
-            }]
-        }
-        return jsonData;
-    }
 
     render(node) {
-        let jsonData = this.getJson();
+        node = this.node;
+        let jsonData = this.data;
+
         let uiDiv = document.createElement('div');
         uiDiv.setAttribute('id', `${node.getAttribute('id')}-component`);
+        let progressBarIds = [];
 
-        if(jsonData['@displayStyle'] === "search" || jsonData['@displayStyle'] === "search selection") {
+
+        if(jsonData['@displayStyle'] === "select" || jsonData['@displayStyle'] === "search selection") {
             uiDiv.className = "ui fluid selection";
             if(jsonData['@displayStyle'] === "search selection") {
                 uiDiv.classList.add("search");
@@ -171,10 +114,9 @@ class Select {
                     itemDiv.append(jsonData['>'][key]['@title']);
                     itemDiv.className = "item";
                     menuDiv.append(itemDiv);
-                    
                     node.append(uiDiv);
-                    return;
                 }
+                return;
             }
 
             let searchDiv = document.createElement('div');
@@ -256,16 +198,32 @@ class Select {
                 }
                 
             }
+
+        } else if (jsonData['@displayStyle']  === "multiple select" || jsonData['@displayStyle']  === "multiple search select") {
+            let select = document.createElement('select');
+            select.className = "ui fluid";
+            select.setAttribute('multiple', ' ');
+            select.setAttribute('name', 'subjects');
+            jsonData['@displayStyle']  === "multiple search select" ? select.classList.add('search') : '';
+            let defaultOption = document.createElement('option');
+            defaultOption.textContent = jsonData['@defaultTitle'];
+            select.appendChild(defaultOption);
             
-            node.append(uiDiv);
-            
-            this.dropdown(uiDiv.getAttribute('id'));
-            
+            for(let key of Object.keys(jsonData['>'])) {
+                if(jsonData['>'][key]['@title'].length > 0) {
+                    let option = document.createElement('option');
+                    option.setAttribute('value', jsonData['>'][key]['@title'] );
+                    option.textContent = jsonData['>'][key]['@title'];
+                    select.append(option);
+                }
+            }
+            select.classList.add('dropdown')
+            uiDiv.appendChild(select);
         }
     
-    
+        node.append(uiDiv);
+        this.dropdown(uiDiv.getAttribute('id'));
+
     }
     
 }
-
-// new Select().render(document.querySelector("#select"));

@@ -1,18 +1,37 @@
 <!DOCTYPE html>
-<html>
 <head>
-    <link rel="stylesheet" href="../../css/button.css">
-    <link rel="stylesheet" href="../../css/icon.css">
-    <link rel="stylesheet" href="./../../shared/css/site.css">
-    <link rel="stylesheet" href="./../../shared/css/reset.css">
-
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
 </head>
 <body>
     <div id="button"></div>
 
-    <script src="/shared/js/jquery-3.4.1.min.js"></script>
+    <script>
+    let jsonData = {
+            "@name": "",
+            "@value": "",
+            "@buttonStyle": "social",
+            "@state": "",
+            "@type": "primary",
+            "@iconUrl": "",
+            "@displayStyle": "default",
+            "@size": "",
+            "@visible": "visible",
+            "@visibleContent": "text",
+            "@hiddenContent": "icon",
+            "@transition": "fade",
+            "@iconName": "user",
+            "@tabIndex": 0,
+            "@buttonText": "Hello Button",
+            "@transitionContent": "Hello",
+            "@iconPosition": "right",
+            "@color": "",
+            "@socialButton": "linkedin"
+        }
+    </script>
     <script src="/components/base.js"></script>
     <script src="./index.js"></script>
-    <script>new Button().render(document.querySelector("#button"));</script>
+    <script>new Button(jsonData, document.querySelector("#button"));</script>
 </body>
 </html>
