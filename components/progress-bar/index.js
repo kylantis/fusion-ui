@@ -2,15 +2,11 @@
 class ProgressBar extends BaseComponent {
     constructor(data, node) {
         super(data, node);
-        this.data = data;
-        this.node = node;
     }
 
     tagName() {
         return "progressBar";
     }
-
-    
 
     getCssDependencies() {
         const baseDependencies = super.getCssDependencies();

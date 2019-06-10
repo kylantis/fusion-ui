@@ -1,28 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
 <body>
 
     <div id="searchBar"></div>
 
-    <script>  
-    let jsonData = {
-        "@title": "",
-        "@placeholder": "Search...",
-        "@animated": true,
-        "@searchIcon": true,
-        "@iconName": "icon input",
-        "@autoComplete": true,
-        "@size": "small",
-        "@disabled":false
-    }
+    <script>
+        const jsonData = {
+            "@title": "",
+            "@placeholder": "Search...",
+            "@animated": true,
+            "@searchIcon": true,
+            "@iconName": "icon input",
+            "@autoComplete": true,
+            "@size": "large",
+            "@disabled": false,
+            '>': [
+                { '@tag': 'item', '@id': '', '@title': 'Afghanistan' },
+                { '@tag': 'item', '@title': 'Andorra' },
+                { '@tag': 'item', '@title': 'Antigua' },
+                { '@tag': 'item', '@title': 'Anguilla' },
+                { '@tag': 'item', '@title': 'Albania' },
+                { '@tag': 'item', '@title': 'Armenia' },
+                { '@tag': 'item', '@title': 'Netherlands Antilles' },
+                { '@tag': 'item', '@title': 'Angola' },
+                { '@tag': 'item', '@title': 'Argentina' },
+                { '@tag': 'item', '@title': 'American Samoa' },
+                { '@tag': 'item', '@title': 'Austria' },
+                { '@tag': 'item', '@title': 'Australia' },
+                { '@tag': 'item', '@title': 'Aruba' },
+                { '@tag': 'item', '@title': 'Aland Islands' },
+                { '@tag': 'item', '@title': 'Azerbaijan' },
+                { '@tag': 'item', '@title': 'Bosnia' },
+                { '@tag': 'item', '@title': 'Barbados' },
+                { '@tag': 'item', '@title': 'Bangladesh' },
+                { '@tag': 'item', '@title': 'Belgium' },
+                { '@tag': 'item', '@title': 'Burkina Faso' },
+                { '@tag': 'item', '@title': 'Bulgaria' },
+                { '@tag': 'item', '@title': 'Bahrain' },
+                { '@tag': 'item', '@title': 'Burundi' },
+                { '@tag': 'item', '@title': 'Nigeria' },
+                { '@tag': 'item', '@title': 'United Arab Emirates' }
+            ]
+        }
     </script>
-    <script src="./../../js/search.js"></script>
     <script src="/components/base.js"></script>
     <script src="./index.js"></script>
-    <script>new SearchBar(jsonData, document.querySelector("#searchBar"));</script>
+    <script>
+        new SearchBar(jsonData, document.querySelector("#searchBar"));
+    </script>
 </body>
+
 </html>

@@ -1,70 +1,32 @@
 class SearchBar extends BaseComponent {
+
     constructor(data, node) {
         super(data, node);
-        this.data = data;
-        this.node = node;
     }
 
     getCssDependencies() {
         const baseDependencies = super.getCssDependencies();
-        baseDependencies.push(['/css/search.css']);
-        baseDependencies.push(['/css/icon.css']);
-        baseDependencies.push(['/css/input.css']);
+        baseDependencies.push('/css/icon.css', '/css/input.css', '/css/search.css');
         return baseDependencies;
     }
 
     getJsDependencies() {
         const baseDependencies = super.getJsDependencies();
-        // baseDependencies.push(['/js/search.js']);
+        baseDependencies.push('/js/search.js');
         return baseDependencies;
     }
-
-    content = [
-        { title: 'Afghanistan' },
-        { title: 'Andorra' },
-        { title: 'Antigua' },
-        { title: 'Anguilla' },
-        { title: 'Albania' },
-        { title: 'Armenia' },
-        { title: 'Netherlands Antilles' },
-        { title: 'Angola' },
-        { title: 'Argentina' },
-        { title: 'American Samoa' },
-        { title: 'Austria' },
-        { title: 'Australia' },
-        { title: 'Aruba' },
-        { title: 'Aland Islands' },
-        { title: 'Azerbaijan' },
-        { title: 'Bosnia' },
-        { title: 'Barbados' },
-        { title: 'Bangladesh' },
-        { title: 'Belgium' },
-        { title: 'Burkina Faso' },
-        { title: 'Bulgaria' },
-        { title: 'Bahrain' },
-        { title: 'Burundi' },
-        { title: 'Nigeria' },
-        { title: 'United Arab Emirates' }
-    ];
-
-    // autoComplete() {
-    //     $('.ui.search')
-    //     .search({
-    //         source: this.content
-    //     });
-    // }
 
     render(node) {
         node = this.node;
         let jsonData = this.data;
         let uiDiv = document.createElement('div');
-        uiDiv.className="ui category ";
+        uiDiv.className = "ui category ";
         let inputTag = document.createElement('input');
 
         let searchBarIds = [];
         uiDiv.setAttribute('id', `${node.getAttribute('id')}-component`);
 
-        if(jsonData['@searchIcon']) {
+        if (jsonData['@searchIcon']) {
             let iconDiv = document.createElement('div');
             inputTag.className = "prompt";
             inputTag.setAttribute('type', 'text');
@@ -76,7 +38,7 @@ class SearchBar extends BaseComponent {
             iTag.className = "search icon";
             iconDiv.append(iTag);
             let resultDiv = document.createElement('div');
-            resultDiv.className="results";
+            resultDiv.className = "results";
             uiDiv.append(resultDiv);
         } else {
             inputTag.className = "prompt";
@@ -84,12 +46,12 @@ class SearchBar extends BaseComponent {
             inputTag.setAttribute('placeholder', jsonData['@placeholder']);
             uiDiv.appendChild(inputTag);
             let resultDiv = document.createElement('div');
-            resultDiv.className="results";
+            resultDiv.className = "results";
         }
-        if(jsonData['@size'].length > 0) {
+        if (jsonData['@size'].length > 0) {
             uiDiv.classList.add(jsonData['@size']);
         }
-        if(jsonData['@disabled']) {
+        if (jsonData['@disabled']) {
             uiDiv.classList.add("disabled");
         }
 
@@ -100,9 +62,21 @@ class SearchBar extends BaseComponent {
         uiDiv.classList.add("search");
         node.append(uiDiv);
 
-        // if(jsonData['@autoComplete']) {
-        //     this.autoComplete();
-        // }
+        let suggestData = jsonData['>'];
+
+        suggestData = suggestData.map(json => {
+            return {
+                title: json['@title']
+            }
+        });
+
+        if (jsonData['@autoComplete']) {
+            $('.ui.search')
+                .search({
+                    source: suggestData
+                });
+        }
+
     }
-    
+
 }

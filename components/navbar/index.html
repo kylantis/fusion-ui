@@ -5,25 +5,181 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <link rel="stylesheet" href="./../../css/dropdown.css" type='text/css'>
-    <link rel="stylesheet" href="./../../css/icon.css" type='text/css'>
-    <link rel="stylesheet" href="./../../shared/css/extra_colors.css">
-    <link rel="stylesheet" href="./../../shared/css/semantic.css">
-    <link rel="stylesheet" href="./../../shared/css/ionicons.css">
-    <link rel="stylesheet" href="./custom.css">
 </head>
 
 <body>
-
     <div id="navBar"></div>
-
-
-    <script src="./../../shared/js/jquery-3.4.1.min.js"></script>
-    <script src="./../../shared/js/semantic.js"></script>
+    <script>
+        const jsonData = {
+            "@title": "",
+            "@icon": "",
+            "@navBarType": "standard",
+            "@orientation": "horizontal",
+            "@navPointer": false,
+            "@separator": false,
+            "@navBarAlignment": "",
+            "@menuStyle": "text",
+            ">": [{
+                "@tag": "group",
+                "@position": "left",
+                ">": [{
+                    "@tag": "item",
+                    "@title": "Home",
+                    "@iconName": "",
+                    "@badge": 5,
+                    "@iconOnly": false,
+                    "@iconPosition": "",
+                    "@active": false,
+                    "@url": ""
+                }, {
+                    "@tag": "item",
+                    "@title": "News",
+                    "@iconOnly": true,
+                    "@iconName": "",
+                    "@iconPosition": "right",
+                    "@active": false,
+                    "@url": "",
+                    ">": [{
+                        "@tag": "item",
+                        "@title": "Sports News",
+                        "@url": ""
+                    }, {
+                        "@tag": "item",
+                        "@title": "Football News",
+                        "@groupName": "Sports",
+                        "@url": "",
+                        ">": [{
+                            "@tag": "item",
+                            "@title": "Sports News",
+                            "@url": ""
+                        }, {
+                            "@tag": "item",
+                            "@title": "Football News",
+                            "@url": ""
+                        }, {
+                            "@tag": "item",
+                            "@title": "BasketBall News",
+                            "@url": ""
+                        }, {
+                            "@tag": "item",
+                            "@title": "Golf News",
+                            "@url": "",
+                            "@badge": 3
+                        }, {
+                            "@tag": "item",
+                            "@title": "Tennis News",
+                            "@url": "",
+                            ">": [{
+                                "@tag": "item",
+                                "@title": "Sports News",
+                                "@url": "",
+                                "@badge": 1,
+                            }, {
+                                "@tag": "item",
+                                "@title": "Football News",
+                                "@url": ""
+                            }, {
+                                "@tag": "item",
+                                "@title": "BasketBall News",
+                                "@url": ""
+                            }, {
+                                "@tag": "item",
+                                "@title": "Golf News",
+                                "@url": ""
+                            }, {
+                                "@tag": "item",
+                                "@title": "Tennis News",
+                                "@url": "",
+                                ">": [{
+                                    "@tag": "item",
+                                    "@title": "Sports News",
+                                    "@url": ""
+                                }, {
+                                    "@tag": "item",
+                                    "@badge": 2,
+                                    "@title": "Football News",
+                                    "@url": ""
+                                }, {
+                                    "@tag": "item",
+                                    "@title": "BasketBall News",
+                                    "@url": ""
+                                }, {
+                                    "@tag": "item",
+                                    "@title": "Golf News",
+                                    "@url": ""
+                                }, {
+                                    "@tag": "item",
+                                    "@title": "Tennis News",
+                                    "@url": ""
+                                }]
+                            }]
+                        }]
+                    }, {
+                        "@tag": "item",
+                        "@title": "BasketBall News",
+                        "@url": "",
+                        "@badge": 9,
+                    }, {
+                        "@tag": "item",
+                        "@title": "Golf News",
+                        "@groupName": "External",
+                        "@url": ""
+                    }, {
+                        "@tag": "item",
+                        "@title": "Tennis News",
+                        "@groupName": "Sports",
+                        "@url": ""
+                    }, {
+                        "@tag": "item",
+                        "@title": "Waterball News",
+                        "@groupName": "External",
+                        "@url": "",
+                        ">": [{
+                            "@tag": "item",
+                            "@title": "Football News",
+                            "@url": ""
+                        }, {
+                            "@tag": "item",
+                            "@title": "BasketBall News",
+                            "@url": ""
+                        }, {
+                            "@tag": "item",
+                            "@title": "Golf News",
+                            "@url": ""
+                        }, {
+                            "@tag": "item",
+                            "@title": "Tennis News",
+                            "@url": "",
+                            ">": [{
+                                "@tag": "item",
+                                "@title": "Football News",
+                                "@url": ""
+                            }, {
+                                "@tag": "item",
+                                "@title": "BasketBall News",
+                                "@url": ""
+                            }, {
+                                "@tag": "item",
+                                "@title": "Golf News",
+                                "@url": ""
+                            }]
+                        }]
+                    }]
+                }, {
+                    "@tag": "item",
+                    "@title": "About",
+                    "@iconOnly": "true | false",
+                    "@iconName": "",
+                    "@iconPosition": "left",
+                    "@active": false,
+                    "@url": ""
+                }]
+            }]
+        }
+    </script>
     <script src="/components/base.js"></script>
     <script src="./index.js"></script>
-    <script>new NavBar().render(document.querySelector("#navBar"));</script>
-
+    <script>new NavBar(jsonData, document.querySelector("#navBar"));</script>
 </body>
 
 </html>

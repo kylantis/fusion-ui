@@ -1,16 +1,8 @@
-//toggle active and inactive
-$('.ui.menu a.item').on('click', function () {
-  $(this)
-    .addClass('active')
-    .siblings()
-    .removeClass('active');
-})
 
 class NavBar extends BaseComponent {
 
-  constructor() {
-    super();
-    this.data = this.getJson();// This is only a prototype
+  constructor(data, node) {
+    super(data, node);
   }
 
   tagName() {
@@ -19,188 +11,18 @@ class NavBar extends BaseComponent {
 
   getCssDependencies() {
     const baseDependencies = super.getCssDependencies();
-    baseDependencies.push('/css/dropdown.css', '/css/icons.css', '/shared/css/extra_colors.css', '/shared/css/ionicons.css');
+    baseDependencies.push('/css/icon.css', '/css/label.css', '/css/menu.css', '/css/dropdown.css', '/components/navbar/custom.css');
     return baseDependencies
   }
 
-  getjsDependencies() {
-    const baseDependencies = super.getCssDependencies();
-    baseDependencies.push();
+  getJsDependencies() {
+    const baseDependencies = super.getJsDependencies();
+    baseDependencies.push('/js/dropdown.js', '/components/navbar/custom.js');
     return baseDependencies;
   }
 
-  getJson() {
-    let jsonData = {
-      "@title": "",
-      "@icon": "",
-      "@navBarType": "standard",
-      "@orientation": "horizontal",
-      "@navPointer": false,
-      "@separator": false,
-      "@navBarAlignment": "",
-      "@menuStyle": "text",
-      ">": [{
-        "@tag": "group",
-        "@position": "left",
-        ">": [{
-          "@tag": "item",
-          "@title": "Home",
-          "@iconName": "",
-          "@badge": 5,
-          "@iconOnly": false,
-          "@iconPosition": "",
-          "@active": false,
-          "@url": ""
-        }, {
-          "@tag": "item",
-          "@title": "News",
-          "@iconOnly": true,
-          "@iconName": "",
-          "@iconPosition": "right",
-          "@active": false,
-          "@url": "",
-          ">": [{
-            "@tag": "item",
-            "@title": "Sports News",
-            "@url": ""
-          }, {
-            "@tag": "item",
-            "@title": "Football News",
-            "@groupName": "Sports",
-            "@url": "",
-            ">": [{
-              "@tag": "item",
-              "@title": "Sports News",
-              "@url": ""
-            }, {
-              "@tag": "item",
-              "@title": "Football News",
-              "@url": ""
-            }, {
-              "@tag": "item",
-              "@title": "BasketBall News",
-              "@url": ""
-            }, {
-              "@tag": "item",
-              "@title": "Golf News",
-              "@url": "",
-              "@badge": 3
-            }, {
-              "@tag": "item",
-              "@title": "Tennis News",
-              "@url": "",
-              ">": [{
-                "@tag": "item",
-                "@title": "Sports News",
-                "@url": "",
-                "@badge": 1,
-              }, {
-                "@tag": "item",
-                "@title": "Football News",
-                "@url": ""
-              }, {
-                "@tag": "item",
-                "@title": "BasketBall News",
-                "@url": ""
-              }, {
-                "@tag": "item",
-                "@title": "Golf News",
-                "@url": ""
-              }, {
-                "@tag": "item",
-                "@title": "Tennis News",
-                "@url": "",
-                ">": [{
-                  "@tag": "item",
-                  "@title": "Sports News",
-                  "@url": ""
-                }, {
-                  "@tag": "item",
-                  "@badge": 2,
-                  "@title": "Football News",
-                  "@url": ""
-                }, {
-                  "@tag": "item",
-                  "@title": "BasketBall News",
-                  "@url": ""
-                }, {
-                  "@tag": "item",
-                  "@title": "Golf News",
-                  "@url": ""
-                }, {
-                  "@tag": "item",
-                  "@title": "Tennis News",
-                  "@url": ""
-                }]
-              }]
-            }]
-          }, {
-            "@tag": "item",
-            "@title": "BasketBall News",
-            "@url": "",
-            "@badge": 9,
-          }, {
-            "@tag": "item",
-            "@title": "Golf News",
-            "@groupName": "External",
-            "@url": ""
-          }, {
-            "@tag": "item",
-            "@title": "Tennis News",
-            "@groupName": "Sports",
-            "@url": ""
-          }, {
-            "@tag": "item",
-            "@title": "Waterball News",
-            "@groupName": "External",
-            "@url": "",
-            ">": [{
-              "@tag": "item",
-              "@title": "Football News",
-              "@url": ""
-            }, {
-              "@tag": "item",
-              "@title": "BasketBall News",
-              "@url": ""
-            }, {
-              "@tag": "item",
-              "@title": "Golf News",
-              "@url": ""
-            }, {
-              "@tag": "item",
-              "@title": "Tennis News",
-              "@url": "",
-              ">": [{
-                "@tag": "item",
-                "@title": "Football News",
-                "@url": ""
-              }, {
-                "@tag": "item",
-                "@title": "BasketBall News",
-                "@url": ""
-              }, {
-                "@tag": "item",
-                "@title": "Golf News",
-                "@url": ""
-              }]
-            }]
-          }]
-        }, {
-          "@tag": "item",
-          "@title": "About",
-          "@iconOnly": "true | false",
-          "@iconName": "",
-          "@iconPosition": "left",
-          "@active": false,
-          "@url": ""
-        }]
-      }]
-    }
-    return jsonData;
-  }
-
-  render(node) {
-
+  render() {
+    const node = this.node;
     let uiDiv = document.createElement('div');
     uiDiv.setAttribute('id', `${node.getAttribute('id')}-component`);
     uiDiv.className = "ui";
@@ -264,7 +86,7 @@ class NavBar extends BaseComponent {
             case 'left':
             case 'right':
               itemContainer.style.float = group['@position'];
-              console.log(isFirstNode);
+
               if (isFirstNode && group['@position'] === 'right') {
                 itemContainer.style.marginLeft = 'auto';
               }
@@ -291,12 +113,6 @@ class NavBar extends BaseComponent {
         action: "nothing"
       });
   }
-
-  // getRandomInt = (min, max) => {
-  //   min = Math.ceil(min);
-  //   max = Math.floor(max);
-  //   return Math.floor(Math.random() * (max - min + 1)) + min;
-  // }
 
   renderChildren(parentNode, item, recursive) {
 

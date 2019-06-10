@@ -12,7 +12,7 @@ class Select {
         let jsonData = {
             "@title":"Test",
             "@iconName": "",
-            "@displayStyle": "multiple select",
+            "@displayStyle": "multiple search select",
             "@labelIcon": "", 
             "@defaultTitle": "Subject",
             "@isRequired": false,
@@ -206,31 +206,6 @@ class Select {
             scrollingDiv.className="scrolling menu";
             menuDiv.append(scrollingDiv);
 
-            // if(jsonData['>'][1]['@dataValue'].length > 0) {
-            //     for(let key of Object.keys(jsonData['>'])) {
-            //         let itemDiv = document.createElement('div');
-            //         let classDiv = document.createElement('div');
-            //         classDiv.className = "ui empty circular label ";
-            //         classDiv.className += jsonData['>'][key]['@iconName'];
-            //         itemDiv.appendChild(classDiv);
-            //         itemDiv.setAttribute('data-value', jsonData['>'][key]['@dataValue']);
-            //         itemDiv.append(jsonData['>'][key]['@title']);
-            //         itemDiv.className = "item";
-            //         scrollingDiv.append(itemDiv);
-            //     }
-            // } else {
-            //     for(let key of Object.keys(jsonData['>'])) {
-            //         let itemDiv = document.createElement('div');
-            //         let classDiv = document.createElement('div');
-            //         classDiv.className = "ui empty circular label ";
-            //         classDiv.className += jsonData['>'][key]['@iconName'];
-            //         itemDiv.appendChild(classDiv);
-            //         itemDiv.append(jsonData['>'][key]['@title']);
-            //         itemDiv.className = "item";
-            //         scrollingDiv.append(itemDiv);
-            //     }
-            // }
-
             for(let key of Object.keys(jsonData['>'])) {
                 if(jsonData['>'][key]['@dataValue'].length > 0) {
                     let itemDiv = document.createElement('div');
@@ -280,9 +255,5 @@ class Select {
     
         node.append(uiDiv);
         this.dropdown(uiDiv.getAttribute('id'));
-
-    }
-    
+    }   
 }
-
-// new Select().render(document.querySelector("#select"));
