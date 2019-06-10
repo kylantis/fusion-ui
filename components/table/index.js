@@ -2,8 +2,6 @@ class Table extends BaseComponent {
 
     constructor(data, node) {
         super(data, node);
-        this.data = data;
-        this.node = node;
     }
 
     tagName() {
@@ -32,7 +30,6 @@ class Table extends BaseComponent {
 
     render(node) {
         node = this.node;
-        let tableData = this.myTable;
         let jsonData = this.data;
 
         let tableId = [];

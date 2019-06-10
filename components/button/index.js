@@ -1,10 +1,7 @@
 class Button extends BaseComponent {
 
-    // class Button {
     constructor(data, node) {
         super(data, node);
-        this.data = data;
-        this.node = node;
     }
 
     tagName() {

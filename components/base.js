@@ -13,14 +13,25 @@ class BaseComponent {
   tagName() {
     return null;
   }
+
   getCssDependencies() {
-    return ['/shared/css/site.css', '/shared/css/reset.css'];
+    return ['/shared/css/main.css', '/shared/css/site.css', '/shared/css/reset.css', '/shared/css/transition.css'];
   }
 
   getJsDependencies() {
-    return ['/shared/js/jquery-3.4.1.min.js'];
+    return ['/shared/js/jquery-3.4.1.min.js', '/shared/js/site.js', '/shared/js/transition.js'];
   }
 
+  /**
+   * 
+   * This does xyz
+   * 
+   * @param {String} tag 
+   * @param {Element} node 
+   * @param {Object} data 
+   * 
+   * @returns {Boolean}
+   */
   getComponent(tag, node, data) {
 
   }
@@ -58,10 +69,10 @@ class BaseComponent {
 
         link.onload = function () {
 
-          console.log(`Loaded ${this.href}`);
-
           loaded.push(this.href);
           BaseComponent.loadedStyles.push(this.href);
+
+          console.log(`Loaded ${this.href}`);
 
           if (loaded.length == styles.length) {
             return resolve();
@@ -72,7 +83,7 @@ class BaseComponent {
           return reject(this.href);
         }
 
-        document.head.appendChild(link);
+        document.body.appendChild(link);
       }
 
       setTimeout(function () {
@@ -112,6 +123,7 @@ class BaseComponent {
         var script = document.createElement('script');
 
         script.src = elem.url;
+        script.type = 'text/javascript';
         script.async = false;
 
         script.onload = function () {
@@ -123,18 +135,18 @@ class BaseComponent {
             eval(elem.onload);
           }
 
+          console.log(`Loaded ${this.src}`);
+
           if (loaded.length == scripts.length) {
             return resolve();
           }
-          
-          console.log(`Loaded ${this.src}`);
         };
 
         script.onerror = function () {
           return reject(this.src);
         }
 
-        document.head.appendChild(script);
+        document.body.appendChild(script);
       };
 
       setTimeout(function () {

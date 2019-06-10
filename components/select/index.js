@@ -2,38 +2,32 @@ class Select extends BaseComponent {
     constructor(data, node) {
         super(data, node);
     }
-    
+
     getCssDependencies() {
         const baseDependencies = super.getCssDependencies();
-        baseDependencies.push('/css/dropdown.css', '/css/icon.css', '/shared/css/transition.css');
+        baseDependencies.push('/css/dropdown.css', '/css/icon.css', '/css/header.css', '/css/label.css', '/css/input.css', '/css/button.css');
         return baseDependencies;
     }
 
-    getJsDependencies() { 
+    getJsDependencies() {
         const baseDependencies = super.getJsDependencies();
-        baseDependencies.push('/shared/js/site.js', '/shared/js/transition.js', '/js/dropdown.js');
+        baseDependencies.push('/js/dropdown.js');
         return baseDependencies;
     }
-
-
-    dropdown(id) {
-        $(`#${id}`)
-            .dropdown();      
-    }
-
 
     render(node) {
         node = this.node;
         let jsonData = this.data;
 
+        let componentId = `${node.getAttribute('id')}-component`;
+
         let uiDiv = document.createElement('div');
-        uiDiv.setAttribute('id', `${node.getAttribute('id')}-component`);
-        let progressBarIds = [];
+        uiDiv.setAttribute('id', componentId);
 
-
-        if(jsonData['@displayStyle'] === "select" || jsonData['@displayStyle'] === "search selection") {
+        
+        if (jsonData['@displayStyle'] === "select" || jsonData['@displayStyle'] === "search selection") {
             uiDiv.className = "ui fluid selection";
-            if(jsonData['@displayStyle'] === "search selection") {
+            if (jsonData['@displayStyle'] === "search selection") {
                 uiDiv.classList.add("search");
             }
 
@@ -43,11 +37,11 @@ class Select extends BaseComponent {
             uiDiv.appendChild(hiddenInput);
 
             let iTag = document.createElement('i');
-            iTag.className="dropdown icon";
+            iTag.className = "dropdown icon";
 
             let defaultTextDiv = document.createElement('div');
             defaultTextDiv.className = "default text";
-            defaultTextDiv.innerHTML= jsonData['@title'];
+            defaultTextDiv.innerHTML = jsonData['@title'];
             uiDiv.appendChild(iTag);
             uiDiv.appendChild(defaultTextDiv);
 
@@ -55,8 +49,8 @@ class Select extends BaseComponent {
             menuDiv.className = "menu";
             uiDiv.append(menuDiv);
 
-            for(let key of Object.keys(jsonData['>'])) {
-                if(jsonData['>'][key]['@imageUrl'].length > 0) {
+            for (let key of Object.keys(jsonData['>'])) {
+                if (jsonData['>'][key]['@imageUrl'].length > 0) {
 
                     let itemDiv = document.createElement('div');
                     let imgTag = document.createElement('img');
@@ -79,15 +73,15 @@ class Select extends BaseComponent {
                 }
             }
 
-            if(jsonData['@isRequired']) {
-                uiDiv.setAttribute("required","");
+            if (jsonData['@isRequired']) {
+                uiDiv.setAttribute("required", "");
             }
             uiDiv.classList.add("dropdown");
             node.append(uiDiv);
 
-        } else if(jsonData['@displayStyle']  === "labeled" || jsonData['@displayStyle']  === "labeled multiple" || jsonData['@displayStyle']  === "labeled dropdown") {
+        } else if (jsonData['@displayStyle'] === "labeled" || jsonData['@displayStyle'] === "labeled multiple" || jsonData['@displayStyle'] === "labeled dropdown") {
             uiDiv.className = "ui floating labeled icon dropdown button";
-            if(jsonData['@displayStyle']  === "labeled multiple") {
+            if (jsonData['@displayStyle'] === "labeled multiple") {
                 uiDiv.classList.remove("floating");
                 uiDiv.classList.remove("labeled");
                 uiDiv.classList.remove("icon");
@@ -108,8 +102,8 @@ class Select extends BaseComponent {
             menuDiv.className = "menu";
             uiDiv.append(menuDiv);
 
-            if(jsonData['@displayStyle'] === "labeled dropdown") {
-                for(let key of Object.keys(jsonData['>'])) {
+            if (jsonData['@displayStyle'] === "labeled dropdown") {
+                for (let key of Object.keys(jsonData['>'])) {
                     let itemDiv = document.createElement('div');
                     itemDiv.append(jsonData['>'][key]['@title']);
                     itemDiv.className = "item";
@@ -146,37 +140,11 @@ class Select extends BaseComponent {
             headerDiv.append(iTagIcon);
 
             let scrollingDiv = document.createElement('div');
-            scrollingDiv.className="scrolling menu";
+            scrollingDiv.className = "scrolling menu";
             menuDiv.append(scrollingDiv);
 
-            // if(jsonData['>'][1]['@dataValue'].length > 0) {
-            //     for(let key of Object.keys(jsonData['>'])) {
-            //         let itemDiv = document.createElement('div');
-            //         let classDiv = document.createElement('div');
-            //         classDiv.className = "ui empty circular label ";
-            //         classDiv.className += jsonData['>'][key]['@iconName'];
-            //         itemDiv.appendChild(classDiv);
-            //         itemDiv.setAttribute('data-value', jsonData['>'][key]['@dataValue']);
-            //         itemDiv.append(jsonData['>'][key]['@title']);
-            //         itemDiv.className = "item";
-            //         scrollingDiv.append(itemDiv);
-            //     }
-            // } else {
-            //     for(let key of Object.keys(jsonData['>'])) {
-            //         let itemDiv = document.createElement('div');
-            //         let classDiv = document.createElement('div');
-            //         classDiv.className = "ui empty circular label ";
-            //         classDiv.className += jsonData['>'][key]['@iconName'];
-            //         itemDiv.appendChild(classDiv);
-            //         itemDiv.append(jsonData['>'][key]['@title']);
-            //         itemDiv.className = "item";
-            //         scrollingDiv.append(itemDiv);
-            //     }
-            // }
-
-
-            for(let key of Object.keys(jsonData['>'])) {
-                if(jsonData['>'][key]['@dataValue'].length > 0) {
+            for (let key of Object.keys(jsonData['>'])) {
+                if (jsonData['>'][key]['@dataValue'].length > 0) {
                     let itemDiv = document.createElement('div');
                     let classDiv = document.createElement('div');
                     classDiv.className = "ui empty circular label ";
@@ -196,34 +164,38 @@ class Select extends BaseComponent {
                     itemDiv.className = "item";
                     scrollingDiv.append(itemDiv);
                 }
-                
+
             }
 
-        } else if (jsonData['@displayStyle']  === "multiple select" || jsonData['@displayStyle']  === "multiple search select") {
+        } else if (jsonData['@displayStyle'] === "multiple select" || jsonData['@displayStyle'] === "multiple search select") {
             let select = document.createElement('select');
             select.className = "ui fluid";
             select.setAttribute('multiple', ' ');
             select.setAttribute('name', 'subjects');
-            jsonData['@displayStyle']  === "multiple search select" ? select.classList.add('search') : '';
+            jsonData['@displayStyle'] === "multiple search select" ? select.classList.add('search') : '';
             let defaultOption = document.createElement('option');
             defaultOption.textContent = jsonData['@defaultTitle'];
             select.appendChild(defaultOption);
-            
-            for(let key of Object.keys(jsonData['>'])) {
-                if(jsonData['>'][key]['@title'].length > 0) {
+
+            for (let key of Object.keys(jsonData['>'])) {
+                if (jsonData['>'][key]['@title'].length > 0) {
                     let option = document.createElement('option');
-                    option.setAttribute('value', jsonData['>'][key]['@title'] );
+                    option.setAttribute('value', jsonData['>'][key]['@title']);
                     option.textContent = jsonData['>'][key]['@title'];
                     select.append(option);
                 }
             }
             select.classList.add('dropdown')
             uiDiv.appendChild(select);
-        }
-    
-        node.append(uiDiv);
-        this.dropdown(uiDiv.getAttribute('id'));
 
+            componentId += ' > .ui.dropdown';
+        }
+
+        
+        node.append(uiDiv);
+
+        $(`#${componentId}`)
+            .dropdown();
     }
-    
+
 }
