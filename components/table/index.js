@@ -30,22 +30,6 @@ class Table extends BaseComponent {
         }
     }
 
-    traverse(data) {
-        if(data && typeof data == "object") {
-            Object.entries(data).forEach(([key, value]) => {
-            this.traverse(value)
-        });
-        } else { 
-            if(data === "row") {
-                let tr = tbody.insertRow(-1);
-                let tableCell = tr.insertCell(-1);
-                if(data !== "column") {
-                    tableCell.textContent = data;
-                }
-            }
-        }
-    }
-
     render(node) {
         node = this.node;
         let tableData = this.myTable;
@@ -54,16 +38,6 @@ class Table extends BaseComponent {
         let tableId = [];
 
         if (jsonData['@tableStyle'] === "standard") {
-            //extract value for header
-            let col = [];
-
-            for (let i = 0; i < tableData.length; i++) {
-                for (let key in tableData[i]) {
-                    if (col.indexOf(key) === -1) {
-                        col.push(key);
-                    }
-                }
-            }
 
             let table = document.createElement('table');
             let thead = document.createElement('thead');
@@ -114,29 +88,6 @@ class Table extends BaseComponent {
             let tr = thead.insertRow(-1);
             let trOne = thead.insertRow(-1);
 
-            // Add title
-            // if (jsonData['@title'].length > 0) {
-            //     let thOne = document.createElement('th');
-            //     thOne.innerHTML = jsonData['@title'];
-            //     thOne.setAttribute("colspan", col.length);
-            //     trOne.appendChild(thOne);
-            //     thead.prepend(trOne);
-            // }
-
-            // for (let i = 0; i < col.length; i++) {
-            //     let th = document.createElement('th');
-            //     th.innerHTML = col[i];
-            //     tr.appendChild(th);
-            // }
-            //Add JSON data to table as rows
-            // for (let i = 0; i < tableData.length; i++) {
-            //     let tr = tbody.insertRow(-1);
-            //     for (let j = 0; j < col.length; j++) {
-            //         let tableCell = tr.insertCell(-1);
-            //         tableCell.innerHTML = tableData[i][col[j]];
-            //     }
-            // }
-
             const columns = this.data['>'][0]['>'];
             const columnTitles = {};
             for(let i = 0; i < columns.length; i++) {
@@ -151,12 +102,21 @@ class Table extends BaseComponent {
             }
 
             if(jsonData['>'].length > 1) {
-
+                
                 for(let i = 1; i < this.data['>'].length; i++) {
-
                     const rowData = this.data['>'][i];
-
-                    
+                    if(rowData['@tag']  === "row") {
+                        let tr = tbody.insertRow(-1);
+                        for(let j = 0; j < rowData['>'].length; j++) {
+                            for(let [key,value] of Object.entries(rowData['>'][j])) {
+                                if(key === "@value") {
+                                    let tableCell = tr.insertCell(-1);
+                                    tableCell.innerHTML = value;
+                                }
+                                    
+                            }
+                        }
+                    }
 
                 }
                 
@@ -174,18 +134,3 @@ class Table extends BaseComponent {
 
 
 }
-
-
-
-
-// function traverse(data) {
-// 	if(data && typeof data == "object") {
-// 		Object.entries(data).forEach(([key, value]) => {
-// 		traverse(value)
-// 	});
-// 	} else { 
-// 		if(data !== "column" && data !== "row") {
-//             console.log(data) 
-//         }
-// 	}
-// }
