@@ -13,13 +13,13 @@ class BaseComponent {
   tagName() {
     return null;
   }
-
+  
   getCssDependencies() {
-    return ['/shared/css/main.css', '/shared/css/site.css', '/shared/css/reset.css', '/shared/css/transition.css'];
+    return ['/shared/css/main.css', '/shared/css/site.css', '/shared/css/reset.css', '/css/transition.css'];
   }
-
+ 
   getJsDependencies() {
-    return ['/shared/js/jquery-3.4.1.min.js', '/shared/js/site.js', '/shared/js/transition.js'];
+    return ['/shared/js/jquery-3.4.1.min.js', '/shared/js/site.js', '/js/transition.js'];
   }
 
   /**
