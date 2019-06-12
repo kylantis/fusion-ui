@@ -158,6 +158,17 @@ class BaseComponent {
     });
   }
 
+  appendNode(parent, tag, classNames) {
+    const elem = document.createElement(tag);
+    if (classNames) {
+      elem.className = `${classNames}`;
+    }
+    if (parent) {
+      parent.appendChild(elem);
+    }
+    return elem;
+  }
+
   getRandomInt = (min, max) => {
     min = Math.ceil(min);
     max = Math.floor(max);
