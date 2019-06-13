@@ -1,15 +1,21 @@
 {
-    "@style": "basic | classic",
+    "@style": "basic | pointing tab | tabbed",
     "@title": "",
     ">": [{
         "@tag": "tab",
         "@title": "",
-        "@loading": false,
-        "@active": true,
+        "@data-tab": "",
         ">": [{
-            "@tag": "tab-body"
-        }, {
-            "@tag": "tab-body"
+            "@tag": "tab-body",
+            "@content": ""
+        }]
+    }, {
+        "@tag": "tab",
+        "@title": "",
+        "@data-tab": "",
+        ">": [{
+            "@tag": "tab-body",
+            "@content": ""
         }]
     }]
 }

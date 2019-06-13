@@ -2,7 +2,7 @@ class SearchBar extends BaseComponent {
 
     constructor(data, node) {
         super(data, node);
-    }
+    } 
 
     getCssDependencies() {
         const baseDependencies = super.getCssDependencies();
@@ -16,8 +16,8 @@ class SearchBar extends BaseComponent {
         return baseDependencies;
     }
 
-    render(node) {
-        node = this.node;
+    render() {
+        const node = this.node;
         let jsonData = this.data;
         let uiDiv = document.createElement('div');
         uiDiv.className = "ui category ";

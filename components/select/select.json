@@ -1,7 +1,8 @@
 {
     "@title":"",
     "@iconName": "",
-    "@displayStyle": "search selection | selection | multiple selection | multiple search selection | label | in-menu | searchable in-menu | multiselect in-menu",
+    "@displayStyle": "select | search select | multiple select | multiple search select | labeled | labeled dropdown | labeled multiple",
+    "@labelIcon": "",
     "@defaultTitle": "",    
     "@required": "true | false",
     "@scrolling": "true | false",

@@ -1,33 +1,22 @@
 {
     "@title": "",
     "@displayStyle": "basic | styled",
-    "colorScheme": "light | dark | inherit",
-    ">": [{
+    ">": [{ 
         "@tag": "menu",
         "@title": "",
-        "@icon-name": "",
-        "@icon-url": ""
+        "@content": ""
     }, {
         "@tag": "menu",
         "@title": "",
         "@type": "radio",
-        "@icon-name": "",
-        "@icon-url": ""
+        "@content": ""
     }, {
         "@tag": "menu",
         "@title": "",
-        "@icon-name": "",
-        "@icon-url": "",
-        ">": [{
-            "@tag": "text"
-        }]
+        "@content": ""
     }, {
         "@tag": "menu",
         "@title": "",
-        "@icon-name": "",
-        "@icon-url": "",
-        ">": [{
-            "@tag": "text"
-        }]
+        "@content": ""
     }]
 }

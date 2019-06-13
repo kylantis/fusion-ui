@@ -1,4 +1,4 @@
 <?xml version='1.0' encoding='utf-8'?>
-<searchBar title="" placeholder="" animated="true | false" searchIcon="true | false" iconName="icon input" autoComplete="true | false"  
+<searchBar title="" placeholder="" animated="true | false" iconName="icon input" autoComplete="true | false"  
         disabled="true | false" size="mini | small | large | big | huge | massive"        
-        /> 
+        />  

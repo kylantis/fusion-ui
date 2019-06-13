@@ -2,10 +2,11 @@
     "@title": "",
     "@placeholder": "",
     "@animated": "true | false",
-    "@searchIcon": "true | false",
-    "@iconName": "",
+    "@iconName": "icon input",
     "@autoComplete": "true | false",
+    "@size": "mini | small | medium | large | big | huge | massive",
     "@disabled": "true | false",
-    "@transparent": "true | false",
-    "@inverted": "true | false"
-}
+    ">": [{
+        "@item": "suggestions"
+    }]
+} 

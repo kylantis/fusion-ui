@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
-<button type="primary | secondary | info | warning | danger" iconName="" iconPosition="left | right" 
-buttonStyle= "basic | animated | labeled | icon | disabled | outline | circular" displayStyle="default | raised | rounded" 
-        size="small | medium | large" color="green | yellow | red | ..." animationStyle="vertical fade" 
-/> 
+<button title="" name="" value="" buttonStyle= "basic | animated | labeled | icon | disabled | outline | circular" url=""  
+        iconPosition="left | right" size="small | medium | large" visibleContent = "text | icon" hiddenContent= "text | icon" 
+        color="red | orange | yellow | olive | green | teal | blue | violet | purple | pink | brown | grey | black" transition="fade | vertical | horizontal" 
+        iconName="" tabIndex="" buttonText="" socialButton="twitter | facebook | linkedin | instagram | youtube | twitter"
+/>  

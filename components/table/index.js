@@ -2,6 +2,8 @@ class Table extends BaseComponent {
 
     constructor(data, node) {
         super(data, node);
+        this.columnTitles = {};
+
     }
 
     tagName() {
@@ -10,12 +12,12 @@ class Table extends BaseComponent {
 
     getCssDependencies() {
         const cssDependencies = super.getCssDependencies();
-        cssDependencies.push(['/css/table.css']);
+        cssDependencies.push('/css/table.css');
         return cssDependencies;
     }
 
+    update() {
 
-    update(node) {
         let table = this.newTable;
         console.log(table);
         for (let i = 0; i < table.length; i++) {
@@ -28,9 +30,10 @@ class Table extends BaseComponent {
         }
     }
 
-    render(node) {
-        node = this.node;
+    render() {
+        const node = this.node;
         let jsonData = this.data;
+        const columnTitles = this.columnTitles; //Save the column titles to the column object in the constructor
 
         let tableId = [];
 
@@ -83,12 +86,10 @@ class Table extends BaseComponent {
 
             //Create header row 
             let tr = thead.insertRow(-1);
-            let trOne = thead.insertRow(-1);
 
             const columns = this.data['>'][0]['>'];
-            const columnTitles = {};
             for(let i = 0; i < columns.length; i++) {
-                columnTitles[i.toString()] = columns[i]['@title'];
+                this.columnTitles[i.toString()] = columns[i]['@title'];
             }
 
             for(let value of Object.keys(columnTitles)) {
@@ -109,12 +110,10 @@ class Table extends BaseComponent {
                                 if(key === "@value") {
                                     let tableCell = tr.insertCell(-1);
                                     tableCell.innerHTML = value;
-                                }
-                                    
+                                }       
                             }
                         }
                     }
-
                 }
                 
             }
@@ -128,6 +127,5 @@ class Table extends BaseComponent {
         }
 
     }
-
 
 }

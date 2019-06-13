@@ -59,7 +59,7 @@ class NavBar extends BaseComponent {
 
             this.renderChildren(itemContainer, item);
           } else {
-
+            
             itemContainer = document.createElement("div");
             itemContainer.className = 'ui pointing dropdown link item';
 

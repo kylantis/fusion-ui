@@ -7,7 +7,7 @@ class Input extends BaseComponent {
 
     tagName() {
         return "input";
-    }
+    } 
 
     getCssDependencies() {
         const baseDependencies = super.getCssDependencies();
@@ -26,12 +26,14 @@ class Input extends BaseComponent {
         if(this.data['@type'] === "text") {
             uiDiv.classList.add("input");
             uiDiv.append(inputDiv);
+            this.data['@required'] ? inputDiv.setAttribute('required', '') : '';
             inputDiv.setAttribute("type", "text");
-            inputDiv.setAttribute("placeholder", this.data['@type']);
+            inputDiv.setAttribute("placeholder", this.data['@placeholder']);
         } else if (this.data['@type'] === "checkbox") {
             uiDiv.classList.add("checkbox");
             uiDiv.append(inputDiv);
             inputDiv.setAttribute("type", "checkbox");
+            this.data['@required'] ? inputDiv.setAttribute('required', '') : '';
             this.data['@checked'] ? inputDiv.setAttribute('checked', 'checked') : '';
             this.data['@disabled'] ? inputDiv.setAttribute('disabled', 'disabled') : '';
             let labelDiv = document.createElement('label');
@@ -42,6 +44,7 @@ class Input extends BaseComponent {
             uiDiv.classList.add("checkbox");
             uiDiv.append(inputDiv);
             inputDiv.setAttribute("type", "radio");
+            this.data['@required'] ? inputDiv.setAttribute('required', '') : '';
             this.data['@checked'] ? inputDiv.setAttribute('checked', 'checked') : '';
             this.data['@disabled'] ? inputDiv.setAttribute('disabled', 'disabled') : '';
             let labelDiv = document.createElement('label');
@@ -52,6 +55,7 @@ class Input extends BaseComponent {
             uiDiv.classList.add("checkbox");
             uiDiv.append(inputDiv);
             inputDiv.setAttribute("type", "checkbox");
+            this.data['@required'] ? inputDiv.setAttribute('required', '') : '';
             this.data['@checked'] ? inputDiv.setAttribute('checked', 'checked') : '';
             this.data['@disabled'] ? inputDiv.setAttribute('disabled', 'disabled') : '';
             let labelDiv = document.createElement('label');
@@ -62,6 +66,7 @@ class Input extends BaseComponent {
             uiDiv.classList.add("checkbox");
             uiDiv.append(inputDiv);
             inputDiv.setAttribute("type", "checkbox");
+            this.data['@required'] ? inputDiv.setAttribute('required', '') : '';
             this.data['@checked'] ? inputDiv.setAttribute('checked', 'checked') : '';
             this.data['@disabled'] ? inputDiv.setAttribute('disabled', 'disabled') : '';
             let labelDiv = document.createElement('label');
@@ -70,6 +75,7 @@ class Input extends BaseComponent {
         } else {
             uiDiv.classList.add("input");
             uiDiv.append(inputDiv);
+            this.data['@required'] ? inputDiv.setAttribute('required', '') : '';
             inputDiv.setAttribute("type", this.data['@type']);
             inputDiv.setAttribute("placeholder", this.data['@title']);
         }

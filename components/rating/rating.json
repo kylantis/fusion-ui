@@ -1,0 +1,8 @@
+{
+    "@title": "",
+    "@displayStyle": "heart | star",
+    "@data-value": "",
+    "@data-max-rating": "",
+    "@size": "small | medium | large | extra-large",
+    "@disabled": false
+}

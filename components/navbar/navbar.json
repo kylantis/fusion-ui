@@ -1,17 +1,17 @@
 {
     "@title": "",
-    "@logo": "true | false",
-    "@logoUrl": "",
+    "@icon": "true | false",
     "@navBarType": "standard",
     "@orientation": "vertical | horizontal",
     "@navPointer": "true | false",
+    "@separator": "true | false",
     "@navBarAlignment": "left | center | right",
     "@menuStyle": "text | icon",
     ">": [
         {
             "@tag": "group",
             "@position": "left",
-            ">": [
+            ">": [ 
                 {
                     "@tag": "item",
                     "@title": "Home",

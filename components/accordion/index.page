@@ -1,22 +1,17 @@
 <?xml version='1.0' encoding='utf-8'?>
-<accordion title="" displayStyle="basic | styled" colorScheme="light | dark | inherit" multiple="false"> 
+<accordion title="" displayStyle="basic | styled"> 
 
-    <menu title="" openIcon="" open-icon-url="" close-icon-url="" closeIcon="">
+    <menu title="">
         <content> </content>
     </menu>
-    <menu title="" openIcon="" open-icon-url="" close-icon-url=""  closeIcon="">
+    <menu title="">
         <content> </content>
-        <content> </content>
-        <content> </content>
-    </menu>
-    <menu title="" openIcon="" open-icon-url="" close-icon-url="" closeIcon="">
+    </menu> 
+    <menu title="">
         <content> </content>
     </menu>
-    <menu title="" openIcon="" open-icon-url="" close-icon-url="" disabled="true" closeIcon="" >
+    <menu title="">
         <content> </content>
     </menu>
 
 </accordion>
-
-<!-- multiple: if multiple is true, you can view multiple accordion tags at the same time -->
-<!-- disabled: if disabled is true, then that tag is not active -->

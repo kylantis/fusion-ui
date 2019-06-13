@@ -3,6 +3,10 @@ class Select extends BaseComponent {
         super(data, node);
     }
 
+    tagName() {
+        return "select";
+    }
+
     getCssDependencies() {
         const baseDependencies = super.getCssDependencies();
         baseDependencies.push('/css/dropdown.css', '/css/icon.css', '/css/header.css', '/css/label.css', '/css/input.css', '/css/button.css');
@@ -15,8 +19,8 @@ class Select extends BaseComponent {
         return baseDependencies;
     }
 
-    render(node) {
-        node = this.node;
+    render() {
+        const node = this.node;
         let jsonData = this.data;
 
         let componentId = `${node.getAttribute('id')}-component`;
@@ -24,8 +28,7 @@ class Select extends BaseComponent {
         let uiDiv = document.createElement('div');
         uiDiv.setAttribute('id', componentId);
 
-        
-        if (jsonData['@displayStyle'] === "select" || jsonData['@displayStyle'] === "search selection") {
+        if (jsonData['@displayStyle'] === "select" || jsonData['@displayStyle'] === "search select") {
             uiDiv.className = "ui fluid selection";
             if (jsonData['@displayStyle'] === "search selection") {
                 uiDiv.classList.add("search");
@@ -171,10 +174,11 @@ class Select extends BaseComponent {
             let select = document.createElement('select');
             select.className = "ui fluid";
             select.setAttribute('multiple', ' ');
-            select.setAttribute('name', 'subjects');
+            select.setAttribute('name', jsonData['@title']);
             jsonData['@displayStyle'] === "multiple search select" ? select.classList.add('search') : '';
             let defaultOption = document.createElement('option');
             defaultOption.textContent = jsonData['@defaultTitle'];
+            defaultOption.setAttribute('value', '');
             select.appendChild(defaultOption);
 
             for (let key of Object.keys(jsonData['>'])) {
@@ -187,11 +191,11 @@ class Select extends BaseComponent {
             }
             select.classList.add('dropdown')
             uiDiv.appendChild(select);
+            console.log(uiDiv)
 
             componentId += ' > .ui.dropdown';
         }
 
-        
         node.append(uiDiv);
 
         $(`#${componentId}`)

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+</head>
+<body>
+    <div id="rating"></div>
+
+    <script>
+        const jsonData = {
+            "@title": "",
+            "@displayStyle": "star",
+            "@data-rating": 3,
+            "@data-max-rating": 7,
+            "@size": "huge",
+            "@disabled": false
+        }
+    </script>
+    <script src="/components/base.js"></script>
+    <script src="/components/rating/index.js"></script>
+    <script>
+        new Rating(jsonData, document.querySelector("#rating"));
+    </script>
+    
+</body>
+</html>

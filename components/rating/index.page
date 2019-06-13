@@ -1,2 +1,2 @@
 <?xml version='1.0' encoding='utf-8'?>
-<rating type="star | heart" iconOnUrl="" iconOffUrl="" name="" value="" size="s | m | l | xl" disabled="false" />
+<rating title="" displayStyle="star | heart" data-value="" size="s | m | l | xl" disabled="false" />

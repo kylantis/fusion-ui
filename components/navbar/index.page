@@ -1,10 +1,9 @@
 <?xml version='1.0' encoding='utf-8'?>
-<navbar title="" iconUrl="" options="searchbar | userMenu" orientation="vertical | horizontal" iconPosition="" 
-    pointer="true | false" navPosition="left | center | right">
-        <group>
-            <item title="Home" iconName="" iconOnly="true | false" iconPosition="left | right" active="true | false" url="" />
-            <item title="About" iconName="" iconOnly="true | false" iconPosition="left | right" active="true | false" url="" />
-            <item title="News" iconName="" iconOnly="true | false" iconPosition="left | right" active="true | false" url="" >
+<navbar title="" icon="true | false" orientation="vertical | horizontal" navPointer="true | false" separator="true | false" navBarAlignment="left | center | right">
+        <group position="left">
+            <item title="Home" iconName="" iconOnly="true | false" iconPosition="left | right" url="" />
+            <item title="About" iconName="" iconOnly="true | false" iconPosition="left | right" url="" />
+            <item title="News" iconName="" iconOnly="true | false" iconPosition="left | right" url="" >
                 <item title="Sports News">
                     <item title="Football News">
                     <item title="Basketball News">
@@ -15,7 +14,7 @@
                 <item title="Another News" icon="true | false" iconPosition="left | right" />
             </item>
         <group> 
-        <group> 
+        <group>  
             <item title="notifications" iconName="" iconOnly="true | false" iconPosition="left | right" active="true | false" >
                 <item title="notification" notificationStatus="seen | unseen" time="" />
                 <item title="notification" notificationStatus="seen | unseen" time="" />
