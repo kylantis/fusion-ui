@@ -6,7 +6,11 @@ class Button extends BaseComponent {
 
     getCssDependencies() {
         const baseDependencies = super.getCssDependencies();
-        baseDependencies.push('/assets/css/icon.min.css', '/assets/css/button.min.css');
+        if (this.data['@buttonStyle'] === 'basic' || this.data['@buttonStyle'].length === 0 || this.data['@buttonStyle'] === 'outline') {
+            baseDependencies.push('/assets/css/button.min.css');
+        } else {
+            baseDependencies.push('/assets/css/icon.min.css', '/assets/css/button.min.css');
+        }
         return baseDependencies;
     }
 
@@ -18,7 +22,7 @@ class Button extends BaseComponent {
         button.setAttribute('id', `${node.getAttribute('id')}-component`);
 
 
-        if (jsonData['@buttonStyle'] === 'basic' || jsonData['@buttonStyle'].length < 1) {
+        if (jsonData['@buttonStyle'] === 'basic' || jsonData['@buttonStyle'].length === 0) {
             button.className = `${jsonData['@size']} ui button `;
             button.className += `${jsonData['@type']} ${jsonData['@color']}`;
             button.textContent = jsonData['@buttonText'];
@@ -71,14 +75,9 @@ class Button extends BaseComponent {
                 button.classList.add(jsonData['@size']);
             }
             button.textContent = jsonData['@buttonText'];
-            if (jsonData['@type'].length > 1) {
-                button.classList.add(jsonData['@type']);
-                if (jsonData['@color'].length > 1) {
-                    button.classList.add(jsonData['@color']);
-                }
+            if (jsonData['@color'].length > 1) {
+                button.classList.add(jsonData['@color']);
                 button.className += ' button';
-            } else if (jsonData['@color'].length > 1) {
-                button.className += `${jsonData['@color']} button`;
             }
         } else if (jsonData['@buttonStyle'] === 'disabled') {
             button.className = `ui disabled button ${jsonData['@size']}`;

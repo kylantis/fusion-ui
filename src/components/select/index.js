@@ -6,7 +6,10 @@ class Select extends BaseComponent {
 
     getCssDependencies() {
         const baseDependencies = super.getCssDependencies();
-        baseDependencies.push('/assets/css/dropdown.min.css', '/assets/css/icon.min.css', '/assets/css/header.min.css', '/assets/css/label.min.css', '/assets/css/input.min.css', '/assets/css/button.min.css', '/assets/css/transition.min.css');
+        baseDependencies.push('/assets/css/dropdown.min.css', '/assets/css/input.min.css', '/assets/css/button.min.css', '/assets/css/transition.min.css');
+        if (this.data['@displayStyle'] === 'labeled' || 'labeled multiple' || 'labeled dropdown') {
+            baseDependencies.push('/assets/css/icon.min.css', '/assets/css/label.min.css');
+        }
         return baseDependencies;
     }
 
