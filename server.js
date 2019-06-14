@@ -7,7 +7,7 @@ const server = restify.createServer({
  
 server.get('/*', restify.plugins.serveStatic({
     directory: './dist',
-    default: '/components/app-shell/index.html',
+    default: 'index.html',
 }));
 
 server.listen(8080, () => {
