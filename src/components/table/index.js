@@ -10,9 +10,9 @@ class Table extends BaseComponent {
     }
 
     getCssDependencies() {
-        const cssDependencies = super.getCssDependencies();
-        cssDependencies.push('/css/table.css');
-        return cssDependencies;
+        const baseDependencies = super.getCssDependencies();
+        baseDependencies.push('/assets/css/table.min.css');
+        return baseDependencies;
     }
 
     render() {

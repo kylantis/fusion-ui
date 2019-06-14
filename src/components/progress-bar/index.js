@@ -7,7 +7,7 @@ class ProgressBar extends BaseComponent {
 
     getCssDependencies() {
         const baseDependencies = super.getCssDependencies();
-        baseDependencies.push('/assets/css/icon.min.css', '/assets/css/progress.min.css');
+        baseDependencies.push('/assets/css/progress.min.css');
         return baseDependencies;
     }
 
