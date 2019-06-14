@@ -94,7 +94,7 @@ class AppShell extends BaseComponent {
                 const menu = $('#appshell-search-list');
                 for (const k in data) {
                     const v = data[k];
-                    menu.append(`<div class="item" data-url="${v.listingPageUrl}"><img class="ui avatar image" src="${Object.keys(v).indexOf('icon') !== -1 ? v.icon : 'assets/images/no-image.png'}" alt="label-image" />${get_ce_translate_node(v.name)}</div>`);
+                    menu.append(`<div class="item" data-url="${v.listingPageUrl}"><img class="ui avatar image" src="${Object.keys(v).indexOf('icon') !== -1 ? v.icon : '/assets/images/no-image.png'}" alt="label-image" />${get_ce_translate_node(v.name)}</div>`);
                 }
                 menu.find('.item').on('click', function () {
                     window.location = `${$(this).attr('data-url')}?query=${$('#appshell-search-input').val()}`;
@@ -348,7 +348,7 @@ class AppShell extends BaseComponent {
                             const now = moment(v.date);
                             const date = `${now.format('ddd, h:mm A')} (${now.fromNow()})`;
                             const html = v.html;
-                            const image = v.subjectImageUrl ? v.subjectImageUrl : 'assets/images/no-image.png';
+                            const image = v.subjectImageUrl ? v.subjectImageUrl : '/assets/images/no-image.png';
                             const div = `<div class="event"><div class="label"><img src="${image}" alt="label-image"></div><div class="content"><div class="summary">${html}.<div class="date">${date}</div></div></div></div>`;
                             container.append(div);
                         }

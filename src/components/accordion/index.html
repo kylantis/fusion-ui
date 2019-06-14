@@ -8,11 +8,11 @@
 
 <body>
     <div id="accordion"></div>
- 
+  
     <script>
     const jsonData = {
-        "@title": "",
-        "@displayStyle": "", 
+        "@title": "Sample",
+        "@displayStyle": "styled", 
         "@colorScheme": "",
         ">": [{
             "@tag": "menu",
@@ -36,8 +36,8 @@
         
     </script>
     
-    <script src="/components/base.js"></script>
-    <script src="./index.js"></script>
+    <script src="/components/base.min.js"></script> 
+    <script src="/components/accordion/index.min.js"></script>
     <script>new Accordion(jsonData, document.querySelector("#accordion"))</script>
 </body>
 

@@ -6,8 +6,7 @@ class Button extends BaseComponent {
 
     getCssDependencies() {
         const baseDependencies = super.getCssDependencies();
-        baseDependencies.push(['/css/button.css']);
-        baseDependencies.push(['/css/icon.css']);
+        baseDependencies.push('/assets/css/icon.min.css', '/assets/css/button.min.css');
         return baseDependencies;
     }
 

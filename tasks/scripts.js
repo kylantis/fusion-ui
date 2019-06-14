@@ -20,6 +20,7 @@ gulp.task('scripts', () => gulp.src('src/**/*.js')
   .pipe(babel(babelConfig))
   .pipe(uglify({
     mangle: true,
+    compress: true,
   }).on('error', (msg) => {
     // eslint-disable-next-line no-console
     console.error(msg);

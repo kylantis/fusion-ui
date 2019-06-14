@@ -12,7 +12,7 @@ class Tab extends BaseComponent {
 
     getJsDependencies() {
         const baseDependencies = super.getJsDependencies();
-        baseDependencies.push('/assets/js/tab.min.js', 'assets/js/transition.min.js');
+        baseDependencies.push('/assets/js/tab.min.js', '/assets/js/transition.min.js');
         return baseDependencies;
     }
 

@@ -13,7 +13,7 @@ class Accordion extends BaseComponent {
 
     getJsDependencies() {
         const baseDependencies = super.getJsDependencies();
-        baseDependencies.push('/assets/js/accordion.min.js', '/assets/js/dropdown.min.js', 'assets/js/transition.min.js');
+        baseDependencies.push('/assets/js/accordion.min.js', '/assets/js/dropdown.min.js', '/assets/js/transition.min.js');
         return baseDependencies;
     }
 

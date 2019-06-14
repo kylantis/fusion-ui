@@ -12,7 +12,7 @@ class Select extends BaseComponent {
 
     getJsDependencies() {
         const baseDependencies = super.getJsDependencies();
-        baseDependencies.push('/assets/js/dropdown.min.js', 'assets/js/transition.min.js');
+        baseDependencies.push('/assets/js/dropdown.min.js', '/assets/js/transition.min.js');
         return baseDependencies;
     }
 
@@ -185,7 +185,6 @@ class Select extends BaseComponent {
             }
             select.classList.add('dropdown');
             uiDiv.appendChild(select);
-            console.log(uiDiv);
 
             componentId += ' > .ui.dropdown';
         }

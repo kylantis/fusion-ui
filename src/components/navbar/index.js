@@ -7,13 +7,13 @@ class NavBar extends BaseComponent {
 
     getCssDependencies() {
         const baseDependencies = super.getCssDependencies();
-        baseDependencies.push('/assets/css/icon.min.css', '/assets/css/label.min.css', '/assets/css/menu.min.css', '/assets/css/dropdown.min.css', '/assets/components/navbar/custom.min.css', '/assets/css/transition.min.css');
+        baseDependencies.push('/assets/css/label.min.css', '/assets/css/menu.min.css', '/assets/css/dropdown.min.css', '/assets/css/navbar.min.css', '/assets/css/transition.min.css');
         return baseDependencies;
     }
 
     getJsDependencies() {
         const baseDependencies = super.getJsDependencies();
-        baseDependencies.push('/assets/js/dropdown.min.js', '/assets/components/navbar/custom.min.js', 'assets/js/transition.min.js');
+        baseDependencies.push('/assets/js/dropdown.min.js', '/components/navbar/custom.min.js', '/assets/js/transition.min.js');
         return baseDependencies;
     }
 

@@ -13,7 +13,7 @@
     const jsonData = {
       "@title": "subjects",
       "@iconName": "",
-      "@displayStyle": "multiple select",
+      "@displayStyle": "labeled",
       "@labelIcon": "",
       "@defaultTitle": "Subject",
       "@isRequired": false,
@@ -101,8 +101,8 @@
     }
   </script>
 
-  <script src="/components/base.js"></script>
-  <script src="./index.js"></script>
+  <script src="/components/base.min.js"></script>
+  <script src="/components/select/index.min.js"></script>
   <script>
     new Select(jsonData, document.querySelector("#select"));
   </script>
