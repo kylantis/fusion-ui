@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title></title>
+    <meta charset="utf-8" /> 
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name=viewport content="width=device-width, initial-scale=1" />
+
+    <!-- Todo: Move this to getCssDependencies -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.2.13/semantic.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/ionicons/2.0.0/css/ionicons.min.css" rel="stylesheet" />
+    <link href="/assets/css/app-shell.min.css" rel="stylesheet" />
+
+    <link rel="shortcut icon" href="/assets/images/icon.png" />
+
+    <style>
+        #appshell-activity-stream-events .event a {
+            color: #1b6d85;
+        }
+
+        .ui.accordion.inverted .title :hover {
+            background: rgba(255, 255, 255, .08) !important;
+        }
+
+        .ce-translate-u {
+            text-transform: capitalize;
+        }
+
+        #page-main-container {
+            min-height: 768px;
+            display: flex;
+        }
+    </style>
+</head>
+
+<body style="display: none;">
+
+    <div id="contextWrap">
+
+        <!--Sidebar-->
+        <!-- Container for Side Items (Mobile) -->
+        <div class="ui sidebar vertical left menu overlay  borderless visible sidemenu inverted  grey"
+            style="-webkit-transition-duration: 0.1s; transition-duration: 0.1s;" data-color="grey">
+
+            <a class="item logo" href="">
+                <img src="/assets/images/logo.png" alt="stagblogo" />
+                <img src="/assets/images/thumblogo.png" alt="stagblogo" class="displaynone" />
+            </a>
+
+            <!-- Container for Side Items (Desktop) -->
+            <div class="ui accordion inverted"></div>
+
+            <div class="ce-f-120">
+                <!--<div class="ui divider"></div>
+                    <a class="item" href="typography.html">
+                        <i class="ion-cloud icon"></i> <span class="colhidden">Software Updates</span>
+                    </a>-->
+                <div class="ui divider"></div>
+                <a class="item">
+                    <div class="ui inverted progress tiny yellow" id="total_users">
+                        <div class="bar"></div>
+                        <div class="label colhidden" style="margin-top: 10px">
+                            <span class="colhidden"><span class="ce-translate">Total_users</span></span>
+                        </div>
+                    </div>
+                </a>
+                <a class="item">
+                    <div class="ui inverted progress tiny teal" id="overall_student_performance">
+                        <div class="bar"></div>
+                        <div class="label colhidden" style="margin-top: 10px">
+                            <span class="colhidden"> <span
+                                    class="ce-translate">Overall_student_performance</span></span></div>
+                    </div>
+                </a>
+                <div class="ui divider"></div>
+                <a class="item hiddenCollapse">
+                    <div class="ui one tiny inverted statistics">
+                        <div class="statistic">
+                            <div class="value counter">
+                                568
+                            </div>
+                            <div class="label">
+                                <span class="ce-translate">Users</span>
+                            </div>
+                        </div>
+                        <div class="statistic">
+                            <div class="value counter">
+                                710
+                            </div>
+                            <div class="label">
+                                <span class="ce-translate">Courses</span>
+                            </div>
+                        </div>
+                        <!--<div class="statistic">
+                                <div class="value">
+                                    <i class="ion-paperclip icon"></i><span class="counter">19</span>
+                                </div>
+                                <div class="label">
+                                    Attached File
+                                </div>
+                            </div>
+                            <div class="statistic">
+                                <div class="value">
+                                    <img src="img/avatar/people/carol.png" class="ui circular inline  top aligned image"><span class="counter">212</span>
+                                </div>
+                                <div class="label">
+                                    Team Members
+                                </div>
+                            </div>-->
+                    </div>
+
+            </div>
+
+        </div>
+        </a>
+
+
+        <!-- Activity Stream Sidebar -->
+        <div id='appshell-activity-stream-sidebar' class="ui right sidebar" tabindex="1"
+            style="overflow: auto; outline: none; width: 230px;">
+            <div class="ui pointing secondary two item tabular menu">
+                <a class="item active" data-tab="first"><i class="red icon ion-chatbox-working icon"></i></a>
+
+                <a class="item" data-tab="fourth"><i class="blue icon ion-gear-a"></i></a>
+            </div>
+            <div class="ui tab active" data-tab="first">
+                <div>
+                    <div id="appshell-activity-stream-events" class="ui small feed">
+
+                        <!-- Todo: Do this in javascript -->
+
+                        <h4 class="ui header">Activity Stream</h4>
+                    </div>
+                    <div id="appshell-activity-stream-next-container">
+                        <div class="ui divider"></div>
+
+                        <!-- Todo: Do this in javascript -->
+
+                        <button id="appshell-activity-stream-next-button" class="ui mini button"
+                            onclick="ce_console_activity_stream_next();">
+                            Show more
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ui tab" data-tab="fourth">
+                <div class="ui form fluid">
+                    <div id='appshell-activity-stream-timelines' class="grouped fields"></div>
+                </div>
+
+                <div class="ui divider"></div>
+                <div class="ui form fluid">
+                    <div id='appshell-activity-stream-settings' class="grouped fields">
+                        <div class="field">
+                            <div class="ui toggle checkbox">
+                                <input type="checkbox" name="appshell-activity-stream-enabled">
+                                <label class="coloring red">Enabled</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="ui divider"></div>
+
+            </div>
+        </div>
+
+
+        <div class="pusher">
+            <!--navbar-->
+            <div class="navslide navwrap">
+                <div class="ui menu icon borderless grid" data-color="inverted white">
+                    <a class="item labeled openbtn">
+                        <i class="ion-navicon-round big icon"></i>
+                    </a>
+                    <a class="item labeled expandit" onclick="toggleFullScreen(document.body)">
+                        <i class="ion-arrow-expand big icon"></i>
+                    </a>
+
+
+                    <div class="ui dropdown item colhidden">
+                        <div class="ui icon input">
+                            <input id="appshell-search-input" type="text" placeholder="Search...">
+                            <i class="search icon"></i>
+                        </div>
+                        <div id="appshell-search-list" class="menu">
+                            <div class="header">
+                                <span class="ce-translate">what_are_you_looking_for</span>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <div class="right menu colhidden">
+                        <div class="ui dropdown item"> <span class="ce-translate">language</span> <i
+                                class="dropdown icon"></i>
+                            <div id="appshell-available-locales" class="menu"></div>
+                        </div>
+                        <div class="ui dropdown item">
+                            <img id="appshell-user-avatar" class="ui mini circular image" src="assets/images/user.png"
+                                alt="label-image" />
+                            <div class="menu">
+                                <a id="appshell-user-name" class="item" href="/own-profile"></a>
+                                <div class="ui divider"></div>
+                                <a class="item" href="/help-center"><span class="ce-translate">help_center</span></a>
+                                <a id="appshell-signout" class="item"><span class="ce-translate">sign_out</span></a>
+                            </div>
+                        </div>
+                        <a id='appshell-activity-stream-toggle' class="item labeled rightsidebar computer only">
+                            <i class="feed icon"></i>
+                            <div class="ui red label mini circular">3</div>
+                        </a>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="mainWrap navslide">
+                <div id="page-main-container" class="ui equal width left aligned padded grid stackable"></div>
+            </div>
+        </div>
+    </div>
+
+    <!--jquery-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <!--jquery-->
+
+    <!--semantic-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.2.13/semantic.min.js"></script>
+
+    <!--counter number-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Counter-Up/1.0.0/jquery.counterup.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/waypoints/2.0.3/waypoints.min.js"></script>
+    <!--counter number-->
+
+    <!--pace-->
+    <script data-pace-options='{ "ajax": false }'
+        src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.0.2/pace.min.js"></script>
+    <!--pace-->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.20.1/moment.min.js"></script>
+
+    <script>
+
+        const jsonData = {
+            globals: {
+                cursorMoveTypes: {
+                    previous: 1,
+                    next: 2
+                },
+                listingTypes: {
+                    default: {
+                        user: 1,
+                        activityStream: 2,
+                        adminApplication: 3,
+                        cronJob: 4
+                    }
+                },
+                activityStream: {
+                    timelines: {
+                        hourly: 1,
+                        daily: 2,
+                        weekly: 3
+                    }
+                }
+
+            },
+            brandInfo: {
+                name: 'EMS Software Corp',
+                logoUrl: {
+                    // Todo: Update logo from javascript
+                    small: '/assets/images/thumblogo.png',
+                    large: '/assets/images/logo.png'
+                }
+            },
+            config: {
+                fusion: {
+                    sessionTokenCookie: 'X-Session-Token',
+                    defaultLocaleCookie: 'DEFAULT_LOCALE'
+                },
+                activityStream: {
+                    canView: true
+                }
+            },
+            sidebar: {
+                hierarchy: [
+                    {
+                        id: '1',
+                        '>': ['1_1']
+                    },
+                    {
+                        id: '2',
+                        '>': ['2_1', '2_2']
+                    },
+                    {
+                        id: '3',
+                        '>': ['3_1', '3_2']
+                    },
+                    {
+                        id: '4',
+                        '>': ['4_1', '4_2', '4_3', '4_4']
+                    },
+                    {
+                        id: '5',
+                        '>': ['5_1', '5_2']
+                    },
+                    {
+                        id: '6',
+                        '>': ['6_1', '6_2']
+                    },
+                    {
+                        id: '7',
+                        '>': ['7_1', '7_2']
+                    },
+                    {
+                        id: '8',
+                        '>': ['8_1', '8_2']
+                    },
+                    {
+                        id: '9',
+                        '>': ['9_1', '9_2', '9_3']
+                    }
+                ],
+                items: {
+                    '1': {
+                        'title': 'dashboard',
+                        'icon': 'speedometer',
+                    },
+                    '1_1': {
+                        'title': 'dashboard',
+                        'page': ''
+                    },
+                    '2': {
+                        'title': 'accounts',
+                        'icon': 'person',
+                    },
+                    '2_1': {
+                        'title': 'users',
+                        'page': ''
+                    },
+                    '2_2': {
+                        'title': 'roles',
+                        'page': ''
+                    },
+                    '3': {
+                        'title': 'courses',
+                        'icon': 'grid',
+                    },
+                    '3_1': {
+                        'title': 'result_sheet',
+                        'page': ''
+                    },
+                    '3_2': {
+                        'title': 'course_list',
+                        'page': ''
+                    },
+                    '4': {
+                        'title': 'directory',
+                        'icon': 'folder',
+                    },
+                    '4_1': {
+                        'title': 'faculties',
+                        'page': ''
+                    },
+                    '4_2': {
+                        'title': 'departments',
+                        'page': ''
+                    },
+                    '4_3': {
+                        'title': 'students',
+                        'page': ''
+                    },
+                    '4_4': {
+                        'title': 'lecturers',
+                        'page': ''
+                    },
+                    '5': {
+                        'title': 'result',
+                        'icon': 'arrow-graph-up-right',
+                    },
+                    '5_1': {
+                        'title': 'students_result',
+                        'page': ''
+                    },
+                    '5_2': {
+                        'title': 'course_result',
+                        'page': ''
+                    },
+                    '6': {
+                        'title': 'grading',
+                        'icon': 'ios-filing-outline',
+                    },
+                    '6_1': {
+                        'title': 'assessment_totals',
+                        'page': ''
+                    },
+                    '6_2': {
+                        'title': 'score_grades',
+                        'page': ''
+                    },
+                    '7': {
+                        'title': 'applications',
+                        'icon': 'person-add',
+                    },
+                    '7_1': {
+                        'title': 'pending',
+                        'page': ''
+                    },
+                    '7_2': {
+                        'title': 'declined',
+                        'page': ''
+                    },
+                    '8': {
+                        'title': 'forms',
+                        'icon': 'paintbrush',
+                    },
+                    '8_1': {
+                        'title': 'application_forms',
+                        'page': ''
+                    },
+                    '8_2': {
+                        'title': 'configuration_forms',
+                        'page': ''
+                    },
+                    '9': {
+                        'title': 'settings',
+                        'icon': 'settings',
+                    },
+                    '9_1': {
+                        'title': 'system_configuration',
+                        'page': ''
+                    },
+                    '9_2': {
+                        'title': 'cache',
+                        'page': ''
+                    },
+                    '9_3': {
+                        'title': 'file_storage',
+                        'page': ''
+                    }
+                }
+            }
+        };
+
+    </script>
+
+    <script src="/components/base.min.js"></script>
+    <script src="/components/app-shell/index.min.js"></script>
+
+    <!-- Todo: Move this to getJsonDependencies -->
+    <script src="/components/app-shell/utils.min.js"></script>
+    <script src="/components/app-shell/mocks.min.js"></script>
+
+    <script>
+        new AppShell(jsonData, null);
+    </script>
+</body>
+
+</html>
