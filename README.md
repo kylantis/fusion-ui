@@ -1,7 +1,7 @@
 
 ## Imagine UI
 
-### This is the default theme for Panther. It is extendable and defines the UI for all components
+### This is the default theme for Panther.
 
 ## Setup
 To setup this project locally:
@@ -13,4 +13,4 @@ To setup this project locally:
 - Run lint `npm run lint`
 - Run gulp `npm run gulp-dev`
 - The in another terminal, run `npm run dev`
-- Visit `localhost:8080` to view the app shell
+- Visit `localhost:8080/components/app-shell` to view the app shell
