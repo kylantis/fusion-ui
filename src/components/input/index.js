@@ -6,9 +6,29 @@ class Input extends BaseComponent {
 
     getCssDependencies() {
         const baseDependencies = super.getCssDependencies();
-        baseDependencies.push(['/css/input.css']);
-        baseDependencies.push(['/css/checkbox.css']);
+        baseDependencies.push('/assets/css/input.min.css');
+        if (this.data['@type'] === 'radio' || this.data['@type'] === 'checkbox') {
+            baseDependencies.push('/assets/css/checkbox.min.css');
+        }
         return baseDependencies;
+    }
+
+    required(element) {
+        if (this.data['@required']) {
+            element.setAttribute('required', '');
+        }
+    }
+
+    checked(element) {
+        if (this.data['@checked']) {
+            element.setAttribute('required', '');
+        }
+    }
+
+    disabled(element) {
+        if (this.data['@disabled']) {
+            element.setAttribute('disabled', '');
+        }
     }
 
     render() {
@@ -22,9 +42,7 @@ class Input extends BaseComponent {
             uiDiv.classList.add('input');
             uiDiv.append(inputDiv);
 
-            if (this.data['@required']) {
-                inputDiv.setAttribute('required', '');
-            }
+            this.required(inputDiv);
 
             inputDiv.setAttribute('type', 'text');
             inputDiv.setAttribute('placeholder', this.data['@placeholder']);
@@ -33,13 +51,9 @@ class Input extends BaseComponent {
             uiDiv.append(inputDiv);
             inputDiv.setAttribute('type', 'checkbox');
 
-            if (this.data['@required']) {
-                inputDiv.setAttribute('required', '');
-            }
-
-            if (this.data['@checked']) {
-                inputDiv.setAttribute('checked', 'checked');
-            }
+            this.required(inputDiv);
+            this.disabled(inputDiv);
+            this.checked(inputDiv);
 
             if (this.data['@disabled']) {
                 inputDiv.setAttribute('disabled', 'disabled');
@@ -54,17 +68,9 @@ class Input extends BaseComponent {
             uiDiv.append(inputDiv);
             inputDiv.setAttribute('type', 'radio');
 
-            if (this.data['@required']) {
-                inputDiv.setAttribute('required', '');
-            }
-
-            if (this.data['@checked']) {
-                inputDiv.setAttribute('checked', 'checked');
-            }
-
-            if (this.data['@disabled']) {
-                inputDiv.setAttribute('disabled', 'disabled');
-            }
+            this.required(inputDiv);
+            this.disabled(inputDiv);
+            this.checked(inputDiv);
 
             const labelDiv = document.createElement('label');
             labelDiv.textContent = this.data['@title'];
@@ -75,17 +81,9 @@ class Input extends BaseComponent {
             uiDiv.append(inputDiv);
             inputDiv.setAttribute('type', 'checkbox');
 
-            if (this.data['@required']) {
-                inputDiv.setAttribute('required', '');
-            }
-
-            if (this.data['@checked']) {
-                inputDiv.setAttribute('checked', 'checked');
-            }
-
-            if (this.data['@disabled']) {
-                inputDiv.setAttribute('disabled', 'disabled');
-            }
+            this.required(inputDiv);
+            this.disabled(inputDiv);
+            this.checked(inputDiv);
 
             const labelDiv = document.createElement('label');
             labelDiv.textContent = this.data['@title'];
@@ -96,17 +94,9 @@ class Input extends BaseComponent {
             uiDiv.append(inputDiv);
             inputDiv.setAttribute('type', 'checkbox');
 
-            if (this.data['@required']) {
-                inputDiv.setAttribute('required', '');
-            }
-
-            if (this.data['@checked']) {
-                inputDiv.setAttribute('checked', 'checked');
-            }
-
-            if (this.data['@disabled']) {
-                inputDiv.setAttribute('disabled', 'disabled');
-            }
+            this.required(inputDiv);
+            this.disabled(inputDiv);
+            this.checked(inputDiv);
 
             const labelDiv = document.createElement('label');
             labelDiv.textContent = this.data['@title'];
@@ -115,12 +105,10 @@ class Input extends BaseComponent {
             uiDiv.classList.add('input');
             uiDiv.append(inputDiv);
 
-            if (this.data['@required']) {
-                inputDiv.setAttribute('required', '');
-            }
+            this.required(inputDiv);
 
             inputDiv.setAttribute('type', this.data['@type']);
-            inputDiv.setAttribute('placeholder', this.data['@title']);
+            inputDiv.setAttribute('placeholder', this.data['@placeholder']);
         }
 
         node.append(uiDiv);
