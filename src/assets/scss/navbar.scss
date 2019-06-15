@@ -7,3 +7,15 @@
     font-family: 'Dropdown';
     font-style: normal;
 }
+
+.ui.pointing.dropdown > .menu:after {
+    content: none;
+}
+
+.ui.menu .pointing.dropdown.item .menu {
+    margin-top: 0.1em;
+}
+
+.ui.dropdown .menu .menu {
+    margin: 0 !important;
+}
