@@ -10,49 +10,39 @@
 
     <script>
 
-        const myTable = [
-            {
-                "0": "James",
-                "1": "24",
-                "2": "Engineer",
-                "3": "125000.60",
-                "4": "James is an interesting boy but sometimes" +
-                    " you don't really have enough room to describe everything you'd like"
-            },
-            {
-                "Name": "Jill",
-                "Age": "26",
-                "Job": "Engineer",
-                "Salary": "516000.00",
-                "Description": "Jill is an alright girl but sometimes you don't" +
-                    " really have enough room to describe everything you'd like"
-            },
-            {
-                "Name": "Elyse",
-                "Age": "24",
-                "Job": "Designer",
-                "Salary": "210000.40",
-                "Description": "Elyse is a kind girl but sometimes you don't really have" +
-                    " enough room to describe everything you'd like"
-            }
-        ];
-
         const appendRowData = [
             {
-                "0": "Emeka",
-                "1": "24",
-                "2": "Engineer",
-                "3": "125000.60",
-                "4": "James is an interesting boy but sometimes" +
-                    " you don't really have enough room to describe everything you'd like"
+                "@tag" : "row",
+                ">": {
+                    "Name": "James",
+                    "Age": "28",
+                    "Job": "Doctor",
+                    "Salary": "125000.60",
+                    "Description": "James is an interesting boy but sometimes" +
+                        " you don't really have enough room to describe everything you'd like"
+                }           
             },
             {
-                "0": "Johnny",
-                "1": "26",
-                "2": "Engineer",
-                "3": "516000.00",
-                "4": "Jill is an alright girl but sometimes you don't" +
-                    " really have enough room to describe everything you'd like"
+                "@tag" : "row",
+                ">": {
+                    "Name": "Jill",
+                    "Age": "29",
+                    "Job": "Carpenter",
+                    "Salary": "516000.00",
+                    "Description": "Jill is an alright girl but sometimes you don't" +
+                        " really have enough room to describe everything you'd like"
+                }
+            },
+            {
+                "@tag" : "row",
+                ">": {
+                    "Name": "Elyse",
+                    "Age": "30",
+                    "Job": "Designer",
+                    "Salary": "210000.40",
+                    "Description": "Elyse is a kind girl but sometimes you don't really have" +
+                        " enough room to describe everything you'd like"
+                }
             }
         ];
 
@@ -62,9 +52,9 @@
             "@isHoverable": true,
             "@isResponsive": true,
             "@textAlign": "center",
-            "@isStriped": true,
-            "@hasBorder": false,
-            "@singleLine": true,
+            "@isStriped": false,
+            "@hasBorder": true,
+            "@singleLine": false,
             "@isInverted": false,
             "@color": "blue",
             "@isDataTable": false,
@@ -148,7 +138,22 @@
     <!-- js dependencies -->
     <script src="/components/base.min.js"></script>
     <script src="/components/table/index.min.js"></script>
-    <script>new Table(jsonData, document.querySelector("#table"));</script>
+    <script>
+        let table = new Table(jsonData, document.querySelector("#table"));
+        setTimeout(() => table.update('appendRow', appendRowData), 2500);
+        // document.addEventListener('dblclick', (event) => {
+        //     table.update('deleteRow', Table.getRowId(event));
+        // });
+
+        document.addEventListener('dblclick', () => {
+            let rowId = Table.getRowId(event);
+            let row = document.getElementById(rowId)
+            row.setAttribute('contenteditable', 'true');
+        })
+        
+
+        
+    </script>
 
 </body>
 

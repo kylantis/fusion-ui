@@ -17,41 +17,83 @@ class Accordion extends BaseComponent {
         return baseDependencies;
     }
 
+    static getAccordionId(event) {
+        return event.target.id;
+    }
+
+    getAccordionNode() {
+        return this.node.firstChild;
+    }
+
+    addContents(parentNode, data) {
+        for (let i = 0; i < data.length; i += 1) {
+            const id = `accordion-${this.getRandomInt(1, 100000)}`;
+            for (const [key, value] of Object.entries(data[i])) {
+                if (key === '@title') {
+                    const titleDiv = document.createElement('div');
+                    this.appendNode(titleDiv, 'i', 'dropdown icon');
+                    titleDiv.className = 'title';
+                    titleDiv.setAttribute('id', id);
+                    parentNode.appendChild(titleDiv);
+                    const textnode = document.createTextNode(value);
+                    titleDiv.appendChild(textnode);
+                }
+                if (key === '@content') {
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'content';
+                    contentDiv.setAttribute('id', id);
+                    parentNode.appendChild(contentDiv);
+                    const ptag = document.createElement('p');
+                    contentDiv.appendChild(ptag);
+                    ptag.className = 'transition hidden';
+                    ptag.textContent = value;
+                }
+            }
+        }
+    }
+
+    update(behavior, data) {
+        const element = document.getElementById(data);
+
+        switch (behavior) {
+        case 'addContent':
+            this.addContents(this.getAccordionNode(), data['>']);
+
+            break;
+
+        case 'deleteContent':
+            element.parentNode.removeChild(element);
+            break;
+
+        case 'editContent':
+
+            break;
+
+        default:
+
+            break;
+        }
+    }
+
     render() {
         const { node } = this;
+        const accordionId = [];
 
         const uiDiv = document.createElement('div');
         uiDiv.className = 'ui fluid';
+        uiDiv.setAttribute('id', `${node.getAttribute('id')}-component`);
 
         if (this.data['@displayStyle'] === 'styled') {
             uiDiv.classList.add('styled');
         }
 
         if (this.data['>']) {
-            for (let i = 0; i < this.data['>'].length; i++) {
-                for (const [key, value] of Object.entries(this.data['>'][i])) {
-                    if (key === '@title') {
-                        const titleDiv = document.createElement('div');
-                        // let iTag = document.createElement('i');
-                        this.appendNode(titleDiv, 'i', 'dropdown icon');
-                        // titleDiv.prepend(iTag);
-                        // iTag.className = "dropdown icon";
-                        titleDiv.className = 'title';
-                        uiDiv.appendChild(titleDiv);
-                        const textnode = document.createTextNode(value);
-                        titleDiv.appendChild(textnode);
-                    }
-                    if (key === '@content') {
-                        const contentDiv = document.createElement('div');
-                        contentDiv.className = 'content';
-                        uiDiv.appendChild(contentDiv);
-                        const ptag = document.createElement('p');
-                        contentDiv.appendChild(ptag);
-                        ptag.className = 'transition hidden';
-                        ptag.textContent = value;
-                    }
-                }
-            }
+            const accData = this.data['>'];
+            // addContents function
+            this.addContents(uiDiv, accData);
+            const id = `${uiDiv.getAttribute('id')}-${this.getRandomInt()}`;
+            accordionId.push(`#${id}`);
+            uiDiv.setAttribute('id', id);
             uiDiv.classList.add('accordion');
             node.append(uiDiv);
             $('.ui.accordion').accordion();

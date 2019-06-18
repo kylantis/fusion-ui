@@ -8,6 +8,11 @@ class BaseComponent {
         });
     }
 
+    callback(event, data) {
+        console.log(event, data);
+        // Send via socket
+    }
+
     getCssDependencies() {
         return ['/assets/css/site.min.css', '/assets/css/reset.min.css'];
     }
@@ -15,7 +20,7 @@ class BaseComponent {
     getJsDependencies() {
         return [
             // This should be removed before rendering within the app shell
-            'https://code.jquery.com/jquery-3.4.1.min.js',
+            'https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js',
             '/assets/js/site.min.js'];
     }
 

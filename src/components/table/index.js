@@ -1,25 +1,72 @@
 // eslint-disable-next-line no-unused-vars
 class Table extends BaseComponent {
-    constructor(data, node) {
-        super(data, node);
-        this.columnTitles = {};
-    }
-
     tagName() {
         return 'table';
     }
 
     getCssDependencies() {
         const baseDependencies = super.getCssDependencies();
-        baseDependencies.push('/assets/css/table.min.css');
+        baseDependencies.push('/assets/css/table.min.css', '/assets/css/input.min.css');
         return baseDependencies;
+    }
+
+    behaviorNames() {
+        return (['appendRow', 'deleteRow', 'editRow']);
+    }
+
+    getTableBody() {
+        return this.node.querySelector('tbody');
+    }
+
+    static getRowId(event) {
+        return event.target.parentNode.id;
+    }
+
+    getLastChildId() {
+        const originalId = this.node.querySelector('tbody').lastChild.getAttribute('id');
+        const id = parseInt(originalId, 10);
+        return id;
+    }
+
+    update(behavior, data) {
+        const lastChildId = this.getLastChildId() + 1;
+        const element = document.getElementById(data);
+
+        switch (behavior) {
+        case 'appendRow':
+
+            for (let i = 0; i < data.length; i += 1) {
+                if (data[i]['@tag'] === 'row') {
+                    const updatedBody = this.getTableBody().insertRow(-1);
+                    updatedBody.id = `${lastChildId + i}`;
+                    // check if row tag
+                    const columns = data[i]['>'];
+                    for (const k in columns) {
+                        if (Object.prototype.hasOwnProperty.call(columns, k)) {
+                            const tableCell = updatedBody.insertCell(-1);
+                            tableCell.innerHTML = columns[k];
+                        }
+                    }
+                }
+            }
+            break;
+
+        case 'deleteRow':
+            element.parentNode.removeChild(element);
+            this.callback('deleteRow', 'element');
+            break;
+
+        default:
+
+            break;
+        }
     }
 
     render() {
         const { node } = this;
         const jsonData = this.data;
         // Save the column titles to the column object in the constructor
-        const { columnTitles } = this;
+        const columnTitles = {};
 
         const tableId = [];
 
@@ -74,22 +121,24 @@ class Table extends BaseComponent {
 
             const columns = this.data['>'][0]['>'];
             for (let i = 0; i < columns.length; i++) {
-                this.columnTitles[i.toString()] = columns[i]['@title'];
+                columnTitles[i.toString()] = columns[i]['@title'];
             }
 
             for (const value of Object.keys(columnTitles)) {
                 const th = document.createElement('th');
                 th.textContent = columnTitles[value];
                 trHead.appendChild(th);
-                thead.append(th);
             }
 
-            if (jsonData['>'].length > 1) {
+            if (jsonData['>'].length > 0) {
+                let id = 0;
                 for (let i = 1; i < this.data['>'].length; i++) {
                     const rowData = this.data['>'][i];
                     if (rowData['@tag'] === 'row') {
                         const trBody = tbody.insertRow(-1);
-                        for (let j = 0; j < rowData['>'].length; j++) {
+                        trBody.id = `${id += 1}`;
+                        const innerRowData = rowData['>'];
+                        for (let j = 0; j < innerRowData.length; j++) {
                             for (const [key, value] of Object.entries(rowData['>'][j])) {
                                 if (key === '@value') {
                                     const tableCell = trBody.insertCell(-1);
