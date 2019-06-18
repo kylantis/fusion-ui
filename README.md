@@ -9,7 +9,7 @@ To setup this project locally:
  `git clone git@github.com:tonyobanon/project_panther_fe.git`
 - Install `nvm` if you don't already have it
 - `nvm use`
-- `npm run setup`
+- `npm run build`
 - Run lint `npm run lint`
 - Run gulp `npm run gulp-dev`
 - The in another terminal, run `npm run dev`

@@ -9,6 +9,17 @@ class Table extends BaseComponent {
         return 'table';
     }
 
+    getBehaviourNames() {
+        return [
+            'appendRow',
+        ];
+    }
+
+    // eslint-disable-next-line no-unused-vars
+    update(behavior, data) {
+    }
+
+
     getCssDependencies() {
         const baseDependencies = super.getCssDependencies();
         baseDependencies.push('/assets/css/table.min.css');
@@ -16,6 +27,8 @@ class Table extends BaseComponent {
     }
 
     render() {
+        // Add listeners that respond to user event, then this should buuble up to this.callback();
+
         const { node } = this;
         const jsonData = this.data;
         // Save the column titles to the column object in the constructor
