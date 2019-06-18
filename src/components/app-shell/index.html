@@ -3,14 +3,9 @@
 
 <head>
     <title></title>
-    <meta charset="utf-8" /> 
+    <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name=viewport content="width=device-width, initial-scale=1" />
-
-    <!-- Todo: Move this to getCssDependencies -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.2.13/semantic.min.css" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/ionicons/2.0.0/css/ionicons.min.css" rel="stylesheet" />
-    <link href="/assets/css/app-shell.min.css" rel="stylesheet" />
 
     <link rel="shortcut icon" href="/assets/images/icon.png" />
 
@@ -23,13 +18,14 @@
             background: rgba(255, 255, 255, .08) !important;
         }
 
-        .ce-translate-u {
-            text-transform: capitalize;
-        }
-
         #page-main-container {
             min-height: 768px;
             display: flex;
+        }
+
+        .ui.visible.right.sidebar~.pusher {
+            -webkit-transform: translate3d(-230px, 0, 0) !important;
+            transform: translate3d(-230px, 0, 0) !important;
         }
     </style>
 </head>
@@ -41,7 +37,7 @@
         <!--Sidebar-->
         <!-- Container for Side Items (Mobile) -->
         <div class="ui sidebar vertical left menu overlay  borderless visible sidemenu inverted  grey"
-            style="-webkit-transition-duration: 0.1s; transition-duration: 0.1s;" data-color="grey">
+            style="transition-duration: 0.1s; overflow: hidden; outline: none;" data-color="grey" tabindex="0">
 
             <a class="item logo" href="">
                 <img src="/assets/images/logo.png" alt="stagblogo" />
@@ -74,7 +70,7 @@
                     </div>
                 </a>
                 <div class="ui divider"></div>
-                <a class="item hiddenCollapse">
+                <a class="item hiddenCollapse" style="cursor: auto;">
                     <div class="ui one tiny inverted statistics">
                         <div class="statistic">
                             <div class="value counter">
@@ -119,51 +115,29 @@
         <!-- Activity Stream Sidebar -->
         <div id='appshell-activity-stream-sidebar' class="ui right sidebar" tabindex="1"
             style="overflow: auto; outline: none; width: 230px;">
+
             <div class="ui pointing secondary two item tabular menu">
                 <a class="item active" data-tab="first"><i class="red icon ion-chatbox-working icon"></i></a>
-
                 <a class="item" data-tab="fourth"><i class="blue icon ion-gear-a"></i></a>
             </div>
+
+            <!-- Events -->
             <div class="ui tab active" data-tab="first">
-                <div>
-                    <div id="appshell-activity-stream-events" class="ui small feed">
-
-                        <!-- Todo: Do this in javascript -->
-
-                        <h4 class="ui header">Activity Stream</h4>
-                    </div>
-                    <div id="appshell-activity-stream-next-container">
-                        <div class="ui divider"></div>
-
-                        <!-- Todo: Do this in javascript -->
-
-                        <button id="appshell-activity-stream-next-button" class="ui mini button"
-                            onclick="ce_console_activity_stream_next();">
-                            Show more
-                        </button>
-                    </div>
-                </div>
+                <div id='appshell-activity-stream-container'></div>
             </div>
 
+            <!-- Timelines and other settings -->
             <div class="ui tab" data-tab="fourth">
                 <div class="ui form fluid">
                     <div id='appshell-activity-stream-timelines' class="grouped fields"></div>
                 </div>
-
                 <div class="ui divider"></div>
                 <div class="ui form fluid">
-                    <div id='appshell-activity-stream-settings' class="grouped fields">
-                        <div class="field">
-                            <div class="ui toggle checkbox">
-                                <input type="checkbox" name="appshell-activity-stream-enabled">
-                                <label class="coloring red">Enabled</label>
-                            </div>
-                        </div>
-                    </div>
+                    <div id='appshell-activity-stream-settings' class="grouped fields"></div>
                 </div>
                 <div class="ui divider"></div>
-
             </div>
+
         </div>
 
 
@@ -174,7 +148,7 @@
                     <a class="item labeled openbtn">
                         <i class="ion-navicon-round big icon"></i>
                     </a>
-                    <a class="item labeled expandit" onclick="toggleFullScreen(document.body)">
+                    <a id="fullscreen-toggle" class="item labeled expandit">
                         <i class="ion-arrow-expand big icon"></i>
                     </a>
 
@@ -221,25 +195,6 @@
             </div>
         </div>
     </div>
-
-    <!--jquery-->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
-    <!--jquery-->
-
-    <!--semantic-->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.2.13/semantic.min.js"></script>
-
-    <!--counter number-->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Counter-Up/1.0.0/jquery.counterup.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/waypoints/2.0.3/waypoints.min.js"></script>
-    <!--counter number-->
-
-    <!--pace-->
-    <script data-pace-options='{ "ajax": false }'
-        src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.0.2/pace.min.js"></script>
-    <!--pace-->
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.20.1/moment.min.js"></script>
 
     <script>
 
@@ -297,6 +252,31 @@
                         id: '3',
                         '>': ['3_1', '3_2']
                     },
+                    {
+                        id: '4',
+                        '>': ['4_1', '4_2', '4_3', '4_4']
+                    },
+                    {
+                        id: '5',
+                        '>': ['5_1', '5_2']
+                    },
+                    {
+                        id: '6',
+                        '>': ['6_1', '6_2']
+                    },
+                    {
+                        id: '7',
+                        '>': ['7_1', '7_2']
+                    },
+                    {
+                        id: '8',
+                        '>': ['8_1', '8_2']
+                    },
+                    {
+                        id: '9',
+                        '>': ['9_1', '9_2', '9_3']
+                    }
+                    ,
                     {
                         id: '4',
                         '>': ['4_1', '4_2', '4_3', '4_4']

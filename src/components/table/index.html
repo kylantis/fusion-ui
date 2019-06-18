@@ -148,7 +148,19 @@
     <!-- js dependencies -->
     <script src="/components/base.min.js"></script>
     <script src="/components/table/index.min.js"></script>
-    <script>new Table(jsonData, document.querySelector("#table"));</script>
+    <script>
+    
+    const t = new Table(jsonData, document.querySelector("#table"));
+    
+    setInterval(() => {
+
+        t.update('appendRow', {
+            
+        });
+
+    }, 5000);
+    
+    </script>
 
 </body>
 
