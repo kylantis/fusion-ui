@@ -6,24 +6,17 @@ class Accordion extends BaseComponent {
     }
 
     getCssDependencies() {
-        const baseDependencies = super.getCssDependencies();
-        baseDependencies.push('/assets/css/accordion.min.css', '/assets/css/dropdown.min.css', '/assets/css/transition.min.css');
-        return baseDependencies;
+        return super.getCssDependencies().concat(['/assets/css/accordion.min.css',
+            '/assets/css/dropdown.min.css', '/assets/css/transition.min.css']);
     }
 
     getJsDependencies() {
-        const baseDependencies = super.getJsDependencies();
-        baseDependencies.push('/assets/js/accordion.min.js', '/assets/js/dropdown.min.js', '/assets/js/transition.min.js');
-        return baseDependencies;
+        return super.getJsDependencies().concat(['/assets/js/accordion.min.js',
+            '/assets/js/dropdown.min.js', '/assets/js/transition.min.js']);
     }
 
     static getAccordionId(event) {
-        const accordionTitle = event.target.id;
-        if (accordionTitle.includes('title')) {
-            const accordionContent = $(`#${accordionTitle}`).next()[0].id;
-            console.log(accordionTitle);
-            console.log(accordionContent);
-        }
+        return event.target.id;
     }
 
     getAccordionNode() {
@@ -40,8 +33,10 @@ class Accordion extends BaseComponent {
                     titleDiv.className = 'title';
                     titleDiv.setAttribute('id', `${id}-title`);
                     parentNode.appendChild(titleDiv);
-                    const textnode = document.createTextNode(value);
-                    titleDiv.appendChild(textnode);
+                    // const textnode = document.createTextNode(value);
+                    const textSpan = document.createElement('span');
+                    textSpan.innerHTML = value;
+                    titleDiv.appendChild(textSpan);
                 }
                 if (key === '@content') {
                     const contentDiv = document.createElement('div');
@@ -58,20 +53,29 @@ class Accordion extends BaseComponent {
     }
 
     update(behavior, data) {
-        const element = document.getElementById(data);
+        const element = document.getElementById(data.id);
+        const contentDiv = element.nextSibling;
+        const newTitle = data.title;
+        const newContent = data.content;
 
         switch (behavior) {
         case 'addContent':
             this.addContents(this.getAccordionNode(), data['>']);
-
             break;
 
         case 'deleteContent':
-            element.parentNode.remove(element);
+            element.parentNode.removeChild(element);
+            contentDiv.parentNode.removeChild(contentDiv);
             break;
 
         case 'editContent':
+            if (data.title && element.id.includes('title')) {
+                element.lastChild.innerHTML = newTitle;
+            }
 
+            if (data.content && contentDiv.id.includes('content')) {
+                contentDiv.firstChild.innerHTML = newContent;
+            }
             break;
 
         default:

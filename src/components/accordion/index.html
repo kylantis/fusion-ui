@@ -67,13 +67,24 @@
     <script src="/components/accordion/index.min.js"></script>
     <script>
     
-        const accordionId = document.getElementById('accordion');
+        const accordionDiv = document.getElementById('accordion');
         let accordion = new Accordion(jsonData, document.querySelector("#accordion"))
         // setTimeout(() => accordion.update('addContent', appendData), 2500);
-        accordionId.addEventListener('click', (event) => {
-            // console.log(event.target.id);
-            console.log(Accordion.getAccordionId(event));
-            // new Accordion('deleteContent', Accordion.getAccordionId(event));
+
+        //Delete Content 
+        // accordionDiv.addEventListener('dblclick', (event) => {
+        //     let elementId = Accordion.getAccordionId(event)
+        //     accordion.update('deleteContent', {id: elementId});
+        // })
+
+        //Edit content
+        accordionDiv.addEventListener('dblclick', (event) => {
+            let elementId = Accordion.getAccordionId(event)
+            accordion.update('editContent', {
+                id: elementId, 
+                title: "Hello World", 
+                content: "Hello Nigeria my wonderful home that i love to hate"
+            });
         })
     </script>
 </body>

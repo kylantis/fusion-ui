@@ -34,8 +34,8 @@ class Table extends BaseComponent {
 
     update(behavior, data) {
         const lastChildId = this.getLastChildId() + 1;
-        const element = document.getElementById(data.id);
-        const newContent = data.content;
+        const element = document.getElementById(data.id); // get html element from the data
+        const newContent = data.content; // Data from json
 
         switch (behavior) {
         case 'appendRow':
@@ -67,11 +67,8 @@ class Table extends BaseComponent {
             break;
 
         case 'editRow':
-            // Get the row of the table with the cell to be changed
-            // Get the id of the cell to be changed
-            // Get the new data to be added to the table
-            // console.log(element);
             element.innerHTML = newContent;
+            // this.callback('editRow', data);
             break;
 
         default:
@@ -143,10 +140,11 @@ class Table extends BaseComponent {
             for (let i = 0; i < columns.length; i++) {
                 columnTitles[i.toString()] = columns[i]['@title'];
             }
-
+            let columnId = 0;
             for (const value of Object.keys(columnTitles)) {
                 const th = document.createElement('th');
                 th.textContent = columnTitles[value];
+                th.id = `title-${columnId += 1}`;
                 trHead.appendChild(th);
             }
 
