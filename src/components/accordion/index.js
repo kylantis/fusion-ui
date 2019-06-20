@@ -32,7 +32,7 @@ class Accordion extends BaseComponent {
 
     addContents(parentNode, data) {
         for (let i = 0; i < data.length; i += 1) {
-            const id = `accordion-${this.getRandomInt(1, 100000)}`;
+            const id = `accordion-${this.getRandomInt()}`;
             for (const [key, value] of Object.entries(data[i])) {
                 if (key === '@title') {
                     const titleDiv = document.createElement('div');

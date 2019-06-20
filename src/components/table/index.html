@@ -142,15 +142,20 @@
         const tableId = document.getElementById('table');
         let table = new Table(jsonData, document.querySelector("#table"));
         setTimeout(() => table.update('appendRow', appendRowData), 2500);
-        // document.addEventListener('dblclick', (event) => {
-        //     table.update('deleteRow', Table.getRowId(event));
+        // tableId.addEventListener('dblclick', (event) => {
+        //     table.update('deleteRow', Table.getRow(event));
         // });
+        tableId.addEventListener('dblclick', (event) => {
+            let cellId = Table.getCellId(event);
+            table.update('editRow', {id: cellId, content: 'Hello New Content'});
+        });
 
-        tableId.addEventListener('dblclick', () => {
-            let rowId = Table.getRowId(event);
-            let row = document.getElementById(rowId);
-            row.setAttribute('contenteditable', 'true');
-        })
+        // tableId.addEventListener('dblclick', () => {
+        //     let cellId = Table.getCellId(event);
+        //     let row = Table.getRow(event);
+        //     console.log(row);
+        //     tableId.getElementById(cellId).innerHTML = "Hello" ;
+        // })
     </script>
 
 </body>

@@ -6,31 +6,24 @@ class Table extends BaseComponent {
 
     getBehaviourNames() {
         return [
-            'appendRow',
+            'appendRow', 'deleteRow', 'editRow',
         ];
     }
 
-    // eslint-disable-next-line no-unused-vars
-    update(behavior, data) {
-    }
-
-
     getCssDependencies() {
-        const baseDependencies = super.getCssDependencies();
-        baseDependencies.push('/assets/css/table.min.css', '/assets/css/input.min.css');
-        return baseDependencies;
-    }
-
-    behaviorNames() {
-        return (['appendRow', 'deleteRow', 'editRow']);
+        return super.getCssDependencies().concat(['/assets/css/table.min.css', '/assets/css/input.min.css']);
     }
 
     getTableBody() {
         return this.node.querySelector('tbody');
     }
 
-    static getRowId(event) {
-        return event.target.parentNode.id;
+    static getCellId(event) {
+        return event.target.id;
+    }
+
+    static getRow(event) {
+        return event.target.parentNode;
     }
 
     getLastChildId() {
@@ -41,7 +34,8 @@ class Table extends BaseComponent {
 
     update(behavior, data) {
         const lastChildId = this.getLastChildId() + 1;
-        const element = document.getElementById(data);
+        const element = document.getElementById(data.id);
+        const newContent = data.content;
 
         switch (behavior) {
         case 'appendRow':
@@ -52,9 +46,11 @@ class Table extends BaseComponent {
                     updatedBody.id = `${lastChildId + i}`;
                     // check if row tag
                     const columns = data[i]['>'];
+                    let j = 0;
                     for (const k in columns) {
                         if (Object.prototype.hasOwnProperty.call(columns, k)) {
                             const tableCell = updatedBody.insertCell(-1);
+                            tableCell.id = `${updatedBody.id}-${j += 1}`;
                             tableCell.innerHTML = columns[k];
                         }
                     }
@@ -63,8 +59,19 @@ class Table extends BaseComponent {
             break;
 
         case 'deleteRow':
-            element.parentNode.removeChild(element);
-            this.callback('deleteRow', 'element');
+            // Currently, element returns a html element but it should be a javascript object
+            if (element) {
+                element.parentNode.removeChild(element);
+            }
+            // this.callback('deleteRow', 'element');
+            break;
+
+        case 'editRow':
+            // Get the row of the table with the cell to be changed
+            // Get the id of the cell to be changed
+            // Get the new data to be added to the table
+            // console.log(element);
+            element.innerHTML = newContent;
             break;
 
         default:
@@ -155,6 +162,7 @@ class Table extends BaseComponent {
                             for (const [key, value] of Object.entries(rowData['>'][j])) {
                                 if (key === '@value') {
                                     const tableCell = trBody.insertCell(-1);
+                                    tableCell.id = `${trBody.id}-${j + 1}`;
                                     tableCell.innerHTML = value;
                                 }
                             }
