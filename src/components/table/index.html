@@ -139,20 +139,18 @@
     <script src="/components/base.min.js"></script>
     <script src="/components/table/index.min.js"></script>
     <script>
+        const tableId = document.getElementById('table');
         let table = new Table(jsonData, document.querySelector("#table"));
         setTimeout(() => table.update('appendRow', appendRowData), 2500);
         // document.addEventListener('dblclick', (event) => {
         //     table.update('deleteRow', Table.getRowId(event));
         // });
 
-        document.addEventListener('dblclick', () => {
+        tableId.addEventListener('dblclick', () => {
             let rowId = Table.getRowId(event);
-            let row = document.getElementById(rowId)
+            let row = document.getElementById(rowId);
             row.setAttribute('contenteditable', 'true');
         })
-        
-
-        
     </script>
 
 </body>

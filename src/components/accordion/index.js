@@ -18,7 +18,10 @@ class Accordion extends BaseComponent {
     }
 
     static getAccordionId(event) {
-        return event.target.id;
+        const accordionTitle = event.target.id;  
+        if (accordionTitle.includes('title')) {
+            const accordionContent = $(`#${accordionTitle}`).next()[0].id;
+        }
     }
 
     getAccordionNode() {
@@ -33,7 +36,7 @@ class Accordion extends BaseComponent {
                     const titleDiv = document.createElement('div');
                     this.appendNode(titleDiv, 'i', 'dropdown icon');
                     titleDiv.className = 'title';
-                    titleDiv.setAttribute('id', id);
+                    titleDiv.setAttribute('id', `${id}-title`);
                     parentNode.appendChild(titleDiv);
                     const textnode = document.createTextNode(value);
                     titleDiv.appendChild(textnode);
@@ -41,7 +44,7 @@ class Accordion extends BaseComponent {
                 if (key === '@content') {
                     const contentDiv = document.createElement('div');
                     contentDiv.className = 'content';
-                    contentDiv.setAttribute('id', id);
+                    contentDiv.setAttribute('id', `${id}-content`);
                     parentNode.appendChild(contentDiv);
                     const ptag = document.createElement('p');
                     contentDiv.appendChild(ptag);
@@ -62,7 +65,7 @@ class Accordion extends BaseComponent {
             break;
 
         case 'deleteContent':
-            element.parentNode.removeChild(element);
+            element.parentNode.remove(element);
             break;
 
         case 'editContent':

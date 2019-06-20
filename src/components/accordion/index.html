@@ -65,13 +65,16 @@
     
     <script src="/components/base.min.js"></script> 
     <script src="/components/accordion/index.min.js"></script>
-    <script>let accordion = new Accordion(jsonData, document.querySelector("#accordion"))
-            // setTimeout(() => accordion.update('addContent', appendData), 2500);
-            document.addEventListener('dblclick', (event) => {
-                console.log(event);
-                new Accordion('deleteContent', Accordion.getAccordionId(event));
-            })
-
+    <script>
+    
+        const accordionId = document.getElementById('accordion');
+        let accordion = new Accordion(jsonData, document.querySelector("#accordion"))
+        // setTimeout(() => accordion.update('addContent', appendData), 2500);
+        accordionId.addEventListener('click', (event) => {
+            // console.log(event.target.id);
+            // console.log(Accordion.getAccordionId(event));
+            new Accordion('deleteContent', Accordion.getAccordionId(event));
+        })
     </script>
 </body>
 
