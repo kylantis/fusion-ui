@@ -18,9 +18,11 @@ class Accordion extends BaseComponent {
     }
 
     static getAccordionId(event) {
-        const accordionTitle = event.target.id;  
+        const accordionTitle = event.target.id;
         if (accordionTitle.includes('title')) {
             const accordionContent = $(`#${accordionTitle}`).next()[0].id;
+            console.log(accordionTitle);
+            console.log(accordionContent);
         }
     }
 

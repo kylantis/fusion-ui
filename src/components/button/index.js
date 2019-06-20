@@ -6,10 +6,12 @@ class Button extends BaseComponent {
 
     getCssDependencies() {
         const baseDependencies = super.getCssDependencies();
-        if (this.data['@buttonStyle'] === 'basic' || this.data['@buttonStyle'].length === 0 || this.data['@buttonStyle'] === 'outline') {
-            baseDependencies.push('/assets/css/button.min.css');
-        } else {
-            baseDependencies.push('/assets/css/icon.min.css', '/assets/css/button.min.css');
+        baseDependencies.push('/assets/css/button.min.css');
+        switch (this.data['@buttonStyle']) {
+        case 'basic': case 'outline': break;
+        default:
+            baseDependencies.push('/assets/css/icon.min.css');
+            break;
         }
         return baseDependencies;
     }
