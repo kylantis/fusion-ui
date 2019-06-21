@@ -23,7 +23,7 @@ class Accordion extends BaseComponent {
         return this.node.firstChild;
     }
 
-    addContents(parentNode, data) {
+    addContents(data, parentNode) {
         for (let i = 0; i < data.length; i += 1) {
             const id = `accordion-${this.getRandomInt()}`;
             for (const [key, value] of Object.entries(data[i])) {
@@ -33,7 +33,6 @@ class Accordion extends BaseComponent {
                     titleDiv.className = 'title';
                     titleDiv.setAttribute('id', `${id}-title`);
                     parentNode.appendChild(titleDiv);
-                    // const textnode = document.createTextNode(value);
                     const textSpan = document.createElement('span');
                     textSpan.innerHTML = value;
                     titleDiv.appendChild(textSpan);
@@ -54,21 +53,23 @@ class Accordion extends BaseComponent {
 
     update(behavior, data) {
         const element = document.getElementById(data.id);
-        const contentDiv = element.nextSibling;
+        let contentDiv = 0;
         const newTitle = data.title;
         const newContent = data.content;
 
         switch (behavior) {
         case 'addContent':
-            this.addContents(this.getAccordionNode(), data['>']);
+            this.addContents(data['>'], this.getAccordionNode());
             break;
 
         case 'deleteContent':
+            contentDiv = element.nextSibling;
             element.parentNode.removeChild(element);
             contentDiv.parentNode.removeChild(contentDiv);
             break;
 
         case 'editContent':
+            contentDiv = element.nextSibling;
             if (data.title && element.id.includes('title')) {
                 element.lastChild.innerHTML = newTitle;
             }
@@ -90,7 +91,7 @@ class Accordion extends BaseComponent {
 
         const uiDiv = document.createElement('div');
         uiDiv.className = 'ui fluid';
-        uiDiv.setAttribute('id', `${node.getAttribute('id')}-component`);
+        uiDiv.setAttribute('id', `${node.getAttribute('id')}`);
 
         if (this.data['@displayStyle'] === 'styled') {
             uiDiv.classList.add('styled');
@@ -99,7 +100,7 @@ class Accordion extends BaseComponent {
         if (this.data['>']) {
             const accData = this.data['>'];
             // addContents function
-            this.addContents(uiDiv, accData);
+            this.addContents(accData, uiDiv);
             const id = `${uiDiv.getAttribute('id')}-${this.getRandomInt()}`;
             accordionId.push(`#${id}`);
             uiDiv.setAttribute('id', id);

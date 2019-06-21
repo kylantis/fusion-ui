@@ -7,40 +7,44 @@
 
 <body>
     <div id="table"></div>
+    <div id="table2"></div>
 
     <script>
 
         const appendRowData = [
             {
-                "@tag" : "row",
+                "@tag": "row",
+                "@id": "",
                 ">": {
-                    "Name": "James",
-                    "Age": "28",
-                    "Job": "Doctor",
-                    "Salary": "125000.60",
-                    "Description": "James is an interesting boy but sometimes" +
+                    0: "James",
+                    1: "28",
+                    2: "Doctor",
+                    3: "125000.60",
+                    4: "James is an interesting boy but sometimes" +
                         " you don't really have enough room to describe everything you'd like"
-                }           
+                }
             },
             {
-                "@tag" : "row",
+                "@tag": "row",
+                "@id": "",
                 ">": {
-                    "Name": "Jill",
-                    "Age": "29",
-                    "Job": "Carpenter",
-                    "Salary": "516000.00",
-                    "Description": "Jill is an alright girl but sometimes you don't" +
+                    0: "Jill",
+                    1: "29",
+                    2: "Carpenter",
+                    3: "516000.00",
+                    4: "Jill is an alright girl but sometimes you don't" +
                         " really have enough room to describe everything you'd like"
                 }
             },
             {
-                "@tag" : "row",
+                "@tag": "row",
+                "@id": "",
                 ">": {
-                    "Name": "Elyse",
-                    "Age": "30",
-                    "Job": "Designer",
-                    "Salary": "210000.40",
-                    "Description": "Elyse is a kind girl but sometimes you don't really have" +
+                    0: "Elyse",
+                    1: "30",
+                    2: "Designer",
+                    3: "210000.40",
+                    4: "Elyse is a kind girl but sometimes you don't really have" +
                         " enough room to describe everything you'd like"
                 }
             }
@@ -80,6 +84,7 @@
                 }]
             }, {
                 "@tag": "row",
+                "@id": 123,
                 ">": [{
                     "@tag": "column",
                     "@value": "James"
@@ -98,6 +103,7 @@
                 }]
             }, {
                 "@tag": "row",
+                "@id": 124,
                 ">": [{
                     "@tag": "column",
                     "@value": "Jill"
@@ -116,6 +122,7 @@
                 }]
             }, {
                 "@tag": "row",
+                "@id": 125,
                 ">": [{
                     "@tag": "column",
                     "@value": "Elyse"
@@ -142,13 +149,18 @@
         const tableId = document.getElementById('table');
         let table = new Table(jsonData, document.querySelector("#table"));
         setTimeout(() => table.update('appendRow', appendRowData), 2500);
+        
         // tableId.addEventListener('dblclick', (event) => {
         //     table.update('deleteRow', Table.getRow(event));
         // });
-        tableId.addEventListener('dblclick', (event) => {
-            let cellId = Table.getCellId(event);
-            table.update('editRow', {id: cellId, content: 'Hello New Content'});
-        });
+        // tableId.addEventListener('dblclick', (event) => {
+        //     let cellId = Table.getCellId(event);
+        //     table.update('editRow', { id: cellId, content: 'Hello New Content' });
+        // });
+
+        let table2 = new Table(jsonData, document.querySelector("#table2"));
+        setTimeout(() => table2.update('appendRow', appendRowData), 5000);
+
     </script>
 
 </body>

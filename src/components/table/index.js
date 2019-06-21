@@ -18,6 +18,10 @@ class Table extends BaseComponent {
         return this.node.querySelector('tbody');
     }
 
+    getTableId() {
+        return this.node.querySelector('table').getAttribute('id');
+    }
+
     static getCellId(event) {
         return event.target.id;
     }
@@ -27,23 +31,30 @@ class Table extends BaseComponent {
     }
 
     getLastChildId() {
-        const originalId = this.node.querySelector('tbody').lastChild.getAttribute('id');
-        const id = parseInt(originalId, 10);
-        return id;
+        return this.node.querySelector('tbody').lastChild.getAttribute('id');
     }
 
     update(behavior, data) {
-        const lastChildId = this.getLastChildId() + 1;
+        let lastChildId;
+        if (this.getLastChildId().includes('table')) {
+            lastChildId = parseInt(this.getLastChildId().split('-')[3], 10) + 1;
+        } else {
+            lastChildId = parseInt(this.getLastChildId(), 10) + 1;
+        }
         const element = document.getElementById(data.id); // get html element from the data
         const newContent = data.content; // Data from json
-
+        const id = this.getTableId(); // get id from table component
         switch (behavior) {
         case 'appendRow':
 
             for (let i = 0; i < data.length; i += 1) {
                 if (data[i]['@tag'] === 'row') {
                     const updatedBody = this.getTableBody().insertRow(-1);
-                    updatedBody.id = `${lastChildId + i}`;
+                    if (!data[i]['@id']) {
+                        updatedBody.id = `${id}-row-${lastChildId + i}`;
+                    } else {
+                        updatedBody.id = data[i]['@id'];
+                    }
                     // check if row tag
                     const columns = data[i]['>'];
                     let j = 0;
@@ -79,7 +90,6 @@ class Table extends BaseComponent {
 
     render() {
         // Add listeners that respond to user event, then this should buuble up to this.callback();
-
         const { node } = this;
         const jsonData = this.data;
         // Save the column titles to the column object in the constructor
@@ -92,7 +102,7 @@ class Table extends BaseComponent {
             const thead = document.createElement('thead');
             const tbody = document.createElement('tbody');
             table.className = 'ui ';
-            table.setAttribute('id', `${node.getAttribute('id')}-component`);
+            table.setAttribute('id', `${node.getAttribute('id')}`);
 
             // set hoverable attribute
             if (jsonData['@isHoverable']) {
@@ -136,6 +146,8 @@ class Table extends BaseComponent {
             // Create header row
             const trHead = thead.insertRow(-1);
 
+            const id = `${table.getAttribute('id')}-${this.getRandomInt()}`;
+
             const columns = this.data['>'][0]['>'];
             for (let i = 0; i < columns.length; i++) {
                 columnTitles[i.toString()] = columns[i]['@title'];
@@ -144,23 +156,28 @@ class Table extends BaseComponent {
             for (const value of Object.keys(columnTitles)) {
                 const th = document.createElement('th');
                 th.textContent = columnTitles[value];
-                th.id = `title-${columnId += 1}`;
+                th.id = `${id}-title-${columnId += 1}`;
                 trHead.appendChild(th);
             }
 
             if (jsonData['>'].length > 0) {
-                let id = 0;
+                let rowId = 0;
                 for (let i = 1; i < this.data['>'].length; i++) {
                     const rowData = this.data['>'][i];
                     if (rowData['@tag'] === 'row') {
                         const trBody = tbody.insertRow(-1);
-                        trBody.id = `${id += 1}`;
+                        trBody.id = `${id}-row-${rowId += 1}`;
+                        if (!rowData['@id']) {
+                            trBody.id = `${id}-row-${rowId += 1}`;
+                        } else {
+                            trBody.id = rowData['@id'];
+                        }
                         const innerRowData = rowData['>'];
                         for (let j = 0; j < innerRowData.length; j++) {
                             for (const [key, value] of Object.entries(rowData['>'][j])) {
                                 if (key === '@value') {
                                     const tableCell = trBody.insertCell(-1);
-                                    tableCell.id = `${trBody.id}-${j + 1}`;
+                                    tableCell.id = `${id}-${trBody.id}-${j + 1}`;
                                     tableCell.innerHTML = value;
                                 }
                             }
@@ -169,7 +186,6 @@ class Table extends BaseComponent {
                 }
             }
 
-            const id = `${table.getAttribute('id')}-${this.getRandomInt()}`;
             tableId.push(`#${id}`);
             table.setAttribute('id', id);
 
