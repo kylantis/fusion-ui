@@ -7,52 +7,46 @@
 
 <body>
     <div id="table"></div>
+    <div id="table2"></div>
 
     <script>
 
-        const myTable = [
-            {
-                "0": "James",
-                "1": "24",
-                "2": "Engineer",
-                "3": "125000.60",
-                "4": "James is an interesting boy but sometimes" +
-                    " you don't really have enough room to describe everything you'd like"
-            },
-            {
-                "Name": "Jill",
-                "Age": "26",
-                "Job": "Engineer",
-                "Salary": "516000.00",
-                "Description": "Jill is an alright girl but sometimes you don't" +
-                    " really have enough room to describe everything you'd like"
-            },
-            {
-                "Name": "Elyse",
-                "Age": "24",
-                "Job": "Designer",
-                "Salary": "210000.40",
-                "Description": "Elyse is a kind girl but sometimes you don't really have" +
-                    " enough room to describe everything you'd like"
-            }
-        ];
-
         const appendRowData = [
             {
-                "0": "Emeka",
-                "1": "24",
-                "2": "Engineer",
-                "3": "125000.60",
-                "4": "James is an interesting boy but sometimes" +
-                    " you don't really have enough room to describe everything you'd like"
+                "@tag": "row",
+                "@id": "",
+                ">": {
+                    0: "James",
+                    1: "28",
+                    2: "Doctor",
+                    3: "125000.60",
+                    4: "James is an interesting boy but sometimes" +
+                        " you don't really have enough room to describe everything you'd like"
+                }
             },
             {
-                "0": "Johnny",
-                "1": "26",
-                "2": "Engineer",
-                "3": "516000.00",
-                "4": "Jill is an alright girl but sometimes you don't" +
-                    " really have enough room to describe everything you'd like"
+                "@tag": "row",
+                "@id": "",
+                ">": {
+                    0: "Jill",
+                    1: "29",
+                    2: "Carpenter",
+                    3: "516000.00",
+                    4: "Jill is an alright girl but sometimes you don't" +
+                        " really have enough room to describe everything you'd like"
+                }
+            },
+            {
+                "@tag": "row",
+                "@id": "",
+                ">": {
+                    0: "Elyse",
+                    1: "30",
+                    2: "Designer",
+                    3: "210000.40",
+                    4: "Elyse is a kind girl but sometimes you don't really have" +
+                        " enough room to describe everything you'd like"
+                }
             }
         ];
 
@@ -62,9 +56,9 @@
             "@isHoverable": true,
             "@isResponsive": true,
             "@textAlign": "center",
-            "@isStriped": true,
-            "@hasBorder": false,
-            "@singleLine": true,
+            "@isStriped": false,
+            "@hasBorder": true,
+            "@singleLine": false,
             "@isInverted": false,
             "@color": "blue",
             "@isDataTable": false,
@@ -90,6 +84,7 @@
                 }]
             }, {
                 "@tag": "row",
+                "@id": 123,
                 ">": [{
                     "@tag": "column",
                     "@value": "James"
@@ -108,6 +103,7 @@
                 }]
             }, {
                 "@tag": "row",
+                "@id": 124,
                 ">": [{
                     "@tag": "column",
                     "@value": "Jill"
@@ -126,6 +122,7 @@
                 }]
             }, {
                 "@tag": "row",
+                "@id": 125,
                 ">": [{
                     "@tag": "column",
                     "@value": "Elyse"
@@ -149,17 +146,21 @@
     <script src="/components/base.min.js"></script>
     <script src="/components/table/index.min.js"></script>
     <script>
-    
-    const t = new Table(jsonData, document.querySelector("#table"));
-    
-    setInterval(() => {
+        const tableId = document.getElementById('table');
+        let table = new Table(jsonData, document.querySelector("#table"));
+        setTimeout(() => table.update('appendRow', appendRowData), 2500);
+        
+        // tableId.addEventListener('dblclick', (event) => {
+        //     table.update('deleteRow', Table.getRow(event));
+        // });
+        // tableId.addEventListener('dblclick', (event) => {
+        //     let cellId = Table.getCellId(event);
+        //     table.update('editRow', { id: cellId, content: 'Hello New Content' });
+        // });
 
-        t.update('appendRow', {
-            
-        });
+        let table2 = new Table(jsonData, document.querySelector("#table2"));
+        setTimeout(() => table2.update('appendRow', appendRowData), 5000);
 
-    }, 5000);
-    
     </script>
 
 </body>
