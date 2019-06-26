@@ -156,8 +156,13 @@ class BaseComponent {
         return elem;
     }
 
-    getRandomInt(min = Math.ceil(1000), max = Math.floor(2000000)) {
+    getRandomInt(min = Math.ceil(1000), max = Math.floor(20000)) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    callback(event, value) {
+        console.log(event, value);
+        // Add callback events
     }
 }
 

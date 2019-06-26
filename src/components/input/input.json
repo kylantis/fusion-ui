@@ -1,6 +1,6 @@
 {
     "@title": "",
-    "@type": "text | radio | checkbox | date | month | email | time | url | textarea | number | range | toggle | slider",
+    "@type": "text | radio | checkbox | date | month | email | time | url | textarea | number | range | boolean | slider | signature",
     "@placeholder": "",
     "@maxlength": "",
     "@value": "",

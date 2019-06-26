@@ -5,12 +5,13 @@ class Input extends BaseComponent {
     }
 
     getCssDependencies() {
-        const baseDependencies = super.getCssDependencies();
-        baseDependencies.push('/assets/css/input.min.css');
-        if (this.data['@type'] === 'radio' || this.data['@type'] === 'checkbox') {
-            baseDependencies.push('/assets/css/checkbox.min.css');
+        if (this.data['@type'] === 'radio' || this.data['@type'] === 'checkbox' || this.data['@type'] === 'boolean') {
+            return super.getCssDependencies().concat(['/assets/css/input.min.css', '/assets/css/checkbox.min.css']);
         }
-        return baseDependencies;
+        if (this.data['@type'] === 'signature') {
+            return (['/assets/css/input-signature.min.css']);
+        }
+        return super.getCssDependencies().concat(['/assets/css/input.min.css']);
     }
 
     required(element) {
@@ -31,9 +32,17 @@ class Input extends BaseComponent {
         }
     }
 
+    getInput() {
+
+    }
+
+    setInput(inputData) {
+        console.log(inputData);
+    }
+
     render() {
         const { node } = this;
-
+        const inputId = [];
         const uiDiv = document.createElement('div');
         const inputDiv = document.createElement('input');
         uiDiv.classList.add('ui');
@@ -41,7 +50,6 @@ class Input extends BaseComponent {
         if (this.data['@type'] === 'text') {
             uiDiv.classList.add('input');
             uiDiv.append(inputDiv);
-
             this.required(inputDiv);
 
             inputDiv.setAttribute('type', 'text');
@@ -62,6 +70,67 @@ class Input extends BaseComponent {
             const labelDiv = document.createElement('label');
             labelDiv.textContent = this.data['@title'];
             uiDiv.append(labelDiv);
+        } else if (this.data['@type'] === 'signature') {
+            const canvaDiv = document.createElement('canvas');
+            const submitButton = document.createElement('button');
+            const eraseButton = document.createElement('button');
+            uiDiv.appendChild(canvaDiv);
+            canvaDiv.setAttribute('width', '300px');
+            canvaDiv.setAttribute('height', '150px');
+            canvaDiv.className = 'js-paint paint-canvas';
+            canvaDiv.setAttribute('id', 'signature-pad');
+            submitButton.setAttribute('id', 'save');
+            eraseButton.setAttribute('id', 'clear');
+            submitButton.className = 'button submit';
+            eraseButton.className = 'button erase';
+            submitButton.innerHTML = 'Submit';
+            eraseButton.innerHTML = 'Clear';
+            uiDiv.appendChild(submitButton);
+            uiDiv.appendChild(eraseButton);
+
+            $(canvaDiv).ready(() => {
+                const paintCanvas = document.getElementById('signature-pad');
+                const context = paintCanvas.getContext('2d');
+                const backgroundColor = '#fff';
+                context.lineCap = 'round';
+                context.strokeStyle = '#000';
+                context.lineWidth = 2;
+                context.fillStyle = backgroundColor;
+                context.fillRect(0, 0, canvaDiv.width, canvaDiv.height);
+
+                let x = 0;
+                let y = 0;
+                let isMouseDown = false;
+                const stopDrawing = () => { isMouseDown = false; };
+                const startDrawing = (event) => {
+                    isMouseDown = true;
+                    [x, y] = [event.offsetX, event.offsetY];
+                };
+                const drawLine = (event) => {
+                    if (isMouseDown) {
+                        const newX = event.offsetX;
+                        const newY = event.offsetY;
+                        context.beginPath();
+                        context.moveTo(x, y);
+                        context.lineTo(newX, newY);
+                        context.stroke();
+                        [x, y] = [newX, newY];
+                    }
+                };
+                paintCanvas.addEventListener('mousedown', startDrawing);
+                paintCanvas.addEventListener('mousemove', drawLine);
+                paintCanvas.addEventListener('mouseup', stopDrawing);
+                paintCanvas.addEventListener('mouseout', stopDrawing);
+                $('#clear').on('click', () => {
+                    context.fillStyle = backgroundColor;
+                    context.clearRect(0, 0, canvaDiv.width, canvaDiv.height);
+                    context.fillRect(0, 0, canvaDiv.width, canvaDiv.height);
+                });
+                $('#save').on('click', () => {
+                    const signatureImage = paintCanvas.toDataURL('image/jpeg', 0.5);
+                    console.log(signatureImage);
+                });
+            });
         } else if (this.data['@type'] === 'radio') {
             uiDiv.classList.add('radio');
             uiDiv.classList.add('checkbox');
@@ -88,7 +157,7 @@ class Input extends BaseComponent {
             const labelDiv = document.createElement('label');
             labelDiv.textContent = this.data['@title'];
             uiDiv.append(labelDiv);
-        } else if (this.data['@type'] === 'toggle') {
+        } else if (this.data['@type'] === 'boolean') {
             uiDiv.classList.add('toggle');
             uiDiv.classList.add('checkbox');
             uiDiv.append(inputDiv);
@@ -111,6 +180,9 @@ class Input extends BaseComponent {
             inputDiv.setAttribute('placeholder', this.data['@placeholder']);
         }
 
+        const id = `input-${this.getRandomInt()}`;
+        inputId.push(`#${id}`);
+        uiDiv.setAttribute('id', id);
         node.append(uiDiv);
     }
 }

@@ -34,7 +34,7 @@ class Table extends BaseComponent {
         return this.node.querySelector('tbody').lastChild.getAttribute('id');
     }
 
-    update(behavior, data) {
+    behavior(behaviorName, data) {
         let lastChildId;
         if (this.getLastChildId().includes('table')) {
             lastChildId = parseInt(this.getLastChildId().split('-')[3], 10) + 1;
@@ -44,7 +44,7 @@ class Table extends BaseComponent {
         const element = document.getElementById(data.id); // get html element from the data
         const newContent = data.content; // Data from json
         const id = this.getTableId(); // get id from table component
-        switch (behavior) {
+        switch (behaviorName) {
         case 'appendRow':
 
             for (let i = 0; i < data.length; i += 1) {
@@ -65,6 +65,9 @@ class Table extends BaseComponent {
                             tableCell.innerHTML = columns[k];
                         }
                     }
+                    $(updatedBody).click((e) => {
+                        this.behavior('', e.target.parentNode);
+                    });
                 }
             }
             break;
@@ -74,12 +77,10 @@ class Table extends BaseComponent {
             if (element) {
                 element.parentNode.removeChild(element);
             }
-            // this.callback('deleteRow', 'element');
             break;
 
         case 'editRow':
             element.innerHTML = newContent;
-            // this.callback('editRow', data);
             break;
 
         default:
@@ -182,6 +183,14 @@ class Table extends BaseComponent {
                                 }
                             }
                         }
+                        // Add click callback, e.t.c
+                        $(trBody).click((e) => {
+                            this.behavior('', e.target.parentNode);
+                        });
+                        $(trBody).dblclick((e) => {
+                            const editData = { id: e.target.id, content: 'new content added' };
+                            this.behavior('editRow', editData);
+                        });
                     }
                 }
             }

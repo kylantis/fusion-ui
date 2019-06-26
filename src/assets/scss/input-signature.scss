@@ -1,0 +1,36 @@
+.paint-canvas {
+    border: 1px black solid;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.js-color-picker {
+    margin: 1rem 1rem 0 1rem;
+}
+
+.button {
+    background-color: #44c767;
+    border-radius: 5px;
+    border: 1px solid #18ab29;
+    display: inline-block;
+    cursor: pointer;
+    color: #ffffff;
+    font-family: Arial;
+    font-size: 17px;
+    padding: 5px 20px;
+    text-decoration: none;
+    text-shadow: 0px 1px 0px #2f6627;
+
+    &:hover {
+        background-color: #5cbf2a;
+    }
+
+    &:active {
+        position: relative;
+        top: 1px;
+    }
+}
+
+.erase {
+    margin-left: 5px;
+}
