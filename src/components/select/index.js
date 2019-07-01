@@ -1,4 +1,4 @@
-// eslint-disable-next-line no-unused-vars
+
 class Select extends BaseComponent {
     tagName() {
         return 'select';
@@ -198,3 +198,4 @@ class Select extends BaseComponent {
             .dropdown();
     }
 }
+module.exports = Select;

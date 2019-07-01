@@ -1,4 +1,4 @@
-// eslint-disable-next-line no-unused-vars
+
 class SearchBar extends BaseComponent {
     tagName() {
         return 'searchBar';
@@ -76,3 +76,4 @@ class SearchBar extends BaseComponent {
         }
     }
 }
+module.exports = SearchBar;
