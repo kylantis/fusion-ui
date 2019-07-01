@@ -14,11 +14,11 @@
         "url": "%GIT_URL%"
     },
     "scripts": {
-        "build": "npm install && npm install --only=dev",
+        "install-deps": "npm install && npm install --only=dev",
         "start": "node server.js",
         "dev": "nodemon server.js",
-        "gulp": "gulp dist",
-        "gulp-dev": "gulp dev",
+        "build": "gulp dist",
+        "build-watch": "gulp dev",
         "lint": "eslint --ext js --fix src/ tasks/",
         "pretest": "npm run lint",
         "test": "jest --runInBand --forceExit --coverage"

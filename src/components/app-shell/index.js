@@ -187,7 +187,8 @@ class AppShell extends BaseComponent {
             itemContent.className = 'content';
 
             for (const subItem of item['>']) {
-                const subItemLink = this.appendNode(itemContent, 'a', 'item');
+                const subItemDiv = this.appendNode(itemContent, 'div');
+                const subItemLink = this.appendNode(subItemDiv, 'a', 'item');
                 subItemLink.href = '/'; // Todo
                 subItemLink.appendChild(this.getTranslateNode(itemsData[subItem].title));
             }
@@ -595,7 +596,7 @@ class AppShell extends BaseComponent {
 
             $('.computer.only').toggleClass('displaynone');
             $('.colhidden').toggleClass('displaynone');
-            
+
         } else {
 
             // The sidebar scroll is a bit distortive due to its relatively

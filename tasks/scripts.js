@@ -38,10 +38,10 @@ const rename = require('gulp-rename');
 
 const babelConfig = {
   presets: [['@babel/env', {
-    // corejs: {
-    //   version: 3,
-    //   proposals: true,
-    // },
+    corejs: {
+      version: 3,
+      proposals: true,
+    },
     useBuiltIns: 'false',
     // targets: {
     //   browsers: ['last 2 versions'],

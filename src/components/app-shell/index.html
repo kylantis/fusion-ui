@@ -27,6 +27,11 @@
             -webkit-transform: translate3d(-230px, 0, 0) !important;
             transform: translate3d(-230px, 0, 0) !important;
         }
+
+        .ui.sidebar.inverted .content.active div.visible :hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+        }
     </style>
 </head>
 
@@ -423,6 +428,14 @@
             }
         };
 
+    </script>
+
+    <script>
+        // This is a polyfill that allows components to do
+        // module.exports = ... in the browser
+        window.module = {
+            exports: {}
+        }
     </script>
 
     <script src="/components/base.min.js"></script>
