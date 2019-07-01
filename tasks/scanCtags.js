@@ -27,9 +27,12 @@ gulp.task('scanCtags', (cb) => {
       const data = fs.readFileSync(script, 'utf8');
       // eslint-disable-next-line no-eval
       const ComponentClass = eval(BaseComponent + data);
-      console.log(new ComponentClass(null, null, false).tagName());
+      const window = {};
+      console.log(new ComponentClass({
+        config: {},
+      }, null, false).tagName());
     });
-    
+
     cb();
   });
 });
