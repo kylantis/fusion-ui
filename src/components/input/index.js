@@ -21,7 +21,7 @@ class Input extends BaseComponent {
 
     checked(element) {
         if (this.data['@checked']) {
-            element.setAttribute('required', '');
+            element.setAttribute('checked', '');
         }
     }
 

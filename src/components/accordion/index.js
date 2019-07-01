@@ -6,52 +6,104 @@ class Accordion extends BaseComponent {
     }
 
     getCssDependencies() {
-        const baseDependencies = super.getCssDependencies();
-        baseDependencies.push('/assets/css/accordion.min.css', '/assets/css/dropdown.min.css', '/assets/css/transition.min.css');
-        return baseDependencies;
+        return super.getCssDependencies().concat(['/assets/css/accordion.min.css',
+            '/assets/css/dropdown.min.css', '/assets/css/transition.min.css']);
     }
 
     getJsDependencies() {
-        const baseDependencies = super.getJsDependencies();
-        baseDependencies.push('/assets/js/accordion.min.js', '/assets/js/dropdown.min.js', '/assets/js/transition.min.js');
-        return baseDependencies;
+        return super.getJsDependencies().concat(['/assets/js/accordion.min.js',
+            '/assets/js/dropdown.min.js', '/assets/js/transition.min.js']);
+    }
+
+    static getAccordionId(event) {
+        return event.target.id;
+    }
+
+    getAccordionNode() {
+        return this.node.firstChild;
+    }
+
+    addContents(data, parentNode) {
+        for (let i = 0; i < data.length; i += 1) {
+            const id = `accordion-${this.getRandomInt()}`;
+            for (const [key, value] of Object.entries(data[i])) {
+                if (key === '@title') {
+                    const titleDiv = document.createElement('div');
+                    this.appendNode(titleDiv, 'i', 'dropdown icon');
+                    titleDiv.className = 'title';
+                    titleDiv.setAttribute('id', `${id}-title`);
+                    parentNode.appendChild(titleDiv);
+                    const textSpan = document.createElement('span');
+                    textSpan.innerHTML = value;
+                    titleDiv.appendChild(textSpan);
+                }
+                if (key === '@content') {
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'content';
+                    contentDiv.setAttribute('id', `${id}-content`);
+                    parentNode.appendChild(contentDiv);
+                    const ptag = document.createElement('p');
+                    contentDiv.appendChild(ptag);
+                    ptag.className = 'transition hidden';
+                    ptag.textContent = value;
+                }
+            }
+        }
+    }
+
+    update(behavior, data) {
+        const element = document.getElementById(data.id);
+        let contentDiv = 0;
+        const newTitle = data.title;
+        const newContent = data.content;
+
+        switch (behavior) {
+        case 'addContent':
+            this.addContents(data['>'], this.getAccordionNode());
+            break;
+
+        case 'deleteContent':
+            contentDiv = element.nextSibling;
+            element.parentNode.removeChild(element);
+            contentDiv.parentNode.removeChild(contentDiv);
+            break;
+
+        case 'editContent':
+            contentDiv = element.nextSibling;
+            if (data.title && element.id.includes('title')) {
+                element.lastChild.innerHTML = newTitle;
+            }
+
+            if (data.content && contentDiv.id.includes('content')) {
+                contentDiv.firstChild.innerHTML = newContent;
+            }
+            break;
+
+        default:
+
+            break;
+        }
     }
 
     render() {
         const { node } = this;
+        const accordionId = [];
 
         const uiDiv = document.createElement('div');
         uiDiv.className = 'ui fluid';
+        uiDiv.setAttribute('id', `${node.getAttribute('id')}`);
 
         if (this.data['@displayStyle'] === 'styled') {
             uiDiv.classList.add('styled');
         }
 
         if (this.data['>']) {
-            for (let i = 0; i < this.data['>'].length; i++) {
-                for (const [key, value] of Object.entries(this.data['>'][i])) {
-                    if (key === '@title') {
-                        const titleDiv = document.createElement('div');
-                        // let iTag = document.createElement('i');
-                        this.appendNode(titleDiv, 'i', 'dropdown icon');
-                        // titleDiv.prepend(iTag);
-                        // iTag.className = "dropdown icon";
-                        titleDiv.className = 'title';
-                        uiDiv.appendChild(titleDiv);
-                        const textnode = document.createTextNode(value);
-                        titleDiv.appendChild(textnode);
-                    }
-                    if (key === '@content') {
-                        const contentDiv = document.createElement('div');
-                        contentDiv.className = 'content';
-                        uiDiv.appendChild(contentDiv);
-                        const ptag = document.createElement('p');
-                        contentDiv.appendChild(ptag);
-                        ptag.className = 'transition hidden';
-                        ptag.textContent = value;
-                    }
-                }
-            }
+            const accData = this.data['>'];
+            // addContents function
+            this.addContents(accData, uiDiv);
+            const id = `${uiDiv.getAttribute('id')}-${this.getRandomInt()}`;
+            accordionId.push(`#${id}`);
+            uiDiv.setAttribute('id', id);
             uiDiv.classList.add('accordion');
             node.append(uiDiv);
             $('.ui.accordion').accordion();
