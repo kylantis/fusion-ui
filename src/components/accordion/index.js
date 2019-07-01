@@ -110,3 +110,5 @@ class Accordion extends BaseComponent {
         }
     }
 }
+
+module.exports = Accordion;

@@ -1,11 +1,13 @@
 
 class BaseComponent {
-    constructor(data, node) {
-        this.data = data;
-        this.node = node || document.body;
-        this.loadDependencies().then(() => {
-            this.render();
-        });
+    constructor(data, node, render = true) {
+        if (render) {
+            this.data = data;
+            this.node = node || document.body;
+            this.loadDependencies().then(() => {
+                this.render();
+            });
+        }
     }
 
     getCssDependencies() {
