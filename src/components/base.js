@@ -1,8 +1,8 @@
 
 class BaseComponent {
     constructor(data, node, render = true) {
+        this.data = data;
         if (render) {
-            this.data = data;
             this.node = node || document.body;
             this.loadDependencies().then(() => {
                 this.render();

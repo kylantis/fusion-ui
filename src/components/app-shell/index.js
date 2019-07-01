@@ -7,11 +7,11 @@ class AppShell extends BaseComponent {
 
     // Todo: Set document.title to this.data.brandInfo.name
 
-    constructor(data, node) {
-        super(data, node);
-        this.utils = new AppShellUtils();
+    constructor(data, node, render) {
+        super(data, node, render);
+        this.utils = new AppShell.Utils();
         this.data.config = this.utils.mergeDeep(this.data.config, this.getConfigParams());
-        this.mocks = new Mocks();
+        this.mocks = new AppShell.Mocks();
         window.globals = this.data.globals;
         window.appShell = this;
     }
@@ -28,6 +28,10 @@ class AppShell extends BaseComponent {
                 recursionMax: 3,
             },
         };
+    }
+
+    tagName() {
+        return "app-shell";
     }
 
     getCssDependencies() {
@@ -722,6 +726,186 @@ class AppShell extends BaseComponent {
             }
         }
     }
+
 }
+
+AppShell.Utils = class {
+    /**
+    * Simple object check.
+    * @param item
+    * @returns {boolean}
+    */
+    isObject(item) {
+        return (item && typeof item === 'object' && !Array.isArray(item));
+    }
+
+    /**
+     * Deep merge two objects.
+     * @param target
+     * @param ...sources
+     */
+    mergeDeep(target, ...sources) {
+        if (!sources.length) return target;
+        const source = sources.shift();
+
+        if (this.isObject(target) && this.isObject(source)) {
+            for (const key in source) {
+                if (this.isObject(source[key])) {
+                    if (!target[key]) Object.assign(target, { [key]: {} });
+                    this.mergeDeep(target[key], source[key]);
+                } else {
+                    Object.assign(target, { [key]: source[key] });
+                }
+            }
+        }
+
+        return this.mergeDeep(target, ...sources);
+    }
+
+    removeCookieWithPath(key) {
+        const path = window.location.pathname;
+        document.cookie = `${key}=;Version=1;Path=${path || '/'};Expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
+    }
+
+    removeCookie(key) {
+        document.cookie = `${key}=;path=/;expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
+    }
+
+    getCookieOnce(key) {
+        const value = this.getCookie(key);
+        this.removeCookieWithPath(key, window.location.pathname);
+        return value;
+    }
+
+    getCookie(key) {
+        const allcookies = document.cookie;
+        const pos = allcookies.indexOf(key);
+        if (pos !== -1) {
+            const len = key.length + 1;
+            const start = pos + len;
+            let end = allcookies.indexOf(';', start);
+            if (end === -1
+            ) end = allcookies.length;
+            let value = allcookies.substring(start, end);
+            value = unescape(value);
+            return value;
+        }
+        return null;
+    }
+
+    setCookie(key, value, rem) {
+        if (rem) {
+            const nextyear = new Date();
+            nextyear.setFullYear(nextyear.getFullYear() + 1);
+            document.cookie = `${key}=${value}; expires=${nextyear.toGMTString()}; path=/`;
+        } else {
+            document.cookie = `${key}=${value}; path=/`;
+        }
+    }
+
+    trimText(string, maxLength) {
+        if (string.length > maxLength) {
+            let trimmedText = '';
+            // We split the text, then add '...'
+            for (let ind = 0; ind < maxLength; ind++) {
+                trimmedText += string.charAt(ind);
+            }
+            // eslint-disable-next-line no-param-reassign
+            string = `${trimmedText} ...`;
+        }
+
+        return string;
+    }
+}
+
+// eslint-disable-next-line no-unused-vars
+AppShell.Mocks = class {
+    getAvailableCountries() {
+        return Promise.resolve({
+            'en-US': { name: 'United States' },
+            'en-GB': { name: 'United Kingdom' },
+        });
+    }
+
+    getSearchableList() {
+        return Promise.resolve([
+            { name: 'applications', listingPageUrl: '/applications-search' },
+            { name: 'users', listingPageUrl: '/users-search' },
+            { name: 'courses', listingPageUrl: '/course-search' },
+        ]);
+    }
+
+    getOwnAvatar() {
+        return Promise.resolve({
+            imageUrl: null,
+        });
+    }
+
+    getPersonName() {
+        return Promise.resolve({
+            name: 'Anthony',
+        });
+    }
+
+    enableActivityStream() {
+        return Promise.resolve({});
+    }
+
+    disableActivityStream() {
+        return Promise.resolve({});
+    }
+
+    isActivityStreamEnabled() {
+        return Promise.resolve({
+            isEnabled: true,
+        });
+    }
+
+    setActivityStreamTimeline() {
+        return Promise.resolve({});
+    }
+
+    getActivityStreamTimeline() {
+        return Promise.resolve({
+            timeline: globals.activityStream.timelines.daily,
+        });
+    }
+
+    hasListingCursor(cursorMoveType, ctx) {
+        console.log(cursorMoveType, ctx);
+        return Promise.resolve(this.remainingListingResults > 0);
+    }
+
+    newListContext(type, maxResultCount, criteria) {
+        console.log(type, maxResultCount, criteria);
+        this.remainingListingResults = 3;
+        return Promise.resolve({
+            contextKey: 'abc',
+        });
+    }
+
+    nextListingResults(type, contextKey) {
+        console.log(type, contextKey);
+        this.remainingListingResults -= 1;
+
+        const result = [];
+
+        for (let i = 0; i < 20; i += 1) {
+            result.push(this.getRandomEvent());
+        }
+
+        return Promise.resolve(result);
+    }
+
+    getRandomEvent() {
+        return {
+            date: new Date(),
+            html: '<a href="/users?id=31">John Doe</a> <span class="ce-translate">viewed</span> <span class="ce-translate">the</span> <a href="/course-results?academicSemesterCourseId=4856558697578496"><span class="ce-translate">course_result_sheet</span></a> <span class="ce-translate">for</span> <a href="/courses?departmentLevelId=5739238230327296">BIT 311</a>.',
+            subjectImageUrl: `https://picsum.photos/100?random=${Math.random()}`,
+        };
+    }
+}
+
+
 module.exports = AppShell;
 

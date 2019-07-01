@@ -114,3 +114,5 @@ class Input extends BaseComponent {
         node.append(uiDiv);
     }
 }
+
+module.exports = Input;
