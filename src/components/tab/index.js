@@ -1,4 +1,4 @@
-// eslint-disable-next-line no-unused-vars
+
 class Tab extends BaseComponent {
     tagName() {
         return 'tab';
@@ -65,3 +65,4 @@ class Tab extends BaseComponent {
         $('.menu .item').tab();
     }
 }
+module.exports = Tab;

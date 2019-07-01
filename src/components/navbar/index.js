@@ -1,5 +1,5 @@
 
-// eslint-disable-next-line no-unused-vars
+
 class NavBar extends BaseComponent {
     tagName() {
         return 'navbar';
@@ -192,3 +192,4 @@ class NavBar extends BaseComponent {
         return groups;
     }
 }
+module.exports = NavBar;

@@ -1,5 +1,5 @@
 
-// eslint-disable-next-line no-unused-vars
+
 class ProgressBar extends BaseComponent {
     tagName() {
         return 'progressBar';
@@ -64,3 +64,5 @@ class ProgressBar extends BaseComponent {
         node.append(uiDiv);
     }
 }
+module.exports = ProgressBar;
+
