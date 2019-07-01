@@ -1,4 +1,4 @@
-// eslint-disable-next-line no-unused-vars
+
 class Button extends BaseComponent {
     tagName() {
         return 'button';
@@ -104,3 +104,4 @@ class Button extends BaseComponent {
         node.append(button);
     }
 }
+module.exports = Button;

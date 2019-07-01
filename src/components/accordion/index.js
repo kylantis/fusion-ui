@@ -1,5 +1,4 @@
 
-// eslint-disable-next-line no-unused-vars
 class Accordion extends BaseComponent {
     tagName() {
         return 'accordion';

@@ -1,4 +1,4 @@
-// eslint-disable-next-line no-unused-vars
+
 class Rating extends BaseComponent {
     tagName() {
         return 'rating';
@@ -43,3 +43,4 @@ class Rating extends BaseComponent {
             });
     }
 }
+module.exports = Rating;

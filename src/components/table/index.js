@@ -1,4 +1,4 @@
-// eslint-disable-next-line no-unused-vars
+
 class Table extends BaseComponent {
     tagName() {
         return 'table';
@@ -202,3 +202,4 @@ class Table extends BaseComponent {
         }
     }
 }
+module.exports = Table;

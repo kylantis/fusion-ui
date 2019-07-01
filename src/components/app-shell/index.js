@@ -723,3 +723,5 @@ class AppShell extends BaseComponent {
         }
     }
 }
+module.exports = AppShell;
+
