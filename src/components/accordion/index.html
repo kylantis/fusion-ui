@@ -1,84 +1,89 @@
 <!DOCTYPE html>
-<html lang="en"
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+<html lang="en" <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
 </head>
 
 <body>
     <div id="accordion"></div>
     <div id="accordion1"></div>
-  
+
     <script>
-    const appendData = {
-        "@title": "Sample Update",
-        ">": [{
-            "@tag": "menu",
-            "@title": "Have you tasted Dog meat?",
-            "@content": "A dog is a type of domesticated animal. Known for its loyalty and faithfulness, it can be found" 
-                        +" as a welcome guest in many households across the world."
-        }, {
-            "@tag": "menu",
-            "@title": "What kinds of dogs are there?",
-            "@content": "There are many breeds of dogs. Each breed varies in size and temperament. Owners often select a breed of"
-                        + " dog that they find to be compatible with their own lifestyle and desires from a companion."
-        }]
-    }
-    const secondData = {
-        "@title": "Sample Update",
-        ">": [{
-            "@tag": "menu",
-            "@title": "Have you tasted Dog meat?",
-            "@content": "A dog is a type of domesticated animal. Known for its loyalty and faithfulness, it can be found" 
-                        +" as a welcome guest in many households across the world."
-        }, {
-            "@tag": "menu",
-            "@title": "What kinds of dogs are there?",
-            "@content": "There are many breeds of dogs. Each breed varies in size and temperament. Owners often select a breed of"
-                        + " dog that they find to be compatible with their own lifestyle and desires from a companion."
-        }]
-    }
-    const jsonData = {
-        "@title": "Sample",
-        "@displayStyle": "styled", 
-        ">": [{
-            "@tag": "menu",
-            "@title": "What is a dog?",
-            "@content": "A dog is a type of domesticated animal. Known for its loyalty and faithfulness, it can be found" 
-                        +" as a welcome guest in many households across the world."
-        }, {
-            "@tag": "menu",
-            "@title": "What kinds of dogs are there?",
-            "@content": "There are many breeds of dogs. Each breed varies in size and temperament. Owners often select a breed of"
-                        + " dog that they find to be compatible with their own lifestyle and desires from a companion."
-        }, {
-            "@tag": "menu",
-            "@title": "How do you acquire a dog?",
-            "@content": "Three common ways for a prospective owner to acquire a dog is from pet shops, private owners, or"
-                    + " shelters. A pet shop may be the most convenient way to buy a dog. Buying a dog from a private owner allows you to"
-                    + " assess the pedigree and upbringing of your dog before choosing to take it home. Lastly, finding your dog"
-                    + " from a shelter, helps give a good home to a dog who may not find one so readily."    
+        const appendData = {
+            "@title": "Sample Update",
+            ">": [{
+                "@tag": "menu",
+                "@title": "Have you tasted Dog meat?",
+                "@content": "A dog is a type of domesticated animal. Known for its loyalty and faithfulness, it can be found"
+                    + " as a welcome guest in many households across the world."
+            }, {
+                "@tag": "menu",
+                "@title": "What kinds of dogs are there?",
+                "@content": "There are many breeds of dogs. Each breed varies in size and temperament. Owners often select a breed of"
+                    + " dog that they find to be compatible with their own lifestyle and desires from a companion."
             }]
         }
-        
+        const secondData = {
+            "@title": "Sample Update",
+            ">": [{
+                "@tag": "menu",
+                "@title": "Have you tasted Dog meat?",
+                "@content": "A dog is a type of domesticated animal. Known for its loyalty and faithfulness, it can be found"
+                    + " as a welcome guest in many households across the world."
+            }, {
+                "@tag": "menu",
+                "@title": "What kinds of dogs are there?",
+                "@content": "There are many breeds of dogs. Each breed varies in size and temperament. Owners often select a breed of"
+                    + " dog that they find to be compatible with their own lifestyle and desires from a companion."
+            }]
+        }
+        const jsonData = {
+            "@title": "Sample",
+            "@displayStyle": "styled",
+            ">": [{
+                "@tag": "menu",
+                "@title": "What is a dog?",
+                "@content": "A dog is a type of domesticated animal. Known for its loyalty and faithfulness, it can be found"
+                    + " as a welcome guest in many households across the world."
+            }, {
+                "@tag": "menu",
+                "@title": "What kinds of dogs are there?",
+                "@content": "There are many breeds of dogs. Each breed varies in size and temperament. Owners often select a breed of"
+                    + " dog that they find to be compatible with their own lifestyle and desires from a companion."
+            }, {
+                "@tag": "menu",
+                "@title": "How do you acquire a dog?",
+                "@content": "Three common ways for a prospective owner to acquire a dog is from pet shops, private owners, or"
+                    + " shelters. A pet shop may be the most convenient way to buy a dog. Buying a dog from a private owner allows you to"
+                    + " assess the pedigree and upbringing of your dog before choosing to take it home. Lastly, finding your dog"
+                    + " from a shelter, helps give a good home to a dog who may not find one so readily."
+            }]
+        }
+
     </script>
-    
-    <script src="/components/base.min.js"></script> 
+    <script>
+        // This is a polyfill that allows components to do
+        // module.exports = ... in the browser
+        window.module = {
+            exports: {}
+        }
+    </script>
+    <script src="/components/base.min.js"></script>
     <script src="/components/accordion/index.min.js"></script>
     <script>
-    
+
         const accordionDiv = document.getElementById('accordion');
         let accordion = new Accordion(jsonData, document.querySelector("#accordion"))
         setTimeout(() => accordion.update('addContent', appendData), 2500);
 
         // Delete Content 
-        accordionDiv.addEventListener('dblclick', (event) => {
-            let elementId = Accordion.getAccordionId(event)
-            accordion.update('deleteContent', {id: elementId});
-        })
+        // accordionDiv.addEventListener('dblclick', (event) => {
+        //     let elementId = Accordion.getAccordionId(event)
+        //     accordion.update('deleteContent', { id: elementId });
+        // })
 
-        //Edit content
+        // Edit content
         // accordionDiv.addEventListener('dblclick', (event) => {
         //     let elementId = Accordion.getAccordionId(event)
         //     accordion.update('editContent', {
@@ -87,9 +92,6 @@
         //         content: "Hello Nigeria my wonderful home that i love to hate"
         //     });
         // })
-
-        let accordion2 = new Accordion(jsonData, document.querySelector("#accordion1"))
-        setTimeout(() => accordion2.update('addContent', appendData), 2500);
 
     </script>
 </body>

@@ -1,11 +1,26 @@
 {
     "@title": "",
-    "@type": "text | radio | checkbox | date | month | email | time | url | textarea | number | range | boolean | slider | signature",
+    "@type": "plain | radio | checkbox | date | month | email | time | url | textarea | number | range | boolean | slider | signature | hidden",
     "@placeholder": "",
     "@maxlength": "",
     "@value": "",
-    "@checked": "true | false", 
+    "@alignment": "inline | grouped",
+    "@checked": "true | false",
     "@autofocus": "true | false",
     "@required": "true | false",
-    "@disabled": "true | false"
+    "@disabled": "true | false",
+    "@canvaWidth": "300px",
+    "@canvaHeight": "150px",
+    ">": [
+        {
+            "@tag": "data",
+            "@name": "",
+            "@value": ""
+        },
+        {
+            "@tag": "data",
+            "@name": "",
+            "@value": ""
+        }
+    ]
 }

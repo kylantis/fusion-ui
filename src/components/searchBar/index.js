@@ -5,15 +5,17 @@ class SearchBar extends BaseComponent {
     }
 
     getCssDependencies() {
-        const baseDependencies = super.getCssDependencies();
-        baseDependencies.push('/assets/css/icon.min.css', '/assets/css/input.min.css', '/assets/css/search.min.css');
-        return baseDependencies;
+        return super.getCssDependencies().concat(['/assets/css/icon.min.css', '/assets/css/input.min.css',
+            '/assets/css/search.min.css']);
     }
 
     getJsDependencies() {
-        const baseDependencies = super.getJsDependencies();
-        baseDependencies.push('/assets/js/search.min.js');
-        return baseDependencies;
+        return super.getJsDependencies().concat(['/assets/js/search.min.js']);
+    }
+
+    getValue(event) {
+        console.log(event.target.value);
+        return event.target.value;
     }
 
     render() {
@@ -58,7 +60,9 @@ class SearchBar extends BaseComponent {
         const id = `${uiDiv.getAttribute('id')}-${this.getRandomInt()}`;
         searchBarIds.push(`#${id}`);
         uiDiv.setAttribute('id', id);
-
+        $(uiDiv).on('click', (e) => {
+            this.getValue(e);
+        });
         uiDiv.classList.add('search');
         node.append(uiDiv);
 
