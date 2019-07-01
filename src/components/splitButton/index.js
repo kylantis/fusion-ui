@@ -1,6 +1,6 @@
 class SplitButton extends BaseComponent {
     tagName() {
-        return 'splitButton';
+        return 'split-button';
     }
 }
 module.exports = SplitButton;
