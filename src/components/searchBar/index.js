@@ -60,17 +60,17 @@ class SearchBar extends BaseComponent {
         const id = `${uiDiv.getAttribute('id')}-${this.getRandomInt()}`;
         searchBarIds.push(`#${id}`);
         uiDiv.setAttribute('id', id);
-        $(uiDiv).on('click', (e) => {
+        $(uiDiv).on('keypress', (e) => {
             this.getValue(e);
         });
         uiDiv.classList.add('search');
         node.append(uiDiv);
 
-        let suggestData = jsonData['>'];
+        const suggestData = jsonData['>'];
 
-        suggestData = suggestData.map(json => ({
-            title: json['@title'],
-        }));
+        // suggestData = suggestData.map(json => ({
+        //     title: json['@title'],
+        // }));
 
         if (jsonData['@autoComplete']) {
             $('.ui.search')

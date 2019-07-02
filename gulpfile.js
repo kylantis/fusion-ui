@@ -3,7 +3,7 @@ const gulp = require('gulp');
 
 require('require-dir')('tasks');
 
-gulp.task('dist', gulp.parallel('images', 'views', 'scss', 'scripts', 'scanCtags', (callback) => {
+gulp.task('dist', gulp.parallel('images', 'views', 'scss', 'scripts', (callback) => {
   callback();
 }));
 
