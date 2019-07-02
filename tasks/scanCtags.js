@@ -16,23 +16,35 @@ gulp.task('scanCtags', (cb) => {
       }
     });
 
-    // console.log(scripts);
-
-    // Load base.js
-    // eslint-disable-next-line global-require
-    // eslint-disable-next-line import/no-dynamic-require
     const BaseComponent = fs.readFileSync(path.join(components, 'base.js'), 'utf8');
+
+    const componentTags = {};
 
     scripts.forEach((script) => {
       const data = fs.readFileSync(script, 'utf8');
-      // eslint-disable-next-line no-eval
-      const ComponentClass = eval(BaseComponent + data);
+      // eslint-disable-next-line no-unused-vars
       const window = {};
-      console.log(new ComponentClass({
+      // eslint-disable-next-line no-unused-vars
+      const document = {};
+
+      // eslint-disable-next-line no-eval
+      const ComponentClass = eval(`${BaseComponent}${data}`);
+
+      const c = new ComponentClass({
         config: {},
-      }, null, false).tagName());
+      }, null, false);
+
+      componentTags[c.tagName()] = {
+        className: c.constructor.name,
+        url: path.relative(components, script).replace('.js', '.min.js'),
+      };
     });
 
-    cb();
+    const tagsFile = path.join(path.dirname(fs.realpathSync(__filename)), '../dist/components/tags.json');
+
+    fs.writeFile(tagsFile, JSON.stringify(componentTags), (err) => {
+      if (err) throw err;
+      cb();
+    });
   });
 });
