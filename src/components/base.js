@@ -56,10 +56,13 @@ class BaseComponent {
             // Filter styles that have previously loaded
             styles = styles.filter(style => !BaseComponent.loadedStyles
                 .includes((style.startsWith('/') ? window.location.origin : '') + style));
+
             if (!styles.length) {
                 return resolve([]);
             }
+
             console.log(`Loading CSS dependencies: ${styles}`);
+
             for (const url of styles) {
                 const link = document.createElement('link');
                 link.rel = 'stylesheet';
@@ -104,10 +107,13 @@ class BaseComponent {
             // Filter scripts that have previously loaded
             scripts = scripts.filter(script => !BaseComponent.loadedScripts
                 .includes((script.url.startsWith('/') ? window.location.origin : '') + script.url));
+
             if (!scripts.length) {
                 return resolve([]);
             }
+
             console.log(`${scripts.map(script => script.url)}`);
+
             for (const elem of scripts) {
                 const script = document.createElement('script');
                 script.src = elem.url;
@@ -155,3 +161,23 @@ class BaseComponent {
 }
 BaseComponent.loadedStyles = [];
 BaseComponent.loadedScripts = [];
+
+// This check is done, so that the scanCtags gulp task will not run this
+if (window.Event) {
+    // Fetch component tags metadata
+    // eslint-disable-next-line no-inner-declarations
+    function fetchTagsMetadata() {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', '/components/tags.json', true);
+        xhr.onload = (e) => {
+            if (e.target.status === 200) {
+                BaseComponent.componentTags = JSON.parse(e.target.response);
+            } else {
+                // eslint-disable-next-line no-alert
+                alert('ERROR: Could not load component tags');
+            }
+        };
+        xhr.send();
+    }
+    fetchTagsMetadata();
+}
