@@ -8,6 +8,6 @@ gulp.task('dist', gulp.parallel('images', 'views', 'scss', 'scripts', (callback)
 }));
 
 
-gulp.task('dev', gulp.parallel('images:watch', 'views:watch', 'scss:watch', 'scripts:watch', 'scanCtags', (callback) => {
+gulp.task('dev', gulp.parallel('images:watch', 'views:watch', 'scss:watch', 'scripts:watch', (callback) => {
   callback();
 }));

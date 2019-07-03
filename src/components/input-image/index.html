@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+</head>
+
+<body>
+    <div id="imageUpload"></div>
+
+    <script>
+        const jsonData = {
+            "@title": "profile picture",
+            "@type": "image",
+            "@multiple": true,
+            "@acceptAll": false,
+            "@pngOnly": false,
+            "@jpegOnly": false,
+            "@gifOnly": true,
+        }
+    </script>
+    <script>
+        // This is a polyfill that allows components to do
+        // module.exports = ... in the browser
+        window.module = {
+            exports: {}
+        }
+    </script> 
+    <script src="/components/base.min.js"></script>
+    <script src="/components/input-image/index.min.js"></script>
+    <script>
+        new InputImage(jsonData, document.querySelector("#imageUpload"));
+    </script>
+</body>
+
+</html>

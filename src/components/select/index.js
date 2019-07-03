@@ -5,25 +5,43 @@ class Select extends BaseComponent {
     }
 
     getCssDependencies() {
-        const baseDependencies = super.getCssDependencies();
-        baseDependencies.push('/assets/css/dropdown.min.css', '/assets/css/input.min.css', '/assets/css/button.min.css', '/assets/css/transition.min.css');
-        if (this.data['@displayStyle'] === 'labeled' || 'labeled multiple' || 'labeled dropdown') {
-            baseDependencies.push('/assets/css/icon.min.css', '/assets/css/label.min.css');
+        if (this.data['@displayStyle'] === 'labeled' || this.data['@displayStyle'] === 'labeled multiple' || this.data['@displayStyle'] === 'labeled dropdown') {
+            return super.getCssDependencies().concat(['/assets/css/icon.min.css', '/assets/css/label.min.css', '/assets/css/dropdown.min.css', '/assets/css/input.min.css', '/assets/css/button.min.css', '/assets/css/transition.min.css']);
         }
-        return baseDependencies;
+        if (this.data['@displayStyle'] === 'checkbox') {
+            return super.getCssDependencies().concat(['/assets/css/input.min.css', '/assets/css/checkbox.min.css']);
+        }
+        return super.getCssDependencies().concat(['/assets/css/dropdown.min.css', '/assets/css/input.min.css', '/assets/css/button.min.css', '/assets/css/transition.min.css']);
     }
 
     getJsDependencies() {
-        const baseDependencies = super.getJsDependencies();
-        baseDependencies.push('/assets/js/dropdown.min.js', '/assets/js/transition.min.js');
-        return baseDependencies;
+        if (this.data['@displayStyle'] === 'radio' || this.data['@displayStyle'] === 'checkbox'
+            || this.data['@displayStyle'] === 'boolean') {
+            return super.getJsDependencies().concat(['/assets/js/checkbox.min.js']);
+        }
+        return super.getJsDependencies().concat(['/assets/js/dropdown.min.js', '/assets/js/transition.min.js']);
+    }
+
+    getCheckedValue() {
+        $('#submit', () => {
+            const val = [];
+            $(`input[name=${this.data['@title']}]:checked`).each((i) => {
+                val[i] = $(':checked');
+            });
+            const valueArray = val[0];
+            $.each(valueArray, (i, value) => console.log(value.value));
+        });
+    }
+
+    getValue(...value) {
+        return value;
     }
 
     render() {
         const { node } = this;
         const jsonData = this.data;
 
-        let componentId = `${node.getAttribute('id')}-component`;
+        let componentId = `${node.getAttribute('id')}-${this.getRandomInt()}`;
 
         const uiDiv = document.createElement('div');
         uiDiv.setAttribute('id', componentId);
@@ -190,12 +208,56 @@ class Select extends BaseComponent {
             uiDiv.appendChild(select);
 
             componentId += ' > .ui.dropdown';
+        } else if (this.data['@displayStyle'] === 'radio' || this.data['@displayStyle'] === 'checkbox') {
+            uiDiv.className = 'ui form';
+            const alignmentDiv = document.createElement('div');
+            alignmentDiv.classList.add(this.data['@alignment']);
+            alignmentDiv.classList.add('fields');
+            uiDiv.appendChild(alignmentDiv);
+            const labelDiv = document.createElement('label');
+            labelDiv.textContent = this.data['@title'];
+            alignmentDiv.appendChild(labelDiv);
+            const dataValues = this.data['>'];
+            if (dataValues.length > 0) {
+                dataValues.forEach((data) => {
+                    const fieldDiv = document.createElement('div');
+                    fieldDiv.className = 'field';
+                    const innerUiDiv = document.createElement('div');
+                    innerUiDiv.className = 'ui';
+                    innerUiDiv.classList.add(this.data['@displayStyle']);
+                    innerUiDiv.classList.add('checkbox');
+                    fieldDiv.appendChild(innerUiDiv);
+                    const innerInputDiv = document.createElement('input');
+                    innerInputDiv.type = this.data['@displayStyle'];
+                    innerInputDiv.name = this.data['@title'];
+                    innerInputDiv.id = `${this.data['@title']}-${data['@id']}`;
+                    innerInputDiv.setAttribute('value', data['@dataValue']);
+                    innerUiDiv.appendChild(innerInputDiv);
+                    const innerLabel = document.createElement('label');
+                    innerLabel.textContent = data['@dataValue'];
+                    innerUiDiv.appendChild(innerLabel);
+                    alignmentDiv.appendChild(fieldDiv);
+                    $(innerInputDiv).on(() => {
+                        this.getValue(innerInputDiv.value);
+                    });
+                });
+            }
+            const button = document.createElement('input');
+            button.type = 'submit';
+            button.value = 'submit';
+            button.id = 'submit';
+            uiDiv.append(button);
+            $(button).click(() => {
+                this.getCheckedValue();
+            });
         }
 
         node.append(uiDiv);
-
-        $(`#${componentId}`)
-            .dropdown();
+        try {
+            $(`#${componentId}`)
+                .dropdown();
+        // eslint-disable-next-line no-empty
+        } catch (error) {}
     }
 }
 module.exports = Select;

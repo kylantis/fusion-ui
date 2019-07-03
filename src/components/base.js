@@ -163,21 +163,21 @@ BaseComponent.loadedStyles = [];
 BaseComponent.loadedScripts = [];
 
 // This check is done, so that the scanCtags gulp task will not run this
-if (window.Event) {
-    // Fetch component tags metadata
-    // eslint-disable-next-line no-inner-declarations
-    function fetchTagsMetadata() {
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', '/components/tags.json', true);
-        xhr.onload = (e) => {
-            if (e.target.status === 200) {
-                BaseComponent.componentTags = JSON.parse(e.target.response);
-            } else {
-                // eslint-disable-next-line no-alert
-                alert('ERROR: Could not load component tags');
-            }
-        };
-        xhr.send();
-    }
-    fetchTagsMetadata();
-}
+// if (window.Event) {
+//     // Fetch component tags metadata
+//     // eslint-disable-next-line no-inner-declarations
+//     function fetchTagsMetadata() {
+//         const xhr = new XMLHttpRequest();
+//         xhr.open('GET', '/components/tags.json', true);
+//         xhr.onload = (e) => {
+//             if (e.target.status === 200) {
+//                 BaseComponent.componentTags = JSON.parse(e.target.response);
+//             } else {
+//                 // eslint-disable-next-line no-alert
+//                 alert('ERROR: Could not load component tags');
+//             }
+//         };
+//         xhr.send();
+//     }
+//     fetchTagsMetadata();
+// }

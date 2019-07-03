@@ -15,6 +15,14 @@ class Input extends BaseComponent {
         return super.getCssDependencies().concat(['/assets/css/input.min.css']);
     }
 
+    getJsDependencies() {
+        if (this.data['@type'] === 'radio' || this.data['@type'] === 'checkbox'
+            || this.data['@type'] === 'boolean') {
+            return super.getJsDependencies().concat(['/assets/js/checkbox.min.js']);
+        }
+        return null;
+    }
+
     required(element) {
         if (this.data['@required']) {
             element.setAttribute('required', '');
@@ -47,24 +55,24 @@ class Input extends BaseComponent {
         return $(element).attr('checked');
     }
 
-    getInputValue(element) {
-        console.log(element.val());
+    getValue(element) {
+        // console.log($(element).val());
         return $(element).val();
     }
 
-    setInputValue(element, value) {
+    setValue(element, value) {
         return $(element).val(value);
     }
 
-    validate(element, value) {
+    validateEntry(element) {
         // pass in the element to be validated and pass in the conditions to pass
         // return true or false
-        if (value) {
-            console.log(`${element} valid`);
-            return true;
+        if ($(element).val() === '') {
+            console.log('Invalid Entry');
+            return false;
         }
-        console.log(`${element} invalid`);
-        return false;
+        console.log($(element).val());
+        return true;
     }
 
     render() {
@@ -81,23 +89,10 @@ class Input extends BaseComponent {
 
             inputDiv.setAttribute('type', 'text');
             inputDiv.setAttribute('placeholder', this.data['@placeholder']);
-            const label = document.createElement('label');
-            label.className = 'error';
-            uiDiv.appendChild(label);
-            label.innerHTML = 'invalid input';
-            // Button added for testing get value
-            // eslint-disable-next-line func-names
-            $(function () {
-                $('.error').hide();
-                $(this).on('submit', () => {
-                    if (inputDiv.value === '') {
-                        $('.error').show();
-                        $(inputDiv).focus();
-                        return false;
-                    }
-                    this.getInputValue(inputDiv);
-                    return true;
-                });
+            $(inputDiv).on('focusout', () => {
+                if (this.validateEntry(inputDiv)) {
+                    this.getValue(inputDiv);
+                }
             });
         } else if (this.data['@type'] === 'secret') {
             uiDiv.classList.add('input');
@@ -106,7 +101,11 @@ class Input extends BaseComponent {
             inputDiv.setAttribute('type', 'password');
             inputDiv.setAttribute('placeholder', this.data['@placeholder']);
             // Get data from the subcomponent
-            this.getInputValue(inputDiv);
+            $(inputDiv).on('focusout', () => {
+                if (this.validateEntry(inputDiv)) {
+                    this.getValue(inputDiv);
+                }
+            });
         } else if (this.data['@type'] === 'email') {
             uiDiv.classList.add('input');
             uiDiv.append(inputDiv);
@@ -114,8 +113,12 @@ class Input extends BaseComponent {
             inputDiv.setAttribute('type', 'email');
             inputDiv.setAttribute('placeholder', this.data['@placeholder']);
             inputDiv.setAttribute('pattern', '[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}$');
-            // Get data from the subcomponent
-            this.getInputValue(inputDiv);
+            // Get data from the subcomponent'
+            $(inputDiv).on('focusout', () => {
+                if (this.validateEntry(inputDiv)) {
+                    this.getValue(inputDiv);
+                }
+            });
         } else if (this.data['@type'] === 'amount') {
             uiDiv.classList.add('input');
             uiDiv.append(inputDiv);
@@ -124,11 +127,13 @@ class Input extends BaseComponent {
             inputDiv.setAttribute('step', '0.01');
             inputDiv.setAttribute('placeholder', this.data['@placeholder']);
             // Get data from the subcomponent
-            this.getInputValue(inputDiv);
+            this.getValue(inputDiv);
         } else if (this.data['@type'] === 'number2l' || this.data['@type'] === 'number3l'
-                    || this.data['@type'] === 'number4l' || this.data['@type'] === 'number') {
+            || this.data['@type'] === 'number4l' || this.data['@type'] === 'number') {
             uiDiv.classList.add('input');
             uiDiv.append(inputDiv);
+            inputDiv.setAttribute('type', 'number');
+            inputDiv.setAttribute('placeholder', this.data['@placeholder']);
             this.required(inputDiv);
             if (this.data['@type'] === 'number2l') {
                 inputDiv.setAttribute('min', '-99');
@@ -140,10 +145,11 @@ class Input extends BaseComponent {
                 inputDiv.setAttribute('min', '-9999');
                 inputDiv.setAttribute('max', '9999');
             }
-            inputDiv.setAttribute('type', 'number');
-            inputDiv.setAttribute('placeholder', this.data['@placeholder']);
-            // Get data from the subcomponent
-            this.getInputValue(inputDiv);
+            $(inputDiv).on('focusout', () => {
+                if (this.validateEntry(inputDiv)) {
+                    this.getValue(inputDiv);
+                }
+            });
         } else if (this.data['@type'] === 'phone') {
             uiDiv.classList.add('input');
             uiDiv.append(inputDiv);
@@ -152,19 +158,11 @@ class Input extends BaseComponent {
             inputDiv.setAttribute('pattern', '[0-9]*');
             inputDiv.setAttribute('placeholder', this.data['@placeholder']);
             // Get data from the subcomponent
-            this.getInputValue(inputDiv);
-            const buttonDiv = document.createElement('button');
-            buttonDiv.innerHTML = 'submit';
-            uiDiv.appendChild(buttonDiv);
-            $(buttonDiv).on('click', () => {
-                console.log(this.getInputValue(inputDiv));
+            $(inputDiv).on('focusout', () => {
+                if (this.validateEntry(inputDiv)) {
+                    this.getValue(inputDiv);
+                }
             });
-        } else if (this.data['@type'] === 'image') {
-            uiDiv.classList.add('input');
-            uiDiv.append(inputDiv);
-            inputDiv.setAttribute('type', 'file');
-            inputDiv.setAttribute('accept', 'image/*');
-            this.required(inputDiv);
         } else if (this.data['@type'] === 'signature') {
             const canvaDiv = document.createElement('canvas');
             const submitButton = document.createElement('button');
@@ -229,9 +227,9 @@ class Input extends BaseComponent {
                     if (userInput) {
                         const signatureImage = paintCanvas.toDataURL('image/jpeg', 0.5);
                         console.log(signatureImage);
-                        this.validate(this.data['@type'], true);
+                        this.validateEntry(this.data['@type'], true);
                     } else {
-                        this.validate(this.data['@type'], false);
+                        this.validateEntry(this.data['@type'], false);
                     }
                 });
             });
@@ -250,7 +248,7 @@ class Input extends BaseComponent {
                     const fieldDiv = document.createElement('div');
                     fieldDiv.className = 'field';
                     const innerUiDiv = document.createElement('div');
-                    innerUiDiv.className = `ui ${this.data['@type']} checkbox`;
+                    innerUiDiv.className = `ui ${this.data['@type']}`;
                     fieldDiv.appendChild(innerUiDiv);
                     const InnerInputDiv = document.createElement('input');
                     InnerInputDiv.type = this.data['@type'];
