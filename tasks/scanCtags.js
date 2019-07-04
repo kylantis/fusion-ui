@@ -35,7 +35,7 @@ gulp.task('scanCtags', (cb) => {
 
       componentTags[c.tagName()] = {
         className: c.constructor.name,
-        url: path.relative(components, script).replace('.js', '.min.js'),
+        url: path.relative(components, script).replace('\\', '/').replace('.js', '.min.js'),
       };
     });
 
