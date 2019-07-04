@@ -148,7 +148,7 @@
     <script>
         const tableId = document.getElementById('table');
         let table = new Table(jsonData, document.querySelector("#table"));
-        setTimeout(() => table.update('appendRow', appendRowData), 2500);
+        setTimeout(() => table.behavior('appendRow', appendRowData), 2500);
         
         // tableId.addEventListener('dblclick', (event) => {
         //     table.update('deleteRow', Table.getRow(event));
@@ -158,9 +158,8 @@
         //     table.update('editRow', { id: cellId, content: 'Hello New Content' });
         // });
 
-        let table2 = new Table(jsonData, document.querySelector("#table2"));
-        setTimeout(() => table2.update('appendRow', appendRowData), 5000);
-
+        // let table2 = new Table(jsonData, document.querySelector("#table2"));
+        // setTimeout(() => table2.behavior('appendRow', appendRowData), 5000);
     </script>
 
 </body>

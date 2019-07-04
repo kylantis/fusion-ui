@@ -1,25 +1,15 @@
-
-
 class ProgressBar extends BaseComponent {
     tagName() {
         return 'progressBar';
     }
 
     getCssDependencies() {
-        const baseDependencies = super.getCssDependencies();
-        baseDependencies.push('/assets/css/progress.min.css');
-        return baseDependencies;
+        return super.getCssDependencies().concat(['/assets/css/progress.min.css']);
     }
 
     getJsDependencies() {
-        const baseDependencies = super.getJsDependencies();
-        baseDependencies.push('/assets/js/progress.min.js');
-        return baseDependencies;
+        return super.getJsDependencies().concat(['/assets/js/progress.min.js']);
     }
-
-    // initialize(id) {
-    //     $('#'+id).progress();
-    // }
 
     render() {
         const { node } = this;
@@ -30,7 +20,7 @@ class ProgressBar extends BaseComponent {
         const barDiv = document.createElement('div');
         const progressDiv = document.createElement('div');
         const labelDiv = document.createElement('div');
-        uiDiv.setAttribute('id', `${node.getAttribute('id')}-component`);
+        uiDiv.setAttribute('id', `${node.getAttribute('id')}`);
 
         uiDiv.className = 'ui';
         if (jsonData['@state'].length > 0) {
@@ -54,15 +44,15 @@ class ProgressBar extends BaseComponent {
 
         const id = `${uiDiv.getAttribute('id')}-${this.getRandomInt()}`;
 
+        $(uiDiv).on('click', () => {
+            $(`#${id}`).progress('increment');
+        });
         progressBarIds.push(`#${id}`);
         uiDiv.setAttribute('id', id);
-        uiDiv.setAttribute('data-value', 20);
+        uiDiv.setAttribute('data-value', 60);
         uiDiv.setAttribute('data-total', 100);
-        // this.initialize(id);
-        // uiDiv.setAttribute("onload", this.initialize(id));
 
         node.append(uiDiv);
     }
 }
 module.exports = ProgressBar;
-

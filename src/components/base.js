@@ -1,4 +1,3 @@
-
 class BaseComponent {
     constructor(data, node, render = true) {
         this.data = data;
@@ -32,12 +31,10 @@ class BaseComponent {
     // eslint-disable-next-line no-unused-vars
     static getComponent(tag, data, node) {
         const metadata = BaseComponent.componentTags[tag];
-
         if (!metadata) {
             console.error(`No metadata was found for component tag: ${tag}`);
             return null;
         }
-
         return BaseComponent.loadJS([`/components/${metadata.url}`]).then(() => {
             // eslint-disable-next-line no-eval
             eval(`new ${metadata.className} (data, node)`);
@@ -56,7 +53,6 @@ class BaseComponent {
         return new Promise((resolve, reject) => {
             const loaded = [];
             let styles = this.getCssDependencies();
-
             // Filter styles that have previously loaded
             styles = styles.filter(style => !BaseComponent.loadedStyles
                 .includes((style.startsWith('/') ? window.location.origin : '') + style));
@@ -73,24 +69,18 @@ class BaseComponent {
                 link.href = url;
                 link.type = 'text/css';
                 link.async = false;
-
                 // eslint-disable-next-line func-names
                 link.onload = function () {
                     loaded.push(this.href);
                     BaseComponent.loadedStyles.push(this.href);
-
                     console.log(`Loaded ${this.href}`);
-
                     if (loaded.length === styles.length) {
                         resolve();
                     }
                 };
-
                 link.onerror = () => reject(this.href);
-
                 document.body.appendChild(link);
             }
-
             // eslint-disable-next-line consistent-return
             setTimeout(() => {
                 if (loaded.length < styles.length) {
@@ -110,12 +100,10 @@ class BaseComponent {
         return new Promise((resolve, reject) => {
             const loaded = [];
             let scripts = scriptList;
-
             // Objectify string entries
             scripts = scripts.map(script => (script.constructor.name === 'String' ? {
                 url: script,
             } : script));
-
             // Filter scripts that have previously loaded
             scripts = scripts.filter(script => !BaseComponent.loadedScripts
                 .includes((script.url.startsWith('/') ? window.location.origin : '') + script.url));
@@ -128,33 +116,25 @@ class BaseComponent {
 
             for (const elem of scripts) {
                 const script = document.createElement('script');
-
                 script.src = elem.url;
                 script.type = 'text/javascript';
                 script.async = false;
-
                 // eslint-disable-next-line func-names
                 script.onload = function () {
                     loaded.push(this.src);
                     BaseComponent.loadedScripts.push(this.src);
-
                     if (elem.onload) {
                         // eslint-disable-next-line no-eval
                         eval(elem.onload);
                     }
-
                     console.log(`Loaded ${this.src}`);
-
                     if (loaded.length === scripts.length) {
                         resolve();
                     }
                 };
-
                 script.onerror = () => reject(this.src);
-
                 document.body.appendChild(script);
             }
-
             // eslint-disable-next-line consistent-return
             setTimeout(() => {
                 if (loaded.length < scripts.length) {
@@ -179,26 +159,25 @@ class BaseComponent {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 }
-
 BaseComponent.loadedStyles = [];
 BaseComponent.loadedScripts = [];
 
 // This check is done, so that the scanCtags gulp task will not run this
-if (window.Event) {
-    // Fetch component tags metadata
-    // eslint-disable-next-line no-inner-declarations
-    function fetchTagsMetadata() {
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', '/components/tags.json', true);
-        xhr.onload = (e) => {
-            if (e.target.status === 200) {
-                BaseComponent.componentTags = JSON.parse(e.target.response);
-            } else {
-                // eslint-disable-next-line no-alert
-                alert('ERROR: Could not load component tags');
-            }
-        };
-        xhr.send();
-    }
-    fetchTagsMetadata();
-}
+// if (window.Event) {
+//     // Fetch component tags metadata
+//     // eslint-disable-next-line no-inner-declarations
+//     function fetchTagsMetadata() {
+//         const xhr = new XMLHttpRequest();
+//         xhr.open('GET', '/components/tags.json', true);
+//         xhr.onload = (e) => {
+//             if (e.target.status === 200) {
+//                 BaseComponent.componentTags = JSON.parse(e.target.response);
+//             } else {
+//                 // eslint-disable-next-line no-alert
+//                 alert('ERROR: Could not load component tags');
+//             }
+//         };
+//         xhr.send();
+//     }
+//     fetchTagsMetadata();
+// }

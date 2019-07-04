@@ -4,20 +4,42 @@
 <head>
     <meta charset="UTF-8">
 </head>
+
 <body>
-    <div id="input"></div> 
+    <form action="">
+        <div id="input"></div>
+    </form>
 
     <script>
         let jsonData = {
-            "@title": "sample data",
-            "@type": "text",
-            "@placeholder": "Enter Email",
+            "@title": "Gender",
+            "@type": "checkbox",
+            "@placeholder": "Enter Input",
             "@maxlength": "",
             "@value": "",
+            "@alignment": "inline",
             "@checked": false,
             "@autofocus": false,
-            "@required": true,
-            "@disabled": false
+            "@required": false,
+            "@disabled": false,
+            "@canvaWidth": "300px",
+            "@canvaHeight": "150px",
+            ">": [{
+                "@tag": "input",
+                "@name": "gender",
+                "@value": "male"
+            }, {
+                "@tag": "input",
+                "@name": "gender",
+                "@value": "female"
+            }]
+        }
+    </script>
+    <script>
+        // This is a polyfill that allows components to do
+        // module.exports = ... in the browser
+        window.module = {
+            exports: {}
         }
     </script>
     <script src="/components/base.min.js"></script>

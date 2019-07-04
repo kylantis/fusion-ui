@@ -2,13 +2,13 @@
 <html>
 
 <head>
-     
+
 </head>
 
 <body>
     <div id="progressBar"></div>
-  
-    
+
+
     <script>
         let jsonData = {
             "@title": "first progress bar",
@@ -23,10 +23,18 @@
             "@color": ""
         }
     </script>
+    <script>
+        // This is a polyfill that allows components to do
+        // module.exports = ... in the browser
+        window.module = {
+            exports: {}
+        }
+    </script>
     <script src="/components/base.min.js"></script>
     <script src="/components/progress-bar/index.min.js"></script>
-    <script>new ProgressBar(jsonData, document.querySelector("#progressBar"));</script>
- 
+    <script> let progress = new ProgressBar(jsonData, document.querySelector("#progressBar"));
+    </script>
+
 </body>
 
 </html>

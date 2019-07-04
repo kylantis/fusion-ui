@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"> 
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
@@ -47,6 +47,13 @@
                 { '@tag': 'item', '@id': '', '@title': 'Nigeria' },
                 { '@tag': 'item', '@id': '', '@title': 'United Arab Emirates' }
             ]
+        }
+    </script>
+    <script>
+        // This is a polyfill that allows components to do
+        // module.exports = ... in the browser
+        window.module = {
+            exports: {}
         }
     </script>
     <script src="/components/base.min.js"></script>
