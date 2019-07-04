@@ -5,8 +5,12 @@ class Select extends BaseComponent {
     }
 
     getCssDependencies() {
-        if (this.data['@displayStyle'] === 'labeled' || this.data['@displayStyle'] === 'labeled multiple' || this.data['@displayStyle'] === 'labeled dropdown') {
-            return super.getCssDependencies().concat(['/assets/css/icon.min.css', '/assets/css/label.min.css', '/assets/css/dropdown.min.css', '/assets/css/input.min.css', '/assets/css/button.min.css', '/assets/css/transition.min.css']);
+        if (this.data['@displayStyle'] === 'labeled' || this.data['@displayStyle'] === 'labeled multiple'
+            || this.data['@displayStyle'] === 'labeled dropdown' || this.data['@displayStyle'] === 'multiple search select'
+            || this.data['@displayStyle'] === 'multiple select') {
+            return super.getCssDependencies().concat(['/assets/css/transition.min.css', '/assets/css/dropdown.min.css',
+                '/assets/css/icon.min.css', '/assets/css/label.min.css', '/assets/css/input.min.css',
+                '/assets/css/button.min.css']);
         }
         if (this.data['@displayStyle'] === 'checkbox') {
             return super.getCssDependencies().concat(['/assets/css/input.min.css', '/assets/css/checkbox.min.css']);
@@ -19,18 +23,63 @@ class Select extends BaseComponent {
             || this.data['@displayStyle'] === 'boolean') {
             return super.getJsDependencies().concat(['/assets/js/checkbox.min.js']);
         }
-        return super.getJsDependencies().concat(['/assets/js/dropdown.min.js', '/assets/js/transition.min.js']);
+        return super.getJsDependencies().concat(['/assets/js/dropdown.min.js', '/assets/js/transition.min.js', '/assets/js/search.min.js']);
     }
 
     getCheckedValue() {
         $('#submit', () => {
-            const val = [];
+            let val = [];
             $(`input[name=${this.data['@title']}]:checked`).each((i) => {
                 val[i] = $(':checked');
             });
-            const valueArray = val[0];
-            $.each(valueArray, (i, value) => console.log(value.value));
+            if (val.length > 0) {
+                const valueArray = val[0];
+                val = [];
+                $.each(valueArray, (i, value) => val.push(value.id));
+                val.forEach((value) => {
+                    const x = $(`#${value}`);
+                    console.log($(x).next().html());
+                });
+            } else {
+                console.log('select an item');
+            }
         });
+    }
+
+    getSelectedValue() {
+        let selectedValue = [];
+        if (this.data['@displayStyle'] === 'labeled') {
+            $('#submit', () => {
+                const id = this.node.firstElementChild.getAttribute('id');
+                const val = [];
+                $(`${id}.dropdown, .active, .selected:selected`).each((i) => {
+                    val[i] = $('.active, .selected:selected').text();
+                });
+                console.log(val);
+                selectedValue.concat(val);
+            });
+        } else if (this.data['@displayStyle'] === 'labeled multiple') {
+            $('#submit', () => {
+                const id = this.node.firstElementChild.getAttribute('id');
+                let val = [];
+                val = $(`${id}, a.visible`);
+                const values = [];
+                $.each(val, (i, value) => values.push($(value).text()));
+                console.log(values);
+            });
+        } else if (this.data['@displayStyle'] === 'labeled dropdown') {
+            $('#submit', () => {
+                const id = this.node.firstElementChild.getAttribute('id');
+                const val = [];
+                $(`${id}, span.text`).each((i) => {
+                    val[i] = $('span').text();
+                });
+                // console.log(val);
+                selectedValue = [...val];
+            });
+        }
+        console.log(selectedValue);
+        return selectedValue;
     }
 
     getValue(...value) {
@@ -41,14 +90,14 @@ class Select extends BaseComponent {
         const { node } = this;
         const jsonData = this.data;
 
-        let componentId = `${node.getAttribute('id')}-${this.getRandomInt()}`;
+        const componentId = `${node.getAttribute('id')}-${this.getRandomInt()}`;
 
         const uiDiv = document.createElement('div');
         uiDiv.setAttribute('id', componentId);
 
         if (jsonData['@displayStyle'] === 'select' || jsonData['@displayStyle'] === 'search select') {
             uiDiv.className = 'ui fluid selection';
-            if (jsonData['@displayStyle'] === 'search selection') {
+            if (jsonData['@displayStyle'] === 'search select') {
                 uiDiv.classList.add('search');
             }
 
@@ -126,6 +175,10 @@ class Select extends BaseComponent {
                     menuDiv.append(itemDiv);
                     node.append(uiDiv);
                 }
+                $('#submit').click(() => {
+                    this.getSelectedValue();
+                });
+                $(`#${componentId}`).dropdown();
                 return;
             }
 
@@ -181,6 +234,10 @@ class Select extends BaseComponent {
                     scrollingDiv.append(itemDiv);
                 }
             }
+            // callback
+            $('#submit').click(() => {
+                this.getSelectedValue();
+            });
         } else if (jsonData['@displayStyle'] === 'multiple select' || jsonData['@displayStyle'] === 'multiple search select') {
             const select = document.createElement('select');
             select.className = 'ui fluid';
@@ -199,15 +256,13 @@ class Select extends BaseComponent {
             for (const key of Object.keys(jsonData['>'])) {
                 if (jsonData['>'][key]['@title'].length > 0) {
                     const option = document.createElement('option');
-                    option.setAttribute('value', jsonData['>'][key]['@title']);
+                    option.setAttribute('value', jsonData['>'][key]['@dataValue']);
                     option.textContent = jsonData['>'][key]['@title'];
                     select.append(option);
                 }
             }
             select.classList.add('dropdown');
             uiDiv.appendChild(select);
-
-            componentId += ' > .ui.dropdown';
         } else if (this.data['@displayStyle'] === 'radio' || this.data['@displayStyle'] === 'checkbox') {
             uiDiv.className = 'ui form';
             const alignmentDiv = document.createElement('div');
@@ -231,23 +286,15 @@ class Select extends BaseComponent {
                     innerInputDiv.type = this.data['@displayStyle'];
                     innerInputDiv.name = this.data['@title'];
                     innerInputDiv.id = `${this.data['@title']}-${data['@id']}`;
-                    innerInputDiv.setAttribute('value', data['@dataValue']);
                     innerUiDiv.appendChild(innerInputDiv);
                     const innerLabel = document.createElement('label');
-                    innerLabel.textContent = data['@dataValue'];
+                    innerLabel.textContent = data['@title'];
                     innerUiDiv.appendChild(innerLabel);
                     alignmentDiv.appendChild(fieldDiv);
-                    $(innerInputDiv).on(() => {
-                        this.getValue(innerInputDiv.value);
-                    });
                 });
             }
-            const button = document.createElement('input');
-            button.type = 'submit';
-            button.value = 'submit';
-            button.id = 'submit';
-            uiDiv.append(button);
-            $(button).click(() => {
+            // callback
+            $('#submit').click(() => {
                 this.getCheckedValue();
             });
         }
@@ -257,7 +304,7 @@ class Select extends BaseComponent {
             $(`#${componentId}`)
                 .dropdown();
         // eslint-disable-next-line no-empty
-        } catch (error) {}
+        } catch (e) {}
     }
 }
 module.exports = Select;

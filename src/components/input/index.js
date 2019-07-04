@@ -233,33 +233,6 @@ class Input extends BaseComponent {
                     }
                 });
             });
-        } else if (this.data['@type'] === 'radio' || this.data['@type'] === 'checkbox') {
-            uiDiv.className = 'ui form';
-            const alignmentDiv = document.createElement('div');
-            alignmentDiv.classList.add(this.data['@alignment']);
-            alignmentDiv.classList.add('fields');
-            uiDiv.appendChild(alignmentDiv);
-            const labelDiv = document.createElement('label');
-            labelDiv.textContent = this.data['@title'];
-            alignmentDiv.appendChild(labelDiv);
-            const dataValues = this.data['>'];
-            if (dataValues.length > 0) {
-                dataValues.forEach((data) => {
-                    const fieldDiv = document.createElement('div');
-                    fieldDiv.className = 'field';
-                    const innerUiDiv = document.createElement('div');
-                    innerUiDiv.className = `ui ${this.data['@type']}`;
-                    fieldDiv.appendChild(innerUiDiv);
-                    const InnerInputDiv = document.createElement('input');
-                    InnerInputDiv.type = this.data['@type'];
-                    InnerInputDiv.name = data['@name'];
-                    innerUiDiv.appendChild(InnerInputDiv);
-                    const innerLabel = document.createElement('label');
-                    innerLabel.textContent = data['@value'];
-                    innerUiDiv.appendChild(innerLabel);
-                    alignmentDiv.appendChild(fieldDiv);
-                });
-            }
         } else if (this.data['@type'] === 'slider') {
             uiDiv.classList.add('slider');
             uiDiv.classList.add('checkbox');

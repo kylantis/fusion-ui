@@ -15,12 +15,17 @@ class InputImage extends BaseComponent {
         return false;
     }
 
-    getImage() {
-        
-    }
-
     validateImage() {
-
+        $('#submit', () => {
+            const inputTag = this.node.getElementsByTagName('input');
+            const input = inputTag[0];
+            if (input.value === '') {
+                console.log('no image found');
+                return false;
+            }
+            console.log('file uploaded successfully');
+            return true;
+        });
     }
 
     render() {
@@ -45,9 +50,12 @@ class InputImage extends BaseComponent {
         if (this.data['@multiple']) {
             inputDiv.setAttribute('multiple', true);
         }
+        $('#submit').click(() => {
+            this.validateImage();
+        });
         this.required(inputDiv);
-
         const id = `image-${this.getRandomInt()}`;
+        inputDiv.id = `upload-${id}`;
         imageId.push(`#${id}`);
         uiDiv.setAttribute('id', id);
         node.append(uiDiv);
