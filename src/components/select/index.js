@@ -239,10 +239,12 @@ class Select extends BaseComponent {
                 this.getSelectedValue();
             });
         } else if (jsonData['@displayStyle'] === 'multiple select' || jsonData['@displayStyle'] === 'multiple search select') {
+            $(uiDiv).removeAttr('id');
             const select = document.createElement('select');
             select.className = 'ui fluid';
-            select.setAttribute('multiple', ' ');
+            select.setAttribute('multiple', '');
             select.setAttribute('name', jsonData['@title']);
+            select.setAttribute('id', componentId);
 
             if (jsonData['@displayStyle'] === 'multiple search select') {
                 select.classList.add('search');
