@@ -5,22 +5,124 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <link rel="stylesheet" href="/css/grid.css" >
+    <link rel="stylesheet" href="/assets/css/grid.min.css">
+    <link rel="stylesheet" href="/assets/css/input.min.css">
+    <link rel="stylesheet" href="/assets/css/dropdown.min.css">
+    <link rel="stylesheet" href="/assets/css/image.min.css">
 </head>
 
 
 <body>
-    <div class="ui grid">
-        <div class="four wide column one"></div>
-        <div class="four wide column one"></div>
-        <div class="four wide column one"></div>
-        <div class="four wide column one"></div>
-        <div class="two wide column one"></div>
-        <div class="eight wide column one"></div>
-        <div class="six wide column one"></div>
+    <div id='grid'></div>
+    <div class="ui equal width stackable grid">
+        <div class="column">
+            <div class="ui input fluid focus">
+                <input type="text" placeholder="Search...">
+            </div>
+        </div>
+        <div class="column">
+            <div class="ui input fluid focus">
+                <input type="text" placeholder="Search...">
+            </div>
+        </div>
+        <div class="column">
+            <div class="ui input fluid focus">
+                <input type="text" placeholder="Search...">
+            </div>
+        </div>
+        <div class="column">
+            <div class="ui input fluid focus">
+                <input type="text" placeholder="Search...">
+            </div>
+        </div>
+    </div>
+    <div class="ui equal width grid">
+        <div class="column">
+            <select class="ui fluid dropdown">
+                <option value="">Gender</option>
+                <option value="1">Male</option>
+                <option value="0">Female</option>
+            </select>
+        </div>
+        <div class="column">
+            
+        </div>
+        <div class="column">
+            <select class="ui fluid dropdown">
+                <option value="">Gender</option>
+                <option value="1">Male</option>
+                <option value="0">Female</option>
+            </select>
+        </div>
+        <div class="column">
+            <select class="ui fluid dropdown">
+                <option value="">Gender</option>
+                <option value="1">Male</option>
+                <option value="0">Female</option>
+            </select>
+        </div>
     </div>
 
+    <script>
+        const jsonData = {
+            '@title': 'grid',
+            '@equalWidth': true,
+            '@stackable': true,
+            '>': [{
+                '@tag': 'row',
+                '>': [{
+                    '@tag': 'column',
+                    '@columnId': 1,
+                    '@columnWidth': 4,
+                    '@tagName': 'input'
+                }, {
+                    '@tag': 'column',
+                    '@columnId': 12,
+                    '@columnWidth': 4,
+                    '@tagName': 'select'
+                }, {
+                    '@tag': 'column',
+                    '@columnId': 123,
+                    '@columnWidth': 4,
+                    '@tagName': 'input'
+                }, {
+                    '@tag': 'column',
+                    '@columnId': 1234,
+                    '@columnWidth': 4,
+                    '@tagName': 'select'
+                }]
+            }, {
+                '@tag': 'row',
+                '>': [{
+                    '@tag': 'column',
+                    '@columnId': 2,
+                    '@columnWidth': 4,
+                    '@tagName': 'input'
+                }, {
+                    '@tag': 'column',
+                    '@columnId': 23,
+                    '@columnWidth': 4,
+                    '@tagName': 'select'
+                }, {
+                    '@tag': 'column',
+                    '@columnId': 234,
+                    '@columnWidth': 4,
+                    '@tagName': 'input'
+                }, {
+                    '@tag': 'column',
+                    '@columnId': 2345,
+                    '@columnWidth': 4,
+                    '@tagName': 'select'
+                }]
+            }]
+        }
 
+
+    </script>
+    <script src="/assets/js/dropdown.js"></script>
+    <script src="/components/base.min.js"></script>
+    <script src="/components/grid/index.min.js"></script>
+    <script>new Grid(jsonData, document.querySelector('#grid'))</script>
 </body>
 
 </html>

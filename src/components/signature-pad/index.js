@@ -38,4 +38,4 @@ class Signature extends BaseComponent {
     }
 }
 
-module.exports = InputImage;
+module.exports = Signature;
