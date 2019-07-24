@@ -4,6 +4,9 @@
     "@displayStyle": "select | search select | multiple select | multiple search select | labeled | labeled dropdown | labeled multiple",
     "@labelIcon": "",
     "@defaultTitle": "",    
+    "@selectionType": "single | multiple",
+    "@viewType": "“check | dropdown",
+    "@viewSubType": "labeled | non-labeled",
     "@required": "true | false",
     "@scrolling": "true | false",
     ">": [{

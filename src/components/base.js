@@ -1,12 +1,65 @@
 class BaseComponent {
+    static #initialized = false;
+
+    static #componentTags;
+
+    static #clientStubs;
+
     constructor(data, node, render = true) {
         this.data = data;
         this.node = node || document.body;
+
         if (render) {
             this.loadDependencies().then(() => {
                 this.render();
             });
         }
+    }
+
+    static init() {
+        if (BaseComponent.#initialized) {
+            return;
+        }
+
+        // Perform initializations
+        BaseComponent.fetchTagsMetadata();
+        BaseComponent.setupWebSocket();
+        BaseComponent.fetchClientStubs();
+
+
+        BaseComponent.#initialized = true;
+    }
+
+    static setupWebSocket() {
+
+    }
+
+    static fetchClientStubs() {
+        return {};
+        // Flow
+        // Note: when the WS connection is created
+        // a token is sent
+
+        // 1. Query for services, the reaponse format:
+        // {'app1': ['serviceA', 'serviceB'], ...}
+        // 2. Based on data fetched above, fetch the
+        // associated JSON for each. The json contains
+        // a function factory(token).
+
+    }
+
+    static fetchTagsMetadata() {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', '/components/tags.json', true);
+        xhr.onload = (e) => {
+            if (e.target.status === 200) {
+                BaseComponent.#componentTags = JSON.parse(e.target.response);
+            } else {
+                // eslint-disable-next-line no-alert
+                alert('ERROR: Could not load component tags');
+            }
+        };
+        xhr.send();
     }
 
     getCssDependencies() {
@@ -30,7 +83,7 @@ class BaseComponent {
    */
     // eslint-disable-next-line no-unused-vars
     static getComponent(tag, data, node) {
-        const metadata = BaseComponent.componentTags[tag];
+        const metadata = BaseComponent.#componentTags[tag];
         if (!metadata) {
             console.error(`No metadata was found for component tag: ${tag}`);
             return null;
@@ -144,6 +197,10 @@ class BaseComponent {
         });
     }
 
+    static registerServices(services) {
+        console.log(services);
+    }
+
     appendNode(parent, tag, classNames) {
         const elem = document.createElement(tag);
         if (classNames) {
@@ -162,22 +219,6 @@ class BaseComponent {
 BaseComponent.loadedStyles = [];
 BaseComponent.loadedScripts = [];
 
-// This check is done, so that the scanCtags gulp task will not run this
 if (window.Event) {
-    // Fetch component tags metadata
-    // eslint-disable-next-line no-inner-declarations
-    function fetchTagsMetadata() {
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', '/components/tags.json', true);
-        xhr.onload = (e) => {
-            if (e.target.status === 200) {
-                BaseComponent.componentTags = JSON.parse(e.target.response);
-            } else {
-                // eslint-disable-next-line no-alert
-                alert('ERROR: Could not load component tags');
-            }
-        };
-        xhr.send();
-    }
-    fetchTagsMetadata();
+    BaseComponent.init();
 }

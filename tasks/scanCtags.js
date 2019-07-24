@@ -39,7 +39,14 @@ gulp.task('scanCtags', (cb) => {
       };
     });
 
-    const tagsFile = path.join(path.dirname(fs.realpathSync(__filename)), '../dist/components/tags.json');
+    // Create parent directories
+    const base = path.join(path.dirname(fs.realpathSync(__filename)), '../dist/components/');
+    if (!fs.existsSync(base)) {
+      fs.mkdirSync(base, { recursive: true });
+    }
+
+    // Write to tags file
+    const tagsFile = path.join(base, 'tags.json');
 
     fs.writeFile(tagsFile, JSON.stringify(componentTags), (err) => {
       if (err) throw err;

@@ -5,29 +5,29 @@ class Select extends BaseComponent {
     }
 
     getCssDependencies() {
-        if (this.data['@displayStyle'] === 'labeled' || this.data['@displayStyle'] === 'labeled multiple'
-            || this.data['@displayStyle'] === 'labeled dropdown' || this.data['@displayStyle'] === 'multiple search select'
-            || this.data['@displayStyle'] === 'multiple select') {
+        if (this.getDisplayStyle() === 'labeled' || this.getDisplayStyle() === 'labeled multiple'
+            || this.getDisplayStyle() === 'labeled dropdown' || this.getDisplayStyle() === 'multiple search select'
+            || this.getDisplayStyle() === 'multiple select') {
             return super.getCssDependencies().concat(['/assets/css/transition.min.css', '/assets/css/dropdown.min.css',
                 '/assets/css/icon.min.css', '/assets/css/label.min.css', '/assets/css/input.min.css',
                 '/assets/css/button.min.css']);
         }
-        if (this.data['@displayStyle'] === 'checkbox') {
+        if (this.getDisplayStyle() === 'checkbox') {
             return super.getCssDependencies().concat(['/assets/css/input.min.css', '/assets/css/checkbox.min.css']);
         }
         return super.getCssDependencies().concat(['/assets/css/dropdown.min.css', '/assets/css/input.min.css', '/assets/css/button.min.css', '/assets/css/transition.min.css']);
     }
 
     getJsDependencies() {
-        if (this.data['@displayStyle'] === 'radio' || this.data['@displayStyle'] === 'checkbox'
-            || this.data['@displayStyle'] === 'boolean') {
+        if (this.getDisplayStyle() === 'radio' || this.getDisplayStyle() === 'checkbox'
+            || this.getDisplayStyle() === 'boolean') {
             return super.getJsDependencies().concat(['/assets/js/checkbox.min.js']);
         }
         return super.getJsDependencies().concat(['/assets/js/dropdown.min.js', '/assets/js/transition.min.js', '/assets/js/search.min.js']);
     }
 
     getCheckedValue() {
-        $('#submit', () => {
+        return (() => {
             let val = [];
             $(`input[name=${this.data['@title']}]:checked`).each((i) => {
                 val[i] = $(':checked');
@@ -43,46 +43,77 @@ class Select extends BaseComponent {
             } else {
                 console.log('select an item');
             }
-        });
+        })();
     }
 
     getSelectedValue() {
-        let selectedValue = [];
-        if (this.data['@displayStyle'] === 'labeled') {
-            $('#submit', () => {
+        switch (this.getDisplayStyle()) {
+        case 'multiple select':
+            return (() => {
+                const select = this.node.querySelector('select');
+                // eslint-disable-next-line
+                const id = select.id;
+                let val = [];
+                val = $(`${id} .active, .filtered`);
+                const values = [];
+                $.each(val, (i, value) => values.push($(value).text()));
+                return values;
+            })();
+        case 'select': case 'labeled':
+            return (() => {
                 const id = this.node.firstElementChild.getAttribute('id');
                 const val = [];
                 $(`${id}.dropdown, .active, .selected:selected`).each((i) => {
                     val[i] = $('.active, .selected:selected').text();
                 });
-                console.log(val);
-                selectedValue.concat(val);
-            });
-        } else if (this.data['@displayStyle'] === 'labeled multiple') {
-            $('#submit', () => {
+                return val;
+            })();
+        case 'labeled multiple':
+            return (() => {
                 const id = this.node.firstElementChild.getAttribute('id');
                 let val = [];
                 val = $(`${id}, a.visible`);
                 const values = [];
                 $.each(val, (i, value) => values.push($(value).text()));
-                console.log(values);
-            });
-        } else if (this.data['@displayStyle'] === 'labeled dropdown') {
-            $('#submit', () => {
+                return values;
+            })();
+        case 'labeled dropdown':
+            return (() => {
                 const id = this.node.firstElementChild.getAttribute('id');
                 const val = [];
                 $(`${id}, span.text`).each((i) => {
                     val[i] = $('span').text();
                 });
-                // console.log(val);
-                selectedValue = [...val];
-            });
+                return val;
+            })();
+        default:
+            return null;
         }
-        console.log(selectedValue);
-        return selectedValue;
     }
 
-    getValue(...value) {
+    getDisplayStyle() {
+        if (this.data['@selectionType'] === 'single' && this.data['@viewType'] === 'check') {
+            return 'radio';
+        }
+        if (this.data['@selectionType'] === 'single' && this.data['@viewType'] === 'dropdown') {
+            if (this.data['@viewSubType'] === 'labeled') {
+                return 'labeled dropdown';
+            }
+            return 'select';
+        }
+        if (this.data['@selectionType'] === 'multiple' && this.data['@viewType'] === 'check') {
+            return 'checkbox';
+        }
+        if (this.data['@selectionType'] === 'multiple' && this.data['@viewType'] === 'dropdown') {
+            if (this.data['@viewSubType'] === 'labeled') {
+                return 'labeled multiple';
+            }
+            return 'multiple select';
+        }
+        return 'select';
+    }
+
+    setValue(value) {
         return value;
     }
 
@@ -95,9 +126,9 @@ class Select extends BaseComponent {
         const uiDiv = document.createElement('div');
         uiDiv.setAttribute('id', componentId);
 
-        if (jsonData['@displayStyle'] === 'select' || jsonData['@displayStyle'] === 'search select') {
+        if (this.getDisplayStyle() === 'select') {
             uiDiv.className = 'ui fluid selection';
-            if (jsonData['@displayStyle'] === 'search select') {
+            if (jsonData['@search']) {
                 uiDiv.classList.add('search');
             }
 
@@ -144,9 +175,12 @@ class Select extends BaseComponent {
             }
             uiDiv.classList.add('dropdown');
             node.append(uiDiv);
-        } else if (jsonData['@displayStyle'] === 'labeled' || jsonData['@displayStyle'] === 'labeled multiple' || jsonData['@displayStyle'] === 'labeled dropdown') {
+            $('#submit').click(() => {
+                console.log(this.getSelectedValue());
+            });
+        } else if (this.getDisplayStyle() === 'labeled' || this.getDisplayStyle() === 'labeled multiple' || this.getDisplayStyle() === 'labeled dropdown') {
             uiDiv.className = 'ui floating labeled icon dropdown button';
-            if (jsonData['@displayStyle'] === 'labeled multiple') {
+            if (this.getDisplayStyle() === 'labeled multiple') {
                 uiDiv.classList.remove('floating');
                 uiDiv.classList.remove('labeled');
                 uiDiv.classList.remove('icon');
@@ -167,7 +201,7 @@ class Select extends BaseComponent {
             menuDiv.className = 'menu';
             uiDiv.append(menuDiv);
 
-            if (jsonData['@displayStyle'] === 'labeled dropdown') {
+            if (this.getDisplayStyle() === 'labeled dropdown') {
                 for (const key of Object.keys(jsonData['>'])) {
                     const itemDiv = document.createElement('div');
                     itemDiv.append(jsonData['>'][key]['@title']);
@@ -176,7 +210,7 @@ class Select extends BaseComponent {
                     node.append(uiDiv);
                 }
                 $('#submit').click(() => {
-                    this.getSelectedValue();
+                    console.log(this.getSelectedValue());
                 });
                 $(`#${componentId}`).dropdown();
                 return;
@@ -236,17 +270,17 @@ class Select extends BaseComponent {
             }
             // callback
             $('#submit').click(() => {
-                this.getSelectedValue();
+                console.log(this.getSelectedValue());
             });
-        } else if (jsonData['@displayStyle'] === 'multiple select' || jsonData['@displayStyle'] === 'multiple search select') {
+        } else if (this.getDisplayStyle() === 'multiple select') {
             $(uiDiv).removeAttr('id');
             const select = document.createElement('select');
             select.className = 'ui fluid';
-            select.setAttribute('multiple', '');
             select.setAttribute('name', jsonData['@title']);
             select.setAttribute('id', componentId);
+            select.setAttribute('multiple', '');
 
-            if (jsonData['@displayStyle'] === 'multiple search select') {
+            if (jsonData['@search']) {
                 select.classList.add('search');
             }
 
@@ -265,7 +299,10 @@ class Select extends BaseComponent {
             }
             select.classList.add('dropdown');
             uiDiv.appendChild(select);
-        } else if (this.data['@displayStyle'] === 'radio' || this.data['@displayStyle'] === 'checkbox') {
+            $('#submit').click(() => {
+                console.log(this.getSelectedValue());
+            });
+        } else if (this.getDisplayStyle() === 'radio' || this.getDisplayStyle() === 'checkbox') {
             uiDiv.className = 'ui form';
             const alignmentDiv = document.createElement('div');
             alignmentDiv.classList.add(this.data['@alignment']);
@@ -281,11 +318,11 @@ class Select extends BaseComponent {
                     fieldDiv.className = 'field';
                     const innerUiDiv = document.createElement('div');
                     innerUiDiv.className = 'ui';
-                    innerUiDiv.classList.add(this.data['@displayStyle']);
+                    innerUiDiv.classList.add(this.getDisplayStyle());
                     innerUiDiv.classList.add('checkbox');
                     fieldDiv.appendChild(innerUiDiv);
                     const innerInputDiv = document.createElement('input');
-                    innerInputDiv.type = this.data['@displayStyle'];
+                    innerInputDiv.type = this.getDisplayStyle();
                     innerInputDiv.name = this.data['@title'];
                     innerInputDiv.id = `${this.data['@title']}-${data['@id']}`;
                     innerUiDiv.appendChild(innerInputDiv);

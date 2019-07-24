@@ -20,7 +20,7 @@ class Input extends BaseComponent {
             || this.data['@type'] === 'boolean') {
             return super.getJsDependencies().concat(['/assets/js/checkbox.min.js']);
         }
-        return null;
+        return super.getJsDependencies();
     }
 
     required(element) {
@@ -61,7 +61,7 @@ class Input extends BaseComponent {
     }
 
     setValue(element, value) {
-        return $(element).val(value);
+        $(element).val(value);
     }
 
     validateEntry(element) {
@@ -77,10 +77,13 @@ class Input extends BaseComponent {
 
     render() {
         const { node } = this;
-        const inputId = [];
         const uiDiv = document.createElement('div');
         const inputDiv = document.createElement('input');
         uiDiv.classList.add('ui');
+        const id = `input-${this.getRandomInt()}`;
+        const inputId = [];
+        inputId.push(`#${id}`);
+
 
         if (this.data['@type'] === 'plain') {
             uiDiv.classList.add('input');
@@ -258,6 +261,7 @@ class Input extends BaseComponent {
 
             const labelDiv = document.createElement('label');
             labelDiv.textContent = this.data['@title'];
+            uiDiv.appendChild(labelDiv);
         } else {
             uiDiv.classList.add('input');
             uiDiv.append(inputDiv);
@@ -268,8 +272,6 @@ class Input extends BaseComponent {
             inputDiv.setAttribute('placeholder', this.data['@placeholder']);
         }
 
-        const id = `input-${this.getRandomInt()}`;
-        inputId.push(`#${id}`);
         uiDiv.setAttribute('id', id);
         node.append(uiDiv);
     }

@@ -5,6 +5,11 @@ const server = restify.createServer({
     versions: ['1.0.0'],
 });
  
+server.get('/client-stubs/default/*', restify.plugins.serveStatic({
+    directory: './dist',
+    default: 'index.html',
+}));
+
 server.get('/*', restify.plugins.serveStatic({
     directory: './dist',
     default: 'index.html',

@@ -36,7 +36,6 @@ body {
     font-size: 14px;
     line-height: 1.4285em;
     color: rgba(0, 0, 0, 0.87);
-    font-smoothing: antialiased;
 }
 html,
 body {
@@ -291,7 +290,7 @@ html.ios body {
     min-height: 30px;
     padding: 10px 0;
 }
-#grid {} #grid h2 {
+#grid h2 {
     margin: 2em 0 1.5em;
 }
 #grid .shaded.examples .row {
