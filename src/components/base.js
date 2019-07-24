@@ -1,3 +1,5 @@
+import { formatResultsErrors } from 'jest-message-util';
+
 class BaseComponent {
     static #initialized = false;
 
@@ -45,7 +47,6 @@ class BaseComponent {
         // 2. Based on data fetched above, fetch the
         // associated JSON for each. The json contains
         // a function factory(token).
-
     }
 
     static fetchTagsMetadata() {
@@ -82,7 +83,7 @@ class BaseComponent {
    * @returns {Promise}
    */
     // eslint-disable-next-line no-unused-vars
-    static getComponent(tag, data, node) {
+    static async getComponent(tag, data, node) {
         const metadata = BaseComponent.#componentTags[tag];
         if (!metadata) {
             console.error(`No metadata was found for component tag: ${tag}`);
@@ -90,7 +91,8 @@ class BaseComponent {
         }
         return BaseComponent.loadJS([`/components/${metadata.url}`]).then(() => {
             // eslint-disable-next-line no-eval
-            eval(`new ${metadata.className} (data, node)`);
+            const component = eval(`new ${metadata.className} (data, node)`);
+            return Promise.resolve(component);
         });
     }
 
@@ -210,6 +212,35 @@ class BaseComponent {
             parent.appendChild(elem);
         }
         return elem;
+    }
+
+    triggerEvent(eventName, eventData, componentData) {
+        if (componentData.hasServerCallback) {
+            // Why return?
+            return this.triggerFusionCallback(eventName, eventData);
+        }
+
+        const { clientCallbacks } = componentData;
+
+        if (clientCallbacks && clientCallbacks[eventName]) {
+            // Call client-side hook
+            // Why return?
+            return clientCallbacks[eventName](eventData);
+        }
+        console.log(eventName, eventData, componentData);
+        return false;
+    }
+
+    /**
+     * This writes data to the web socket, inorder to notify fuaion
+     * of a bubbled
+     *
+     * @param {String} callbackName
+     * @param {Object} callbackData
+     */
+    // eslint-disable-next-line no-unused-vars
+    triggerFusionCallback(callbackName, callbackData) {
+
     }
 
     getRandomInt(min = Math.ceil(1000), max = Math.floor(2000000)) {
