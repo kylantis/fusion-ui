@@ -5,6 +5,7 @@ module.exports = {
     browser: true,
     jquery: true
   },
+  parser: "babel-eslint",
   rules: {
     "no-restricted-syntax": ["error" /*"ForInStatement"*//*", ForOfStatement"*/, "LabeledStatement", "WithStatement"], // Todo: Except when necessary, remove this and refractor affected files
     'no-plusplus': ['error', { "allowForLoopAfterthoughts": true }], // Todo: Except when necessary, remove this and refractor affected files,

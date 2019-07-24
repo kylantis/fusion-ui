@@ -2,24 +2,25 @@
 
 /* eslint-disable */
 
-class AppShell extends BaseComponent {
+class AppShellView extends BaseComponent {
     // Todo: We need to have a standard icon system, that fusion recognizes
 
     // Todo: Set document.title to this.data.brandInfo.name
 
     constructor(data, node, render) {
         super(data, node, render);
-        this.utils = new AppShell.Utils();
+        this.utils = new AppShellView.Utils();
         this.data.config = this.utils.mergeDeep(this.data.config, this.getConfigParams());
-        this.mocks = new AppShell.Mocks();
+        this.mocks = new AppShellView.Mocks();
         window.globals = this.data.globals;
-        window.appShell = this;
+
+        window.baseView = this;
     }
 
     getConfigParams() {
         return {
             state: {
-                isAppShellReady: false,
+                isBaseViewReady: false,
             },
             activityStream: {
                 currentToDate: null,
@@ -31,7 +32,7 @@ class AppShell extends BaseComponent {
     }
 
     tagName() {
-        return "app-shell";
+        return "app-shell-view";
     }
 
     getCssDependencies() {
@@ -55,6 +56,10 @@ class AppShell extends BaseComponent {
 
     getJsDependencies() {
         return super.getJsDependencies().concat([
+
+            // Mocks (@DevPrototype)
+
+
             '/assets/js/transition.min.js', '/assets/js/accordion.min.js',
             '/assets/js/dropdown.min.js', '/assets/js/tab.min.js',
             '/assets/js/sidebar.min.js', '/assets/js/progress.min.js',
@@ -68,7 +73,7 @@ class AppShell extends BaseComponent {
         ]);
     }
 
-    render() {
+    async render() {
 
         // Populate sidebar, while emitting required markup
         // for both desktop and mobile
@@ -80,7 +85,7 @@ class AppShell extends BaseComponent {
 
         $(document).ajaxStart(() => {
             Pace.restart();
-        });
+        }); 
 
 
         // Todo: Add MutationObserver for ce-translate
@@ -89,28 +94,19 @@ class AppShell extends BaseComponent {
 
         // Todo: Replace ion icons with semantic one
 
+        $('body').show();
 
-        Promise.resolve()
-            .then(() => {
-                $('body').show();
-            }).then(
-                Promise.all([
-                    this.populateSupportedCountries(),
-                    this.populateGlobalSearchLists(),
-                    this.populateUserInformation(),
-                ]),
-            )
-            .then(() => {
-                this.populateActivityStream()
-                    .then(() => {
-                        this.loadWidgets();
-                    })
-                    .then(() => {
-                        this.data.config.state.isAppShellReady = true;
-                    });
-            }, (err) => {
-                console.log(err);
-            });
+        await Promise.all([
+            this.populateSupportedCountries(),
+            this.populateGlobalSearchLists(),
+            this.populateUserInformation(),
+        ]);
+
+        await this.populateActivityStream();
+
+        this.loadWidgets();
+        
+        this.data.config.state.isBaseViewReady = true;
     }
 
     populateUserInformation() {
@@ -172,8 +168,8 @@ class AppShell extends BaseComponent {
     }
 
     populateSidebarForDesktop() {
-        const hierarchy = this.data.sidebar.hierarchy;
-        const itemsData = this.data.sidebar.items;
+        const hierarchy = this.data.pages.hierarchy;
+        const itemsData = this.data.pages.items;
 
         const container = $('.ui.sidebar');
 
@@ -203,8 +199,8 @@ class AppShell extends BaseComponent {
     }
 
     populateSidebarForMobile() {
-        const hierarchy = this.data.sidebar.hierarchy;
-        const itemsData = this.data.sidebar.items;
+        const hierarchy = this.data.pages.hierarchy;
+        const itemsData = this.data.pages.items;
 
         const container = $('.ui.sidebar');
         for (const item of hierarchy) {
@@ -729,7 +725,7 @@ class AppShell extends BaseComponent {
 
 }
 
-AppShell.Utils = class {
+AppShellView.Utils = class {
     /**
     * Simple object check.
     * @param item
@@ -819,7 +815,7 @@ AppShell.Utils = class {
 }
 
 // eslint-disable-next-line no-unused-vars
-AppShell.Mocks = class {
+AppShellView.Mocks = class {
     getAvailableCountries() {
         return Promise.resolve({
             'en-US': { name: 'United States' },
@@ -907,5 +903,5 @@ AppShell.Mocks = class {
 }
 
 
-module.exports = AppShell;
+module.exports = AppShellView;
 
