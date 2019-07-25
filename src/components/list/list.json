@@ -1,0 +1,30 @@
+{
+    "@id": "list-1",
+    "@title": "list",
+    "@listType": "ordered | unordered | tree view | iconList | divided",
+    "@icon": "bullet | icon | none",
+    "@listOrientation": "vertical | horizontal",
+    "@divider": "true | false",
+    "@celled": "true | false",
+    ">": [{
+        "@tag": "item",
+        "@text": "Apple",
+        "@description": ""
+    }, {
+        "@tag": "item",
+        "@text": "Banana",
+        "@description": ""
+    }, {
+        "@tag": "item",
+        "@text": "Orange",
+        "@description": ""
+    }, {
+        "@tag": "item",
+        "@text": "Cashew",
+        "@description": ""
+    }, {
+        "@tag": "item",
+        "@text": "Mango",
+        "@description": ""
+    }]
+}

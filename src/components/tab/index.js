@@ -21,7 +21,13 @@ class Tab extends BaseComponent {
         const tabIds = [];
 
         const uiDiv = document.createElement('div');
-        uiDiv.setAttribute('id', `${node.getAttribute('id')}-component`);
+        let id;
+        if (this.data['@id']) {
+            id = this.data['@id'];
+        } else {
+            id = `${node.getAttribute('id')}-${this.getRandomInt()}`;
+        }
+        uiDiv.setAttribute('id', id);
         uiDiv.className = 'ui top';
         if (this.data['@displayStyle'] === 'tabbed') {
             uiDiv.classList.add('pointing');
@@ -56,9 +62,7 @@ class Tab extends BaseComponent {
                 node.append(itemDiv);
             });
         }
-        const componentId = `${uiDiv.getAttribute('id')}-${this.getRandomInt()}`;
-        tabIds.push(`#${componentId}`);
-        uiDiv.setAttribute('id', componentId);
+        tabIds.push(`#${id}`);
         uiDiv.classList.add('menu');
         node.prepend(uiDiv);
 

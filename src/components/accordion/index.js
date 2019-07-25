@@ -90,7 +90,11 @@ class Accordion extends BaseComponent {
 
         const uiDiv = document.createElement('div');
         uiDiv.className = 'ui fluid';
-        uiDiv.setAttribute('id', `${node.getAttribute('id')}`);
+        if (this.data['@id']) {
+            uiDiv.id = this.data['@id'];
+        } else {
+            uiDiv.setAttribute('id', `${node.getAttribute('id')}`);
+        }
 
         if (this.data['@displayStyle'] === 'styled') {
             uiDiv.classList.add('styled');

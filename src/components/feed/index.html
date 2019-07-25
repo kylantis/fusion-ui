@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+</head>
+
+<body>
+    <div id="feed"></div>
+    <script>
+        const jsonData = {
+            "@id": "feedOne",
+            "@title": "feed",
+            "@feedStyle": "newsFeed",
+            "@userId": "134",
+            "@userName": "Eliot Fu",
+            "@activity": "added you as a friend",
+            "@time": "1 hour ago",
+            "@avatarImage": "/assets/images/tom.jpg",
+            "@statusText": "Ours is a life of constant reruns. We're always circling back to where we'd we started, then starting all over again. Even if we don't run extra laps that day, we surely will come back for more of the same another day soon.",
+            "@statusImage": [{
+                '@tag': 'image',
+                '@src': '/assets/images/tom.jpg'
+            }, {
+                '@tag': 'image',
+                '@src': '/assets/images/nan.jpg'
+            }],
+        }
+    </script>
+    <script>
+        // This is a polyfill that allows components to do
+        // module.exports = ... in the browser
+        window.module = {
+            exports: {}
+        }
+    </script>
+    <script src="/components/base.min.js"></script>
+    <script src="/components/feed/index.min.js"></script>
+    <script>new Feed(jsonData, document.querySelector('#feed'));</script>
+</body>
+
+</html>

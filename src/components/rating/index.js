@@ -16,10 +16,26 @@ class Rating extends BaseComponent {
         return baseDependencies;
     }
 
+    getId(event) {
+        return event.target.parentNode.id;
+    }
+
+    getValue(e) {
+        const value = document.getElementById(this.getId(e));
+        const rating = value.querySelectorAll('.active').length;
+        return rating;
+    }
+
     render() {
         const { node } = this;
-
         const uiDiv = document.createElement('div');
+        let id;
+        if (this.data['@id']) {
+            id = this.data['@id'];
+        } else {
+            id = `${node.getAttribute('id')}-${this.getRandomInt()}`;
+        }
+        uiDiv.setAttribute('id', id);
         uiDiv.className = 'ui';
 
         if (this.data['@displayStyle'].length > 0) {
@@ -34,6 +50,9 @@ class Rating extends BaseComponent {
         uiDiv.setAttribute('data-max-rating', this.data['@data-max-rating']);
 
         uiDiv.classList.add('rating');
+        $(uiDiv).click('submit', (e) => {
+            this.getValue(e);
+        });
         node.append(uiDiv);
 
         $('.ui.rating')

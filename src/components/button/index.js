@@ -5,15 +5,7 @@ class Button extends BaseComponent {
     }
 
     getCssDependencies() {
-        const baseDependencies = super.getCssDependencies();
-        baseDependencies.push('/assets/css/button.min.css');
-        switch (this.data['@buttonStyle']) {
-        case 'basic': case 'outline': break;
-        default:
-            baseDependencies.push('/assets/css/icon.min.css');
-            break;
-        }
-        return baseDependencies;
+        return super.getCssDependencies().concat(['/assets/css/button.min.css', '/assets/css/icon.min.css']);
     }
 
     render() {
@@ -21,20 +13,33 @@ class Button extends BaseComponent {
         const jsonData = this.data;
         const button = document.createElement('button');
         const buttonId = [];
-        button.setAttribute('id', `${node.getAttribute('id')}-component`);
-
+        let id;
+        if (jsonData['@id']) {
+            id = jsonData['@id'];
+        } else {
+            id = `${jsonData['@name']}-${this.getRandomInt()}`;
+        }
 
         if (jsonData['@buttonStyle'] === 'basic' || jsonData['@buttonStyle'].length === 0) {
-            button.className = `${jsonData['@size']} ui button `;
-            button.className += `${jsonData['@type']} ${jsonData['@color']}`;
+            button.className = `ui ${jsonData['@size']} button`;
+            button.className += `${jsonData['@color']}`;
             button.textContent = jsonData['@buttonText'];
+            if (jsonData['@position']) {
+                button.classList.add(jsonData['@position']);
+                button.classList.add('floated');
+            }
         } else if (jsonData['@buttonStyle'] === 'animated') {
             const visibleDiv = document.createElement('div');
             const hiddenDiv = document.createElement('div');
             const itag = document.createElement('i');
 
             button.className = `ui animated button ${jsonData['@size']}`;
+            button.classList.add(jsonData['@color']);
             button.classList.add(jsonData['@transition']);
+            if (jsonData['@position']) {
+                button.classList.add(jsonData['@position']);
+                button.classList.add('floated');
+            }
             button.setAttribute('tab-index', jsonData['@tabIndex']);
             button.appendChild(visibleDiv);
             visibleDiv.className = 'visible content';
@@ -54,20 +59,33 @@ class Button extends BaseComponent {
             const iTag = document.createElement('i');
             button.className = `ui ${jsonData['@size']}`;
             button.classList.add(jsonData['@iconPosition']);
+            button.classList.add(jsonData['@color']);
             button.className += ' labeled icon button';
+            if (jsonData['@position']) {
+                button.classList.add(jsonData['@position']);
+                button.classList.add('floated');
+            }
             button.textContent = jsonData['@buttonText'];
             button.appendChild(iTag);
             iTag.className = 'icon ';
             iTag.className += jsonData['@iconName'];
         } else if (jsonData['@buttonStyle'] === 'icon') {
             const iTag = document.createElement('i');
-            button.className = `ui icon button ${jsonData['@size']}`;
+            button.className = `ui icon ${jsonData['@color']} ${jsonData['@size']} button`;
+            if (jsonData['@position']) {
+                button.classList.add(jsonData['@position']);
+                button.classList.add('floated');
+            }
             button.appendChild(iTag);
             iTag.className += 'icon ';
             iTag.className += (jsonData['@iconName'] || jsonData['@socialButton']);
         } else if (jsonData['@buttonStyle'] === 'circular') {
             const iTag = document.createElement('i');
-            button.className = `${jsonData['@size']} circular ui icon button`;
+            button.className = `ui icon ${jsonData['@size']} circular ${jsonData['@color']} button`;
+            if (jsonData['@position']) {
+                button.classList.add(jsonData['@position']);
+                button.classList.add('floated');
+            }
             button.appendChild(iTag);
             iTag.className = 'icon ';
             iTag.className += jsonData['@iconName'];
@@ -76,8 +94,12 @@ class Button extends BaseComponent {
             if (jsonData['@size'].length > 1) {
                 button.classList.add(jsonData['@size']);
             }
+            if (jsonData['@position']) {
+                button.classList.add(jsonData['@position']);
+                button.classList.add('floated');
+            }
             button.textContent = jsonData['@buttonText'];
-            if (jsonData['@color'].length > 1) {
+            if (jsonData['@color']) {
                 button.classList.add(jsonData['@color']);
                 button.className += ' button';
             }
@@ -91,16 +113,22 @@ class Button extends BaseComponent {
             button.className = `ui ${jsonData['@socialButton']}`;
             const iTag = document.createElement('i');
             button.textContent = jsonData['@socialButton'];
+            if (jsonData['@position']) {
+                button.classList.add(jsonData['@position']);
+                button.classList.add('floated');
+            }
             button.prepend(iTag);
             iTag.className = jsonData['@socialButton'];
             iTag.classList.add('icon');
             button.classList.add('button');
         }
 
-        const id = `${button.getAttribute('id')}-${this.getRandomInt()}`;
         buttonId.push(`#${id}`);
         button.setAttribute('id', id);
-
+        $(button).click((e) => {
+            e.preventDefault();
+            console.log(node);
+        });
         node.append(button);
     }
 }

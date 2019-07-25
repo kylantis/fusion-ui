@@ -15,7 +15,12 @@ class ProgressBar extends BaseComponent {
         const { node } = this;
         const jsonData = this.data;
         const progressBarIds = [];
-
+        let id;
+        if (jsonData['@id']) {
+            id = jsonData['@id'];
+        } else {
+            id = `${node.getAttribute('id')}-${this.getRandomInt()}`;
+        }
         const uiDiv = document.createElement('div');
         const barDiv = document.createElement('div');
         const progressDiv = document.createElement('div');
@@ -41,8 +46,6 @@ class ProgressBar extends BaseComponent {
         }
 
         uiDiv.classList.add('progress');
-
-        const id = `${uiDiv.getAttribute('id')}-${this.getRandomInt()}`;
 
         $(uiDiv).on('click', () => {
             $(`#${id}`).progress('increment');

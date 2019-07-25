@@ -23,7 +23,7 @@ class InputImage extends BaseComponent {
                 console.log('no image found');
                 return false;
             }
-            console.log('file uploaded successfully');
+            console.log('file located');
             return true;
         });
     }
@@ -33,8 +33,14 @@ class InputImage extends BaseComponent {
         const imageId = [];
         const uiDiv = document.createElement('div');
         const inputDiv = document.createElement('input');
+        let id;
+        if (this.data['@id']) {
+            id = this.data['@id'];
+        } else {
+            id = `image-${this.getRandomInt()}`;
+        }
+        imageId.push(`#${id}`);
         uiDiv.classList.add('ui');
-
         uiDiv.classList.add('input');
         uiDiv.append(inputDiv);
         inputDiv.setAttribute('type', 'file');
@@ -54,9 +60,6 @@ class InputImage extends BaseComponent {
             this.validateImage();
         });
         this.required(inputDiv);
-        const id = `image-${this.getRandomInt()}`;
-        inputDiv.id = `upload-${id}`;
-        imageId.push(`#${id}`);
         uiDiv.setAttribute('id', id);
         node.append(uiDiv);
     }

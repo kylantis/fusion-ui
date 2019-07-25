@@ -26,7 +26,13 @@ class SearchBar extends BaseComponent {
         const inputTag = document.createElement('input');
 
         const searchBarIds = [];
-        uiDiv.setAttribute('id', `${node.getAttribute('id')}-component`);
+        let id;
+        if (jsonData['@id']) {
+            id = jsonData['@id'];
+        } else {
+            id = `${node.getAttribute('id')}-${this.getRandomInt()}`;
+        }
+        uiDiv.setAttribute('id', id);
 
         if (jsonData['@searchIcon']) {
             const iconDiv = document.createElement('div');
@@ -57,7 +63,6 @@ class SearchBar extends BaseComponent {
             uiDiv.classList.add('disabled');
         }
 
-        const id = `${uiDiv.getAttribute('id')}-${this.getRandomInt()}`;
         searchBarIds.push(`#${id}`);
         uiDiv.setAttribute('id', id);
         $(uiDiv).on('keypress', (e) => {

@@ -67,9 +67,15 @@ class BaseComponent {
         return ['/assets/css/site.min.css', '/assets/css/reset.min.css'];
     }
 
+    // getJsDependencies() {
+    //     return [
+    //         'https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js',
+    //         '/assets/js/site.min.js'];
+    // }
     getJsDependencies() {
         return [
-            'https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js',
+            // 'https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js',
+            '/cdn/jquery-3.4.1.min.js/',
             '/assets/js/site.min.js'];
     }
 

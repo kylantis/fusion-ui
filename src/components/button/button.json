@@ -1,4 +1,5 @@
 {
+    "@id": "",
     "@title": "",
     "@name": "",
     "@value": "", 
@@ -14,5 +15,6 @@
     "@buttonText": "Next",
     "@transitionContent": "Hello",
     "@color": "red | orange | yellow | olive | green | teal | blue | violet | purple | pink | brown | grey | black",
-    "@socialButton": "twitter | facebook | linkedin | instagram | youtube | twitter"
+    "@socialButton": "twitter | facebook | linkedin | instagram | youtube | twitter",
+    "@position": "right | left"
 }

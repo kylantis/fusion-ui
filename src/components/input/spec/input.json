@@ -1,4 +1,5 @@
 {
+    "@id": "",
     "@title": "",
     "@type": "plain | radio | checkbox | date | month | email | time | url | textarea | number | range | boolean | slider | signature | hidden",
     "@placeholder": "",
@@ -9,8 +10,6 @@
     "@autofocus": "true | false",
     "@required": "true | false",
     "@disabled": "true | false",
-    "@canvaWidth": "300px",
-    "@canvaHeight": "150px",
     ">": [
         {
             "@tag": "data",

@@ -121,10 +121,14 @@ class Select extends BaseComponent {
         const { node } = this;
         const jsonData = this.data;
 
-        const componentId = `${node.getAttribute('id')}-${this.getRandomInt()}`;
-
+        let id;
+        if (jsonData['@id']) {
+            id = jsonData['@id'];
+        } else {
+            id = `${node.getAttribute('id')}-${this.getRandomInt()}`;
+        }
         const uiDiv = document.createElement('div');
-        uiDiv.setAttribute('id', componentId);
+        uiDiv.setAttribute('id', id);
 
         if (this.getDisplayStyle() === 'select') {
             uiDiv.className = 'ui fluid selection';
@@ -212,7 +216,7 @@ class Select extends BaseComponent {
                 $('#submit').click(() => {
                     console.log(this.getSelectedValue());
                 });
-                $(`#${componentId}`).dropdown();
+                $(`#${id}`).dropdown();
                 return;
             }
 
@@ -277,7 +281,7 @@ class Select extends BaseComponent {
             const select = document.createElement('select');
             select.className = 'ui fluid';
             select.setAttribute('name', jsonData['@title']);
-            select.setAttribute('id', componentId);
+            select.setAttribute('id', id);
             select.setAttribute('multiple', '');
 
             if (jsonData['@search']) {
@@ -340,7 +344,7 @@ class Select extends BaseComponent {
 
         node.append(uiDiv);
         try {
-            $(`#${componentId}`)
+            $(`#${id}`)
                 .dropdown();
         // eslint-disable-next-line no-empty
         } catch (e) {}

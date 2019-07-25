@@ -103,8 +103,12 @@ class Table extends BaseComponent {
             const thead = document.createElement('thead');
             const tbody = document.createElement('tbody');
             table.className = 'ui ';
-            table.setAttribute('id', `${node.getAttribute('id')}`);
-
+            let id;
+            if (jsonData['@id']) {
+                id = jsonData['@id'];
+            } else {
+                id = `${node.getAttribute('id')}-${this.getRandomInt()}`;
+            }
             // set hoverable attribute
             if (jsonData['@isHoverable']) {
                 table.classList.add('selectable');
@@ -146,8 +150,6 @@ class Table extends BaseComponent {
 
             // Create header row
             const trHead = thead.insertRow(-1);
-
-            const id = `${table.getAttribute('id')}-${this.getRandomInt()}`;
 
             const columns = this.data['>'][0]['>'];
             for (let i = 0; i < columns.length; i++) {
