@@ -107,7 +107,7 @@ class Table extends BaseComponent {
             if (jsonData['@id']) {
                 id = jsonData['@id'];
             } else {
-                id = `${node.getAttribute('id')}-${this.getRandomInt()}`;
+                id = `table-${this.getRandomInt()}`;
             }
             // set hoverable attribute
             if (jsonData['@isHoverable']) {

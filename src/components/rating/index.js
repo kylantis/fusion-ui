@@ -20,7 +20,7 @@ class Rating extends BaseComponent {
         return event.target.parentNode.id;
     }
 
-    getValue(e) {
+    getRating(e) {
         const value = document.getElementById(this.getId(e));
         const rating = value.querySelectorAll('.active').length;
         return rating;
@@ -51,7 +51,7 @@ class Rating extends BaseComponent {
 
         uiDiv.classList.add('rating');
         $(uiDiv).click('submit', (e) => {
-            this.getValue(e);
+            this.getRating(e);
         });
         node.append(uiDiv);
 

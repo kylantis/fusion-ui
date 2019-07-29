@@ -1,4 +1,4 @@
-import { formatResultsErrors } from 'jest-message-util';
+// import { formatResultsErrors } from 'jest-message-util';
 
 class BaseComponent {
     static #initialized = false;
