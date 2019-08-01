@@ -1,10 +1,30 @@
+/* eslint-disable no-unused-vars */
 class Feed extends BaseComponent {
     tagName() {
         return 'feed';
     }
 
+    #likeButton;
+
     getCssDependencies() {
-        return super.getCssDependencies().concat(['/assets/css/feed.min.css', '/assets/css/label.min.css', '/assets/css/icon.min.css']);
+        return super.getCssDependencies().concat(['/assets/css/feed.min.css', '/assets/css/label.min.css', '/assets/css/icon.min.css', '/assets/css/custom-feed.min.css']);
+    }
+
+    getJsDependencies() {
+        return super.getJsDependencies();
+    }
+
+    behaviorNames() {
+        return ['addNewFeed', 'deleteFeed', 'editFeed', 'updateTime'];
+    }
+
+    getNumberOfLikes() {
+        console.log(this.#likeButton);
+        return this.#likeButton;
+    }
+
+    increaseLikes() {
+        this.#likeButton += 1;
     }
 
     render() {
@@ -25,11 +45,6 @@ class Feed extends BaseComponent {
             const dateDiv = this.appendNode(summaryDiv, 'div', 'date');
             dateDiv.textContent = this.data['@time'];
             const metaDiv = this.appendNode(contentDiv, 'div', 'meta');
-            const likeTag = this.appendNode(metaDiv, 'a', 'like');
-            // eslint-disable-next-line no-unused-vars
-            const likeIcon = this.appendNode(likeTag, 'i', 'like icon');
-            const likes = '4 likes';
-            likeTag.append(likes);
         }
         if (this.data['@feedStyle'] === 'newsFeed') {
             const eventDiv = this.appendNode(uiDiv, 'div', 'event');
@@ -57,11 +72,15 @@ class Feed extends BaseComponent {
                 });
             }
             const metaDiv = this.appendNode(contentDiv, 'div', 'meta');
-            const likeTag = this.appendNode(metaDiv, 'a', 'like');
+            const likeTag = this.appendNode(metaDiv, 'a', 'like likes');
             // eslint-disable-next-line no-unused-vars
-            const likeIcon = this.appendNode(likeTag, 'i', 'like icon');
-            const likes = '5 likes';
+            const likeIcon = this.appendNode(likeTag, 'i', 'like large icon');
+            const likes = `${this.getNumberOfLikes()} likes`;
             likeTag.append(likes);
+            $(likeTag).on('click', () => {
+                likeTag.classList.toggle('active');
+                this.increaseLikes();
+            });
         }
         let id;
         if (this.data['@id']) {

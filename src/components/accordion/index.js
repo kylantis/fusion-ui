@@ -14,6 +14,10 @@ class Accordion extends BaseComponent {
             '/assets/js/dropdown.min.js', '/assets/js/transition.min.js']);
     }
 
+    behaviorNames() {
+        return ['addContent', 'deleteContent', 'editContent'];
+    }
+
     static getAccordionId(event) {
         return event.target.id;
     }
@@ -50,7 +54,7 @@ class Accordion extends BaseComponent {
         }
     }
 
-    update(behavior, data) {
+    invokeBehavior(behavior, data) {
         const element = document.getElementById(data.id);
         let contentDiv = 0;
         const newTitle = data.title;
@@ -82,6 +86,18 @@ class Accordion extends BaseComponent {
 
             break;
         }
+    }
+
+    addContent(data) {
+        this.invokeBehavior('addContent', data);
+    }
+
+    deleteContent(data) {
+        this.invokeBehavior('deleteContent', data);
+    }
+
+    editContent(data) {
+        this.invokeBehavior('editContent', data);
     }
 
     render() {

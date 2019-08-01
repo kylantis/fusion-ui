@@ -8,6 +8,14 @@ class Grid extends BaseComponent {
         return super.getCssDependencies().concat(['/assets/css/grid.min.css']);
     }
 
+    getJsDependencies() {
+        return super.getCssDependencies().concat(['/assets/css/dropdown.min.js']);
+    }
+
+    behaviorNames() {
+        return ['getComponent'];
+    }
+
     createNewRow() {
         const div = document.createElement('div');
         div.className = 'grid stackable';

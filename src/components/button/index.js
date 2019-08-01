@@ -8,6 +8,24 @@ class Button extends BaseComponent {
         return super.getCssDependencies().concat(['/assets/css/button.min.css', '/assets/css/icon.min.css']);
     }
 
+    behaviorNames() {
+        return ['click'];
+    }
+
+    invokeBehavior(behavior) {
+        switch (behavior) {
+        case 'click':
+            this.data['@clientCallback']['@execute']();
+            break;
+        default:
+            break;
+        }
+    }
+
+    click() {
+        this.invokeBehavior('click');
+    }
+
     render() {
         const { node } = this;
         const jsonData = this.data;
@@ -127,7 +145,7 @@ class Button extends BaseComponent {
         button.setAttribute('id', id);
         $(button).click((e) => {
             e.preventDefault();
-            console.log(node);
+            this.click();
         });
         node.append(button);
     }

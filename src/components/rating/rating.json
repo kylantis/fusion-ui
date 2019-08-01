@@ -1,7 +1,7 @@
 {
     "@id": "",
     "@title": "",
-    "@displayStyle": "heart | star",
+    "@displayStyle": "heart | star | like",
     "@data-value": "",
     "@data-max-rating": "",
     "@size": "small | medium | large | extra-large",

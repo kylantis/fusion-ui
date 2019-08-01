@@ -19,13 +19,22 @@ class InputImage extends BaseComponent {
         $('#submit', () => {
             const inputTag = this.node.getElementsByTagName('input');
             const input = inputTag[0];
-            if (input.value === '') {
-                console.log('no image found');
-                return false;
+            if (this.validateImageSize(input)) {
+                if (input.value === '') {
+                    console.log('no image found');
+                }
+                console.log('file located');
             }
-            console.log('file located');
-            return true;
         });
+    }
+
+    validateImageSize(file) {
+        if (file.size > this.data['@maxSize']) {
+            // Modal to be added here
+            this.value = '';
+            return false;
+        }
+        return true;
     }
 
     render() {

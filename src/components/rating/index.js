@@ -5,22 +5,18 @@ class Rating extends BaseComponent {
     }
 
     getCssDependencies() {
-        const baseDependencies = super.getCssDependencies();
-        baseDependencies.push('/assets/css/rating.min.css', '/assets/css/icon.min.css');
-        return baseDependencies;
+        return super.getCssDependencies().concat(['/assets/css/rating.min.css', '/assets/css/icon.min.css']);
     }
 
     getJsDependencies() {
-        const baseDependencies = super.getJsDependencies();
-        baseDependencies.push('/assets/js/rating.min.js');
-        return baseDependencies;
+        return super.getJsDependencies().concat(['/assets/js/rating.min.js']);
     }
 
     getId(event) {
         return event.target.parentNode.id;
     }
 
-    getValue(e) {
+    getRating(e) {
         const value = document.getElementById(this.getId(e));
         const rating = value.querySelectorAll('.active').length;
         return rating;
@@ -51,7 +47,7 @@ class Rating extends BaseComponent {
 
         uiDiv.classList.add('rating');
         $(uiDiv).click('submit', (e) => {
-            this.getValue(e);
+            this.getRating(e);
         });
         node.append(uiDiv);
 

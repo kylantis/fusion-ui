@@ -14,18 +14,23 @@ class List extends BaseComponent {
         return super.getJsDependencies();
     }
 
-    // traverse(somedata, parent) {
-    //     somedata.forEach((element) => {
-    //         const li = document.createElement('li');
-    //         li.textContent = element['@text'];
-    //         parent.append(li);
-    //         if (element['>']) {
-    //             const ul = document.createElement('ul');
-    //             li.appendChild(ul);
-    //             this.traverse(element['>'], ul);
-    //         }
-    //     });
-    // }
+    appendSiblingItem(parentId, item) {
+        const parent = document.getElementById(parentId);
+        const itemTag = this.appendNode(parent, 'li');
+        itemTag.textContent = item;
+    }
+
+    appendChildItem(parentId, item) {
+        const parent = document.getElementById(parentId);
+        let parentTag;
+        if (parent.tagName === 'ul' || parent.parentElement.tagName === 'ul') {
+            parentTag = document.createElement('ul');
+        } else if (parent.tagName === 'ul' || parent.parentElement.tagName === 'ol') {
+            parentTag = document.createElement('ol');
+        }
+        const itemTag = this.appendNode(parentTag, 'li');
+        itemTag.textContent = item;
+    }
 
     traverse(somedata, parent, parentEl, childEl) {
         somedata.forEach((element) => {
@@ -106,6 +111,7 @@ class List extends BaseComponent {
             }
             if (this.data['@icon'] === 'bullet') {
                 const ul = document.createElement('ul');
+                ul.id = id;
                 ul.className = 'ui list';
                 this.data['>'].forEach((element) => {
                     const li = document.createElement('li');
@@ -119,9 +125,11 @@ class List extends BaseComponent {
                     node.appendChild(ul);
                 });
             }
+            return;
         }
         if (this.data['@listType'] === 'ordered') {
             const ol = document.createElement('ol');
+            ol.id = id;
             ol.className = 'ui list';
             this.data['>'].forEach((element) => {
                 const li = document.createElement('li');
@@ -134,11 +142,13 @@ class List extends BaseComponent {
                 ol.appendChild(li);
                 node.appendChild(ol);
             });
+            return;
         }
         if (this.data['@listType'] === 'iconList') {
             this.data['>'].forEach((element) => {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'item';
+                itemDiv.id = `${this.data['@id']}-${element['@id']}`;
                 const iconDiv = document.createElement('i');
                 iconDiv.className = `${element['@icon']} icon`;
                 itemDiv.appendChild(iconDiv);
@@ -156,6 +166,7 @@ class List extends BaseComponent {
                 const iconDiv = document.createElement('i');
                 itemDiv.appendChild(iconDiv);
                 itemDiv.className = 'item';
+                itemDiv.id = `${this.data['@id']}-${element['@id']}`;
                 iconDiv.className = `large ${element['@icon']} middle aligned icon`;
                 const contentDiv = document.createElement('div');
                 itemDiv.appendChild(contentDiv);

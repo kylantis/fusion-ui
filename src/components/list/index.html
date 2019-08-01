@@ -12,7 +12,7 @@
         const jsonData = {
             "@id": "listOne",
             "@title": "fruitlist",
-            "@listType": "tree view",
+            "@listType": "ordered",
             "@icon": "bullet",
             "@listOrientation": "vertical",
             "@hrefLink": true,
@@ -97,9 +97,15 @@
             }]
         }
     </script>
+    <script src="/assets/js/polyfills/index.min.js"></script>
     <script src="/components/base.min.js"></script>
     <script src="/components/list/index.min.js"></script>
-    <script>new List(jsonData, document.querySelector('#list'))</script>
+    <script>
+    let list = new List(jsonData, document.querySelector('#list'))
+    setTimeout(() => {
+        list.appendSiblingItem('listOne', 'hello');
+    }, 2000)
+    </script>
 </body>
 
 </html>

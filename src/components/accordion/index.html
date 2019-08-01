@@ -69,24 +69,25 @@
             exports: {}
         }
     </script>
+    <script src="/assets/js/polyfills/index.min.js"></script>
     <script src="/components/base.min.js"></script>
     <script src="/components/accordion/index.min.js"></script>
     <script>
 
         const accordionDiv = document.getElementById('accordion');
         let accordion = new Accordion(jsonData, document.querySelector("#accordion"))
-        setTimeout(() => accordion.update('addContent', appendData), 2500);
+        setTimeout(() => accordion.addContent(appendData), 2500);
 
         // Delete Content 
         // accordionDiv.addEventListener('dblclick', (event) => {
         //     let elementId = Accordion.getAccordionId(event)
-        //     accordion.update('deleteContent', { id: elementId });
+        //     accordion.deleteContent({ id: elementId });
         // })
 
         // Edit content
         // accordionDiv.addEventListener('dblclick', (event) => {
         //     let elementId = Accordion.getAccordionId(event)
-        //     accordion.update('editContent', {
+        //     accordion.editContent({
         //         id: elementId, 
         //         title: "Hello World", 
         //         content: "Hello Nigeria my wonderful home that i love to hate"

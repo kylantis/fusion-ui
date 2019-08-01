@@ -7,6 +7,10 @@ class Image extends BaseComponent {
         return super.getCssDependencies().concat(['/assets/css/image.min.css']);
     }
 
+    getJsDependencies() {
+        return super.getJsDependencies();
+    }
+
     rounded(el) {
         if (this.data['@rounded']) {
             el.classList.add('rounded');
@@ -49,8 +53,7 @@ class Image extends BaseComponent {
     float(el) {
         el.classList.add(this.data['@float']);
         el.classList.add('floated');
-        el.classList.remove('aligned');
-        el.classList.remove('middle', 'top', 'bottom');
+        el.classList.remove('middle', 'top', 'bottom', 'aligned');
     }
 
     render() {

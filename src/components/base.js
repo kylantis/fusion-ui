@@ -1,4 +1,4 @@
-import { formatResultsErrors } from 'jest-message-util';
+// import { formatResultsErrors } from 'jest-message-util';
 
 class BaseComponent {
     static #initialized = false;
@@ -99,6 +99,7 @@ class BaseComponent {
             // eslint-disable-next-line no-eval
             const component = eval(`new ${metadata.className} (data, node)`);
             return Promise.resolve(component);
+            // return component;
         });
     }
 

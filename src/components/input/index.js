@@ -20,6 +20,10 @@ class Input extends BaseComponent {
         return super.getJsDependencies();
     }
 
+    behaviorNames() {
+        return ['validate', 'getValue', 'setValue', 'clearField'];
+    }
+
     required(element) {
         if (this.data['@required']) {
             element.setAttribute('required', '');

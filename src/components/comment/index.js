@@ -3,6 +3,8 @@ class Comment extends BaseComponent {
         return 'comment';
     }
 
+    #componentId;
+
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/comment.min.css', '/assets/css/form.min.css', '/assets/css/button.min.css', '/assets/css/icon.min.css', '/assets/css/custom-comment.min.css']);
     }
@@ -11,86 +13,104 @@ class Comment extends BaseComponent {
         return super.getJsDependencies();
     }
 
-    getUserId() {
-        // Get the details of the owner of the profile
+    behaviorNames() {
+        return ['addNewComment', 'replyComment', 'deleteComment', 'likeComment'];
     }
 
-    getOtherUserId() {
-        // Get the details of the person posting comments on the thread
+    getSubjectInfo() {
+        // Get the details of the owner of the feed or commentbox
+        const subjectInfo = {
+            '@userId': '',
+            '@authorName': 'Matthew',
+            '@avatarUrl': '/assets/images/nan.jpg',
+        };
+        return subjectInfo;
+    }
+
+    getUserInfo() {
+        // Get the details of the user posting comments on the comment box
+        const userInfo = {
+            '@userId': '',
+            '@authorName': 'Mark',
+            '@avatarUrl': '/assets/images/nan.jpg',
+        };
+        return userInfo;
     }
 
     generateId() {
-        return `${this.data['@title']}${this.getRandomInt()}`;
+        return `${this.data['@title']}-${this.getRandomInt()}`;
     }
-    // .ui.threaded.comments .comment .comments {
 
-    behavior(behavior, el, text) {
+    setComponentId() {
+        if (this.data['@id']) {
+            this.componentId = this.data['@id'];
+        } else {
+            this.componentId = this.generateId();
+        }
+        return this.componentId;
+    }
+
+    invokeBehavior(behavior, el, comment) {
+        const parent = $(`#${this.componentId}`);
+        const lastDiv = $(parent).children('div').last();
         const commentNode = $(el).parent().closest('[id]')[0];
-        const lastComment = $(el).prev();
         const commentDiv = document.createElement('div');
         switch (behavior) {
         case 'addNewComment':
-            lastComment.append(this.createPost(this.newComment(text)));
+            $(lastDiv).after(this.createPost(this.newComment(comment)));
             break;
 
         case 'replyComment':
             if (commentNode.parentElement.classList.contains('step')) {
                 commentDiv.className = 'comment step';
                 commentNode.parentElement.lastElementChild.appendChild(commentDiv);
-                commentDiv.append(this.createPost(this.newComment(text)));
+                commentDiv.append(this.createPost(this.newComment(comment)));
             } else {
                 commentDiv.className = 'comment step';
                 commentNode.lastElementChild.appendChild(commentDiv);
-                commentDiv.append(this.createPost(this.newComment(text)));
+                commentDiv.append(this.createPost(this.newComment(comment)));
             }
             break;
 
         case 'deleteComment':
+            $(`#${comment.id}`).remove();
             break;
-
         default:
         }
     }
 
+    addNewComment(el, data) {
+        this.invokeBehavior('addNewComment', el, data);
+    }
+
+    replyComment(el, data) {
+        this.invokeBehavior('replyComment', el, data);
+    }
+
+    deleteComment(data) {
+        this.invokeBehavior('deleteComment', null, data);
+    }
+
+    likeComment() {
+    }
+
     newComment(text) {
         const comment = $(text).val();
-        const comm = {
+        const commentDetail = {
             '@tag': 'comment',
-            '@id': 200,
+            '@id': this.generateId(),
             '@postedOn': 'a second ago',
-            '@authorName': 'Matthew',
-            '@avatarUrl': '/assets/images/nan.jpg',
+            '@authorName': this.getUserInfo()['@authorName'],
+            '@avatarUrl': this.getUserInfo()['@avatarUrl'],
             '@commentText': comment,
         };
-        return comm;
+        return commentDetail;
     }
 
     getComment(comment, userdata) {
         // Sends details to the server
         console.log(userdata, $(comment).val());
     }
-
-    // replyForm(userData) {
-    //     const form = document.createElement('form');
-    //     form.className = 'ui reply appended form';
-    //     const fieldDiv = document.createElement('div');
-    //     fieldDiv.className = 'field';
-    //     form.appendChild(fieldDiv);
-    //     const textArea = document.createElement('textarea');
-    //     textArea.textContent = `@${userData} `;
-    //     textArea.className = 'textBox focus';
-    //     textArea.setAttribute('autofocus', '');
-    //     fieldDiv.appendChild(textArea);
-    //     BaseComponent.getComponent('button', this.replyButton(), form);
-    //     $('.button').on('click', () => {
-    //         console.log('replyButtonOne clicked');
-    //         this.behavior('replyComment', form, textArea);
-    //         this.getComment(textArea, userData);
-    //         $(textArea).val('');
-    //         $(form).remove();
-    //     });
-    //     return form;
-    // }
 
     replyForm(userData) {
         const form = document.createElement('form');
@@ -101,7 +121,7 @@ class Comment extends BaseComponent {
         const textArea = document.createElement('textarea');
         textArea.textContent = `@${userData} `;
         textArea.className = 'textBox focus';
-        textArea.setAttribute('autofocus', '');
+        textArea.setAttribute('autofocus', 'autofocus');
         fieldDiv.appendChild(textArea);
         const buttonDiv = document.createElement('div');
         form.appendChild(buttonDiv);
@@ -113,7 +133,7 @@ class Comment extends BaseComponent {
         buttonDiv.append(text);
         textArea.focus();
         $(buttonDiv).on('click', () => {
-            this.behavior('replyComment', form, textArea);
+            this.replyComment(form, textArea);
             this.getComment(textArea, userData);
             $(textArea).val('');
             $(form).remove();
@@ -138,39 +158,12 @@ class Comment extends BaseComponent {
         const text = 'Add Comment';
         buttonDiv.append(text);
         $(buttonDiv).on('click', () => {
-            this.behavior('addNewComment', form, textArea);
+            this.addNewComment(form, textArea);
             this.getComment(textArea, userData);
             $(textArea).val('');
         });
         return form;
     }
-
-    replyButton() {
-        const buttondata = {
-            '@id': 'replyButtonOne',
-            '@name': 'reply',
-            '@value': '',
-            '@buttonStyle': 'labeled',
-            '@iconName': 'edit',
-            '@tabIndex': 0,
-            '@buttonText': 'Reply',
-            '@color': 'blue',
-            '@position': '',
-        };
-        return buttondata;
-    }
-
-    // replyForm() {
-    //     const form = document.createElement('form');
-    //     form.className = 'ui reply form';
-    //     const fieldDiv = document.createElement('div');
-    //     fieldDiv.className = 'field';
-    //     form.appendChild(fieldDiv);
-    //     const textArea = document.createElement('textarea');
-    //     fieldDiv.appendChild(textArea);
-    //     BaseComponent.getComponent('button', this.replyButton(), form);
-    //     return form;
-    // }
 
     createPost(element) {
         const commentDiv = document.createElement('div');
@@ -224,6 +217,13 @@ class Comment extends BaseComponent {
             const subjectProfile = $(authorTag).html();
             contentDiv.appendChild(this.replyForm(subjectProfile));
         });
+        $(deleteTag).on('click', () => {
+            // this will be replaced with a modal
+            // eslint-disable-next-line no-alert
+            if (confirm('Are you sure you want to remove?')) {
+                this.deleteComment(commentDiv);
+            }
+        });
         if (element['>']) {
             const commentsTag = document.createElement('div');
             commentsTag.className = 'comments step';
@@ -239,7 +239,7 @@ class Comment extends BaseComponent {
         const { node } = this;
         const uiDiv = document.createElement('div');
         uiDiv.className = 'ui comments';
-        uiDiv.id = this.data['@id'];
+        uiDiv.id = this.setComponentId();
         if (this.data['@threaded']) {
             uiDiv.classList.add('threaded');
         }
@@ -250,7 +250,7 @@ class Comment extends BaseComponent {
         this.data['>'].forEach((element) => {
             uiDiv.appendChild(this.createPost(element));
         });
-        uiDiv.append(this.commentForm());
+        uiDiv.append(this.commentForm(this.getUserInfo()['@authorName']));
 
         node.append(uiDiv);
     }
