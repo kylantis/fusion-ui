@@ -3,8 +3,14 @@ class Segment extends BaseComponent {
         return 'segment';
     }
 
+    #componentId = this.getId();
+
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/segment.min.css']);
+    }
+
+    getComponentId() {
+        return this.#componentId;
     }
 
     render() {
@@ -37,18 +43,13 @@ class Segment extends BaseComponent {
             const contentDiv = document.createElement('div');
             contentDiv.append(this.data['@content']);
         }
-        let id;
-        if (this.data['@id']) {
-            id = this.data['@id'];
-        } else {
-            id = `segment-${this.getRandomInt()}`;
-        }
-        segmentId.push(`#${id}`);
         if (this.data['@grouped']) {
             uiDiv.classList.add('segments');
         } else {
             uiDiv.classList.add('segment');
         }
+        uiDiv.id = this.getComponentId();
+        segmentId.push(`#${uiDiv.getAttribute('id')}`);
         node.append(uiDiv);
     }
 }

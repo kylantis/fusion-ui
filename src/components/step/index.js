@@ -3,6 +3,8 @@ class Step extends BaseComponent {
         return 'step';
     }
 
+    #componentId = this.getId();
+
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/step.min.css', '/assets/css/icon.min.css']);
     }
@@ -24,16 +26,15 @@ class Step extends BaseComponent {
         })();
     }
 
+    getComponentId() {
+        return this.#componentId;
+    }
+
     render() {
         const { node } = this;
         const uiDiv = document.createElement('div');
-        let id;
-        if (this.data['@id']) {
-            id = this.data['@id'];
-        } else {
-            id = `${node.getAttribute('id')}-${this.getRandomInt()}`;
-        }
-        uiDiv.setAttribute('id', id);
+
+        uiDiv.setAttribute('id', this.getComponentId());
         uiDiv.className = 'ui fluid steps';
         this.data['>'].forEach((element) => {
             const stepDiv = document.createElement('div');

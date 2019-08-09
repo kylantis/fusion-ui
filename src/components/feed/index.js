@@ -1,8 +1,9 @@
-/* eslint-disable no-unused-vars */
 class Feed extends BaseComponent {
     tagName() {
         return 'feed';
     }
+
+    #componentId = this.getId();
 
     #likeButton;
 
@@ -19,9 +20,33 @@ class Feed extends BaseComponent {
     }
 
     getNumberOfLikes() {
-        console.log(this.#likeButton);
         return this.#likeButton;
     }
+
+    getComponentId() {
+        return this.#componentId;
+    }
+
+    // Modal
+
+    modalData = {
+        '@id': 'feedModal',
+        '@title': 'enlarge image',
+        '@modalStyle': 'image',
+        '@imageSrc': '',
+        '@hasServerCallback': true,
+    };
+
+    loadModal(loc) {
+        const confirmBox = BaseComponent.getComponent('modal', this.modalData, loc);
+        return confirmBox;
+    }
+
+    imageSrc(link) {
+        this.modalData['@imageSrc'] = link;
+    }
+
+    // Modal End
 
     increaseLikes() {
         this.#likeButton += 1;
@@ -29,7 +54,6 @@ class Feed extends BaseComponent {
 
     render() {
         const { node } = this;
-        const feedId = [];
         const uiDiv = document.createElement('div');
         uiDiv.className = 'ui feed';
         if (this.data['@feedStyle'] === 'activityFeed') {
@@ -44,6 +68,7 @@ class Feed extends BaseComponent {
             summaryDiv.append(` ${this.data['@activity']}`);
             const dateDiv = this.appendNode(summaryDiv, 'div', 'date');
             dateDiv.textContent = this.data['@time'];
+            /* eslint-disable no-unused-vars */
             const metaDiv = this.appendNode(contentDiv, 'div', 'meta');
         }
         if (this.data['@feedStyle'] === 'newsFeed') {
@@ -62,33 +87,45 @@ class Feed extends BaseComponent {
                 const extraText = this.appendNode(contentDiv, 'div', 'extra text');
                 extraText.textContent = this.data['@statusText'];
             }
-            if (this.data['@statusImage']) {
-                const extraImage = this.appendNode(contentDiv, 'div', 'extra image');
-                extraImage.append = this.data['@statusImage'].forEach((element) => {
+            if (this.data['@statusImage'].length > 0) {
+                const extraImage = this.appendNode(contentDiv, 'div', 'extra images');
+                this.data['@statusImage'].forEach((element) => {
                     const a = document.createElement('a');
                     const img = document.createElement('img');
                     img.src = element['@src'];
+                    img.width = '84';
+                    img.height = '70';
                     a.appendChild(img);
+                    extraImage.append(a);
+                    $(a).on('click', () => {
+                        this.imageSrc(element['@src']);
+                        this.loadModal().then((data) => {
+                            const x = Object.getPrototypeOf(data);
+                            x.openModal();
+                        });
+                    });
                 });
             }
             const metaDiv = this.appendNode(contentDiv, 'div', 'meta');
             const likeTag = this.appendNode(metaDiv, 'a', 'like likes');
             // eslint-disable-next-line no-unused-vars
             const likeIcon = this.appendNode(likeTag, 'i', 'like large icon');
-            const likes = `${this.getNumberOfLikes()} likes`;
+            let likes;
+            if (this.getNumberOfLikes() === 1) {
+                likes = `${this.getNumberOfLikes()} like`;
+            } else if (this.getNumberOfLikes() > 1) {
+                likes = `${this.getNumberOfLikes()} like`;
+            } else {
+                likes = 'like';
+            }
             likeTag.append(likes);
             $(likeTag).on('click', () => {
                 likeTag.classList.toggle('active');
                 this.increaseLikes();
             });
         }
-        let id;
-        if (this.data['@id']) {
-            id = this.data['@id'];
-        } else {
-            id = `feed-${this.getRandomInt()}`;
-        }
-        feedId.push(`#${id}`);
+        uiDiv.id = this.getComponentId();
+        this.loadModal(uiDiv);
         node.append(uiDiv);
     }
 }

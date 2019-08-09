@@ -4,6 +4,8 @@ class Button extends BaseComponent {
         return 'button';
     }
 
+    #componentId = this.getId();
+
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/button.min.css', '/assets/css/icon.min.css']);
     }
@@ -15,7 +17,7 @@ class Button extends BaseComponent {
     invokeBehavior(behavior) {
         switch (behavior) {
         case 'click':
-            this.data['@clientCallback']['@execute']();
+            this.data['@clientCallbacks']['@execute']();
             break;
         default:
             break;
@@ -26,17 +28,15 @@ class Button extends BaseComponent {
         this.invokeBehavior('click');
     }
 
+    getComponentId() {
+        return this.#componentId;
+    }
+
     render() {
         const { node } = this;
         const jsonData = this.data;
         const button = document.createElement('button');
         const buttonId = [];
-        let id;
-        if (jsonData['@id']) {
-            id = jsonData['@id'];
-        } else {
-            id = `${jsonData['@name']}-${this.getRandomInt()}`;
-        }
 
         if (jsonData['@buttonStyle'] === 'basic' || jsonData['@buttonStyle'].length === 0) {
             button.className = `ui ${jsonData['@size']} button`;
@@ -141,8 +141,8 @@ class Button extends BaseComponent {
             button.classList.add('button');
         }
 
-        buttonId.push(`#${id}`);
-        button.setAttribute('id', id);
+        button.setAttribute('id', this.getComponentId());
+        buttonId.push(button.getAttribute('id'));
         $(button).click((e) => {
             e.preventDefault();
             this.click();

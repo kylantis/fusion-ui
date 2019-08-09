@@ -3,6 +3,8 @@ class ProgressBar extends BaseComponent {
         return 'progressBar';
     }
 
+    #componentId = this.getId();
+
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/progress.min.css']);
     }
@@ -11,10 +13,8 @@ class ProgressBar extends BaseComponent {
         return super.getJsDependencies().concat(['/assets/js/progress.min.js']);
     }
 
-    #componentId;
-
     getComponentId() {
-        return this.componentId;
+        return this.#componentId;
     }
 
     invokeBehavior(behavior, data) {
@@ -77,25 +77,14 @@ class ProgressBar extends BaseComponent {
         $(`#${this.getComponentId()}`).progress('get text', text);
     }
 
-    setComponentId() {
-        if (this.data['@id']) {
-            this.componentId = this.data['@id'];
-        } else {
-            this.componentId = this.generateId();
-        }
-        return this.componentId;
-    }
 
     render() {
         const { node } = this;
         const jsonData = this.data;
-        const progressBarIds = [];
-        const id = this.setComponentId();
         const uiDiv = document.createElement('div');
         const barDiv = document.createElement('div');
         const progressDiv = document.createElement('div');
         const labelDiv = document.createElement('div');
-        uiDiv.setAttribute('id', `${node.getAttribute('id')}`);
 
         uiDiv.className = 'ui';
         if (jsonData['@state'].length > 0) {
@@ -120,8 +109,7 @@ class ProgressBar extends BaseComponent {
         $(uiDiv).on('click', () => {
             console.log(this.getText('hello'));
         });
-        progressBarIds.push(`#${id}`);
-        uiDiv.setAttribute('id', id);
+        uiDiv.setAttribute('id', `${this.getComponentId()}`);
         uiDiv.setAttribute('data-value', jsonData['@data-value']);
         uiDiv.setAttribute('data-total', jsonData['@data-total']);
 

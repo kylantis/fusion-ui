@@ -4,6 +4,8 @@ class Accordion extends BaseComponent {
         return 'accordion';
     }
 
+    #componentId = this.getId();
+
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/accordion.min.css',
             '/assets/css/dropdown.min.css', '/assets/css/transition.min.css']);
@@ -24,6 +26,10 @@ class Accordion extends BaseComponent {
 
     getAccordionNode() {
         return this.node.firstChild;
+    }
+
+    getComponentId() {
+        return this.#componentId;
     }
 
     addContents(data, parentNode) {
@@ -106,11 +112,6 @@ class Accordion extends BaseComponent {
 
         const uiDiv = document.createElement('div');
         uiDiv.className = 'ui fluid';
-        if (this.data['@id']) {
-            uiDiv.id = this.data['@id'];
-        } else {
-            uiDiv.setAttribute('id', `${node.getAttribute('id')}`);
-        }
 
         if (this.data['@displayStyle'] === 'styled') {
             uiDiv.classList.add('styled');
@@ -120,9 +121,8 @@ class Accordion extends BaseComponent {
             const accData = this.data['>'];
             // addContents function
             this.addContents(accData, uiDiv);
-            const id = `${uiDiv.getAttribute('id')}-${this.getRandomInt()}`;
-            accordionId.push(`#${id}`);
-            uiDiv.setAttribute('id', id);
+            uiDiv.setAttribute('id', this.getComponentId());
+            accordionId.push(`#${uiDiv.getAttribute('id')}`);
             uiDiv.classList.add('accordion');
             node.append(uiDiv);
             $('.ui.accordion').accordion();

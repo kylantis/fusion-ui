@@ -4,6 +4,12 @@ class Select extends BaseComponent {
         return 'select';
     }
 
+    #componentId = this.getId();
+
+    behaviorNames() {
+        return ['getSelectedValue', 'getCheckedValue'];
+    }
+
     getCssDependencies() {
         if (this.getDisplayStyle() === 'labeled' || this.getDisplayStyle() === 'labeled multiple'
             || this.getDisplayStyle() === 'labeled dropdown' || this.getDisplayStyle() === 'multiple search select'
@@ -26,69 +32,83 @@ class Select extends BaseComponent {
         return super.getJsDependencies().concat(['/assets/js/dropdown.min.js', '/assets/js/transition.min.js', '/assets/js/search.min.js']);
     }
 
+    getComponentId() {
+        return this.#componentId;
+    }
+
     getCheckedValue() {
-        return (() => {
-            let val = [];
-            $(`input[name=${this.data['@title']}]:checked`).each((i) => {
-                val[i] = $(':checked');
-            });
-            if (val.length > 0) {
-                const valueArray = val[0];
-                val = [];
-                $.each(valueArray, (i, value) => val.push(value.id));
-                val.forEach((value) => {
-                    const x = $(`#${value}`);
-                    console.log($(x).next().html());
-                });
-            } else {
-                console.log('select an item');
-            }
-        })();
+        this.invokeBehavior('getCheckedValue', null);
     }
 
     getSelectedValue() {
-        switch (this.getDisplayStyle()) {
-        case 'multiple select':
-            return (() => {
-                const select = this.node.querySelector('select');
-                // eslint-disable-next-line
-                const id = select.id;
-                let val = [];
-                val = $(`${id} .active, .filtered`);
-                const values = [];
-                $.each(val, (i, value) => values.push($(value).text()));
-                return values;
-            })();
-        case 'select': case 'labeled':
-            return (() => {
-                const id = this.node.firstElementChild.getAttribute('id');
-                const val = [];
-                $(`${id}.dropdown, .active, .selected:selected`).each((i) => {
-                    val[i] = $('.active, .selected:selected').text();
-                });
-                return val;
-            })();
-        case 'labeled multiple':
-            return (() => {
-                const id = this.node.firstElementChild.getAttribute('id');
-                let val = [];
-                val = $(`${id}, a.visible`);
-                const values = [];
-                $.each(val, (i, value) => values.push($(value).text()));
-                return values;
-            })();
-        case 'labeled dropdown':
-            return (() => {
-                const id = this.node.firstElementChild.getAttribute('id');
-                const val = [];
-                $(`${id}, span.text`).each((i) => {
-                    val[i] = $('span').text();
-                });
-                return val;
-            })();
-        default:
-            return null;
+        this.invokeBehavior('getSelectedValue', null);
+    }
+
+    invokeBehavior(behavior, data) {
+        if (behavior === 'getSelectedValue') {
+            switch (this.getDisplayStyle()) {
+            case 'multiple select':
+                return (() => {
+                    const select = this.node.querySelector('select');
+                    // eslint-disable-next-line
+                        const id = select.id;
+                    let val = [];
+                    val = $(`${id} .active, .filtered`);
+                    const values = [];
+                    $.each(val, (i, value) => values.push($(value).text()));
+                    return values;
+                })();
+            case 'select': case 'labeled':
+                return (() => {
+                    const id = this.node.firstElementChild.getAttribute('id');
+                    const val = [];
+                    $(`${id}.dropdown, .active, .selected:selected`).each((i) => {
+                        val[i] = $('.active, .selected:selected').text();
+                    });
+                    return val;
+                })();
+            case 'labeled multiple':
+                return (() => {
+                    const id = this.node.firstElementChild.getAttribute('id');
+                    let val = [];
+                    val = $(`${id}, a.visible`);
+                    const values = [];
+                    $.each(val, (i, value) => values.push($(value).text()));
+                    return values;
+                })();
+            case 'labeled dropdown':
+                return (() => {
+                    const id = this.node.firstElementChild.getAttribute('id');
+                    const val = [];
+                    $(`${id}, span.text`).each((i) => {
+                        val[i] = $('span').text();
+                    });
+                    return val;
+                })();
+            default:
+                return null;
+            }
         }
+        if (behavior === 'getCheckedValue') {
+            return (() => {
+                let val = [];
+                $(`input[name=${this.data['@title']}]:checked`).each((i) => {
+                    val[i] = $(':checked');
+                });
+                if (val.length > 0) {
+                    const valueArray = val[0];
+                    val = [];
+                    $.each(valueArray, (i, value) => val.push(value.id));
+                    val.forEach((value) => {
+                        const x = $(`#${value}`);
+                        console.log($(x).next().html());
+                    });
+                } else {
+                    console.log('select an item');
+                }
+            })();
+        }
+        return null;
     }
 
     getDisplayStyle() {
@@ -113,22 +133,16 @@ class Select extends BaseComponent {
         return 'select';
     }
 
-    setValue(value) {
-        return value;
-    }
+    // setValue(value) {
+    //     value = value;
+    // }
 
     render() {
         const { node } = this;
         const jsonData = this.data;
 
-        let id;
-        if (jsonData['@id']) {
-            id = jsonData['@id'];
-        } else {
-            id = `${node.getAttribute('id')}-${this.getRandomInt()}`;
-        }
         const uiDiv = document.createElement('div');
-        uiDiv.setAttribute('id', id);
+        uiDiv.setAttribute('id', this.getComponentId());
 
         if (this.getDisplayStyle() === 'select') {
             uiDiv.className = 'ui fluid selection';
@@ -216,7 +230,7 @@ class Select extends BaseComponent {
                 $('#submit').click(() => {
                     console.log(this.getSelectedValue());
                 });
-                $(`#${id}`).dropdown();
+                $(`#${this.getComponentId()}`).dropdown();
                 return;
             }
 
@@ -281,7 +295,7 @@ class Select extends BaseComponent {
             const select = document.createElement('select');
             select.className = 'ui fluid';
             select.setAttribute('name', jsonData['@title']);
-            select.setAttribute('id', id);
+            select.setAttribute('id', this.getComponentId());
             select.setAttribute('multiple', '');
 
             if (jsonData['@search']) {
@@ -344,10 +358,10 @@ class Select extends BaseComponent {
 
         node.append(uiDiv);
         try {
-            $(`#${id}`)
+            $(`#${this.getComponentId()}`)
                 .dropdown();
-        // eslint-disable-next-line no-empty
-        } catch (e) {}
+            // eslint-disable-next-line no-empty
+        } catch (e) { }
     }
 }
 module.exports = Select;

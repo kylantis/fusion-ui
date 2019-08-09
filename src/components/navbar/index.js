@@ -5,6 +5,8 @@ class NavBar extends BaseComponent {
         return 'navbar';
     }
 
+    #componentId = this.getId();
+
     getCssDependencies() {
         const baseDependencies = super.getCssDependencies();
         baseDependencies.push('/assets/css/label.min.css', '/assets/css/menu.min.css', '/assets/css/dropdown.min.css', '/assets/css/navbar.min.css', '/assets/css/transition.min.css');
@@ -17,10 +19,14 @@ class NavBar extends BaseComponent {
         return baseDependencies;
     }
 
+    getComponentId() {
+        return this.#componentId;
+    }
+
     render() {
         const { node } = this;
         const uiDiv = document.createElement('div');
-        uiDiv.setAttribute('id', `${node.getAttribute('id')}-component`);
+        uiDiv.setAttribute('id', `${this.getComponentId()}`);
         uiDiv.className = 'ui';
 
         if (this.data['@orientation'] === 'vertical') {

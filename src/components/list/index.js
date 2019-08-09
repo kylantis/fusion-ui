@@ -3,15 +3,18 @@ class List extends BaseComponent {
         return 'list';
     }
 
+    #componentId = this.getId();
+
     getCssDependencies() {
-        if (this.data['@listStyle'] === 'tree view') {
-            return super.getCssDependencies().concat(['/assets/css/list.min.css', '/assets/css/icon.min.css']);
-        }
         return super.getCssDependencies().concat(['/assets/css/list.min.css', '/assets/css/icon.min.css']);
     }
 
     getJsDependencies() {
         return super.getJsDependencies();
+    }
+
+    getComponentId() {
+        return this.#componentId;
     }
 
     appendSiblingItem(parentId, item) {
@@ -81,13 +84,7 @@ class List extends BaseComponent {
         const { node } = this;
         const uiDiv = document.createElement('div');
         uiDiv.className = 'ui list';
-        let id;
-        if (this.data['@id']) {
-            id = this.data['@id'];
-        } else {
-            id = `list-${this.getRandomInt()}`;
-        }
-        uiDiv.setAttribute('id', id);
+        uiDiv.setAttribute('id', this.getComponentId());
         if (this.data['@animated']) {
             uiDiv.classList.add('animated');
         }
@@ -111,7 +108,7 @@ class List extends BaseComponent {
             }
             if (this.data['@icon'] === 'bullet') {
                 const ul = document.createElement('ul');
-                ul.id = id;
+                ul.id = this.getComponentId();
                 ul.className = 'ui list';
                 this.data['>'].forEach((element) => {
                     const li = document.createElement('li');
@@ -129,7 +126,7 @@ class List extends BaseComponent {
         }
         if (this.data['@listType'] === 'ordered') {
             const ol = document.createElement('ol');
-            ol.id = id;
+            ol.id = this.getComponentId();
             ol.className = 'ui list';
             this.data['>'].forEach((element) => {
                 const li = document.createElement('li');
@@ -202,9 +199,6 @@ class List extends BaseComponent {
                 descDiv.textContent = element['@description'];
                 contentDiv.appendChild(descDiv);
                 if (element['>']) {
-                    // const newITag = document.createElement('i');
-                    // newITag.className = 'chevron right icon';
-                    // itemDiv.prepend(newITag);
                     contentDiv.appendChild(this.traverseEl(element['>']));
                 }
                 uiDiv.appendChild(itemDiv);

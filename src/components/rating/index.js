@@ -4,6 +4,8 @@ class Rating extends BaseComponent {
         return 'rating';
     }
 
+    #componentId = this.getId();
+
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/rating.min.css', '/assets/css/icon.min.css']);
     }
@@ -16,6 +18,10 @@ class Rating extends BaseComponent {
         return event.target.parentNode.id;
     }
 
+    getComponentId() {
+        return this.#componentId;
+    }
+
     getRating(e) {
         const value = document.getElementById(this.getId(e));
         const rating = value.querySelectorAll('.active').length;
@@ -25,13 +31,7 @@ class Rating extends BaseComponent {
     render() {
         const { node } = this;
         const uiDiv = document.createElement('div');
-        let id;
-        if (this.data['@id']) {
-            id = this.data['@id'];
-        } else {
-            id = `${node.getAttribute('id')}-${this.getRandomInt()}`;
-        }
-        uiDiv.setAttribute('id', id);
+        uiDiv.setAttribute('id', this.getComponentId());
         uiDiv.className = 'ui';
 
         if (this.data['@displayStyle'].length > 0) {

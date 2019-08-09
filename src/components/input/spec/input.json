@@ -1,15 +1,16 @@
 {
     "@id": "",
     "@title": "",
-    "@type": "plain | radio | checkbox | date | month | email | time | url | textarea | number | range | boolean | slider | signature | hidden",
+    "@type": "text | date | email | number  | number2l | number3l | number4l | boolean | slider | hidden",
     "@placeholder": "",
     "@maxlength": "",
     "@value": "",
     "@alignment": "inline | grouped",
-    "@checked": "true | false",
     "@autofocus": "true | false",
     "@required": "true | false",
     "@disabled": "true | false",
+    "@cols": "",
+    "@rows": "",
     ">": [
         {
             "@tag": "data",

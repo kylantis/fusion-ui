@@ -4,7 +4,7 @@
     ">": [{
         "@tag": "tab",
         "@title": "",
-        "@data-tab": "",
+        "@position": "top",
         ">": [{
             "@tag": "tab-body",
             "@content": ""

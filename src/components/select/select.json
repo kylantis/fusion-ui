@@ -2,7 +2,7 @@
     "@id": "",
     "@title":"",
     "@iconName": "",
-    "@displayStyle": "select | search select | multiple select | multiple search select | labeled | labeled dropdown | labeled multiple",
+    "@displayStyle": "radio | checkbox | select | search select | multiple select | multiple search select | labeled | labeled dropdown | labeled multiple",
     "@labelIcon": "",
     "@defaultTitle": "",    
     "@selectionType": "single | multiple",
@@ -11,7 +11,7 @@
     "@required": "true | false",
     "@scrolling": "true | false",
     ">": [{
-        "@tag": "item", 
+        "@tag": "item",
         "@title": "Geography",
         "@data-value": "Geography",
         "@imageUrl": "",

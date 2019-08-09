@@ -3,8 +3,14 @@ class InputImage extends BaseComponent {
         return 'inputImage';
     }
 
+    #componentId = this.getId();
+
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/input.min.css']);
+    }
+
+    getComponentId() {
+        return this.#componentId;
     }
 
     required(element) {
@@ -15,14 +21,25 @@ class InputImage extends BaseComponent {
         return false;
     }
 
+    invokeBehavior(behavior, data) {
+        switch (behavior) {
+        case 'upload':
+            // upload image to CDN
+            break;
+        default:
+            break;
+        }
+    }
+
     validateImage() {
         $('#submit', () => {
             const inputTag = this.node.getElementsByTagName('input');
             const input = inputTag[0];
+            if (input.value === '') {
+                console.log('no image found');
+                return;
+            }
             if (this.validateImageSize(input)) {
-                if (input.value === '') {
-                    console.log('no image found');
-                }
                 console.log('file located');
             }
         });
@@ -30,11 +47,35 @@ class InputImage extends BaseComponent {
 
     validateImageSize(file) {
         if (file.size > this.data['@maxSize']) {
-            // Modal to be added here
+            this.loadModal().then((data) => {
+                const x = Object.getPrototypeOf(data);
+                x.openModal();
+            });
             this.value = '';
             return false;
         }
         return true;
+    }
+
+    modalData = {
+        '@id': 'inputImageModal',
+        '@title': 'Image Upload Error',
+        '@modalStyle': 'notification',
+        '@size': 'mini',
+        '@descriptionHeader': 'Image is too large',
+        '@descriptionText': 'Sorry, the image you uploaded is too large',
+        '@imageSrc': '/assets/images/error-icon.jpg',
+        '@modalIcon': 'archive',
+        '@imageWidth': '70',
+        '@imageHeight': '70',
+        '@singleButtonText': 'Close',
+        '@singleButtonColor': 'teal',
+        '@hasServerCallback': false,
+    };
+
+    loadModal(loc) {
+        const confirmBox = BaseComponent.getComponent('modal', this.modalData, loc);
+        return confirmBox;
     }
 
     render() {
@@ -42,13 +83,7 @@ class InputImage extends BaseComponent {
         const imageId = [];
         const uiDiv = document.createElement('div');
         const inputDiv = document.createElement('input');
-        let id;
-        if (this.data['@id']) {
-            id = this.data['@id'];
-        } else {
-            id = `image-${this.getRandomInt()}`;
-        }
-        imageId.push(`#${id}`);
+
         uiDiv.classList.add('ui');
         uiDiv.classList.add('input');
         uiDiv.append(inputDiv);
@@ -69,7 +104,9 @@ class InputImage extends BaseComponent {
             this.validateImage();
         });
         this.required(inputDiv);
-        uiDiv.setAttribute('id', id);
+        this.loadModal(uiDiv);
+        uiDiv.id = this.getComponentId();
+        imageId.push(`#${uiDiv.getAttribute('id')}`);
         node.append(uiDiv);
     }
 }

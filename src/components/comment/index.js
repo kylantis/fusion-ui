@@ -3,7 +3,9 @@ class Comment extends BaseComponent {
         return 'comment';
     }
 
-    #componentId;
+    #componentId = this.getId();
+
+    #commentBox;
 
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/comment.min.css', '/assets/css/form.min.css', '/assets/css/button.min.css', '/assets/css/icon.min.css', '/assets/css/custom-comment.min.css']);
@@ -15,6 +17,14 @@ class Comment extends BaseComponent {
 
     behaviorNames() {
         return ['addNewComment', 'replyComment', 'deleteComment', 'likeComment'];
+    }
+
+    getCommentBox() {
+        return this.commentBox;
+    }
+
+    setCommentBox(value) {
+        this.commentBox = value;
     }
 
     getSubjectInfo() {
@@ -37,17 +47,8 @@ class Comment extends BaseComponent {
         return userInfo;
     }
 
-    generateId() {
-        return `${this.data['@title']}-${this.getRandomInt()}`;
-    }
-
-    setComponentId() {
-        if (this.data['@id']) {
-            this.componentId = this.data['@id'];
-        } else {
-            this.componentId = this.generateId();
-        }
-        return this.componentId;
+    getComponentId() {
+        return this.#componentId;
     }
 
     invokeBehavior(behavior, el, comment) {
@@ -91,14 +92,17 @@ class Comment extends BaseComponent {
         this.invokeBehavior('deleteComment', null, data);
     }
 
-    likeComment() {
+    likeComment() {}
+
+    generateCommentId() {
+        return `comment-${this.getRandomInt()}`;
     }
 
     newComment(text) {
         const comment = $(text).val();
         const commentDetail = {
             '@tag': 'comment',
-            '@id': this.generateId(),
+            '@id': this.generateCommentId(),
             '@postedOn': 'a second ago',
             '@authorName': this.getUserInfo()['@authorName'],
             '@avatarUrl': this.getUserInfo()['@avatarUrl'],
@@ -107,10 +111,28 @@ class Comment extends BaseComponent {
         return commentDetail;
     }
 
-    getComment(comment, userdata) {
-        // Sends details to the server
-        console.log(userdata, $(comment).val());
+    // Modal
+
+    modalData = {
+        '@id': 'commentModal',
+        '@title': 'Delete Comment?',
+        '@modalStyle': 'confirm',
+        '@size': 'tiny',
+        '@descriptionText': 'Are you sure you want to delete the comment?',
+        '@approveButtonText': 'Approve',
+        '@denyButtonText': 'Decline',
+        '@hasServerCallback': true,
+        '@clientCallback': () => {
+            this.deleteComment(this.getCommentBox());
+        },
+    };
+
+    loadModal(loc) {
+        const confirmBox = BaseComponent.getComponent('modal', this.modalData, loc);
+        return confirmBox;
     }
+
+    // Modal End
 
     replyForm(userData) {
         const form = document.createElement('form');
@@ -134,14 +156,13 @@ class Comment extends BaseComponent {
         textArea.focus();
         $(buttonDiv).on('click', () => {
             this.replyComment(form, textArea);
-            this.getComment(textArea, userData);
             $(textArea).val('');
             $(form).remove();
         });
         return form;
     }
 
-    commentForm(userData) {
+    commentForm() {
         const form = document.createElement('form');
         form.className = 'ui reply form';
         const fieldDiv = document.createElement('div');
@@ -159,7 +180,6 @@ class Comment extends BaseComponent {
         buttonDiv.append(text);
         $(buttonDiv).on('click', () => {
             this.addNewComment(form, textArea);
-            this.getComment(textArea, userData);
             $(textArea).val('');
         });
         return form;
@@ -169,7 +189,7 @@ class Comment extends BaseComponent {
         const commentDiv = document.createElement('div');
         commentDiv.className = 'comment';
         if (!element['@id']) {
-            commentDiv.id = this.generateId();
+            commentDiv.id = this.generateCommentId();
         } else {
             commentDiv.id = element['@id'];
         }
@@ -218,11 +238,11 @@ class Comment extends BaseComponent {
             contentDiv.appendChild(this.replyForm(subjectProfile));
         });
         $(deleteTag).on('click', () => {
-            // this will be replaced with a modal
-            // eslint-disable-next-line no-alert
-            if (confirm('Are you sure you want to remove?')) {
-                this.deleteComment(commentDiv);
-            }
+            this.setCommentBox(commentDiv);
+            this.loadModal().then((data) => {
+                const x = Object.getPrototypeOf(data);
+                x.openModal();
+            });
         });
         if (element['>']) {
             const commentsTag = document.createElement('div');
@@ -239,7 +259,7 @@ class Comment extends BaseComponent {
         const { node } = this;
         const uiDiv = document.createElement('div');
         uiDiv.className = 'ui comments';
-        uiDiv.id = this.setComponentId();
+        uiDiv.id = this.getComponentId();
         if (this.data['@threaded']) {
             uiDiv.classList.add('threaded');
         }
@@ -250,7 +270,10 @@ class Comment extends BaseComponent {
         this.data['>'].forEach((element) => {
             uiDiv.appendChild(this.createPost(element));
         });
-        uiDiv.append(this.commentForm(this.getUserInfo()['@authorName']));
+        uiDiv.append(this.commentForm());
+
+        // Load the dependencies of the modal component
+        this.loadModal(titleDiv);
 
         node.append(uiDiv);
     }

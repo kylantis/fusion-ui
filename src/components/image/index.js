@@ -3,6 +3,8 @@ class Image extends BaseComponent {
         return 'image';
     }
 
+    #componentId = this.getId();
+
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/image.min.css']);
     }
@@ -54,6 +56,10 @@ class Image extends BaseComponent {
         el.classList.add(this.data['@float']);
         el.classList.add('floated');
         el.classList.remove('middle', 'top', 'bottom', 'aligned');
+    }
+
+    getComponentId() {
+        return this.#componentId;
     }
 
     render() {
@@ -128,14 +134,9 @@ class Image extends BaseComponent {
         if (this.data['@size']) {
             uiDiv.classList.add(this.data['@size']);
         }
+        uiDiv.id = this.getComponentId();
         const imageId = [];
-        let id;
-        if (this.data['@id']) {
-            id = this.data['@id'];
-        } else {
-            id = `${node.getAttribute('id')}-${this.getRandomInt()}`;
-        }
-        imageId.push(`#${id}`);
+        imageId.push(`#${uiDiv.getAttribute('id')}`);
         uiDiv.classList.add('image');
         node.prepend(uiDiv);
     }

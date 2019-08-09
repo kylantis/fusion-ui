@@ -4,24 +4,22 @@ class Input extends BaseComponent {
         return 'input';
     }
 
+    #componentId = this.getId();
+
     getCssDependencies() {
-        if (this.data['@type'] === 'radio' || this.data['@type'] === 'checkbox'
-            || this.data['@type'] === 'boolean') {
-            return super.getCssDependencies().concat(['/assets/css/input.min.css', '/assets/css/checkbox.min.css']);
-        }
-        return super.getCssDependencies().concat(['/assets/css/input.min.css']);
+        return super.getCssDependencies().concat(['/assets/css/input.min.css', '/assets/css/label.min.css']);
     }
 
     getJsDependencies() {
-        if (this.data['@type'] === 'radio' || this.data['@type'] === 'checkbox'
-            || this.data['@type'] === 'boolean') {
-            return super.getJsDependencies().concat(['/assets/js/checkbox.min.js']);
-        }
         return super.getJsDependencies();
     }
 
     behaviorNames() {
         return ['validate', 'getValue', 'setValue', 'clearField'];
+    }
+
+    getComponentId() {
+        return this.#componentId;
     }
 
     required(element) {
@@ -48,21 +46,31 @@ class Input extends BaseComponent {
         return false;
     }
 
-    setCheckedInput() {
-
-    }
-
     getCheckedInput(element) {
         return $(element).attr('checked');
     }
 
+    invokeBehavior(behavior, element, data) {
+        switch (behavior) {
+        case 'getValue':
+            return $(element).val();
+
+        case 'setValue':
+            $(element).val(data);
+            break;
+
+        default:
+            break;
+        }
+        return false;
+    }
+
     getValue(element) {
-        // console.log($(element).val());
-        return $(element).val();
+        this.invokeBehavior('setValue', element, null);
     }
 
     setValue(element, value) {
-        $(element).val(value);
+        this.invokeBehavior('setValue', element, value);
     }
 
     validateEntry(element) {
@@ -70,39 +78,44 @@ class Input extends BaseComponent {
         // return true or false
         if ($(element).val() === '') {
             console.log('Invalid Entry');
+            if (!element.checkValidity()) {
+                this.errorLabel(element);
+            }
             return false;
         }
         console.log($(element).val());
         return true;
     }
 
+    errorLabel(element) {
+        const label = document.createElement('div');
+        label.className = 'ui pointing label';
+        $(element).after(label);
+        label.textContent = 'Please enter a value';
+    }
+
+    inputCallback(inputEl) {
+        $(inputEl).on('focusout', () => {
+            if (this.validateEntry(inputEl)) {
+                this.getValue(inputEl);
+            }
+        });
+    }
+
     render() {
         const { node } = this;
-        const uiDiv = document.createElement('div');
+        let uiDiv = document.createElement('div');
         const inputDiv = document.createElement('input');
         uiDiv.classList.add('ui');
         const inputId = [];
-        let id;
-        if (this.data['@id']) {
-            id = this.data['@id'];
-        } else {
-            id = `${node.getAttribute('id')}-${this.getRandomInt()}`;
-        }
-        inputId.push(`#${id}`);
 
-
-        if (this.data['@type'] === 'plain') {
+        if (this.data['@type'] === 'text') {
             uiDiv.classList.add('input');
             uiDiv.append(inputDiv);
             this.required(inputDiv);
-
             inputDiv.setAttribute('type', 'text');
             inputDiv.setAttribute('placeholder', this.data['@placeholder']);
-            $(inputDiv).on('focusout', () => {
-                if (this.validateEntry(inputDiv)) {
-                    this.getValue(inputDiv);
-                }
-            });
+            this.inputCallback(inputDiv);
         } else if (this.data['@type'] === 'secret') {
             uiDiv.classList.add('input');
             uiDiv.append(inputDiv);
@@ -110,11 +123,7 @@ class Input extends BaseComponent {
             inputDiv.setAttribute('type', 'password');
             inputDiv.setAttribute('placeholder', this.data['@placeholder']);
             // Get data from the subcomponent
-            $(inputDiv).on('focusout', () => {
-                if (this.validateEntry(inputDiv)) {
-                    this.getValue(inputDiv);
-                }
-            });
+            this.inputCallback(inputDiv);
         } else if (this.data['@type'] === 'email') {
             uiDiv.classList.add('input');
             uiDiv.append(inputDiv);
@@ -123,11 +132,7 @@ class Input extends BaseComponent {
             inputDiv.setAttribute('placeholder', this.data['@placeholder']);
             inputDiv.setAttribute('pattern', '[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}$');
             // Get data from the subcomponent'
-            $(inputDiv).on('focusout', () => {
-                if (this.validateEntry(inputDiv)) {
-                    this.getValue(inputDiv);
-                }
-            });
+            this.inputCallback(inputDiv);
         } else if (this.data['@type'] === 'amount') {
             uiDiv.classList.add('input');
             uiDiv.append(inputDiv);
@@ -136,11 +141,7 @@ class Input extends BaseComponent {
             inputDiv.setAttribute('step', '0.01');
             inputDiv.setAttribute('placeholder', this.data['@placeholder']);
             // Get data from the subcomponent
-            $(inputDiv).on('focusout', () => {
-                if (this.validateEntry(inputDiv)) {
-                    this.getValue(inputDiv);
-                }
-            });
+            this.inputCallback(inputDiv);
         } else if (this.data['@type'] === 'number2l' || this.data['@type'] === 'number3l'
             || this.data['@type'] === 'number4l' || this.data['@type'] === 'number') {
             uiDiv.classList.add('input');
@@ -158,11 +159,7 @@ class Input extends BaseComponent {
                 inputDiv.setAttribute('min', '-9999');
                 inputDiv.setAttribute('max', '9999');
             }
-            $(inputDiv).on('focusout', () => {
-                if (this.validateEntry(inputDiv)) {
-                    this.getValue(inputDiv);
-                }
-            });
+            this.inputCallback(inputDiv);
         } else if (this.data['@type'] === 'phone') {
             uiDiv.classList.add('input');
             uiDiv.append(inputDiv);
@@ -171,11 +168,7 @@ class Input extends BaseComponent {
             inputDiv.setAttribute('pattern', '[0-9]*');
             inputDiv.setAttribute('placeholder', this.data['@placeholder']);
             // Get data from the subcomponent
-            $(inputDiv).on('focusout', () => {
-                if (this.validateEntry(inputDiv)) {
-                    this.getValue(inputDiv);
-                }
-            });
+            this.inputCallback(inputDiv);
         } else if (this.data['@type'] === 'slider') {
             uiDiv.classList.add('slider');
             uiDiv.classList.add('checkbox');
@@ -202,9 +195,35 @@ class Input extends BaseComponent {
             const labelDiv = document.createElement('label');
             labelDiv.textContent = this.data['@title'];
             uiDiv.appendChild(labelDiv);
-        }
+        } else if (this.data['@type'] === 'date') {
+            uiDiv.classList.add('input');
+            uiDiv.append(inputDiv);
+            inputDiv.setAttribute('type', 'date');
 
-        uiDiv.setAttribute('id', id);
+            this.required(inputDiv);
+            this.disabled(inputDiv);
+            this.inputCallback(inputDiv);
+        } else if (this.data['@type'] === 'hidden') {
+            uiDiv.classList.add('input');
+            uiDiv.append(inputDiv);
+            inputDiv.setAttribute('type', 'hidden');
+        } else if (this.data['@type'] === 'textarea') {
+            uiDiv = document.createElement('textarea');
+            uiDiv.classList.add('ui');
+            uiDiv.classList.add('input');
+            this.required(uiDiv);
+            this.disabled(uiDiv);
+            if (this.data['@rows']) {
+                uiDiv.setAttribute('rows', this.data['@rows']);
+            }
+            if (this.data['@cols']) {
+                uiDiv.setAttribute('cols', this.data['@cols']);
+            }
+            uiDiv.setAttribute('placeholder', this.data['@placeholder']);
+            this.inputCallback(uiDiv);
+        }
+        inputDiv.id = this.getComponentId();
+        inputId.push(`#${inputDiv.getAttribute('id')}`);
         node.append(uiDiv);
     }
 }

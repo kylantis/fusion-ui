@@ -4,6 +4,8 @@ class Tab extends BaseComponent {
         return 'tab';
     }
 
+    #componentId = this.getId();
+
     getCssDependencies() {
         const baseDependencies = super.getCssDependencies();
         baseDependencies.push('/assets/css/menu.min.css', '/assets/css/tab.min.css', '/assets/css/transition.min.css');
@@ -16,19 +18,18 @@ class Tab extends BaseComponent {
         return baseDependencies;
     }
 
+    getComponentId() {
+        return this.#componentId;
+    }
+
     render() {
         const { node } = this;
         const tabIds = [];
 
         const uiDiv = document.createElement('div');
-        let id;
-        if (this.data['@id']) {
-            id = this.data['@id'];
-        } else {
-            id = `${node.getAttribute('id')}-${this.getRandomInt()}`;
-        }
-        uiDiv.setAttribute('id', id);
-        uiDiv.className = 'ui top';
+
+        uiDiv.setAttribute('id', this.getComponentId());
+        uiDiv.className = 'ui';
         if (this.data['@displayStyle'] === 'tabbed') {
             uiDiv.classList.add('pointing');
             uiDiv.classList.add('secondary');
@@ -37,6 +38,9 @@ class Tab extends BaseComponent {
         } else if (this.data['@displayStyle'] === 'basic') {
             uiDiv.classList.add('attached');
             uiDiv.classList.add('tabular');
+        }
+        if (this.data['@position']) {
+            uiDiv.classList.add(this.data['@position']);
         }
         node.append(uiDiv);
         const childJson = this.data['>'];
@@ -62,7 +66,7 @@ class Tab extends BaseComponent {
                 node.append(itemDiv);
             });
         }
-        tabIds.push(`#${id}`);
+        tabIds.push(`#${uiDiv.getAttribute('id')}`);
         uiDiv.classList.add('menu');
         node.prepend(uiDiv);
 

@@ -1,45 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 </head>
-<body>
-    <div id='modal'></div>
 
-    <div class="ui modal">
-        <i class="close icon"></i>
-        <div class="header">
-          Profile Picture
-        </div>
-        <div class="image content">
-          <div class="ui medium image">
-            <img src="/images/avatar/large/chris.jpg">
-          </div>
-          <div class="description">
-            <div class="ui header">We've auto-chosen a profile image for you.</div>
-            <p>We've grabbed the following image from the <a href="https://www.gravatar.com" target="_blank">gravatar</a> image associated with your registered e-mail address.</p>
-            <p>Is it okay to use this photo?</p>
-          </div>
-        </div>
-        <div class="actions">
-          <div class="ui black deny button">
-            Nope
-          </div>
-          <div class="ui positive right labeled icon button">
-            Yep, that's me
-            <i class="checkmark icon"></i>
-          </div>
-        </div>
-      </div>
-    <script src="/assets/js/polyfills/index.min.js"></script>
-    <script src="/components/base.min.js"></script>
-    <script src="/components/modal/index.min.js"></script>
-    <script>const modal = new Modal()</script>
-    <script>
-        setTimeout(() => {
-            $('.ui.modal')
-  .modal('show')
-;
-        }, 5000);
-    </script>
+<body>
+  <div id='modal'></div>
+  
+  <script>
+    const jsonData = {
+      '@id': 'modalOne',
+      '@title': 'Profile Picture',
+      '@modalStyle': 'image',
+      '@size': 'mini',
+      '@descriptionHeader': 'General Modal Image Stuff',
+      '@descriptionText': 'Hello People, Its me again <p>We\'ve grabbed the following image from the',
+      '@approveButtonText': 'Approve',
+      '@denyButtonText': 'Decline',
+      '@singleButtonText': 'Close',
+      '@singleButtonColor': 'blue',
+      '@imageSrc': '/assets/images/nan.jpg',
+      '@modalIcon': 'archive',
+      '@imageWidth': '',
+      '@imageHeight': '',
+      '@hasServerCallback': true,
+      '@clientCallback': () => {
+        console.log('modal client call back');
+      } 
+    }
+  </script>
+  <script src="/assets/js/polyfills/index.min.js"></script>
+  <script src="/components/base.min.js"></script>
+  <script src="/components/modal/index.min.js"></script>
+  <script>const modal = new Modal(jsonData, document.getElementById('modal'))
+  setTimeout(() => {
+      modal.openModal();
+    }, 2000);
+  </script>
+
 </body>
+
 </html>
