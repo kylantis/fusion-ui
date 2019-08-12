@@ -15,7 +15,7 @@
             "@title": "",
             "@icon": "",
             "@navBarType": "standard",
-            "@orientation": "horizontal",
+            "@orientation": "vertical",
             "@navPointer": false,
             "@separator": false,
             "@navBarAlignment": "",
@@ -26,19 +26,19 @@
                 ">": [{
                     "@tag": "item",
                     "@title": "Home",
-                    "@iconName": "",
-                    "@badge": 5,
+                    "@iconName": "home",
+                    "@iconColor": "red",
+                    "@badge": '',
                     "@iconOnly": false,
                     "@iconPosition": "",
-                    "@active": false,
                     "@url": ""
                 }, {
                     "@tag": "item",
                     "@title": "News",
                     "@iconOnly": true,
-                    "@iconName": "",
+                    "@iconName": "newspaper",
+                    "@iconColor": "green",
                     "@iconPosition": "right",
-                    "@active": false,
                     "@url": "",
                     ">": [{
                         "@tag": "item",
@@ -65,7 +65,7 @@
                             "@tag": "item",
                             "@title": "Golf News",
                             "@url": "",
-                            "@badge": 3
+                            "@badge": ''
                         }, {
                             "@tag": "item",
                             "@title": "Tennis News",
@@ -74,7 +74,7 @@
                                 "@tag": "item",
                                 "@title": "Sports News",
                                 "@url": "",
-                                "@badge": 1,
+                                "@badge": '',
                             }, {
                                 "@tag": "item",
                                 "@title": "Football News",
@@ -97,7 +97,7 @@
                                     "@url": ""
                                 }, {
                                     "@tag": "item",
-                                    "@badge": 2,
+                                    "@badge": '',
                                     "@title": "Football News",
                                     "@url": ""
                                 }, {
@@ -119,7 +119,7 @@
                         "@tag": "item",
                         "@title": "BasketBall News",
                         "@url": "",
-                        "@badge": 9,
+                        "@badge": '',
                     }, {
                         "@tag": "item",
                         "@title": "Golf News",
@@ -172,8 +172,32 @@
                     "@iconOnly": "true | false",
                     "@iconName": "",
                     "@iconPosition": "left",
-                    "@active": false,
                     "@url": ""
+                }, {
+                    "@tag": "button",
+                    "@title": "Compose",
+                    "@iconName": "write",
+                    "@iconColor": "green",
+                    "@badge": '',
+                    "@iconOnly": false,
+                    "@iconPosition": ";eft",
+                    "@url": "",
+                    ">": {
+                        "@id": "navbarButton",
+                        "@fluid": true,
+                        "@buttonStyle": "basic",
+                        "@iconPosition": "left",
+                        "@buttonText": "Compose",
+                        "@iconName": "edit",
+                        "@iconPosition": "left",
+                        "@color": "yellow",
+                        "@clientCallbacks": {
+                            "@execute": () => {
+                                window.location.href = jsonData['@linkedUrl'];
+                            }
+                        }
+                    }
+
                 }]
             }]
         }
