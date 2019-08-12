@@ -4,6 +4,8 @@ class Accordion extends BaseComponent {
         return 'accordion';
     }
 
+    #componentId = this.getId();
+
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/accordion.min.css',
             '/assets/css/dropdown.min.css', '/assets/css/transition.min.css']);
@@ -14,12 +16,20 @@ class Accordion extends BaseComponent {
             '/assets/js/dropdown.min.js', '/assets/js/transition.min.js']);
     }
 
+    behaviorNames() {
+        return ['addContent', 'deleteContent', 'editContent'];
+    }
+
     static getAccordionId(event) {
         return event.target.id;
     }
 
     getAccordionNode() {
         return this.node.firstChild;
+    }
+
+    getComponentId() {
+        return this.#componentId;
     }
 
     addContents(data, parentNode) {
@@ -50,7 +60,7 @@ class Accordion extends BaseComponent {
         }
     }
 
-    update(behavior, data) {
+    invokeBehavior(behavior, data) {
         const element = document.getElementById(data.id);
         let contentDiv = 0;
         const newTitle = data.title;
@@ -84,13 +94,24 @@ class Accordion extends BaseComponent {
         }
     }
 
+    addContent(data) {
+        this.invokeBehavior('addContent', data);
+    }
+
+    deleteContent(data) {
+        this.invokeBehavior('deleteContent', data);
+    }
+
+    editContent(data) {
+        this.invokeBehavior('editContent', data);
+    }
+
     render() {
         const { node } = this;
         const accordionId = [];
 
         const uiDiv = document.createElement('div');
         uiDiv.className = 'ui fluid';
-        uiDiv.setAttribute('id', `${node.getAttribute('id')}`);
 
         if (this.data['@displayStyle'] === 'styled') {
             uiDiv.classList.add('styled');
@@ -100,9 +121,8 @@ class Accordion extends BaseComponent {
             const accData = this.data['>'];
             // addContents function
             this.addContents(accData, uiDiv);
-            const id = `${uiDiv.getAttribute('id')}-${this.getRandomInt()}`;
-            accordionId.push(`#${id}`);
-            uiDiv.setAttribute('id', id);
+            uiDiv.setAttribute('id', this.getComponentId());
+            accordionId.push(`#${uiDiv.getAttribute('id')}`);
             uiDiv.classList.add('accordion');
             node.append(uiDiv);
             $('.ui.accordion').accordion();

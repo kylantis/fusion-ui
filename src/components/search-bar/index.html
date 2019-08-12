@@ -12,7 +12,8 @@
 
     <script>
         const jsonData = {
-            "@title": "",
+            "@id": "searchOne",
+            "@title": "searchOne",
             "@placeholder": "Search...",
             "@animated": true,
             "@searchIcon": true,
@@ -20,6 +21,8 @@
             "@autoComplete": true,
             "@size": "",
             "@disabled": false,
+            "@hasServerCallback": true,
+            "@clientCallbacks": {},
             ">": [
                 { '@tag': 'item', '@id': '', '@title': 'Afghanistan' },
                 { '@tag': 'item', '@id': '', '@title': 'Andorra' },
@@ -56,8 +59,9 @@
             exports: {}
         }
     </script>
+    <script src="/assets/js/polyfills/index.min.js"></script>
     <script src="/components/base.min.js"></script>
-    <script src="/components/searchBar/index.min.js"></script>
+    <script src="/components/search-bar/index.min.js"></script>
     <script>
         new SearchBar(jsonData, document.querySelector("#searchBar"));
     </script>

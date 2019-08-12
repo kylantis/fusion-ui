@@ -1,0 +1,10 @@
+{
+    "@id": "labelOne",
+    "@title": "label",
+    "@labelType": "imageLabel | tag | pointing | corner | ribbon | floating",
+    "@pointingDirection": "below | upward | left | right",
+    "@labelPosition": "left | right",
+    "@icon": "",
+    "@text": "",
+    "@color": "blue" 
+}

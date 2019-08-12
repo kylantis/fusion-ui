@@ -9,9 +9,10 @@
 
     <script>
     let jsonData = {
+            "@id": "buttonOne",
             "@name": "",
             "@value": "",
-            "@buttonStyle": "",
+            "@buttonStyle": "social",
             "@url": "",
             "@iconPosition": "left",
             "@size": "",
@@ -22,10 +23,18 @@
             "@tabIndex": 0,
             "@buttonText": "Hello Button",
             "@transitionContent": "Hello",
-            "@color": "blue",
-            "@socialButton": "facebook"
+            "@color": "yellow",
+            "@socialButton": "twitter",
+            "@position": "",
+            "@hasServerCallback": true,
+            "@clientCallbacks": {
+                "@execute": () => {
+                    window.location.href = 'http://www.google.com';
+                }
+            }
         }
     </script>
+    <script src="/assets/js/polyfills/index.min.js"></script>
     <script src="/components/base.min.js"></script>
     <script src="/components/button/index.min.js"></script>
     <script>new Button(jsonData, document.querySelector("#button"));</script>

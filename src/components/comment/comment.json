@@ -1,0 +1,42 @@
+{
+    "@id": "commentOne",
+    "@title": "comments",
+    "@threaded": true,
+    ">": [{
+        "@tag": "comment",
+        "@id": "",
+        "@time": "",
+        "@authorName": "",
+        "@avatarUrl": "",
+        "@commentText": ""
+    }, {
+        "@tag": "comment",
+        "@id": "",
+        "@time": "",
+        "@authorName": "",
+        "@avatarUrl": "",
+        "@commentText": "",
+        ">": [{
+            "@tag": "comment",
+            "@id": "",
+            "@time": "",
+            "@authorName": "",
+            "@avatarUrl": "",
+            "@commentText": ""
+        }, {
+            "@tag": "comment",
+            "@id": "",
+            "@time": "",
+            "@authorName": "",
+            "@avatarUrl": "",
+            "@commentText": ""
+        }]
+    }, {
+        "@tag": "comment",
+        "@id": "",
+        "@time": "",
+        "@authorName": "",
+        "@avatarUrl": "",
+        "@commentText": ""
+    }]
+}

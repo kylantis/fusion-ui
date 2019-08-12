@@ -4,6 +4,8 @@ class Table extends BaseComponent {
         return 'table';
     }
 
+    #componentId = this.getId();
+
     getBehaviourNames() {
         return [
             'appendRow', 'deleteRow', 'editRow',
@@ -34,7 +36,11 @@ class Table extends BaseComponent {
         return this.node.querySelector('tbody').lastChild.getAttribute('id');
     }
 
-    behavior(behaviorName, data) {
+    getComponentId() {
+        return this.#componentId;
+    }
+
+    invokeBehavior(behaviorName, data) {
         let lastChildId;
         if (this.getLastChildId().includes('table')) {
             lastChildId = parseInt(this.getLastChildId().split('-')[3], 10) + 1;
@@ -44,6 +50,7 @@ class Table extends BaseComponent {
         const element = document.getElementById(data.id); // get html element from the data
         const newContent = data.content; // Data from json
         const id = this.getTableId(); // get id from table component
+
         switch (behaviorName) {
         case 'appendRow':
 
@@ -66,7 +73,7 @@ class Table extends BaseComponent {
                         }
                     }
                     $(updatedBody).click((e) => {
-                        this.behavior('', e.target.parentNode);
+                        this.invokeBehavior('', e.target.parentNode);
                     });
                 }
             }
@@ -89,6 +96,18 @@ class Table extends BaseComponent {
         }
     }
 
+    appendRow(data) {
+        this.invokeBehavior('appendRow', data);
+    }
+
+    deleteRow(data) {
+        this.invokeBehavior('deleteRow', data);
+    }
+
+    editRow(data) {
+        this.invokeBehavior('editRow', data);
+    }
+
     render() {
         // Add listeners that respond to user event, then this should buuble up to this.callback();
         const { node } = this;
@@ -103,8 +122,12 @@ class Table extends BaseComponent {
             const thead = document.createElement('thead');
             const tbody = document.createElement('tbody');
             table.className = 'ui ';
-            table.setAttribute('id', `${node.getAttribute('id')}`);
-
+            let id;
+            if (jsonData['@id']) {
+                id = jsonData['@id'];
+            } else {
+                id = `table-${this.getRandomInt()}`;
+            }
             // set hoverable attribute
             if (jsonData['@isHoverable']) {
                 table.classList.add('selectable');
@@ -147,8 +170,6 @@ class Table extends BaseComponent {
             // Create header row
             const trHead = thead.insertRow(-1);
 
-            const id = `${table.getAttribute('id')}-${this.getRandomInt()}`;
-
             const columns = this.data['>'][0]['>'];
             for (let i = 0; i < columns.length; i++) {
                 columnTitles[i.toString()] = columns[i]['@title'];
@@ -185,18 +206,18 @@ class Table extends BaseComponent {
                         }
                         // Add click callback, e.t.c
                         $(trBody).click((e) => {
-                            this.behavior('', e.target.parentNode);
+                            this.invokeBehavior('', e.target.parentNode);
                         });
                         $(trBody).dblclick((e) => {
                             const editData = { id: e.target.id, content: 'new content added' };
-                            this.behavior('editRow', editData);
+                            this.editRow(editData);
                         });
                     }
                 }
             }
 
-            tableId.push(`#${id}`);
-            table.setAttribute('id', id);
+            tableId.push(`#${table.getAttribute('id')}`);
+            table.setAttribute('id', this.getComponentId());
 
             node.appendChild(table);
         }

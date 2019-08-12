@@ -1,4 +1,4 @@
-import { formatResultsErrors } from 'jest-message-util';
+// import { formatResultsErrors } from 'jest-message-util';
 
 class BaseComponent {
     static #initialized = false;
@@ -8,7 +8,11 @@ class BaseComponent {
     static #clientStubs;
 
     constructor(data, node, render = true) {
-        this.data = data;
+        this.data = {
+            ...data,
+            id: data['@id'] || `${this.tagName()}-${this.getRandomInt()}`,
+        };
+
         this.node = node || document.body;
 
         if (render) {
@@ -16,6 +20,11 @@ class BaseComponent {
                 this.render();
             });
         }
+
+        // eslint-disable-next-line func-names
+        this.getId = function () {
+            return this.data.id;
+        };
     }
 
     static init() {
@@ -67,10 +76,17 @@ class BaseComponent {
         return ['/assets/css/site.min.css', '/assets/css/reset.min.css'];
     }
 
+    // getJsDependencies() {
+    //     return [
+    //         'https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js',
+    //         '/assets/js/site.min.js'];
+    // }
     getJsDependencies() {
         return [
-            'https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js',
-            '/assets/js/site.min.js'];
+            // 'https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js',
+            '/cdn/jquery-3.4.1.min.js/',
+            '/assets/js/site.min.js',
+        ];
     }
 
     /**
@@ -214,6 +230,10 @@ class BaseComponent {
         return elem;
     }
 
+    generateComponentId() {
+        return `${this.data['@title']}-${this.getRandomInt()}`;
+    }
+
     triggerEvent(eventName, eventData, componentData) {
         if (componentData.hasServerCallback) {
             // Why return?
@@ -232,8 +252,8 @@ class BaseComponent {
     }
 
     /**
-     * This writes data to the web socket, inorder to notify fuaion
-     * of a bubbled
+     * This writes data to the web socket, inorder to notify fusion
+     * of a bubble
      *
      * @param {String} callbackName
      * @param {Object} callbackData

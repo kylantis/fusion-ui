@@ -4,29 +4,71 @@ class SearchBar extends BaseComponent {
         return 'searchBar';
     }
 
+    #componentId = this.getId();
+
     getCssDependencies() {
-        return super.getCssDependencies().concat(['/assets/css/icon.min.css', '/assets/css/input.min.css',
-            '/assets/css/search.min.css']);
+        return super.getCssDependencies().concat(['/assets/css/input.min.css', '/assets/css/search.min.css', '/assets/css/icon.min.css',
+            '/assets/css/custom-search.min.css']);
     }
+
+    // getJsDependencies() {
+    //     return super.getJsDependencies().concat(['/assets/js/search.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js']);
+    // }
 
     getJsDependencies() {
-        return super.getJsDependencies().concat(['/assets/js/search.min.js']);
+        return super.getJsDependencies().concat(['/assets/js/search.min.js', '/cdn/jqueryeasing.min.js']);
     }
 
-    getValue(event) {
-        console.log(event.target.value);
-        return event.target.value;
+    invokeBehavior(behavior, data) {
+        switch (behavior) {
+        case 'autoSuggest':
+            $(`#${this.getComponentId()}`).search({ source: data });
+            break;
+        case 'query':
+            this.queryServer(data);
+            break;
+        case 'getValue':
+            return $(`#${this.getComponentId()}`).search('get value');
+        case 'getResult':
+            return $(`#${this.getComponentId()}`).search('get result');
+        default:
+            break;
+        }
+        return false;
+    }
+
+    autoSuggest(suggestedData) {
+        this.invokeBehavior('autoSuggest', suggestedData);
+    }
+
+    query(searchinput) {
+        this.invokeBehavior('query', searchinput);
+    }
+
+    // queryServer(data) {
+
+    // }
+
+    getValue() {
+        return this.invokeBehavior('getValue');
+    }
+
+    getResult() {
+        return this.invokeBehavior('getResult');
+    }
+
+    getComponentId() {
+        return this.#componentId;
     }
 
     render() {
         const { node } = this;
         const jsonData = this.data;
         const uiDiv = document.createElement('div');
-        uiDiv.className = 'ui category ';
+        uiDiv.className = 'ui ';
         const inputTag = document.createElement('input');
 
-        const searchBarIds = [];
-        uiDiv.setAttribute('id', `${node.getAttribute('id')}-component`);
+        uiDiv.setAttribute('id', this.getComponentId());
 
         if (jsonData['@searchIcon']) {
             const iconDiv = document.createElement('div');
@@ -57,26 +99,16 @@ class SearchBar extends BaseComponent {
             uiDiv.classList.add('disabled');
         }
 
-        const id = `${uiDiv.getAttribute('id')}-${this.getRandomInt()}`;
-        searchBarIds.push(`#${id}`);
-        uiDiv.setAttribute('id', id);
-        $(uiDiv).on('keypress', (e) => {
-            this.getValue(e);
-        });
         uiDiv.classList.add('search');
         node.append(uiDiv);
 
-        const suggestData = jsonData['>'];
+        if (jsonData['>'] && jsonData['@autoComplete']) {
+            let suggestData = jsonData['>'];
 
-        // suggestData = suggestData.map(json => ({
-        //     title: json['@title'],
-        // }));
-
-        if (jsonData['@autoComplete']) {
-            $('.ui.search')
-                .search({
-                    source: suggestData,
-                });
+            suggestData = suggestData.map(json => ({
+                title: json['@title'],
+            }));
+            this.autoSuggest(suggestData);
         }
     }
 }

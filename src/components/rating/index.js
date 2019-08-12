@@ -4,22 +4,34 @@ class Rating extends BaseComponent {
         return 'rating';
     }
 
+    #componentId = this.getId();
+
     getCssDependencies() {
-        const baseDependencies = super.getCssDependencies();
-        baseDependencies.push('/assets/css/rating.min.css', '/assets/css/icon.min.css');
-        return baseDependencies;
+        return super.getCssDependencies().concat(['/assets/css/rating.min.css', '/assets/css/icon.min.css']);
     }
 
     getJsDependencies() {
-        const baseDependencies = super.getJsDependencies();
-        baseDependencies.push('/assets/js/rating.min.js');
-        return baseDependencies;
+        return super.getJsDependencies().concat(['/assets/js/rating.min.js']);
+    }
+
+    getId(event) {
+        return event.target.parentNode.id;
+    }
+
+    getComponentId() {
+        return this.#componentId;
+    }
+
+    getRating(e) {
+        const value = document.getElementById(this.getId(e));
+        const rating = value.querySelectorAll('.active').length;
+        return rating;
     }
 
     render() {
         const { node } = this;
-
         const uiDiv = document.createElement('div');
+        uiDiv.setAttribute('id', this.getComponentId());
         uiDiv.className = 'ui';
 
         if (this.data['@displayStyle'].length > 0) {
@@ -34,6 +46,9 @@ class Rating extends BaseComponent {
         uiDiv.setAttribute('data-max-rating', this.data['@data-max-rating']);
 
         uiDiv.classList.add('rating');
+        $(uiDiv).click('submit', (e) => {
+            this.getRating(e);
+        });
         node.append(uiDiv);
 
         $('.ui.rating')

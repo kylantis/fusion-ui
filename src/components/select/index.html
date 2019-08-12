@@ -1,17 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
 </head>
 
-<body> 
+<body>
   <div id="select"></div>
-  <input type="submit" id="submit"> 
-  
+  <input type="submit" id="submit">
+
   <script>
     const jsonData = {
+      "@id": "selectOne",
       "@title": "subjects",
       "@iconName": "",
       "@labelIcon": "",
@@ -103,13 +105,14 @@
       }]
     }
   </script>
-    <script>
-        // This is a polyfill that allows components to do
-        // module.exports = ... in the browser
-        window.module = {
-            exports: {}
-        }
-    </script>
+  <script>
+    // This is a polyfill that allows components to do
+    // module.exports = ... in the browser
+    window.module = {
+      exports: {}
+    }
+  </script>
+  <script src="/assets/js/polyfills/index.min.js"></script>
   <script src="/components/base.min.js"></script>
   <script src="/components/select/index.min.js"></script>
   <script>

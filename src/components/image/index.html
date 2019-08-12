@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+</head>
+
+<body>
+    <div id="image"></div>
+    <script>
+        const jsonData = {
+            "@id": "imageOne",
+            "@title": "",
+            "@type": "imageLink",
+            "@avatarName": "Username",
+            "@circular": false,
+            "@fluid": false,
+            "@float": "",
+            "@rounded": false,
+            "@textAlignment": "middle",
+            "@titleText": "Username",
+            "@text": "Alignment Of Text",
+            "@href": "https://google.com",
+            "@src": "/assets/images/kiwi.svg",
+            "@disabled": false,
+            "@size": "small",
+            "@width": '',
+            "@height": ''
+        }   
+    </script>
+    <script>
+        // This is a polyfill that allows components to do
+        // module.exports = ... in the browser
+        window.module = {
+            exports: {}
+        }
+    </script>
+    <script src="/assets/js/polyfills/index.min.js"></script>
+    <script src="/components/base.min.js"></script>
+    <script src="/components/image/index.min.js"></script>
+    <script>new Image(jsonData, document.querySelector('#image'));</script>
+</body>
+
+</html>
