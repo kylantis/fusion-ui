@@ -241,7 +241,7 @@ class Comment extends BaseComponent {
             this.setCommentBox(commentDiv);
             this.loadModal().then((data) => {
                 const x = Object.getPrototypeOf(data);
-                x.openModal();
+                x.openModal(this.modalData);
             });
         });
         if (element['>']) {

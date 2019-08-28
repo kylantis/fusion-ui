@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+</head>
+
+<body>
+    <div id="mail"></div>
+
+    <script>
+        const newRowData = [{
+            "@tag": "mail",
+            "@id": 127,
+            ">": [{
+                "@icon": ""
+            }, {
+                "@sender": "Emeka Bond"
+            }, {
+                "@subject": "Elyse is a kind girl but sometimes you don't really have enough room to describe everything you'd like and other times it just doesnt make sense"
+            }, {
+                "@entryTime": "22 Aug"
+            }, {
+                "@options": ""
+            }]
+        }, {
+            "@tag": "mail",
+            "@id": 128,
+            ">": [{
+                "@icon": ""
+            }, {
+                "@subject": "Elyse is a kind girl but sometimes you don't really have enough room to describe everything you'd like and other times it just doesnt make sense"
+            }, {
+                "@sender": "John NotWick"
+            }, {
+                "@entryTime": "30 Aug"
+            }, {
+                "@options": ""
+            }]
+        }]
+
+        const jsonData = {
+            "@id": "menuOne",
+            "@displayStyle": "basic",
+            "@title": "messages",
+            "@position": "left",
+            "menuDisplayStyle": "",
+            "@pointing": false,
+            "@secondaryPointing": false,
+            ">": [
+                {
+                    "@tag": "mail",
+                    "@id": 123,
+                    ">": [{
+                        "@icon": ""
+                    }, {
+                        "@sender": "James Bond"
+                    }, {
+                        "@subject": "Elyse is a kind girl but sometimes you don't really have enough room to describe everything you'd like and other times it just doesnt make sense"
+                    }, {
+                        "@entryTime": "14 Aug"
+                    }, {
+                        "@options": ""
+                    }]
+                },
+                {
+                    "@tag": "mail",
+                    "@id": 124,
+                    ">": [{
+                        "@icon": ""
+                    }, {
+                        "@subject": "Elyse is a kind girl but sometimes you don't really have enough room to describe everything you'd like and other times it just doesnt make sense"
+                    }, {
+                        "@sender": "Sam Dede"
+                    }, {
+                        "@entryTime": "14 Aug"
+                    }, {
+                        "@options": ""
+                    }]
+                }, {
+                    "@tag": "mail",
+                    "@id": 125,
+                    ">": [{
+                        "@icon": ""
+                    }, {
+                        "@sender": "Steven Seagal"
+                    }, {
+                        "@subject": "Elyse is a kind girl but sometimes you don't really have enough room to describe everything you'd like and other times it just doesnt make sense"
+                    }, {
+                        "@options": ""
+                    }, {
+                        "@entryTime": "14 Aug"
+                    }]
+                }]
+        }
+    </script>
+    <script src="/assets/js/polyfills/index.min.js"></script>
+    <script src="/components/base.min.js"></script>
+    <script src="/components/mail/index.min.js"></script>
+    <script>
+        const mail = new Mail(jsonData, document.querySelector("#mail"));
+        setTimeout(() => {
+            // mail.appendRow(newRowData);
+        }, 2000);
+        setTimeout(() => {
+            mail.prependRow(newRowData);
+        }, 2000);
+    </script>
+
+</body>
+
+</html>

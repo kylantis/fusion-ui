@@ -3,6 +3,7 @@
     "@title": "",
     "@name": "",
     "@value": "", 
+    "@fluid": true,
     "@buttonStyle": "basic | animated | labeled | icon | disabled | outline | circular",
     "@url": "", 
     "@iconPosition":"left | right",

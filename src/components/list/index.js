@@ -23,6 +23,10 @@ class List extends BaseComponent {
         itemTag.textContent = item;
     }
 
+    prependSiblingItem() {
+
+    }
+
     appendChildItem(parentId, item) {
         const parent = document.getElementById(parentId);
         let parentTag;

@@ -8,7 +8,7 @@ class NavBar extends BaseComponent {
     #componentId = this.getId();
 
     getCssDependencies() {
-        return super.getCssDependencies().concat(['/assets/css/label.min.css', '/assets/css/menu.min.css', '/assets/css/dropdown.min.css', '/assets/css/navbar.min.css', '/assets/css/transition.min.css', '/assets/css/icon.min.css']);
+        return super.getCssDependencies().concat(['/assets/css/label.min.css', '/assets/css/dropdown.min.css', '/assets/css/navbar.min.css', '/assets/css/transition.min.css', '/assets/css/icon.min.css', '/assets/css/menu.min.css']);
     }
 
     getJsDependencies() {
@@ -17,6 +17,10 @@ class NavBar extends BaseComponent {
 
     getComponentId() {
         return this.#componentId;
+    }
+
+    executeStuff() {
+        console.log('stuff executing...');
     }
 
     render() {
@@ -48,6 +52,11 @@ class NavBar extends BaseComponent {
                     });
                 } else if (!item['>']) {
                     itemContainer = document.createElement('a');
+                    if (item['@url']) {
+                        itemContainer.href = item['@url'];
+                    } else {
+                        $(itemContainer).click(item['@onClickEvent']);
+                    }
                     // Todo: Add logic to handling item action
                     itemContainer.className = 'item';
 
@@ -89,10 +98,9 @@ class NavBar extends BaseComponent {
                 if (isFirstNode) {
                     isFirstNode = false;
                 }
-                // if (itemContainer !== undefined) {
-                //     uiDiv.append(itemContainer);
-                // }
-                uiDiv.appendChild(itemContainer);
+                if (itemContainer !== undefined) {
+                    uiDiv.append(itemContainer);
+                }
             }
         }
         uiDiv.classList.add('menu');
@@ -167,8 +175,13 @@ class NavBar extends BaseComponent {
             }
 
             for (const subItem of group[1]) {
-                const itemDiv = document.createElement('div');
+                const itemDiv = document.createElement('a');
                 itemDiv.className = 'item';
+                if (subItem['@url']) {
+                    itemDiv.href = subItem['@url'];
+                } else {
+                    $(itemDiv).click(item['@onClickEvent']);
+                }
 
                 this.renderChildren(itemDiv, subItem, true);
 

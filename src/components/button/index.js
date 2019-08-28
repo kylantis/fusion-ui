@@ -14,18 +14,18 @@ class Button extends BaseComponent {
         return ['click'];
     }
 
-    invokeBehavior(behavior) {
+    invokeBehavior(behavior, data) {
         switch (behavior) {
         case 'click':
-            this.data['@clientCallbacks']['@execute']();
+            data['@clientCallbacks']['@execute']();
             break;
         default:
             break;
         }
     }
 
-    click() {
-        this.invokeBehavior('click');
+    click(data) {
+        this.invokeBehavior('click', data);
     }
 
     getComponentId() {
@@ -39,13 +39,25 @@ class Button extends BaseComponent {
         const buttonId = [];
 
         if (jsonData['@buttonStyle'] === 'basic' || jsonData['@buttonStyle'].length === 0) {
-            button.className = `ui ${jsonData['@size']} button`;
-            button.className += `${jsonData['@color']}`;
+            button.className = 'ui';
+            button.className += ` ${jsonData['@color']}`;
             button.textContent = jsonData['@buttonText'];
+            if (jsonData['@size']) {
+                button.className.add(`${jsonData['@size']}`);
+            }
+            if (jsonData['@fluid']) {
+                button.classList.add('fluid');
+            }
             if (jsonData['@position']) {
                 button.classList.add(jsonData['@position']);
                 button.classList.add('floated');
             }
+            if (jsonData['@iconName']) {
+                const iTag = document.createElement('i');
+                iTag.className += ` ${jsonData['@iconPosition']} ${jsonData['@iconName']} icon`;
+                button.prepend(iTag);
+            }
+            button.classList.add('button');
         } else if (jsonData['@buttonStyle'] === 'animated') {
             const visibleDiv = document.createElement('div');
             const hiddenDiv = document.createElement('div');
@@ -145,7 +157,7 @@ class Button extends BaseComponent {
         buttonId.push(button.getAttribute('id'));
         $(button).click((e) => {
             e.preventDefault();
-            this.click();
+            this.click(this.data);
         });
         node.append(button);
     }

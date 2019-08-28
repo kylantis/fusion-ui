@@ -3,27 +3,28 @@ class Modal extends BaseComponent {
         return 'modal';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     getCssDependencies() {
         if (this.data['@modalStyle'] === 'image') {
             return super.getCssDependencies().concat(['/assets/css/modal.min.css', '/assets/css/dimmer.min.css', '/assets/css/transition.min.css', '/assets/css/custom-modal.min.css']);
         }
-        return super.getCssDependencies().concat(['/assets/css/modal.min.css', '/assets/css/dimmer.min.css', '/assets/css/transition.min.css', '/assets/css/icon.min.css', '/assets/css/button.min.css']);
+        return super.getCssDependencies().concat(['/assets/css/modal.min.css', '/assets/css/dimmer.min.css', '/assets/css/transition.min.css', '/assets/css/icon.min.css', '/assets/css/button.min.css', '/assets/css/input.min.css', '/assets/css/form.min.css', '/assets/css/custom-modal.min.css']);
     }
 
     getJsDependencies() {
         return super.getJsDependencies().concat(['/assets/js/modal.min.js', '/assets/js/dimmer.min.js', '/assets/js/transition.min.js']);
     }
 
-    invokeBehavior(behavior) {
+    invokeBehavior(behavior, data) {
+        const id = data['@id'];
         switch (behavior) {
         case 'open':
-            $('.ui.modal').modal('show');
+            $(`#${id}`).modal('show');
             break;
 
         default:
@@ -31,12 +32,30 @@ class Modal extends BaseComponent {
         }
     }
 
-    openModal() {
-        this.invokeBehavior('open');
+    formResult = {
+        sender: 'User',
+        recepient: '',
+        message: '',
     }
 
-    buttonClicked(answer) {
-        if (answer) {
+    openModal(data) {
+        this.invokeBehavior('open', data);
+    }
+
+    validateEntry() {
+        if (this.data['@modalStyle'] !== 'form') {
+            return true;
+        }
+        if (this.formResult.sender.length > 0 && this.formResult.message.length > 0
+            && this.formResult.recepient.length > 0) {
+            return true;
+        }
+        $('.ui.modal').modal({ onApprove: () => false });
+        return false;
+    }
+
+    buttonClicked(clicked) {
+        if (clicked) {
             this.data['@clientCallback']();
         }
     }
@@ -53,8 +72,10 @@ class Modal extends BaseComponent {
         // eslint-disable-next-line no-unused-vars
         const approveButtonIcon = this.appendNode(approveButton, 'i', 'checkmark icon');
         $(approveButton).click(() => {
-            this.buttonClicked(true);
-            $('.ui.modal').modal('hide');
+            if (this.validateEntry()) {
+                $('.ui.modal').modal('hide');
+                this.buttonClicked(true);
+            }
         });
     }
 
@@ -137,6 +158,46 @@ class Modal extends BaseComponent {
             $(approveButton).click(() => {
                 $('.ui.modal').modal('hide');
             });
+        }
+        if (jsonData['@modalStyle'] === 'form') {
+            // eslint-disable-next-line no-unused-vars
+            const closeIcon = document.createElement('i');
+            closeIcon.className = 'close icon';
+            uiDiv.prepend(closeIcon);
+            headerDiv.textContent = jsonData['@title'];
+            const contentDiv = this.appendNode(uiDiv, 'div', 'content');
+            const formDiv = this.appendNode(contentDiv, 'div', 'ui form');
+            const formHead = this.appendNode(formDiv, 'h4', 'ui dividing header');
+            formHead.textContent = 'Write a message';
+            const nameField = this.appendNode(formDiv, 'div', 'field');
+            const nameLabel = this.appendNode(nameField, 'label', null);
+            nameLabel.textContent = 'Name';
+            const nameInput = this.appendNode(nameField, 'input', null);
+            nameInput.type = 'text';
+            nameInput.placeholder = 'Enter a name';
+            $(nameInput).on('focusout', () => {
+                if ($(nameInput).val().trim().length < 1) {
+                    nameField.classList.add('error');
+                } else {
+                    nameField.classList.remove('error');
+                    this.formResult.recepient = $(nameInput).val();
+                }
+            });
+            const textField = this.appendNode(formDiv, 'div', 'field');
+            const textAreaLabel = this.appendNode(textField, 'label', null);
+            textAreaLabel.textContent = 'Message';
+            // eslint-disable-next-line no-unused-vars
+            const textarea = this.appendNode(textField, 'textarea', null);
+            $(textarea).on('focusout', () => {
+                if ($(textarea).val().trim().length < 1) {
+                    textField.classList.add('error');
+                } else {
+                    textField.classList.remove('error');
+                    this.formResult.message = $(textarea).val();
+                }
+            });
+            const actionsDiv = this.appendNode(uiDiv, 'div', 'actions');
+            this.modalButton(actionsDiv, jsonData);
         }
 
         if (jsonData['@size']) {

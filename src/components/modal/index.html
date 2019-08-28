@@ -11,12 +11,12 @@
     const jsonData = {
       '@id': 'modalOne',
       '@title': 'Profile Picture',
-      '@modalStyle': 'image',
-      '@size': 'mini',
+      '@modalStyle': 'form',
+      '@size': '',
       '@descriptionHeader': 'General Modal Image Stuff',
       '@descriptionText': 'Hello People, Its me again <p>We\'ve grabbed the following image from the',
-      '@approveButtonText': 'Approve',
-      '@denyButtonText': 'Decline',
+      '@approveButtonText': 'Done',
+      '@denyButtonText': 'Cancel',
       '@singleButtonText': 'Close',
       '@singleButtonColor': 'blue',
       '@imageSrc': '/assets/images/nan.jpg',
@@ -34,7 +34,7 @@
   <script src="/components/modal/index.min.js"></script>
   <script>const modal = new Modal(jsonData, document.getElementById('modal'))
   setTimeout(() => {
-      modal.openModal();
+      modal.openModal(jsonData);
     }, 2000);
   </script>
 

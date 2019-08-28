@@ -1,0 +1,30 @@
+.ui {
+    &.card {
+      width: 230px;
+      cursor: default;
+    }
+    &.cards > .card > .content > .header, &.card > .content > .header {
+      display: inline-block;
+    }
+    &.cards > .card > .content, &.card > .content {
+      padding: 1em 1em 0.5em 0.5em;
+    }
+    &.cards > .card > .content > .header:not(.ui), &.card > .content > .header:not(.ui) {
+      font-size: 1.1em;
+    }
+    &.cards > .card .meta *, &.card .meta * {
+      padding: 0em 0em 0em 0.5em;
+    }
+    &.cards > .card > :last-child, &.card > :last-child {
+      margin-bottom: 0.5em;
+    }
+    &.cards > .card > .image:not(.ui) > img, &.card > .image:not(.ui) > img {
+      max-height: 120px;
+    }
+  }
+  
+  i {
+    &.icon, &.icons {
+      font-size: 1.1em;
+    }
+  }

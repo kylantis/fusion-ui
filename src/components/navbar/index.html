@@ -13,13 +13,8 @@
         const jsonData = {
             "@id": "",
             "@title": "",
-            "@icon": "",
             "@navBarType": "standard",
             "@orientation": "vertical",
-            "@navPointer": false,
-            "@separator": false,
-            "@navBarAlignment": "",
-            "@menuStyle": "text",
             ">": [{
                 "@tag": "group",
                 "@position": "left",
@@ -172,6 +167,9 @@
                     "@iconOnly": "true | false",
                     "@iconName": "",
                     "@iconPosition": "left",
+                    "@onClickEvent": () => {
+                        console.log('event called');
+                    },
                     "@url": ""
                 }, {
                     "@tag": "button",
@@ -180,7 +178,7 @@
                     "@iconColor": "green",
                     "@badge": '',
                     "@iconOnly": false,
-                    "@iconPosition": ";eft",
+                    "@iconPosition": "left",
                     "@url": "",
                     ">": {
                         "@id": "navbarButton",
@@ -189,11 +187,11 @@
                         "@iconPosition": "left",
                         "@buttonText": "Compose",
                         "@iconName": "edit",
-                        "@iconPosition": "left",
                         "@color": "yellow",
+                        "@linkedUrl": "https://www.google.com",
                         "@clientCallbacks": {
                             "@execute": () => {
-                                window.location.href = jsonData['@linkedUrl'];
+                                window.location.href = "https://www.google.com";
                             }
                         }
                     }

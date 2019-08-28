@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+</head>
+
+<body>
+    <div id="tile"></div>
+
+    <script>
+        const jsonData = {
+            "@id": "tileOne",
+            "@title": "tile",
+            "@tileHeader": "Getting Started",
+            "@headerIcon": "th",
+            "@secondaryText": "You edited recently",
+            "@tileImage": "/assets/images/placeholder.jpg",
+            "@linkedUrl": "https://www.google.com",
+            "@clientCallbacks": {
+                "@execute": () => {
+                    window.location.href = jsonData['@linkedUrl'];
+                }
+            }
+        }
+    </script>
+    <script src="/assets/js/polyfills/index.min.js"></script>
+    <script src="/components/base.min.js"></script>
+    <script src="/components/tile/index.min.js"></script>
+    <script>
+        new Tile(jsonData, document.querySelector("#tile"));
+    </script>
+
+</body>
+
+</html>
