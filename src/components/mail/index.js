@@ -63,6 +63,7 @@ class Mail extends BaseComponent {
     initializeCheckbox() {
         // Figure out a way to get Checked values
         const checkedValues = new Set();
+        // eslint-disable-next-line no-unused-vars
         function getCheckedValues(val) {
             checkedValues.add(val);
         }
@@ -158,6 +159,7 @@ class Mail extends BaseComponent {
 
     testFunc() {
         this.loadComposeModal().then((data) => {
+            // eslint-disable-next-line no-unused-vars
             const x = Object.getPrototypeOf(data);
             console.log(data);
         });
@@ -330,7 +332,9 @@ class Mail extends BaseComponent {
         const trBody = tbody.insertRow(-1);
         trBody.id = 'optionsRow';
         const iconCell = trBody.insertCell(-1);
+        // eslint-disable-next-line no-unused-vars
         const anotherCell = trBody.insertCell(-1);
+        // eslint-disable-next-line no-unused-vars
         const someCell = trBody.insertCell(-1);
         const checkBoxUi = document.createElement('div');
         checkBoxUi.className = 'ui checkbox';
