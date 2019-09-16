@@ -13,20 +13,38 @@
         const jsonData = {
             "@id": "feedOne",
             "@title": "feed",
-            "@feedStyle": "activityFeed",
-            "@userId": "134",
-            "@userName": "Eliot Fu",
-            "@activity": "added you as a friend",
-            "@time": "1 hour ago",
-            "@avatarImage": "/assets/images/tom.jpg",
-            "@statusText": "Ours is a life of constant reruns. We're always circling back to where we'd we started, then starting all over again. Even if we don't run extra laps that day, we surely will come back for more of the same another day soon.",
-            "@statusImage": [{
-                '@tag': 'image',
-                '@src': '/assets/images/tom.jpg'
+            ">": [{
+                "@tag": "activityFeed",
+                "@userId": "134",
+                "@userName": "Eliot Fu",
+                "@activity": "added you as a friend",
+                "@time": "1 hour ago",
+                "@avatarImage": "/assets/images/tom.jpg",
             }, {
-                '@tag': 'image',
-                '@src': '/assets/images/nan.jpg'
-            }],
+                "@tag": "newsFeed",
+                "@userId": "136",
+                "@userName": "Jacob Fu",
+                "@time": "2 hours ago",
+                "@activity": "updated his status",
+                "@statusText": "Ours is a life of constant reruns. We're always circling back to where we'd we started, then starting all over again. Even if we don't run extra laps that day, we surely will come back for more of the same another day soon.",
+                "@avatarImage": "/assets/images/tom.jpg",
+                "@statusImage": [{
+                    '@tag': 'image',
+                    '@id': 'imageOne',
+                    '@src': '/assets/images/tom.jpg'
+                }, {
+                    '@tag': 'image',
+                    '@id': 'imageTwo',
+                    '@src': '/assets/images/nan.jpg'
+                }]
+            }, {
+                "@tag": "activityFeed",
+                "@userId": "138",
+                "@userName": "Greg Junior",
+                "@activity": "Travelled to Spain",
+                "@time": "3 hours ago",
+                "@avatarImage": "/assets/images/tom.jpg",
+            }]
         }
     </script>
     <script>

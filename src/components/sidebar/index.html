@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+</head>
+
+<body>
+    <div id="sidebar"></div>
+
+    <script>
+        const jsonData = {
+            "@id": "sidebarOne",
+            "@title": "Sidebar",
+            "@orientation": "vertical",
+            "@direction": "right",
+            "@animation": "overlay",
+            "@width": "wide",
+            ">": [
+            {
+                "@tag": "item",
+                "@itemTitle": "Home",
+                "@icon": "home", 
+            }, {
+                "@tag": "item",
+                "@itemTitle": "Not Home",
+                "@icon": "block layout", 
+            }, {
+                "@tag": "item",
+                "@itemTitle": "Address",
+                "@icon": "calendar", 
+            }, {
+                "@tag": "item",
+                "@itemTitle": "Phone",
+                "@icon": "phone", 
+            }]
+        }
+        const userProfileJsonData = {
+            "@id": "sidebarOne",
+            "@title": "Sidebar",
+            "@orientation": "vertical",
+            "@direction": "right",
+            "@animation": "overlay",
+            "@width": "wide",
+            ">": [{
+                "@tag": "userProfile",
+                "@itemTitle": "Phone",
+                "@avatarUrl": "/assets/images/tom.jpg",
+                "@subjectName": "Somebody Someone",
+                "@subjectemail": "somebody@example.com",
+                "@subjectDetail": "Group Managing Director",
+                "@subjectBio": "Employee of the month | Manager of the hour | Man of the year | Best Graduating Student from the University of IDK"
+            }]
+        }
+        const propsJsonData = {
+            "@id": "sidebarOne",
+            "@title": "Sidebar",
+            "@orientation": "vertical",
+            "@direction": "right",
+            "@animation": "overlay",
+            "@width": "wide",
+            ">": [{
+                "@tag": "properties",
+                "@title": "Property",
+                "@imageUrl": "/assets/images/tom.jpg",
+                ">": [{
+                    "@tag": "prop",
+                    "@propName": "Size",
+                    "@propValue": "2 Mb"
+                }, {
+                    "@tag": "prop",
+                    "@propName": "Location",
+                    "@propValue": "Hard Disk"
+                }, {
+                    "@tag": "prop",
+                    "@propName": "Owner",
+                    "@propValue": "Compute Essentials"
+                }, {
+                    "@tag": "prop",
+                    "@propName": "Created",
+                    "@propValue": "Today"
+                }]
+            }]
+        }
+        </script>
+    <script>
+        // This is a polyfill that allows components to do
+        // module.exports = ... in the browser
+        window.module = {
+            exports: {}
+        }
+    </script>
+    <script src="/assets/js/polyfills/index.min.js"></script>
+    <script src="/components/base.min.js"></script>
+    <script src="/components/sidebar/index.min.js"></script>
+    <script>const sidebar = new Sidebar(userProfileJsonData, document.querySelector('#sidebar'));</script>
+</body>
+
+</html>

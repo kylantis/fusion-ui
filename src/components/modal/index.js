@@ -88,7 +88,11 @@ class Modal extends BaseComponent {
 
         if (jsonData['@modalStyle'] === 'image') {
             uiDiv.classList.add('basic');
-            const imageDiv = this.appendNode(uiDiv, 'div', 'ui large image');
+            const imageDiv = this.appendNode(uiDiv, 'div', 'ui');
+            if (jsonData['@size']) {
+                imageDiv.classList.add(jsonData['@size']);
+            }
+            imageDiv.classList.add('image');
             const imgTag = this.appendNode(imageDiv, 'img');
             imgTag.src = jsonData['@imageSrc'];
         }
@@ -159,6 +163,7 @@ class Modal extends BaseComponent {
                 $('.ui.modal').modal('hide');
             });
         }
+
         if (jsonData['@modalStyle'] === 'form') {
             // eslint-disable-next-line no-unused-vars
             const closeIcon = document.createElement('i');

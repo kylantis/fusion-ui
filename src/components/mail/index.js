@@ -48,7 +48,7 @@ class Mail extends BaseComponent {
 
     appendRow(data) {
         const lastRow = $('#workingTableBody');
-        this.createRows(data, lastRow[0]);
+        this.createRows(data, lastRow[0], false);
         this.initializeCheckbox();
         this.initializeRating();
     }
@@ -84,29 +84,45 @@ class Mail extends BaseComponent {
         //     console.log(checkedValues);
         // }
 
-        $('.ui.checkbox')
+        // $('.ui.checkbox')
+        //     .checkbox({
+        //         onChecked() {
+        //             let element;
+        //             $('input:checkbox:checked').closest('tr').each((a, val) => {
+        //                 if (val.id === 'optionsRow') {
+        //                     $('input:checkbox').not('#selectAll').prop('checked', this.checked);
+        //                     $('tr').not('#optionsRow').css('background-color', '#f2f2f2');
+        //                 } else {
+        //                     element = val.id;
+        //                     $(`#${element}`).css('background-color', '#f2f2f2');
+        //                 }
+        //             });
+        //         },
+        //         onUnchecked() {
+        //             $('input:checkbox').closest('tr').each((a, val) => {
+        //                 $('#selectAll').on('change', () => {
+        //                     $('input[name="mailCheckbox"]').prop('checked', false);
+        //                     $('tr').not('#optionsRow').css('background-color', '#ffffff');
+        //                 });
+        //                 $('input:checkbox').on('change', () => {
+        // eslint-disable-next-line max-len
+        //                 $('tr').not('#optionsRow').not(':checked').css('background-color', '#ffffff');
+        //                 });
+        //             });
+        //         },
+        //     });
+
+        $('.ui .checkbox')
             .checkbox({
+                // check all children
                 onChecked() {
-                    let element;
-                    $('input:checkbox:checked').closest('tr').each((a, val) => {
-                        if (val.id === 'optionsRow') {
-                            $('input:checkbox').not('#selectAll').prop('checked', this.checked);
-                            $('tr').not('#optionsRow').css('background-color', '#f2f2f2');
-                        } else {
-                            element = val.id;
-                            $(`#${element}`).css('background-color', '#f2f2f2');
-                        }
-                    });
+                    const $childCheckbox = $('#optionsRow').closest('tr').not('#optionsRow').find('.child');
+                    $childCheckbox.checkbox('check');
                 },
+                // uncheck all children
                 onUnchecked() {
-                    $('input:checkbox').closest('tr').each((a, val) => {
-                        if (val.id === 'workingTableBody') {
-                            $('input[name="mailCheckbox"]').prop('checked', false);
-                            $('tr').not('#optionsRow').css('background-color', '#ffffff');
-                        } else {
-                            $(`#${val.id}`).css('background-color', '#ffffff');
-                        }
-                    });
+                    const $childCheckbox = $('#optionsRow').closest('tr').not('#optionsRow').find('.child');
+                    $childCheckbox.checkbox('uncheck');
                 },
             });
     }
@@ -161,7 +177,7 @@ class Mail extends BaseComponent {
         this.loadComposeModal().then((data) => {
             // eslint-disable-next-line no-unused-vars
             const x = Object.getPrototypeOf(data);
-            console.log(data);
+            console.log(x.getResult());
         });
     }
 
@@ -239,13 +255,19 @@ class Mail extends BaseComponent {
         this.invokeBehavior('deleteMessage', el);
     }
 
-    createRows(data, parent) {
+    createRows(data, parent, prepend = true) {
         if (data.length > 0) {
             let rowId = 0;
             for (let i = 0; i < data.length; i++) {
                 const rowData = data[i];
                 if (rowData['@tag'] === 'mail') {
-                    const trBody = parent.insertRow(0);
+                    let trBody;
+                    if (prepend) {
+                        trBody = parent.insertRow(0);
+                    } else {
+                        trBody = parent.insertRow(-1);
+                    }
+                    trBody.className = 'mailRow';
                     if (!rowData['@id']) {
                         trBody.id = `mail-${rowId += 1}`;
                     } else {
@@ -262,7 +284,7 @@ class Mail extends BaseComponent {
                             if (key === '@icon') {
                                 iconCell.className = 'left aligned first';
                                 const checkBoxUi = document.createElement('div');
-                                checkBoxUi.className = 'ui checkbox';
+                                checkBoxUi.className = 'ui child checkbox';
                                 const checkBox = document.createElement('input');
                                 checkBox.type = 'checkbox';
                                 checkBox.name = 'mailCheckbox';

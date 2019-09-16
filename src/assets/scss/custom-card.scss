@@ -1,7 +1,10 @@
 .ui {
-    &.card {
-      width: 230px;
+    &.cards > .card {
+      width: 250px;
       cursor: default;
+    }
+    &.cards > .pill.card:hover {
+      background-color: rgb(238, 245, 247);
     }
     &.cards > .card > .content > .header, &.card > .content > .header {
       display: inline-block;
@@ -18,8 +21,8 @@
     &.cards > .card > :last-child, &.card > :last-child {
       margin-bottom: 0.5em;
     }
-    &.cards > .card > .image:not(.ui) > img, &.card > .image:not(.ui) > img {
-      max-height: 120px;
+    &.cards > .card > .image > img, &.card > .image > img {
+      height: 160px;
     }
   }
   
@@ -27,4 +30,8 @@
     &.icon, &.icons {
       font-size: 1.1em;
     }
+  }
+
+  h1:first-child, h2:first-child, h3:first-child, h4:first-child, h5:first-child {
+    margin-top: 1em;
   }

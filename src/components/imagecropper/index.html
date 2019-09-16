@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+</head>
+
+<body>
+    <div id='view'></div>
+
+    <script>
+        const jsonData = {
+            '@id': 'imageCropperOne',
+            '@imgSrc': '/assets/images/tom.jpg',
+        }
+    </script>
+    <script src="/assets/js/polyfills/index.min.js"></script>
+    <script src="/components/base.min.js"></script>
+    <script src="/components/imagecropper/index.min.js"></script>
+    <script>const imageCropper = new ImageCropper(jsonData, document.getElementById('view'))</script>
+</body>
+
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+</head>
+
+<body>
+  <div id='view'></div>
+  
+  <script>
+    const jsonData = {
+      '@id': 'dockerOne',
+      '>': [{
+        '@tag': 'menu',
+        '@imgSrc': '/assets/images/dock-menu/home.png',
+        '@imgLink': '#',
+        '@title': 'Home'
+      }, {
+        '@tag': 'menu',
+        '@imgSrc': '/assets/images/dock-menu/email.png',
+        '@imgLink': '#',
+        '@title': 'Email'
+      }, {
+        '@tag': 'menu',
+        '@imgSrc': '/assets/images/dock-menu/portfolio.png',
+        '@imgLink': '#',
+        '@title': 'PortFolio'
+      }, {
+        '@tag': 'menu',
+        '@imgSrc': '/assets/images/dock-menu/music.png',
+        '@imgLink': '#',
+        '@title': 'Music'
+      }, {
+        '@tag': 'menu',
+        '@imgSrc': '/assets/images/dock-menu/video.png',
+        '@imgLink': '#',
+        '@title': 'Video'
+      }, {
+        '@tag': 'menu',
+        '@imgSrc': '/assets/images/dock-menu/history.png',
+        '@imgLink': '#',
+        '@title': 'History'
+      }, {
+        '@tag': 'menu',
+        '@imgSrc': '/assets/images/dock-menu/calendar.png',
+        '@imgLink': '#',
+        '@title': 'Calendar'
+      }, {
+        '@tag': 'menu',
+        '@imgSrc': '/assets/images/dock-menu/link.png',
+        '@imgLink': '#',
+        '@title': 'Links'
+      }, {
+        '@tag': 'menu',
+        '@imgSrc': '/assets/images/dock-menu/rss.png',
+        '@imgLink': '#',
+        '@title': 'RSS'
+      }]
+    }
+  </script>
+  <script src="/assets/js/polyfills/index.min.js"></script>
+  <script src="/components/base.min.js"></script>
+  <script src="/components/dock-menu/index.min.js"></script>
+  <script>const viewer = new DockMenu(jsonData, document.getElementById('view'))</script>
+</body>
+
+</html>

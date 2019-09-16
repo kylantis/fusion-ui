@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+</head>
+
+<body>
+    <div id='view'></div>
+
+    <script>
+        const jsonData = {
+            '@id': 'megamenuOne',
+            '@menuTitle': 'Home',
+            '@homeURL': '#',
+            '@imgSrc': 'https://images.pexels.com/photos/67636/rose-blue-flower-rose-blooms-67636.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=1000',
+            '>': [{
+                '@tag': 'menu',
+                '@link': '#',
+                '@megaMenu': false,
+                '@title': 'Home'
+            }, {
+                '@tag': 'menu',
+                '@megaMenu': true,
+                '@link': '#',
+                '@title': 'Services',
+                '>': [{
+                    '@tag': 'subMenuHeading',
+                    '@link': '#',
+                    '@title': 'Web Design',
+                    '>': [{
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Website Sliders',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Multiple Sliders',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Full Screen Sliders',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'One Page Site',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Parallax Website',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Dynamic Parallax Website',
+                    }]
+                }, {
+                    '@tag': 'subMenuHeading',
+                    '@link': '#',
+                    '@title': 'Layouts',
+                    '>': [{
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Headers Footers',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Ultra Responsive',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Tons of Layout',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Page Builder',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Many Available Icons',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Dynamic Parallax Website',
+                    }]
+                }, {
+                    '@tag': 'subMenuHeading',
+                    '@link': '#',
+                    '@title': 'Campaigns',
+                    '>': [{
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Marketing Materials',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Unlimited Tryouts',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Social Media Contents',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Brochures',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Smooth Fade In',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Dynamic Parallax Website',
+                    }]
+                }, {
+                    '@tag': 'subMenuHeading',
+                    '@link': '#',
+                    '@title': 'E-Commerce',
+                    '>': [{
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Magento Templates',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Wordpress Templates',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'OpenChart Templates',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'OpenBook Templates',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Unlimited Trials',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Customized Templates',
+                    }]
+                }]
+            }, {
+                '@tag': 'menu',
+                '@link': '#',
+                '@megaMenu': true,
+                '@title': 'Pages',
+                '>': [{
+                    '@tag': 'subMenuHeading',
+                    '@link': '#',
+                    '@title': 'Modern Layout',
+                    '>': [{
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '4 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '4 Columns Grid',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '3 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '3 Columns Grid',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '2 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '2 Columns Grid',
+                    }]
+                }, {
+                    '@tag': 'subMenuHeading',
+                    '@link': '#',
+                    '@title': 'Classic Layout',
+                    '>': [{
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '4 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '4 Columns Grid',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '3 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '3 Columns Grid',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '2 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '2 Columns Grid',
+                    }]
+                }, {
+                    '@tag': 'subMenuHeading',
+                    '@link': '#',
+                    '@title': 'Art Classic Layout',
+                    '>': [{
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '4 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '4 Columns Grid',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '3 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '3 Columns Grid',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '2 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '2 Columns Grid',
+                    }]
+                }, {
+                    '@tag': 'subMenuHeading',
+                    '@link': '#',
+                    '@title': 'Single Portfolio',
+                    '>': [{
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '4 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '4 Columns Grid',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '3 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '3 Columns Grid',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '2 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '2 Columns Grid',
+                    }]
+                }]
+            }, {
+                '@tag': 'menu',
+                '@link': '#',
+                '@megaMenu': false,
+                '@title': 'Portfolio'
+            }, {
+                '@tag': 'menu',
+                '@link': '#',
+                '@megaMenu': false,
+                '@title': 'Blog'
+            }, {
+                '@tag': 'menu',
+                '@link': '#',
+                '@megaMenu': false,
+                '@title': 'Elements'
+            }]
+        }
+    </script>
+    <script src="/assets/js/polyfills/index.min.js"></script>
+    <script src="/components/base.min.js"></script>
+    <script src="/components/megamenu/index.min.js"></script>
+    <script>const megamenu = new MegaMenu(jsonData, document.getElementById('view'))</script>
+</body>
+
+</html>

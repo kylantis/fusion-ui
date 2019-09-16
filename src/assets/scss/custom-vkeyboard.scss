@@ -1,0 +1,12 @@
+#search_field {
+    display: block;
+    margin: 0 auto;
+    padding: 5px 10px;
+    font-size: 28px; 
+    width: 50%;
+}
+
+input[type="text"], input[type="email"], input[type="search"], input[type="password"] {
+    -webkit-appearance: textarea;
+    appearance: textarea;
+}
