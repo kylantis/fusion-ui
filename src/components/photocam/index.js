@@ -80,6 +80,8 @@ class PhotoCam extends BaseComponent {
         const context = canvas.getContext('2d');
         snap.addEventListener('click', () => {
             context.drawImage(video, 0, 0, 400, 300);
+            const image = canV.toDataURL('img/jpeg');
+            console.log(image);
         });
     }
 }

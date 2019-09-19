@@ -17,6 +17,26 @@ class VirtualKeyboard extends BaseComponent {
         return this.#componentId;
     }
 
+    getBehaviourNames() {
+        return [
+            'getValue',
+        ];
+    }
+
+    invokeBehavior(behaviorName, data) {
+        switch (behaviorName) {
+        case 'getValue':
+            return $('#search_field').val();
+        default:
+            break;
+        }
+        return null;
+    }
+
+    getValue() {
+        this.invokeBehavior('getValue', null);
+    }
+
     render() {
         const { node } = this;
         const inputDiv = document.createElement('input');
@@ -30,6 +50,7 @@ class VirtualKeyboard extends BaseComponent {
             layout: 'english',
             input: $('#search_field'),
         });
+        $('li .return').click(() => this.getValue());
     }
 }
 

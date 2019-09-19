@@ -51,7 +51,7 @@ class Select extends BaseComponent {
                 return (() => {
                     const select = this.node.querySelector('select');
                     // eslint-disable-next-line
-                        const id = select.id;
+                    const id = select.id;
                     let val = [];
                     val = $(`${id} .active, .filtered`);
                     const values = [];

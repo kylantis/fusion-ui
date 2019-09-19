@@ -1,2 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<growl title="" severity="success | error | warning" icon-name=""  delay="3000ms | 5000ms" message="Hi there" />

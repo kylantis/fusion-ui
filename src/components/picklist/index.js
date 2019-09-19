@@ -3,7 +3,7 @@ class PickList extends BaseComponent {
         return 'picklist';
     }
 
-    componentId = this.getId();
+    #componentId = this.getId();
 
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/picklist.min.css']);
@@ -14,7 +14,27 @@ class PickList extends BaseComponent {
     }
 
     getComponentId() {
-        return this.componentId;
+        return this.#componentId;
+    }
+
+    behaviorNames() {
+        return ['getSelectedValue'];
+    }
+
+    getSelectedValue() {
+        this.invokeBehavior('getSelectedValue', null);
+    }
+
+    invokeBehavior(behavior, data) {
+        const values = $('ul.pickList_targetList').children();
+        switch (behavior) {
+        case 'getSelectedValue':
+            return values.each((i, val) => $(val).text());
+
+        default:
+            break;
+        }
+        return null;
     }
 
     render() {
@@ -34,6 +54,9 @@ class PickList extends BaseComponent {
                 select.appendChild(optionsTag);
             });
         }
+        $('#submit').click(() => {
+            this.getSelectedValue();
+        });
         node.append(select);
         $(`#${this.getComponentId()}`).pickList();
     }
