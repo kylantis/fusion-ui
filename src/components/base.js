@@ -20,12 +20,11 @@ class BaseComponent {
                 this.render();
             });
         }
-
-        // eslint-disable-next-line func-names
-        this.getId = function () {
-            return this.data.id;
-        };
     }
+
+    getId() {
+         return this.data.id;
+     };
 
     static init() {
         if (BaseComponent.#initialized) {
