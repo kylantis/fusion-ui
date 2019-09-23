@@ -14,7 +14,7 @@ class Rating extends BaseComponent {
         return super.getJsDependencies().concat(['/assets/js/rating.min.js']);
     }
 
-    getId(event) {
+    getRatingId(event) {
         return event.target.parentNode.id;
     }
 
@@ -23,7 +23,7 @@ class Rating extends BaseComponent {
     }
 
     getRating(e) {
-        const value = document.getElementById(this.getId(e));
+        const value = document.getElementById(this.getRatingId(e));
         const rating = value.querySelectorAll('.active').length;
         return rating;
     }
