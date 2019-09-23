@@ -52,7 +52,7 @@ class Comment extends BaseComponent {
     }
 
     invokeBehavior(behavior, el, comment) {
-        const parent = $(`#${this.componentId}`);
+        const parent = $(`#${this.getComponentId()}`);
         const lastDiv = $(parent).children('div').last();
         const commentNode = $(el).parent().closest('[id]')[0];
         const commentDiv = document.createElement('div');
@@ -241,7 +241,7 @@ class Comment extends BaseComponent {
             this.setCommentBox(commentDiv);
             this.loadModal().then((data) => {
                 const x = Object.getPrototypeOf(data);
-                x.openModal();
+                x.openModal(this.modalData);
             });
         });
         if (element['>']) {

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+</head>
+
+<body>
+  <div id='view'></div>
+  
+  <script>
+    const jsonData = {
+      '@id': 'viewerOne',
+    }
+  </script>
+  <script src="/assets/js/polyfills/index.min.js"></script>
+  <script src="/components/base.min.js"></script>
+  <script src="/components/file-upload/index.min.js"></script>
+  <script>const photoCam = new FileUpload(jsonData, document.getElementById('view'))</script>
+
+</body>
+
+</html>

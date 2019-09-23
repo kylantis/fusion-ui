@@ -8,19 +8,19 @@ class NavBar extends BaseComponent {
     #componentId = this.getId();
 
     getCssDependencies() {
-        const baseDependencies = super.getCssDependencies();
-        baseDependencies.push('/assets/css/label.min.css', '/assets/css/menu.min.css', '/assets/css/dropdown.min.css', '/assets/css/navbar.min.css', '/assets/css/transition.min.css');
-        return baseDependencies;
+        return super.getCssDependencies().concat(['/assets/css/label.min.css', '/assets/css/dropdown.min.css', '/assets/css/navbar.min.css', '/assets/css/transition.min.css', '/assets/css/icon.min.css', '/assets/css/menu.min.css']);
     }
 
     getJsDependencies() {
-        const baseDependencies = super.getJsDependencies();
-        baseDependencies.push('/assets/js/dropdown.min.js', '/components/navbar/custom.min.js', '/assets/js/transition.min.js');
-        return baseDependencies;
+        return super.getJsDependencies().concat(['/assets/js/dropdown.min.js', '/components/navbar/custom.min.js', '/assets/js/transition.min.js']);
     }
 
     getComponentId() {
         return this.#componentId;
+    }
+
+    executeStuff() {
+        console.log('stuff executing...');
     }
 
     render() {
@@ -46,10 +46,17 @@ class NavBar extends BaseComponent {
                 if (item['@tag'] !== 'item') {
                     // Render external component
                     // Note: This is not fleshed out yet
-
-
+                    const comp = BaseComponent.getComponent(item['@tag'], item['>'], uiDiv);
+                    comp.then((data) => {
+                        itemContainer = data;
+                    });
                 } else if (!item['>']) {
                     itemContainer = document.createElement('a');
+                    if (item['@url']) {
+                        itemContainer.href = item['@url'];
+                    } else {
+                        $(itemContainer).click(item['@onClickEvent']);
+                    }
                     // Todo: Add logic to handling item action
                     itemContainer.className = 'item';
 
@@ -91,8 +98,9 @@ class NavBar extends BaseComponent {
                 if (isFirstNode) {
                     isFirstNode = false;
                 }
-
-                uiDiv.appendChild(itemContainer);
+                if (itemContainer !== undefined) {
+                    uiDiv.append(itemContainer);
+                }
             }
         }
         uiDiv.classList.add('menu');
@@ -118,6 +126,9 @@ class NavBar extends BaseComponent {
                 badgeDiv.className = 'ui teal left label';
 
                 parentNode.appendChild(badgeDiv);
+            } else if (item['@iconName']) {
+                // eslint-disable-next-line no-unused-vars
+                const iconTag = this.appendNode(parentNode, 'i', `icon ${item['@iconName']} ${item['@iconColor']}`);
             }
             return;
         }
@@ -164,8 +175,13 @@ class NavBar extends BaseComponent {
             }
 
             for (const subItem of group[1]) {
-                const itemDiv = document.createElement('div');
+                const itemDiv = document.createElement('a');
                 itemDiv.className = 'item';
+                if (subItem['@url']) {
+                    itemDiv.href = subItem['@url'];
+                } else {
+                    $(itemDiv).click(item['@onClickEvent']);
+                }
 
                 this.renderChildren(itemDiv, subItem, true);
 

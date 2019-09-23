@@ -117,56 +117,56 @@ class Table extends BaseComponent {
 
         const tableId = [];
 
-        if (jsonData['@tableStyle'] === 'standard') {
-            const table = document.createElement('table');
-            const thead = document.createElement('thead');
-            const tbody = document.createElement('tbody');
-            table.className = 'ui ';
-            let id;
-            if (jsonData['@id']) {
-                id = jsonData['@id'];
-            } else {
-                id = `table-${this.getRandomInt()}`;
-            }
-            // set hoverable attribute
-            if (jsonData['@isHoverable']) {
-                table.classList.add('selectable');
-            }
-            // set responsive behavior
-            if (jsonData['@isResponsive']) {
-                table.classList.add('tablet');
-                table.classList.add('stackable');
-            }
-            if (jsonData['@color'].length > 0) {
-                table.classList.add(jsonData['@color']);
-            }
-            if (jsonData['@isStriped']) {
-                table.classList.add('striped');
-            }
-            if (jsonData['@singleLine']) {
-                table.classList.remove('celled');
-                table.classList.add('single');
-                table.classList.add('line');
-            }
-            if (jsonData['@isInverted']) {
-                table.classList.remove('celled');
-                table.classList.add('single');
-                table.classList.add('line');
-                table.classList.add('inverted');
-            }
-            if (jsonData['@isFixed']) {
-                table.classList.remove('stackable');
-                table.classList.remove('tablet');
-                table.classList.add('fixed');
-            }
-            if (jsonData['@hasBorder']) {
-                table.classList.add('celled');
-            }
-            table.classList.add('table');
+        const table = document.createElement('table');
+        const thead = document.createElement('thead');
+        const tbody = document.createElement('tbody');
+        table.classList.add('ui');
+        let id;
+        if (jsonData['@id']) {
+            id = jsonData['@id'];
+        } else {
+            id = `table-${this.getRandomInt()}`;
+        }
+        // set hoverable attribute
+        if (jsonData['@isHoverable']) {
+            table.classList.add('selectable');
+        }
+        // set responsive behavior
+        if (jsonData['@isResponsive']) {
+            table.classList.add('tablet');
+            table.classList.add('stackable');
+        }
+        if (jsonData['@color'].length > 0) {
+            table.classList.add(jsonData['@color']);
+        }
+        if (jsonData['@isStriped']) {
+            table.classList.add('striped');
+        }
+        if (jsonData['@singleLine']) {
+            table.classList.remove('celled');
+            table.classList.add('single');
+            table.classList.add('line');
+        }
+        if (jsonData['@isInverted']) {
+            table.classList.remove('celled');
+            table.classList.add('single');
+            table.classList.add('line');
+            table.classList.add('inverted');
+        }
+        if (jsonData['@isFixed']) {
+            table.classList.remove('stackable');
+            table.classList.remove('tablet');
+            table.classList.add('fixed');
+        }
+        if (jsonData['@hasBorder']) {
+            table.classList.add('celled');
+        }
+        table.classList.add('table');
 
+
+        if (jsonData['@tableStyle'] === 'standard') {
             table.append(thead);
             table.append(tbody);
-
             // Create header row
             const trHead = thead.insertRow(-1);
 
@@ -215,12 +215,40 @@ class Table extends BaseComponent {
                     }
                 }
             }
-
-            tableId.push(`#${table.getAttribute('id')}`);
-            table.setAttribute('id', this.getComponentId());
-
-            node.appendChild(table);
         }
+
+        if (jsonData['@tableStyle'] === 'inbox') {
+            table.append(tbody);
+            if (jsonData['>'].length > 0) {
+                let rowId = 0;
+                for (let i = 1; i < this.data['>'].length; i++) {
+                    const rowData = this.data['>'][i];
+                    if (rowData['@tag'] === 'row') {
+                        const trBody = tbody.insertRow(-1);
+                        trBody.id = `${id}-row-${rowId += 1}`;
+                        if (!rowData['@id']) {
+                            trBody.id = `${id}-row-${rowId += 1}`;
+                        } else {
+                            trBody.id = rowData['@id'];
+                        }
+                        const innerRowData = rowData['>'];
+                        for (let j = 0; j < innerRowData.length; j++) {
+                            for (const [key, value] of Object.entries(rowData['>'][j])) {
+                                if (key === '@value') {
+                                    const tableCell = trBody.insertCell(-1);
+                                    tableCell.id = `${id}-${trBody.id}-${j + 1}`;
+                                    tableCell.innerHTML = value;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        tableId.push(`#${table.getAttribute('id')}`);
+        table.setAttribute('id', this.getComponentId());
+
+        node.appendChild(table);
     }
 }
 module.exports = Table;

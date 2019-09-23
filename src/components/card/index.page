@@ -1,8 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<card title="" type="simple | advanced" hoverable="true | false">
-    <header title="" profileImageUrl="" profileImagePos="left | right" >
-        <image src="" alt="" imageSlide="true | false" />
-    </header>   
-    <content title="" >  </content>
-    <footer></footer>
-</card>

@@ -1,0 +1,18 @@
+{
+    "@id": "modalOne",
+    "@title": "Profile Picture",
+    "@modalStyle": "form | standard | basic | notification",
+    "@size": "",
+    "@descriptionHeader": "General Modal Image Stuff",
+    "@descriptionText": "Hello People, Its me again <p>We\\'ve grabbed the following image from the",
+    "@approveButtonText": "Done",
+    "@denyButtonText": "Cancel",
+    "@singleButtonText": "Close",
+    "@singleButtonColor": "blue",
+    "@imageSrc": "/assets/images/nan.jpg",
+    "@modalIcon": "archive",
+    "@imageWidth": "",
+    "@imageHeight": "",
+    "@hasServerCallback": true,
+    "@clientCallback": "function() { console.log(\"modal client call back\")}"
+}

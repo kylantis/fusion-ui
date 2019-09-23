@@ -1,0 +1,28 @@
+{
+    "@id": "menuOne",
+    "@displayStyle": "basic",
+    "@title": "",
+    "@position": "left",
+    "menuDisplayStyle": "iconMenu | labeledIconMenu | compactLabeled",
+    "@pointing": false,
+    "@secondaryPointing": false,
+    ">": [{
+        "@tag": "menu",
+        "@isComponent": false,
+        "@title": "Menu One",
+        "@iconName": "",
+
+    }, {
+        "@tag": "menu",
+        "@isComponent": false,
+        "@title": "Menu Two",
+        "@iconName": "",
+
+    }, {
+        "@tag": "menu",
+        "@isComponent": false,
+        "@title": "Menu Three",
+        "@iconName": "",
+
+    }]
+}

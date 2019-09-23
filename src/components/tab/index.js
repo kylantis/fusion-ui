@@ -7,15 +7,11 @@ class Tab extends BaseComponent {
     #componentId = this.getId();
 
     getCssDependencies() {
-        const baseDependencies = super.getCssDependencies();
-        baseDependencies.push('/assets/css/menu.min.css', '/assets/css/tab.min.css', '/assets/css/transition.min.css');
-        return baseDependencies;
+        return super.getCssDependencies().concat(['/assets/css/menu.min.css', '/assets/css/tab.min.css', '/assets/css/transition.min.css']);
     }
 
     getJsDependencies() {
-        const baseDependencies = super.getJsDependencies();
-        baseDependencies.push('/assets/js/tab.min.js', '/assets/js/transition.min.js');
-        return baseDependencies;
+        return super.getJsDependencies().concat(['/assets/js/tab.min.js', '/assets/js/transition.min.js']);
     }
 
     getComponentId() {

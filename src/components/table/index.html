@@ -53,13 +53,13 @@
         const jsonData = {
             "@id": "tableOne",
             "@title": "People Of The World",
-            "@tableStyle": "standard",
+            "@tableStyle": "inbox",
             "@isHoverable": true,
             "@isResponsive": true,
             "@textAlign": "center",
             "@isStriped": false,
-            "@hasBorder": true,
-            "@singleLine": false,
+            "@hasBorder": false,
+            "@singleLine": true,
             "@isInverted": false,
             "@color": "blue",
             "@isDataTable": false,
@@ -97,10 +97,10 @@
                     "@value": "Engineer"
                 }, {
                     "@tag": "column",
-                    "@value": "125000.60"
+                    "@value": "Elyse is a kind girl but sometimes you don't really have enough room to describe everything you'd like"
                 }, {
                     "@tag": "column",
-                    "@value": "James is an interesting boy but sometimes you don't really have enough room to describe everything you'd like"
+                    "@value": "125000.60"
                 }]
             }, {
                 "@tag": "row",
@@ -116,10 +116,10 @@
                     "@value": "Engineer"
                 }, {
                     "@tag": "column",
-                    "@value": "516000.00"
+                    "@value": "Elyse is a kind girl but sometimes you don't really have enough room to describe everything you'd like"
                 }, {
                     "@tag": "column",
-                    "@value": "Jill is an alright girl but sometimes you don't really have enough room to describe everything you'd like"
+                    "@value": "516000.00"
                 }]
             }, {
                 "@tag": "row",
@@ -135,10 +135,10 @@
                     "@value": "Designer"
                 }, {
                     "@tag": "column",
-                    "@value": "210000.40"
+                    "@value": "Elyse is a kind girl but sometimes you don't really have enough room to describe everything you'd like"
                 }, {
                     "@tag": "column",
-                    "@value": "Elyse is a kind girl but sometimes you don't really have enough room to describe everything you'd like"
+                    "@value": "210000.40"
                 }]
             }]
         }
@@ -150,7 +150,7 @@
     <script>
         const tableId = document.getElementById('table');
         let table = new Table(jsonData, document.querySelector("#table"));
-        setTimeout(() => table.appendRow(appendRowData), 2500);
+        // setTimeout(() => table.appendRow(appendRowData), 2500);
         
         // tableId.addEventListener('dblclick', (event) => {
         //     table.deleteRow(Table.getRow(event));

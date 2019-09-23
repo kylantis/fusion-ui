@@ -1,3 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<modal title="" style="standard | basic" size="fullscreen | small | large | long" overlays="inverted | blur" 
-    effects="fade | fade-up | horizontal-flip | vertical-flip | scale" />

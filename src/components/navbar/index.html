@@ -13,32 +13,27 @@
         const jsonData = {
             "@id": "",
             "@title": "",
-            "@icon": "",
             "@navBarType": "standard",
-            "@orientation": "horizontal",
-            "@navPointer": false,
-            "@separator": false,
-            "@navBarAlignment": "",
-            "@menuStyle": "text",
+            "@orientation": "vertical",
             ">": [{
                 "@tag": "group",
                 "@position": "left",
                 ">": [{
                     "@tag": "item",
                     "@title": "Home",
-                    "@iconName": "",
-                    "@badge": 5,
+                    "@iconName": "home",
+                    "@iconColor": "red",
+                    "@badge": '',
                     "@iconOnly": false,
                     "@iconPosition": "",
-                    "@active": false,
                     "@url": ""
                 }, {
                     "@tag": "item",
                     "@title": "News",
                     "@iconOnly": true,
-                    "@iconName": "",
+                    "@iconName": "newspaper",
+                    "@iconColor": "green",
                     "@iconPosition": "right",
-                    "@active": false,
                     "@url": "",
                     ">": [{
                         "@tag": "item",
@@ -65,7 +60,7 @@
                             "@tag": "item",
                             "@title": "Golf News",
                             "@url": "",
-                            "@badge": 3
+                            "@badge": ''
                         }, {
                             "@tag": "item",
                             "@title": "Tennis News",
@@ -74,7 +69,7 @@
                                 "@tag": "item",
                                 "@title": "Sports News",
                                 "@url": "",
-                                "@badge": 1,
+                                "@badge": '',
                             }, {
                                 "@tag": "item",
                                 "@title": "Football News",
@@ -97,7 +92,7 @@
                                     "@url": ""
                                 }, {
                                     "@tag": "item",
-                                    "@badge": 2,
+                                    "@badge": '',
                                     "@title": "Football News",
                                     "@url": ""
                                 }, {
@@ -119,7 +114,7 @@
                         "@tag": "item",
                         "@title": "BasketBall News",
                         "@url": "",
-                        "@badge": 9,
+                        "@badge": '',
                     }, {
                         "@tag": "item",
                         "@title": "Golf News",
@@ -172,8 +167,35 @@
                     "@iconOnly": "true | false",
                     "@iconName": "",
                     "@iconPosition": "left",
-                    "@active": false,
+                    "@onClickEvent": () => {
+                        console.log('event called');
+                    },
                     "@url": ""
+                }, {
+                    "@tag": "button",
+                    "@title": "Compose",
+                    "@iconName": "write",
+                    "@iconColor": "green",
+                    "@badge": '',
+                    "@iconOnly": false,
+                    "@iconPosition": "left",
+                    "@url": "",
+                    ">": {
+                        "@id": "navbarButton",
+                        "@fluid": true,
+                        "@buttonStyle": "basic",
+                        "@iconPosition": "left",
+                        "@buttonText": "Compose",
+                        "@iconName": "edit",
+                        "@color": "yellow",
+                        "@linkedUrl": "https://www.google.com",
+                        "@clientCallbacks": {
+                            "@execute": () => {
+                                window.location.href = "https://www.google.com";
+                            }
+                        }
+                    }
+
                 }]
             }]
         }

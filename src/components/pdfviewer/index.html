@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+</head>
+
+<body>
+  <div id='view'></div>
+  
+  <script>
+    const jsonData = {
+      '@id': 'viewerOne',
+      '@pdfSrc': 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    }
+  </script>
+  <script src="/assets/js/polyfills/index.min.js"></script>
+  <script src="/components/base.min.js"></script>
+  <script src="/components/pdfviewer/index.min.js"></script>
+  <script>const viewer = new Viewer(jsonData, document.getElementById('view'))</script>
+
+</body>
+
+</html>

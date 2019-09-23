@@ -7,6 +7,7 @@ module.exports = {
   },
   parser: "babel-eslint",
   rules: {
+    'strict': 0,
     "no-restricted-syntax": ["error" /*"ForInStatement"*//*", ForOfStatement"*/, "LabeledStatement", "WithStatement"], // Todo: Except when necessary, remove this and refractor affected files
     'no-plusplus': ['error', { "allowForLoopAfterthoughts": true }], // Todo: Except when necessary, remove this and refractor affected files,
     'linebreak-style': 0, // Team members use various operating systems, hence multiple line break styles

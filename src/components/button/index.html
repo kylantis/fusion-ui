@@ -12,7 +12,8 @@
             "@id": "buttonOne",
             "@name": "",
             "@value": "",
-            "@buttonStyle": "social",
+            "@buttonStyle": "basic",
+            "@fluid": true,
             "@url": "",
             "@iconPosition": "left",
             "@size": "",
@@ -26,10 +27,11 @@
             "@color": "yellow",
             "@socialButton": "twitter",
             "@position": "",
+            "@linkedUrl": "https://www.google.com",
             "@hasServerCallback": true,
             "@clientCallbacks": {
                 "@execute": () => {
-                    window.location.href = 'http://www.google.com';
+                    window.location.href = jsonData['@linkedUrl'];
                 }
             }
         }

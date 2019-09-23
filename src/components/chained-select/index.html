@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+</head>
+
+<body>
+    <div id='view'></div>
+
+    <script>
+        const jsonData = {
+            '@id': 'chainedselect',
+            '@parentId': 'parentId',
+            '@childId': 'childId',
+            '>': [{
+                '@tag': 'parent',
+                '@name': 'Abia State',
+                '@value': 'AB',
+                '@class': 'NGAB',
+                '>': [{
+                    '@tag': 'child',
+                    '@name': 'Arochukwu',
+                    '@value': 'ABACU',
+                    '@class': 'NGAB',
+                }, {
+                    '@tag': 'child',
+                    '@name': 'Bende',
+                    '@value': 'ABBEN',
+                    '@class': 'NGAB',
+                }, {
+                    '@tag': 'child',
+                    '@name': 'Ikwuano',
+                    '@value': 'ABIKW',
+                    '@class': 'NGAB',
+                }, {
+                    '@tag': 'child',
+                    '@name': 'Isuikwuato',
+                    '@value': 'ABISI',
+                    '@class': 'NGAB',
+                }, {
+                    '@tag': 'child',
+                    '@name': 'Obi Ngwa',
+                    '@value': 'ABOBI',
+                    '@class': 'NGAB',
+                }]
+            }, {
+                '@tag': 'parent',
+                '@name': 'Adamawa State',
+                '@value': 'AD',
+                '@class': 'NGAD',
+                '>': [{
+                    '@tag': 'child',
+                    '@name': 'Fufure',
+                    '@value': 'ADFUF',
+                    '@class': 'NGAD',
+                }, {
+                    '@tag': 'child',
+                    '@name': 'Ganye',
+                    '@value': 'ADGAN',
+                    '@class': 'NGAD',
+                }, {
+                    '@tag': 'child',
+                    '@name': 'Gayuk',
+                    '@value': 'ADGAY',
+                    '@class': 'NGAD',
+                }, {
+                    '@tag': 'child',
+                    '@name': 'Gombi',
+                    '@value': 'ADGOM',
+                    '@class': 'NGAD',
+                }, {
+                    '@tag': 'child',
+                    '@name': 'Grie',
+                    '@value': 'ADGRI',
+                    '@class': 'NGAD',
+                }]
+            }, {
+                '@tag': 'parent',
+                '@name': 'Akwa Ibom State',
+                '@value': 'AK',
+                '@class': 'NGAK',
+                '>': [{
+                    '@tag': 'child',
+                    '@name': 'Eastern Obolo',
+                    '@value': 'AKOBO',
+                    '@class': 'NGAK',
+                }, {
+                    '@tag': 'child',
+                    '@name': 'Eket',
+                    '@value': 'ADEKE',
+                    '@class': 'NGAK',
+                }, {
+                    '@tag': 'child',
+                    '@name': 'Esit Eket',
+                    '@value': 'ADESE',
+                    '@class': 'NGAK',
+                }, {
+                    '@tag': 'child',
+                    '@name': 'Essien Udim',
+                    '@value': 'ADESS',
+                    '@class': 'NGAK',
+                }, {
+                    '@tag': 'child',
+                    '@name': 'Etim Ekpo',
+                    '@value': 'ADETI',
+                    '@class': 'NGAK',
+                }]
+            }, {
+                '@tag': 'parent',
+                '@name': 'Anambra State',
+                '@value': 'AN',
+                '@class': 'NGAN',
+                '>': [{
+                    '@tag': 'child',
+                    '@name': 'Anaocha',
+                    '@value': 'ANANA',
+                    '@class': 'NGAN',
+                }, {
+                    '@tag': 'child',
+                    '@name': 'Ayamelum',
+                    '@value': 'ANAYA',
+                    '@class': 'NGAN',
+                }, {
+                    '@tag': 'child',
+                    '@name': 'Dunukofia',
+                    '@value': 'ANDUN',
+                    '@class': 'NGAN',
+                }, {
+                    '@tag': 'child',
+                    '@name': 'Ekwusigo',
+                    '@value': 'ANEKW',
+                    '@class': 'NGAN',
+                }, {
+                    '@tag': 'child',
+                    '@name': 'Ihiala',
+                    '@value': 'ANIHI',
+                    '@class': 'NGAN',
+                }]
+            }]
+        }
+    </script>
+    <script src="/assets/js/polyfills/index.min.js"></script>
+    <script src="/components/base.min.js"></script>
+    <script src="/components/chained-select/index.min.js"></script>
+    <script>const select = new ChainedSelect(jsonData, document.getElementById('view'))</script>
+</body>
+
+</html>
