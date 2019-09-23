@@ -11,6 +11,6 @@ To setup this project locally:
 - `nvm use`
 - `npm run build`
 - Run lint `npm run lint`
-- Run gulp `npm run gulp-dev`
+- Run gulp `npm run build-watch`
 - The in another terminal, run `npm run dev`
 - Visit `localhost:8080/components/app-shell` to view the app shell
