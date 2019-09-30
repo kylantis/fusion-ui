@@ -17,6 +17,11 @@ class ImageCropper extends BaseComponent {
         return this.componentId;
     }
 
+    getImage() {
+        const srcOriginal = $(`#${this.data['@id']}`).rcrop('getDataURL');
+        console.log(srcOriginal);
+    }
+
     render() {
         const { node } = this;
         const { data } = this;
@@ -28,10 +33,18 @@ class ImageCropper extends BaseComponent {
         imageWrapper.appendChild(cropWrapper);
         const imageTag = document.createElement('img');
         cropWrapper.appendChild(imageTag);
-        imageTag.id = 'imageOne';
+        imageTag.id = data['@id'];
         imageTag.src = data['@imgSrc'];
+        const button = document.createElement('button');
+        cropWrapper.appendChild(button);
+        button.textContent = 'crop';
+        $(button).click(() => {
+            console.log('clicked');
+            this.getImage();
+        });
         node.append(imageWrapper);
-        $('#imageOne').rcrop({
+        $(`#${data['@id']}`).rcrop({
+            grid: true,
             minSize: [200, 200],
             preserveAspectRatio: true,
 

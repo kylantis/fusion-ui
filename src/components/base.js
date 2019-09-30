@@ -23,8 +23,8 @@ class BaseComponent {
     }
 
     getId() {
-         return this.data.id;
-     };
+        return this.data.id;
+    }
 
     static init() {
         if (BaseComponent.#initialized) {

@@ -18,7 +18,7 @@ class FileUpload extends BaseComponent {
     }
 
     onStart() {
-        console.log('onStart commences');
+        console.log('Uploading file');
     }
 
     render() {
@@ -40,9 +40,9 @@ class FileUpload extends BaseComponent {
         node.append(uploadDiv);
 
         $('.upload').upload({
-            action: null,
+            action: 'localhost/8080/components/file-upload',
         }).on('start.upload', this.onStart)
-            .on('complete.upload', this.onComplete)
+            .on('complete.upload', this.onComplete);
     }
 }
 module.exports = FileUpload;

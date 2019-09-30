@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+</head>
+
+<body>
+    <div id="view"></div>
+
+</body>
+
+<script>
+    const singleBar = [
+        ['Month', 'Bolivia', 'Ecuador', 'Madagascar', 'Papua New Guinea', 'Rwanda', 'Average'],
+        ['2004/05', 165, 938, 522, 998, 450, 614.6],
+        ['2005/06', 135, 1120, 599, 1268, 288, 682],
+        ['2006/07', 157, 1167, 587, 807, 397, 623],
+        ['2007/08', 139, 1110, 615, 968, 215, 609.4],
+        ['2008/09', 136, 691, 629, 1026, 366, 569.6],
+    ]
+    const multiBar = [
+        ['Year', 'Sales', 'Expenses', 'Profit'],
+        ['2017', 1030, 540, 350],
+        ['2016', 660, 1120, 300],
+        ['2015', 1170, 460, 250],
+        ['2014', 1000, 400, 200],
+    ]
+    const jsonData = {
+        '@id': 'columnChart',
+        '@title': 'Sample Bar Title For Testing',
+        '@titleTextStyle': {
+            '@color': '',
+            '@fontName': '',
+            '@fontSize': '',
+            '@bold': '',
+            '@italic': '',
+        },
+        '@subtitle': 'Sample subtitle data',
+        '@chartWidth': 900,
+        '@chartHeight': 400,
+        '@colors': ['#1b9e77', '#d95f02', '#7570b3'],
+        '@legendPosition': 'top',
+        '@backgroundColor': '',
+        '@forceIFrame': false,
+        '@orientation': 'horizontal', //horizontal(default) || vertical
+        '@stacked': false,
+        '@hAxisTitle': 'Month',
+        '@vAxisTitle': 'Cup',
+        '@enableInteractivity': 'true', //true (default) || false
+        '@animateChart': true,
+        '@pointSize': '',
+        '@pointShape': '',
+        '@animationDuration': 2000,
+        '@transitionStyle': 'linear',
+        '>': singleBar,
+    }
+
+</script>
+<script>
+    // This is a polyfill that allows components to do
+    // module.exports = ... in the browser
+    window.module = {
+        exports: {}
+    }
+</script>
+<script src="/assets/js/polyfills/index.min.js"></script>
+<script src="/components/base.min.js"></script>
+<script src="/components/chart-combo/index.min.js"></script>
+<script>new ComboChart(jsonData, document.querySelector('#view'));</script>
+
+</html>

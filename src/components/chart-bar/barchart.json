@@ -1,0 +1,35 @@
+{
+    "@id": "barChart",
+    "@type": "classic-single bar chart | classic-multiple bar chart | material-single bar chart | material-multiple bar chart",
+    "@title": "",
+    "@hAxisTitle": "",
+    "@vAxisTitle": "",
+    "@chartWidth": 900,
+    "@chartHeight": 400,
+    "@xAxisView": "single | dual",
+    "@colors": ["#1b9e77", "#d95f02", "#7570b3"],
+    "@barWidth": 95,
+    "@legendPosition": "none | top | left | right",
+    "@stacked": false,
+    "@bottomXSeries": "",
+    "@topXSeries": "",
+    "@topXLabel": "",
+    "@bottomXLabel": "",
+    "@animateChart": "true | false",
+    "@animationDuration": 2000,
+    "@transitionStyle": "linear | in | ease-in-out | out",
+    ">": [
+        ["Element", "Density", { "role": "style" }, { "role": "annotation" }],
+        ["Copper", 8.94, "color: #b87333", "Cu"],
+        ["Silver", 10.49, "color: silver", "Ag"],
+        ["Gold", 19.30, "color: gold", "Au"],
+        ["Platinum", 21.45, "color: #e5e4e2", "Pt"]
+    ],
+    ">>": [
+        ["Year", "Sales", "Expenses", "Profit"],
+        ["2017", 1030, 540, 350],
+        ["2016", 660, 1120, 300],
+        ["2015", 1170, 460, 250],
+        ["2014", 1000, 400, 200]
+    ]
+}

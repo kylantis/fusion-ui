@@ -24,7 +24,7 @@
 
     };
     
-    ResponsiveCrop = function (el, options) {
+    const ResponsiveCrop = function (el, options) {
         
         //private properties
         var self = this,
@@ -2702,7 +2702,7 @@ function Sortable(el , options){
 })(jQuery);
 
 //Helpers:
-isTouchDevice = function () {
+const isTouchDevice = function () {
     return 'ontouchstart' in window        // works on most browsers 
             || navigator.maxTouchPoints;       // works on IE10/11 and Surface
 }
