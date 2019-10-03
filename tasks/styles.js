@@ -6,6 +6,7 @@ const gulp = require('gulp');
 const sass = require('gulp-sass');
 const sourcemaps = require('gulp-sourcemaps');
 const rename = require('gulp-rename');
+const watch = require('gulp-watch');
 
 const renameConfig = {
   suffix: '.min',
@@ -21,7 +22,7 @@ gulp.task('scss', () => gulp.src('src/assets/scss/**/*.scss')
   .pipe(rename(renameConfig))
   .pipe(gulp.dest('dist/assets/css')));
 
-gulp.task('scss:dev', () => gulp.src('src/assets/scss/**/*.scss')
+gulp.task('scss:watch', () => watch('src/assets/scss/**/*.scss', { ignoreInitial: false })
   .pipe(sourcemaps.init())
   .pipe(sass(
     {
@@ -32,7 +33,3 @@ gulp.task('scss:dev', () => gulp.src('src/assets/scss/**/*.scss')
   .pipe(sourcemaps.write())
   .pipe(rename(renameConfig))
   .pipe(gulp.dest('dist/assets/css')));
-
-gulp.task('scss:watch', () => {
-  gulp.watch('src/assets/scss/**/*.scss', { ignoreInitial: false }, gulp.series('scss:dev'));
-});

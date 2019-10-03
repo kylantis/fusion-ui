@@ -1,3 +1,4 @@
+
 /**
  * Gulp images task file
  * Optimize Images task
@@ -5,6 +6,7 @@
 
 const gulp = require('gulp');
 const imageMin = require('gulp-imagemin');
+const watch = require('gulp-watch');
 
 gulp.task('images', () => gulp.src('src/assets/images/**/*.{png,svg,ico,gif,jpg,webp}')
   .pipe(imageMin({
@@ -14,14 +16,10 @@ gulp.task('images', () => gulp.src('src/assets/images/**/*.{png,svg,ico,gif,jpg,
   }))
   .pipe(gulp.dest('dist/assets/images/')));
 
-gulp.task('images:dev', () => gulp.src('src/assets/images/**/*.{png,svg,ico,gif,jpg,webp}')
+gulp.task('images:watch', () => watch('src/assets/images/**/*.{png,svg,ico,gif,jpg,webp}', { ignoreInitial: false })
   .pipe(imageMin({
     progressive: true,
     interlaced: true,
     svgoPlugins: [{ removeViewBox: false }, { removeUselessStrokeAndFill: false }],
   }))
   .pipe(gulp.dest('dist/assets/images/')));
-
-gulp.task('images:watch', () => {
-  gulp.watch('src/assets/images/**/*.{png,svg,ico,gif,jpg,webp}', { ignoreInitial: false }, gulp.series('images:dev'));
-});

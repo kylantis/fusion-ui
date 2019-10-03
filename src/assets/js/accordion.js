@@ -4,7 +4,7 @@
     window = (typeof window !== 'undefined' && window.Math == Math)
         ? window
         : (typeof self !== 'undefined' && self.Math == Math)
-            ? self
+            ? self 
             : Function('return this')();
     $.fn.accordion = function (parameters) {
         const
