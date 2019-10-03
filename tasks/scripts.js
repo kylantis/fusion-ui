@@ -9,6 +9,7 @@ const uglify = require('gulp-uglify');
 const sourcemaps = require('gulp-sourcemaps');
 const babel = require('gulp-babel');
 const rename = require('gulp-rename');
+const watch = require('gulp-watch');
 
 /**
  *
@@ -46,7 +47,7 @@ gulp.task('scripts', () => gulp.src('src/**/*.js')
   .pipe(rename(renameConfig))
   .pipe(gulp.dest('./dist')));
 
-gulp.task('scripts:dev', () => gulp.src('src/**/*.js')
+gulp.task('components:watch', () => watch('src/components/**/*.js', { ignoreInitial: false })
   .pipe(babel())
   .pipe(sourcemaps.init())
   .pipe(uglify({
@@ -58,8 +59,4 @@ gulp.task('scripts:dev', () => gulp.src('src/**/*.js')
   }))
   .pipe(sourcemaps.write())
   .pipe(rename(renameConfig))
-  .pipe(gulp.dest('./dist')));
-
-gulp.task('scripts:watch', () => {
-  gulp.watch(['src/**/*.js'], { ignoreInitial: false }, gulp.series('scripts:dev'));
-});
+  .pipe(gulp.dest('./dist/components')));
