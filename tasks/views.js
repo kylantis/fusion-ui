@@ -4,10 +4,11 @@
  */
 
 const gulp = require('gulp');
+const watch = require('gulp-watch');
 
 gulp.task('views', () => gulp.src(['src/**/*.html'])
   .pipe(gulp.dest('./dist/')));
 
-gulp.task('views:watch', () => {
-  gulp.watch(['src/**/*.html'], { ignoreInitial: false }, gulp.series('views'));
-});
+
+gulp.task('views:watch', () => watch('src/**/*.html', { ignoreInitial: false })
+  .pipe(gulp.dest('./dist/')));
