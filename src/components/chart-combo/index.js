@@ -66,7 +66,6 @@ class ComboChart extends BaseComponent {
 
         const chartDiv = document.createElement('div');
         chartDiv.id = this.data['@id'];
-        chartDiv.setAttribute('style', 'width: 900px; height: 500px;');
         node.append(chartDiv);
 
         this.initChart();

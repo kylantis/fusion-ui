@@ -41,19 +41,30 @@ class PieChart extends BaseComponent {
             // Set chart options
             const options = {
                 title: data['@title'],
-                width: 700,
-                height: 500,
+                chartArea: {
+                    width: data['@chartWidth'],
+                    height: data['@chartHeight'],
+                },
+                width: data['@width'],
+                height: data['@height'],
                 backgroundColor: data['@backgroundColor'],
                 is3D: data['@3D'],
                 pieHole: donutRadius,
+                legend: { position: data['@legendPosition'], maxLines: 3 },
+                forceIframe: data['@forceIFrame'],
+                selectionMode: data['@selectionMode'],
+                reverseCategories: data['@reverseCategories'],
                 pieSliceTextStyle: {
-                    color: data['@textColor'],
+                    color: data['@pieSliceTextStyle']['@textColor'],
+                    fontName: data['@pieSliceTextStyle']['@fontName'],
+                    fontSize: data['@pieSliceTextStyle']['@fontSize'],
                 },
+                enableInteractivity: data['@enableInteractivity'],
                 slices: data['@slices'],
                 animation: {
-                    duration: 1400,
-                    startup: true,
-                    easing: 'in',
+                    startup: data['@animateChart'],
+                    duration: data['@animationDuration'],
+                    easing: data['@transitionStyle'],
                 },
             };
 

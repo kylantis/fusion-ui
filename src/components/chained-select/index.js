@@ -1,5 +1,4 @@
 class ChainedSelect extends BaseComponent {
-
     tagName() {
         return 'chainedSelect';
     }

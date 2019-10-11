@@ -25,6 +25,14 @@ class GeoChart extends BaseComponent {
 
             const options = {
                 displayMode: data['@displayMode'],
+                enableRegionInteractivity: data['@enableRegionInteractivity'],
+                width: data['@chartWidth'],
+                height: data['@chartHeight'],
+                keepAspectRatio: data['@keepAspectRatio'],
+                magnifyingGlass: {
+                    enable: data['@magnifyingGlass'],
+                    zoomFactor: 7.5,
+                },
             };
             if (data['@region'].length >= 1) {
                 options.region = data['@region'];
@@ -47,7 +55,6 @@ class GeoChart extends BaseComponent {
 
         const chartDiv = document.createElement('div');
         chartDiv.id = this.data['@id'];
-        chartDiv.setAttribute('style', 'width: 900px; height: 500px;');
         node.append(chartDiv);
 
         this.initChart();

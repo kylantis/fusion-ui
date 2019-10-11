@@ -24,21 +24,22 @@ class BarChart extends BaseComponent {
             const info = new google.visualization.arrayToDataTable(data['>']);
 
             const options = {
-                width: data['@chartWidth'],
-                height: data['@chartHeight'],
-                legend: { position: 'none' },
                 chart: {
                     title: data['@title'],
                     subtitle: data['@subtitle'],
                 },
                 bars: 'horizontal', // Required for Material Bar Charts.
-                hAxis: {
-                    title: data['@hAxis']['@title'],
+                forceIframe: data['@forceIFrame'],
+                selectionMode: data['@selectionMode'],
+                width: data['@chartWidth'],
+                height: data['@chartHeight'],
+                color: data['@colors'],
+                legend: { position: data['@legendPosition'], maxLines: 3 },
+                axes: {
+                    x: {
+                        0: { side: `${data['@xAxisPosition']}`, label: `${data['@hAxis']['@title']}` }, // Top x-axis.
+                    },
                 },
-                vAxis: {
-                    title: data['@vAxis']['@title'],
-                },
-                bar: { groupWidth: `${data['@barWidth']}%` },
             };
 
             const chart = new google.charts.Bar(document.getElementById(data['@id']));
@@ -68,6 +69,26 @@ class BarChart extends BaseComponent {
                 height: data['@chartHeight'],
                 color: data['@colors'],
                 legend: { position: data['@legendPosition'], maxLines: 3 },
+                hAxis: {
+                    title: data['@hAxis']['@title'],
+                    titleTextStyle: {
+                        color: data['@hAxis']['@color'] || 'black',
+                        fontName: data['@hAxis']['@fontName'],
+                        fontSize: data['@hAxis']['@fontSize'],
+                        bold: data['@hAxis']['@bold'] || false,
+                        italic: data['@hAxis']['@italic'] || false,
+                    },
+                },
+                vAxis: {
+                    title: data['@vAxis']['@title'],
+                    titleTextStyle: {
+                        color: data['@vAxis']['@color'] || 'black',
+                        fontName: data['@vAxis']['@fontName'],
+                        fontSize: data['@vAxis']['@fontSize'],
+                        bold: data['@vAxis']['@bold'] || false,
+                        italic: data['@vAxis']['@italic'] || false,
+                    },
+                },
                 animation: {
                     startup: data['@animateChart'],
                     duration: data['@animationDuration'],
@@ -75,10 +96,11 @@ class BarChart extends BaseComponent {
                 },
                 bar: { groupWidth: `${data['@barWidth']}%` },
             };
-            if (data['@xAxisView'] === 'dual') {
+            if (data['@xAxisPosition'] === 'dual') {
+                delete options.hAxis;
                 options.series = {
-                    0: { axis: data['@bottomXSeries'] }, // Bind series 0 to an axis named 'distance'.
-                    1: { axis: data['@topXSeries'] }, // Bind series 1 to an axis named 'brightness'.
+                    0: { axis: data['@bottomXSeries'] },
+                    1: { axis: data['@topXSeries'] },
                 };
                 options.axes = {
                     x: {
@@ -129,7 +151,7 @@ class BarChart extends BaseComponent {
                 hAxis: {
                     title: data['@hAxis']['@title'],
                     titleTextStyle: {
-                        color: data['@hAxis']['@color'] || 'Yellow',
+                        color: data['@hAxis']['@color'] || 'black',
                         fontName: data['@hAxis']['@fontName'],
                         fontSize: data['@hAxis']['@fontSize'],
                         bold: data['@hAxis']['@bold'] || true,
@@ -141,7 +163,7 @@ class BarChart extends BaseComponent {
                 vAxis: {
                     title: data['@vAxis']['@title'],
                     titleTextStyle: {
-                        color: data['@vAxis']['@color'] || 'yellow',
+                        color: data['@vAxis']['@color'] || 'black',
                         fontName: data['@vAxis']['@fontName'],
                         fontSize: data['@vAxis']['@fontSize'],
                         bold: data['@vAxis']['@bold'] || true,
@@ -183,6 +205,10 @@ class BarChart extends BaseComponent {
                 color: data['@colors'],
                 width: data['@chartWidth'],
                 height: data['@chartHeight'],
+                legend: {
+                    position: data['@legendPosition'],
+                    maxLines: 3,
+                },
                 enableInteractivity: data['@enableInteractivity'],
                 forceIframe: data['@forceIFrame'],
                 fontSize: data['@fontSize'],
@@ -191,7 +217,7 @@ class BarChart extends BaseComponent {
                 hAxis: {
                     title: data['@hAxis']['@title'],
                     titleTextStyle: {
-                        color: data['@hAxis']['@color'] || 'Yellow',
+                        color: data['@hAxis']['@color'] || 'black',
                         fontName: data['@hAxis']['@fontName'],
                         fontSize: data['@hAxis']['@fontSize'],
                         bold: data['@hAxis']['@bold'] || true,
@@ -203,18 +229,17 @@ class BarChart extends BaseComponent {
                 vAxis: {
                     title: data['@vAxis']['@title'],
                     titleTextStyle: {
-                        color: data['@vAxis']['@color'] || 'yellow',
+                        color: data['@vAxis']['@color'] || 'black',
                         fontName: data['@vAxis']['@fontName'],
                         fontSize: data['@vAxis']['@fontSize'],
                         bold: data['@vAxis']['@bold'] || true,
                         italic: data['@vAxis']['@italic'] || false,
                     },
-                    maxValue: data['@hAxis']['@maxValue'],
-                    minValue: data['@hAxis']['@minValue'],
+                    maxValue: data['@vAxis']['@maxValue'],
+                    minValue: data['@vAxis']['@minValue'],
                 },
                 bar: { groupWidth: `${data['@barWidth']}%` },
                 isStacked: data['@stacked'],
-                legend: { position: data['@legendPosition'], maxLines: 3 },
                 animation: {
                     startup: data['@animateChart'],
                     duration: data['@animationDuration'],

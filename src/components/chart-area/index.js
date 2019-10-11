@@ -46,7 +46,13 @@ class AreaChart extends BaseComponent {
                 selectionMode: data['@selectionMode'],
                 fontSize: data['@fontSize'],
                 fontName: data['@fontName'],
+                reverseCategories: data['@reverseCategories'],
+                orientation: data['@orientation'],
                 interpolateNulls: data['@interpolateNulls'],
+                areaOpacity: data['@areaOpacity'] || 0.3,
+                crosshair: {
+                    trigger: data['@crosshairTrigger'],
+                },
                 titleTextStyle: {
                     color: data['@titleTextStyle']['@color'] || 'black',
                     fontName: data['@titleTextStyle']['@fontName'],
@@ -57,7 +63,7 @@ class AreaChart extends BaseComponent {
                 hAxis: {
                     title: data['@hAxis']['@title'],
                     titleTextStyle: {
-                        color: data['@hAxis']['@color'] || 'Yellow',
+                        color: data['@hAxis']['@color'] || 'black',
                         fontName: data['@hAxis']['@fontName'],
                         fontSize: data['@hAxis']['@fontSize'],
                         bold: data['@hAxis']['@bold'] || true,
@@ -69,7 +75,7 @@ class AreaChart extends BaseComponent {
                 vAxis: {
                     title: data['@vAxis']['@title'],
                     titleTextStyle: {
-                        color: data['@vAxis']['@color'] || 'yellow',
+                        color: data['@vAxis']['@color'] || 'black',
                         fontName: data['@vAxis']['@fontName'],
                         fontSize: data['@vAxis']['@fontSize'],
                         bold: data['@vAxis']['@bold'] || true,

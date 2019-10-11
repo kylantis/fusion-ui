@@ -1,0 +1,85 @@
+{
+    "@id": "",
+    "@title": "",
+    "@legendPosition": "bottom || left || right || in || top || none",
+    "@fontSize": "",
+    "@fontName": "",
+    "@interval": {
+        "@style": "line || bar || boxes || sticks || points || area",
+        "@lineWidth": "",
+        "@barWidth": "",
+        "@pointSize": ""
+    },
+    "@chartWidth": 800,
+    "@chartHeight": 400,
+    "@width": 900,
+    "@height": 500,
+    "@lineWidth": 4,
+    "@enableInteractivity": "true (default) || false",
+    "@forceIFrame": "true || false(default)",
+    "@color": [],
+    "@animateChart": "true || false(default)",
+    "@animationDuration": "2000ms",
+    "@transitionStyle": "linear || in || out || inAndOut",
+    "@columns": [{
+        "@tag": "column",
+        "@id": "i0",
+        "@type": "number",
+        "@role": "interval",
+        "@style": "line",
+        "@color": "#a84995",
+        "@lineWidth": 4
+    }, {
+        "@tag": "column",
+        "@id": "i1",
+        "@type": "number",
+        "@role": "interval",
+        "@style": "line",
+        "@color": "",
+        "@lineWidth": 2
+    }, {
+        "@tag": "column",
+        "@id": "i2",
+        "@type": "number",
+        "@role": "interval",
+        "@style": "line",
+        "@color": "#8a2074",
+        "@lineWidth": 2
+    }, {
+        "@tag": "column",
+        "@id": "i3",
+        "@type": "number",
+        "@role": "interval",
+        "@style": "line",
+        "@color": "#b1974f",
+        "@lineWidth": 3
+    }, {
+        "@tag": "column",
+        "@id": "i4",
+        "@type": "number",
+        "@role": "interval",
+        "@style": "line",
+        "@color": "#d786df",
+        "@lineWidth": 4
+    }, {
+        "@tag": "column",
+        "@id": "i5",
+        "@type": "number",
+        "@role": "interval",
+        "@style": "line",
+        "@color": "#d786df",
+        "@lineWidth": 4
+    }],
+    ">": [
+        [1, 100, 90, 110, 85, 96, 104, 120],
+        [2, 120, 95, 130, 90, 113, 124, 150],
+        [3, 130, 105, 140, 100, 117, 133, 139],
+        [4, 90, 85, 95, 85, 88, 92, 95],
+        [5, 70, 74, 63, 67, 69, 70, 72],
+        [6, 30, 39, 22, 21, 28, 34, 40],
+        [7, 80, 77, 83, 70, 77, 85, 90],
+        [8, 100, 90, 110, 85, 95, 102, 110],
+        [9, 50, 87, 93, 40, 87, 45, 70],
+        [10, 100, 85, 95, 85, 88, 92, 95],
+    ]
+}

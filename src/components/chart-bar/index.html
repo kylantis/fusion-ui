@@ -13,6 +13,15 @@
 </body>
 
 <script>
+    const multiBarTwo = [
+        ['Galaxy', 'Distance', 'Brightness'],
+        ['Canis Major Dwarf', 8000, 23.3],
+        ['Sagittarius Dwarf', 24000, 4.5],
+        ['Ursa Major II Dwarf', 30000, 14.3],
+        ['Lg. Magellanic Cloud', 50000, 0.9],
+        ['Bootes I', 60000, 13.1]
+    ]
+
     const singleBar = [
         ['Element', 'Density', { role: 'style' }, { role: 'annotation' }],
         ['Copper', 8.94, 'color: #b87333', 'Cu'],
@@ -29,7 +38,7 @@
     ]
     const jsonData = {
         '@id': 'barChart',
-        '@type': 'material-multiple bar chart',
+        '@type': 'material-single bar chart',
         '@title': 'Sample Bar Title For Testing',
         '@titleTextStyle': {
             '@color': 'black',
@@ -46,13 +55,13 @@
         '@pointSize': '',
         '@pointShape': 'triangle',
         '@enableInteractivity': false, //true (default) || false
-        '@forceIFrame': true,        
-        '@selectionMode': 'single', //single(default) || multiple
-        '@xAxisView': 'single',
-        '@barWidth': 90,
+        '@forceIFrame': true,
+        '@selectionMode': 'multiple', //single(default) || multiple
+        '@xAxisPosition': 'top', //bottom || top || dual
+        '@barWidth': 95,
         '@colors': ['#1b9e77', '#d95f02', '#7570b3'],
         '@legendPosition': 'none',
-        '@stacked': false,
+        '@stacked': true,
         '@hAxis': {
             '@title': 'Total',
             '@color': '#333',
@@ -61,7 +70,7 @@
             '@bold': '',
             '@italic': '',
             '@maxValue': '',
-            '@minValue': '', 
+            '@minValue': '',
         },
         '@vAxis': {
             '@title': 'Year',
@@ -71,7 +80,7 @@
             '@bold': '',
             '@italic': '',
             '@maxValue': '',
-            '@minValue': '', 
+            '@minValue': '',
         },
         '@bottomXSeries': 'brightness',
         '@topXSeries': 'distance',
@@ -80,7 +89,7 @@
         '@animateChart': true,
         '@animationDuration': 2000,
         '@transitionStyle': 'linear',
-        '>': multiBar,
+        '>': singleBar,
     }
 
 </script>

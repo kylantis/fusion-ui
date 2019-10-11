@@ -22,7 +22,7 @@ class LineChart extends BaseComponent {
         function drawBasic() {
             const info = new google.visualization.DataTable();
             data['@columns'].forEach((val) => {
-                info.addColumn(`${val['@type']}`, `${val['@title']}`);
+                info.addColumn(val['@type'], val['@title']);
             });
 
             info.addRows(data['>']);

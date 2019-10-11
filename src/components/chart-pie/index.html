@@ -16,21 +16,34 @@
     const jsonData = {
         '@id': 'piechart',
         '@title': 'How Much Pizza I Ate Last Night',
+        '@legendPosition': null,
         '@3D': false,
         '@donutChart': false,
         '@donutChartRadius': 0.5,
         '@backgroundColor': 'white',
-        '@textColor': 'white',
         '@subject': 'Topping',
-        '@height': '500px',
-        '@width': '900px',
+        '@chartheight': 400,
+        '@chartwidth': 500,
+        '@width': 600,
+        '@height': 400,
         '@subjectType': 'string',
         '@subjectValue': 'Slices',
         '@subjectValueType': 'number',
+        '@forceIFrame': false,        
+        '@reverseCategories': false, 
+        '@selectionMode': 'multiple', //single(default) || multiple
+        '@pieSliceTextStyle': {
+            '@textColor': 'white',
+            '@fontName': '',
+            '@fontSize': '',
+        },
+        '@enableInteractivity': true, //true (default) || false
+        '@animateChart': true,
+        '@animationDuration': 2000,
+        '@transitionStyle': 'linear',
         '@slices': {
             3: { offset: 0.1 },
             0: { offset: 0.1 },
-            4: { color: 'transparent' },
         },
         '>': [
             ['Mushrooms', 3],
