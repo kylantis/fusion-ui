@@ -4,7 +4,7 @@ class Timeline extends BaseComponent {
         return 'timeline';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/jquery.roadmap.min.css', '/assets/css/icon.min.css']);
@@ -15,7 +15,7 @@ class Timeline extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     render() {

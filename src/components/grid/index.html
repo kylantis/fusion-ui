@@ -5,118 +5,1296 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <link rel="stylesheet" href="/assets/css/grid.min.css">
-    <link rel="stylesheet" href="/assets/css/input.min.css">
-    <link rel="stylesheet" href="/assets/css/dropdown.min.css">
-    <link rel="stylesheet" href="/assets/css/image.min.css">
 </head>
-
 
 <body>
     <div id='grid'></div>
-    <div class="ui equal width stackable grid">
-        <div class="column">
-            <div class="ui input fluid focus">
-                <input type="text" placeholder="Search...">
-            </div>
-        </div>
-        <div class="column">
-            <div class="ui input fluid focus">
-                <input type="text" placeholder="Search...">
-            </div>
-        </div>
-        <div class="column">
-            <div class="ui input fluid focus">
-                <input type="text" placeholder="Search...">
-            </div>
-        </div>
-        <div class="column">
-            <div class="ui input fluid focus">
-                <input type="text" placeholder="Search...">
-            </div>
-        </div>
-    </div>
-    <div class="ui equal width grid">
-        <div class="column">
-            <select class="ui fluid dropdown">
-                <option value="">Gender</option>
-                <option value="1">Male</option>
-                <option value="0">Female</option>
-            </select>
-        </div>
-        <div class="column">
-            
-        </div>
-        <div class="column">
-            <select class="ui fluid dropdown">
-                <option value="">Gender</option>
-                <option value="1">Male</option>
-                <option value="0">Female</option>
-            </select>
-        </div>
-        <div class="column">
-            <select class="ui fluid dropdown">
-                <option value="">Gender</option>
-                <option value="1">Male</option>
-                <option value="0">Female</option>
-            </select>
-        </div>
-    </div>
 
     <script>
+        const table = {
+            "@id": "tableOne",
+            "@title": "People Of The World",
+            "@tableStyle": "inbox",
+            "@isHoverable": true,
+            "@isResponsive": true,
+            "@textAlign": "center",
+            "@isStriped": true,
+            "@hasBorder": true,
+            "@singleLine": false,
+            "@isInverted": false,
+            "@color": "blue",
+            "@isDataTable": false,
+            "@isEditableTable": false,
+            "@isFixed": false,
+            ">": [{
+                "@tag": "columns-definitions",
+                ">": [{
+                    "@tag": "column",
+                    "@title": "name"
+                }, {
+                    "@tag": "column",
+                    "@title": "age"
+                }, {
+                    "@tag": "column",
+                    "@title": "job"
+                }, {
+                    "@tag": "column",
+                    "@title": "salary"
+                }, {
+                    "@tag": "column",
+                    "@title": "description"
+                }]
+            }, {
+                "@tag": "row",
+                "@id": 123,
+                ">": [{
+                    "@tag": "column",
+                    "@value": "James"
+                }, {
+                    "@tag": "column",
+                    "@value": "24"
+                }, {
+                    "@tag": "column",
+                    "@value": "Engineer"
+                }, {
+                    "@tag": "column",
+                    "@value": "Elyse is a kind girl but sometimes you don't really have enough room to describe everything you'd like"
+                }, {
+                    "@tag": "column",
+                    "@value": "125000.60"
+                }]
+            }, {
+                "@tag": "row",
+                "@id": 124,
+                ">": [{
+                    "@tag": "column",
+                    "@value": "Jill"
+                }, {
+                    "@tag": "column",
+                    "@value": "26"
+                }, {
+                    "@tag": "column",
+                    "@value": "Engineer"
+                }, {
+                    "@tag": "column",
+                    "@value": "Elyse is a kind girl but sometimes you don't really have enough room to describe everything you'd like"
+                }, {
+                    "@tag": "column",
+                    "@value": "516000.00"
+                }]
+            }, {
+                "@tag": "row",
+                "@id": 125,
+                ">": [{
+                    "@tag": "column",
+                    "@value": "Elyse"
+                }, {
+                    "@tag": "column",
+                    "@value": "24"
+                }, {
+                    "@tag": "column",
+                    "@value": "Designer"
+                }, {
+                    "@tag": "column",
+                    "@value": "Elyse is a kind girl but sometimes you don't really have enough room to describe everything you'd like"
+                }, {
+                    "@tag": "column",
+                    "@value": "210000.40"
+                }]
+            }]
+        }
+
+        const step = {
+            'id': 'stepTwo',
+            '@title': 'step',
+            '@alignment': 'horizontal',
+            "stackable": "true | false",
+            ">": [{
+                "@tag": "step",
+                "@stepId": "step-1234",
+                "@title": "Shipping",
+                "@icon": "truck",
+                "@description": "Choose your shipping option",
+                "@completed": false
+            }, {
+                "@tag": "step",
+                "@stepId": "step-12345",
+                "@title": "Billing",
+                "@icon": "payment",
+                "@description": "Enter Billing information",
+                "@completed": false
+            }, {
+                "@tag": "step",
+                "@stepId": "step-123456",
+                "@title": "Confirm Order",
+                "@icon": "info",
+                "@description": "Verify order details",
+                "@completed": false
+            }]
+        }
+
+        const select = {
+            "@id": "selectOne",
+            "@title": "subjects",
+            "@iconName": "",
+            "@labelIcon": "",
+            "@selectionType": "single",
+            "@viewType": "dropdown",
+            "@viewSubType": "nonlabeled",
+            "@alignment": "inline",
+            "@defaultTitle": "Subject",
+            "@search": false,
+            "@isRequired": false,
+            "@scrolling": false,
+            ">": [{
+                "@tag": "item",
+                "@id": 1,
+                "@title": "Geography",
+                "@dataValue": "geography",
+                "@imageUrl": "http://testcreative.co.uk/wp-content/uploads/2017/10/Test-Logo-Small-Black-transparent-1.png",
+                "@iconName": "red"
+            }, {
+                "@tag": "item",
+                "@id": 2,
+                "@title": "Biology",
+                "@dataValue": "biology",
+                "@imageUrl": "http://testcreative.co.uk/wp-content/uploads/2017/10/Test-Logo-Small-Black-transparent-1.png",
+                "@iconName": "black"
+            }, {
+                "@tag": "item",
+                "@id": 3,
+                "@title": "Mathematics",
+                "@dataValue": "mathematics",
+                "@imageUrl": "http://testcreative.co.uk/wp-content/uploads/2017/10/Test-Logo-Small-Black-transparent-1.png",
+                "@iconName": "blue"
+            }, {
+                "@tag": "item",
+                "@id": 4,
+                "@title": "English",
+                "@dataValue": "english",
+                "@imageUrl": "",
+                "@iconName": "yellow"
+            }, {
+                "@tag": "item",
+                "@id": 5,
+                "@title": "Computer",
+                "@dataValue": "computer",
+                "@imageUrl": "",
+                "@iconName": "purple"
+            }, {
+                "@tag": "item",
+                "@id": 6,
+                "@title": "Chemistry",
+                "@dataValue": "chemistry",
+                "@imageUrl": "",
+                "@iconName": "orange"
+            }, {
+                "@tag": "item",
+                "@id": 7,
+                "@title": "Further Mathematics",
+                "@dataValue": "further",
+                "@imageUrl": "",
+                "@iconName": "orange"
+            }, {
+                "@tag": "item",
+                "@id": 8,
+                "@title": "Fine Arts",
+                "@dataValue": "fine",
+                "@imageUrl": "",
+                "@iconName": "orange"
+            }, {
+                "@tag": "item",
+                "@id": 9,
+                "@title": "French",
+                "@dataValue": "french",
+                "@imageUrl": "",
+                "@iconName": "orange"
+            }, {
+                "@tag": "item",
+                "@id": 10,
+                "@title": "Igbo",
+                "@dataValue": "igbo",
+                "@imageUrl": "",
+                "@iconName": "pink"
+            }, {
+                "@tag": "item",
+                "@id": 11,
+                "@title": "Physics",
+                "@dataValue": "physics",
+                "@imageUrl": "",
+                "@iconName": "",
+            }]
+        }
+
+        const activityTime = {
+            "@id": "verticalActivityOne",
+            "@title": "feed",
+            ">": [{
+                "@tag": "activityFeed",
+                "@activityText": "You recommended Karen Ortega",
+                "@timeDifference": "24 hours ago",
+                "@color": "activity-purple",
+                "@timePosted": "2017-01-01 00:00"
+            }, {
+                "@tag": "activityFeed",
+                "@activityText": "You followed Olivia Williamson",
+                "@timeDifference": "10 hours ago",
+                "@color": "activity-warning",
+                "@timePosted": "2017-01-01 00:00"
+            }, {
+                "@tag": "activityFeed",
+                "@activityText": "You subscribed to Harold Fuller",
+                "@timeDifference": "4 hours ago",
+                "@color": "activity-danger",
+                "@timePosted": "2017-01-01 00:00"
+            }, {
+                "@tag": "activityFeed",
+                "@activityText": "You updated your profile picture",
+                "@timeDifference": "1 hour ago",
+                "@color": "activity-purple",
+                "@timePosted": "2017-01-01 00:00"
+            }, {
+                "@tag": "activityFeed",
+                "@activityText": "You deleted homepage.psd",
+                "@timeDifference": "30 minutes ago",
+                "@color": "activity-success",
+                "@timePosted": "2017-01-01 00:00"
+            }, {
+                "@tag": "activityFeed",
+                "@activityText": "You went to somewhere no one knows",
+                "@timeDifference": "1 minute ago",
+                "@color": "activity-primary",
+                "@timePosted": "2017-01-01 00:00"
+            }]
+        }
+
+        const timelineCard = {
+            "@title": "timelineCardOne",
+            "@title": "What you've been up to",
+            "@headerIcon": "recycle",
+            "@maxHeight": '600px',
+            "@overflow": 'hidden',
+            "@componentTag": "activityTimeline",
+            "@componentData": activityTime,
+            ">": [{
+                "@tag": "option",
+                "@optionText": "Refresh",
+                "@clientCallback": {}
+            }, {
+                "@tag": "option",
+                "@optionText": "Maximize",
+                "@clientCallback": {}
+            }, {
+                "@tag": "option",
+                "@optionText": "Minimize",
+                "@clientCallback": {}
+            }, {
+                "@tag": "option",
+                "@optionText": "More Options",
+                "@clientCallback": {}
+            }, {
+                "@tag": "option",
+                "@optionText": "Expand",
+                "@clientCallback": {}
+            }, {
+                "@tag": "option",
+                "@optionText": "Do something",
+                "@clientCallback": {}
+            }]
+        }
+
+        const stepCard = {
+            "@id": "cardOne",
+            "@title": "Step By Step",
+            "@headerIcon": "shipping fast",
+            "@maxHeight": '600px',
+            "@overflow": 'hidden',
+            "@componentTag": "step",
+            "@componentData": step,
+            ">": [{
+                "@tag": "option",
+                "@optionText": "Refresh",
+                "@clientCallback": {}
+            }, {
+                "@tag": "option",
+                "@optionText": "Maximize",
+                "@clientCallback": {}
+            }, {
+                "@tag": "option",
+                "@optionText": "Minimize",
+                "@clientCallback": {}
+            }, {
+                "@tag": "option",
+                "@optionText": "More Options",
+                "@clientCallback": {}
+            }, {
+                "@tag": "option",
+                "@optionText": "Expand",
+                "@clientCallback": {}
+            }, {
+                "@tag": "option",
+                "@optionText": "Do something",
+                "@clientCallback": {}
+            }]
+        }
+
+        const tableCard = {
+            "@id": "tableCardOne",
+            "@title": "Employees",
+            "@headerIcon": "id card",
+            "@maxHeight": '600px',
+            "@overflow": 'hidden',
+            "@componentTag": "table",
+            "@componentData": table,
+            ">": [{
+                "@tag": "option",
+                "@optionText": "Refresh",
+                "@clientCallback": {}
+            }, {
+                "@tag": "option",
+                "@optionText": "Maximize",
+                "@clientCallback": {}
+            }, {
+                "@tag": "option",
+                "@optionText": "Minimize",
+                "@clientCallback": {}
+            }, {
+                "@tag": "option",
+                "@optionText": "More Options",
+                "@clientCallback": {}
+            }, {
+                "@tag": "option",
+                "@optionText": "Expand",
+                "@clientCallback": {}
+            }, {
+                "@tag": "option",
+                "@optionText": "Do something",
+                "@clientCallback": {}
+            }]
+        }
+
+        const chartCard = {
+            "@id": "chartStepOne",
+            "@title": "Dinosaurs",
+            "@headerIcon": "chart line",
+            "@maxHeight": '600px',
+            "@overflow": 'auto',
+            "@componentTag": "histogram",
+            "@componentData": {
+                '@id': 'histogramId',
+                '@title': 'Lengths of dinosaurs, in meters',
+                '@subtitle': 'Sample subtitle data',
+                '@chartWidth': '',
+                '@chartHeight': 300,
+                '@width': 600,
+                '@height': 300,
+                '@titleTextStyle': {
+                    '@color': '',
+                    '@fontName': '',
+                    '@fontSize': '',
+                    '@bold': '',
+                    '@italic': '',
+                },
+                '@histogram': {
+                    '@bucketSize': 10,
+                    '@maxNumBuckets': 20,
+                    '@minValue': null,
+                    '@maxValue': null
+                },
+                '@fontSize': '',
+                '@fontName': '',
+                '@colors': ['#1b9e77', '#d95f02', '#7570b3'],
+                '@backgroundColor': '',
+                '@forceIFrame': false,
+                '@groupWidth': 100,
+                '@legendPosition': 'right',
+                '@orientation': 'horizontal', //horizontal(default) || vertical
+                '@selectionMode': 'single', //single(default) || multiple
+                '@pointShape': '',
+                '@enableInteractivity': false, //true (default) || false
+                '@interpolateNulls': false,
+                '@pointSize': '',
+                '@hAxis': {
+                    '@title': 'Length',
+                    '@color': '#333',
+                    '@fontName': '',
+                    '@fontSize': '',
+                    '@bold': '',
+                    '@italic': '',
+                    '@gridlineCount': 10,
+                    '@gridlineColor': '',
+                    '@ticks': null,
+                },
+                '@vAxis': {
+                    '@title': 'Dinosaur',
+                    '@color': '#333',
+                    '@fontName': '',
+                    '@fontSize': '',
+                    '@bold': '',
+                    '@italic': '',
+                    '@gridlineCount': 10,
+                    '@gridlineColor': '',
+                    '@ticks': null,
+                },
+                '>': [['Quarks', 'Leptons', 'Gauge Bosons', 'Scalar Bosons'],
+                [2 / 3, -1, 0, 0],
+                [2 / 3, -1, 0, null],
+                [2 / 3, -1, 0, null],
+                [-1 / 3, 0, 1, null],
+                [-1 / 3, 0, -1, null],
+                [-1 / 3, 0, null, null],
+                [-1 / 3, 0, null, null]],
+            },
+            ">": [{
+                "@tag": "option",
+                "@optionText": "Refresh",
+                "@clientCallback": {}
+            }, {
+                "@tag": "option",
+                "@optionText": "Maximize",
+                "@clientCallback": {}
+            }, {
+                "@tag": "option",
+                "@optionText": "Minimize",
+                "@clientCallback": {}
+            }, {
+                "@tag": "option",
+                "@optionText": "More Options",
+                "@clientCallback": {}
+            }, {
+                "@tag": "option",
+                "@optionText": "Expand",
+                "@clientCallback": {}
+            }, {
+                "@tag": "option",
+                "@optionText": "Do something",
+                "@clientCallback": {}
+            }]
+        }
+
+        const histogram = {
+            '@id': 'histogramId',
+            '@title': 'Lengths of dinosaurs, in meters',
+            '@subtitle': 'Sample subtitle data',
+            '@chartWidth': '',
+            '@chartHeight': 300,
+            '@width': 400,
+            '@height': 500,
+            '@titleTextStyle': {
+                '@color': '',
+                '@fontName': '',
+                '@fontSize': '',
+                '@bold': '',
+                '@italic': '',
+            },
+            '@histogram': {
+                '@bucketSize': 10,
+                '@maxNumBuckets': 20,
+                '@minValue': null,
+                '@maxValue': null
+            },
+            '@fontSize': '',
+            '@fontName': '',
+            '@colors': ['#1b9e77', '#d95f02', '#7570b3'],
+            '@backgroundColor': '',
+            '@forceIFrame': false,
+            '@groupWidth': 100,
+            '@legendPosition': 'right',
+            '@orientation': 'horizontal', //horizontal(default) || vertical
+            '@selectionMode': 'single', //single(default) || multiple
+            '@pointShape': '',
+            '@enableInteractivity': false, //true (default) || false
+            '@interpolateNulls': false,
+            '@pointSize': '',
+            '@hAxis': {
+                '@title': 'Length',
+                '@color': '#333',
+                '@fontName': '',
+                '@fontSize': '',
+                '@bold': '',
+                '@italic': '',
+                '@gridlineCount': 10,
+                '@gridlineColor': '',
+                '@ticks': null,
+            },
+            '@vAxis': {
+                '@title': 'Dinosaur',
+                '@color': '#333',
+                '@fontName': '',
+                '@fontSize': '',
+                '@bold': '',
+                '@italic': '',
+                '@gridlineCount': 10,
+                '@gridlineColor': '',
+                '@ticks': null,
+            },
+            '>': [['Quarks', 'Leptons', 'Gauge Bosons', 'Scalar Bosons'],
+            [2 / 3, -1, 0, 0],
+            [2 / 3, -1, 0, null],
+            [2 / 3, -1, 0, null],
+            [-1 / 3, 0, 1, null],
+            [-1 / 3, 0, -1, null],
+            [-1 / 3, 0, null, null],
+            [-1 / 3, 0, null, null]],
+        }
+
+        const barChart = {
+            '@id': 'barChartId',
+            '@type': 'classic-multiple bar chart',
+            '@title': 'Sample Bar Title For Testing',
+            '@titleTextStyle': {
+                '@color': 'black',
+                '@fontName': '',
+                '@fontSize': '',
+                '@bold': '',
+                '@italic': '',
+            },
+            '@fontSize': '',
+            '@fontName': '',
+            '@subtitle': 'Sample subtitle data',
+            '@chartWidth': '',
+            '@chartHeight': 300,
+            '@pointSize': '',
+            '@pointShape': 'triangle',
+            '@enableInteractivity': false, //true (default) || false
+            '@forceIFrame': true,
+            '@selectionMode': 'multiple', //single(default) || multiple
+            '@xAxisPosition': 'bottom', //bottom || top || dual
+            '@barWidth': 90,
+            '@colors': ['#1b9e77', '#d95f02', '#7570b3'],
+            '@legendPosition': 'none',
+            '@stacked': true,
+            '@hAxis': {
+                '@title': 'Total',
+                '@color': '#333',
+                '@fontName': '',
+                '@fontSize': '',
+                '@bold': '',
+                '@italic': '',
+                '@maxValue': '',
+                '@minValue': '',
+            },
+            '@vAxis': {
+                '@title': 'Year',
+                '@color': '#333',
+                '@fontName': '',
+                '@fontSize': '',
+                '@bold': '',
+                '@italic': '',
+                '@maxValue': '',
+                '@minValue': '',
+            },
+            '@bottomXSeries': 'brightness',
+            '@topXSeries': 'distance',
+            '@topXLabel': 'apparent magnitude',
+            '@bottomXLabel': 'parsecs',
+            '@animateChart': true,
+            '@animationDuration': 2000,
+            '@transitionStyle': 'linear',
+            '>': [
+                ['Galaxy', 'Distance', 'Brightness'],
+                ['Canis Major Dwarf', 8000, 23.3],
+                ['Sagittarius Dwarf', 24000, 4.5],
+                ['Ursa Major II Dwarf', 30000, 14.3],
+                ['Lg. Magellanic Cloud', 50000, 0.9],
+                ['Bootes I', 60000, 13.1]
+            ],
+        }
+
+        const pieChart = {
+            '@id': 'pieChartId',
+            '@title': 'How Much Pizza I Ate Last Night',
+            '@legendPosition': null,
+            '@3D': true,
+            '@donutChart': false,
+            '@donutChartRadius': 0.2,
+            '@backgroundColor': 'white',
+            '@subject': 'Topping',
+            '@chartheight': 500,
+            '@chartwidth': '',
+            '@width': '',
+            '@height': 300,
+            '@subjectType': 'string',
+            '@subjectValue': 'Slices',
+            '@subjectValueType': 'number',
+            '@forceIFrame': false,
+            '@reverseCategories': true,
+            '@selectionMode': 'multiple', //single(default) || multiple
+            '@pieSliceTextStyle': {
+                '@textColor': 'white',
+                '@fontName': '',
+                '@fontSize': '',
+            },
+            '@enableInteractivity': false, //true (default) || false
+            '@animateChart': true,
+            '@animationDuration': 2000,
+            '@transitionStyle': 'linear',
+            '@slices': {
+                3: { offset: 0.1 },
+                0: { offset: 0.1 },
+            },
+            '>': [
+                ['Mushrooms', 3],
+                ['Onions', 1],
+                ['Olives', 2],
+                ['Zucchini', 2],
+                ['Pepperoni', 2],
+            ]
+        }
+
+        const areaChart = {
+            '@id': 'areaChartId',
+            '@title': 'Company Performance',
+            '@legendPosition': 'top',
+            '@stacked': 'absolute', // false || relative || absolute/true(default) || percent
+            '@titleTextStyle': {
+                '@color': 'black',
+                '@fontName': '',
+                '@fontSize': '',
+                '@bold': '',
+                '@italic': '',
+            },
+            '@areaOpacity': 0.3,
+            '@fontSize': '',
+            '@fontName': '',
+            '@chartWidth': '',
+            '@chartHeight': 300,
+            '@colors': ['red', 'yellow'],
+            '@pointSize': '',
+            '@pointShape': '',
+            '@enableInteractivity': false, //true (default) || false
+            '@forceIFrame': false,
+            '@selectionMode': 'multiple', //single(default) || multiple
+            '@animateChart': true,
+            '@animationDuration': 2000,
+            '@transitionStyle': 'linear',
+            '@reverseCategories': 'false',
+            '@orientation': 'horizontal', //horizontal || vertical
+            '@interpolateNulls': false,
+            '@crosshairTrigger': 'both', // both || selection || focus
+            '@hAxis': {
+                '@title': 'Year',
+                '@color': '#333',
+                '@fontName': '',
+                '@fontSize': '',
+                '@bold': '',
+                '@italic': '',
+                '@maxValue': '',
+                '@minValue': '',
+            },
+            '@vAxis': {
+                '@title': 'Profit',
+                '@color': '#333',
+                '@fontName': '',
+                '@fontSize': '',
+                '@bold': '',
+                '@italic': '',
+                '@maxValue': '',
+                '@minValue': '',
+            },
+            '>': [
+                ['Year', 'Sales', 'Expenses'],
+                ['2013', 1000, 400],
+                ['2014', 1170, 460],
+                ['2015', 660, 1120],
+                ['2016', 1030, 540],
+            ]
+        }
+
+        const tile = {
+            "@id": "tileOne",
+            "@title": "",
+            "@tilesPerRow": 5,
+            ">": [{
+                "@tag": "tile",
+                "@id": "tileOne",
+                "@tileImage": "/assets/images/placeholder.jpg",
+                "@tileHeader": "Getting Started",
+                "@headerIcon": "th",
+                "@secondaryText": "You edited recently",
+                "@linkedUrl": "https://www.google.com",
+                clientCallbacks() {
+                    window.location.href = this['@linkedUrl'];
+                }
+            }, {
+                "@tag": "tile",
+                "@id": "tileTwo",
+                "@tileImage": "/assets/images/placeholder.jpg",
+                "@tileHeader": "Getting Started",
+                "@headerIcon": "th",
+                "@secondaryText": "You edited recently",
+                "@linkedUrl": "https://www.google.com",
+                clientCallbacks() {
+                    window.location.href = this['@linkedUrl'];
+                }
+            }, {
+                "@tag": "tile",
+                "@id": "tileThree",
+                "@tileImage": "/assets/images/placeholder.jpg",
+                "@tileHeader": "Getting Started",
+                "@headerIcon": "th",
+                "@secondaryText": "You edited recently",
+                "@linkedUrl": "https://www.google.com",
+                clientCallbacks() {
+                    window.location.href = this['@linkedUrl'];
+                }
+            }, {
+                "@tag": "tile",
+                "@id": "tilefour",
+                "@tileImage": "/assets/images/placeholder.jpg",
+                "@tileHeader": "Getting Started",
+                "@headerIcon": "th",
+                "@secondaryText": "You edited recently",
+                "@linkedUrl": "https://www.google.com",
+                clientCallbacks() {
+                    window.location.href = this['@linkedUrl'];
+                }
+            }, {
+                "@tag": "tile",
+                "@id": "tileFive",
+                "@tileImage": "/assets/images/placeholder.jpg",
+                "@tileHeader": "Getting Started",
+                "@headerIcon": "th",
+                "@secondaryText": "You edited recently",
+                "@linkedUrl": "https://www.google.com",
+                clientCallbacks() {
+                    window.location.href = this['@linkedUrl'];
+                }
+            }, {
+                "@tag": "tile",
+                "@id": "tileSix",
+                "@tileImage": "/assets/images/placeholder.jpg",
+                "@tileHeader": "Getting Started",
+                "@headerIcon": "th",
+                "@secondaryText": "You edited recently",
+                "@linkedUrl": "https://www.google.com",
+                clientCallbacks() {
+                    window.location.href = this['@linkedUrl'];
+                }
+            }, {
+                "@tag": "tile",
+                "@id": "tileSeven",
+                "@tileImage": "/assets/images/placeholder.jpg",
+                "@tileHeader": "Getting Started",
+                "@headerIcon": "th",
+                "@secondaryText": "You edited recently",
+                "@linkedUrl": "https://www.google.com",
+                clientCallbacks() {
+                    window.location.href = this['@linkedUrl'];
+                }
+            }, {
+                "@tag": "tile",
+                "@id": "tileEight",
+                "@tileImage": "/assets/images/placeholder.jpg",
+                "@tileHeader": "Getting Started",
+                "@headerIcon": "th",
+                "@secondaryText": "You edited recently",
+                "@linkedUrl": "https://www.google.com",
+                clientCallbacks() {
+                    window.location.href = this['@linkedUrl'];
+                }
+            }, {
+                "@tag": "tile",
+                "@id": "tileNine",
+                "@tileImage": "/assets/images/placeholder.jpg",
+                "@tileHeader": "Getting Started",
+                "@headerIcon": "th",
+                "@secondaryText": "You edited recently",
+                "@linkedUrl": "https://www.google.com",
+                clientCallbacks() {
+                    window.location.href = this['@linkedUrl'];
+                }
+            }]
+        }
+
+        const carouselData = {
+            '@id': 'carouselOne',
+            '@imagesInView': '1',
+            '@loop': true,
+            '@mode': 'slide',
+            '@speed': 1000,
+            '@easing': 'ease-in-out',
+            '@pause': 5000,
+            '@control': true,
+            '@showCaption': true,
+            '@gallery': false,
+            '>': [{
+                '@tag': 'image',
+                '@imageLink': '#',
+                '@imageSrc': 'https://via.placeholder.com/1400x500',
+                '@captionText': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum',
+            }, {
+                '@tag': 'image',
+                '@imageLink': '#',
+                '@imageSrc': 'https://via.placeholder.com/1400x500',
+                '@captionText': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum',
+            }, {
+                '@tag': 'image',
+                '@imageLink': '#',
+                '@imageSrc': 'https://via.placeholder.com/1400x500',
+                '@captionText': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum',
+            }, {
+                '@tag': 'image',
+                '@imageLink': '#',
+                '@imageSrc': 'https://via.placeholder.com/1400x500',
+                '@captionText': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum',
+            }, {
+                '@tag': 'image',
+                '@imageLink': '#',
+                '@imageSrc': 'https://via.placeholder.com/1400x500',
+                '@captionText': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam suscipit vehicula aliquam',
+            }, {
+                '@tag': 'image',
+                '@imageLink': 'https://www.google.com',
+                '@imageSrc': 'https://via.placeholder.com/1400x500',
+                '@captionText': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam suscipit vehicula aliquam',
+            }]
+        }
+
+        const megaMenu = {
+            '@id': 'megamenuOne',
+            '@menuTitle': 'Home',
+            '@homeURL': '#',
+            '@homeImgSrc': '/assets/images/logo.png',
+            '>': [{
+                '@tag': 'menu',
+                '@link': '#',
+                '@megaMenu': false,
+                '@title': 'Home'
+            }, {
+                '@tag': 'menu',
+                '@megaMenu': true,
+                '@link': '#',
+                '@title': 'Services',
+                '>': [{
+                    '@tag': 'subMenuHeading',
+                    '@link': '#',
+                    '@title': 'Web Design',
+                    '>': [{
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Website Sliders',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Multiple Sliders',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Full Screen Sliders',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'One Page Site',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Parallax Website',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Dynamic Parallax Website',
+                    }]
+                }, {
+                    '@tag': 'subMenuHeading',
+                    '@link': '#',
+                    '@title': 'Layouts',
+                    '>': [{
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Headers Footers',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Ultra Responsive',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Tons of Layout',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Page Builder',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Many Available Icons',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Dynamic Parallax Website',
+                    }]
+                }, {
+                    '@tag': 'subMenuHeading',
+                    '@link': '#',
+                    '@title': 'Campaigns',
+                    '>': [{
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Marketing Materials',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Unlimited Tryouts',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Social Media Contents',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Brochures',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Smooth Fade In',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Dynamic Parallax Website',
+                    }]
+                }, {
+                    '@tag': 'subMenuHeading',
+                    '@link': '#',
+                    '@title': 'E-Commerce',
+                    '>': [{
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Magento Templates',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Wordpress Templates',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'OpenChart Templates',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'OpenBook Templates',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Unlimited Trials',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': 'Customized Templates',
+                    }]
+                }]
+            }, {
+                '@tag': 'menu',
+                '@link': '#',
+                '@megaMenu': true,
+                '@title': 'Pages',
+                '>': [{
+                    '@tag': 'subMenuHeading',
+                    '@link': '#',
+                    '@title': 'Modern Layout',
+                    '>': [{
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '4 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '4 Columns Grid',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '3 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '3 Columns Grid',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '2 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '2 Columns Grid',
+                    }]
+                }, {
+                    '@tag': 'subMenuHeading',
+                    '@link': '#',
+                    '@title': 'Classic Layout',
+                    '>': [{
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '4 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '4 Columns Grid',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '3 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '3 Columns Grid',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '2 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '2 Columns Grid',
+                    }]
+                }, {
+                    '@tag': 'subMenuHeading',
+                    '@link': '#',
+                    '@title': 'Art Classic Layout',
+                    '>': [{
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '4 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '4 Columns Grid',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '3 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '3 Columns Grid',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '2 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '2 Columns Grid',
+                    }]
+                }, {
+                    '@tag': 'subMenuHeading',
+                    '@link': '#',
+                    '@title': 'Single Portfolio',
+                    '>': [{
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '4 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '4 Columns Grid',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '3 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '3 Columns Grid',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '2 Columns Masonry',
+                    }, {
+                        '@tag': 'subMenu',
+                        '@link': '#',
+                        '@title': '2 Columns Grid',
+                    }]
+                }]
+            }, {
+                '@tag': 'menu',
+                '@link': '#',
+                '@megaMenu': false,
+                '@title': 'Portfolio'
+            }, {
+                '@tag': 'menu',
+                '@link': '#',
+                '@megaMenu': false,
+                '@title': 'Blog'
+            }, {
+                '@tag': 'menu',
+                '@link': '#',
+                '@megaMenu': false,
+                '@title': 'Elements'
+            }]
+        }
+
+        const input = {
+            "@id": "inputOne",
+            "@title": "Gender",
+            "@type": "text",
+            "@placeholder": "Enter Input",
+            "@maxlength": "",
+            "@value": "",
+            "@alignment": "inline",
+            "@autofocus": false,
+            "@required": false,
+            "@disabled": false,
+            "@cols": 100,
+            "@rows": 50,
+        }
+
         const jsonData = {
             '@title': 'grid',
             '@equalWidth': true,
             '@stackable': true,
+            '@numberOfColumns': '',
             '>': [{
                 '@tag': 'row',
                 '>': [{
                     '@tag': 'column',
-                    '@columnId': 1,
-                    '@columnWidth': 4,
-                    '@tagName': 'input'
-                }, {
-                    '@tag': 'column',
-                    '@columnId': 12,
-                    '@columnWidth': 4,
-                    '@tagName': 'select'
-                }, {
-                    '@tag': 'column',
-                    '@columnId': 123,
-                    '@columnWidth': 4,
-                    '@tagName': 'input'
-                }, {
-                    '@tag': 'column',
-                    '@columnId': 1234,
-                    '@columnWidth': 4,
-                    '@tagName': 'select'
+                    '@segment': false,
+                    '@columnId': 10,
+                    '@columnWidth': '',
+                    '@centered': false,
+                    '@tagName': 'megamenu',
+                    '@tagData': megaMenu,
                 }]
             }, {
                 '@tag': 'row',
                 '>': [{
                     '@tag': 'column',
-                    '@columnId': 2,
+                    '@segment': false,
+                    '@columnId': 10,
+                    '@centered': false,
+                    '@columnWidth': '',
+                    '@tagName': 'carousel',
+                    '@tagData': carouselData,
+                }]
+            }, {
+                '@tag': 'row',
+                '>': [{
+                    '@tag': 'column',
+                    '@segment': 'segmented',
+                    '@columnId': 123,
+                    '@centered': false,
                     '@columnWidth': 4,
-                    '@tagName': 'input'
+                    '@tagName': 'barChart',
+                    '@tagData': barChart,
                 }, {
                     '@tag': 'column',
+                    '@segment': false,
+                    '@columnId': 1234,
+                    '@columnWidth': 4,
+                    '@centered': false,
+                    '@tagName': 'card',
+                    '@tagData': chartCard
+                }, {
+                    '@tag': 'column',
+                    '@segment': false,
+                    '@columnId': 1234,
+                    '@columnWidth': 4,
+                    '@centered': false,
+                    '@tagName': 'card',
+                    '@tagData': tableCard
+                }]
+            }, {
+                '@tag': 'row',
+                '>': [{
+                    '@tag': 'column',
+                    '@segment': 'segmented',
+                    '@columnId': 1,
+                    '@columnWidth': 4,
+                    '@centered': false,
+                    '@tagName': 'areaChart',
+                    '@tagData': areaChart,
+                }, {
+                    '@tag': 'column',
+                    '@segment': 'segmented',
+                    '@columnId': 12,
+                    '@columnWidth': 4,
+                    '@centered': false,
+                    '@tagName': 'pieChart',
+                    '@tagData': pieChart
+                }]
+            }, {
+                '@tag': 'row',
+                '>': [{
+                    '@tag': 'column',
+                    '@segment': false,
                     '@columnId': 23,
                     '@columnWidth': 4,
-                    '@tagName': 'select'
+                    '@centered': false,
+                    '@tagName': 'card',
+                    '@tagData': timelineCard
                 }, {
                     '@tag': 'column',
+                    '@segment': false,
                     '@columnId': 234,
                     '@columnWidth': 4,
-                    '@tagName': 'input'
+                    '@centered': false,
+                    '@tagName': 'input',
+                    '@tagData': input,
                 }, {
                     '@tag': 'column',
+                    '@segment': false,
                     '@columnId': 2345,
                     '@columnWidth': 4,
-                    '@tagName': 'select'
+                    '@centered': false,
+                    '@tagName': 'input',
+                    '@tagData': input
+                }, {
+                    '@tag': 'row',
+                    '>': [{
+                        '@tag': 'column',
+                        '@segment': false,
+                        '@columnId': 10,
+                        '@columnWidth': 4,
+                        '@centered': false,
+                        '@tagName': 'input',
+                        '@tagData': input,
+                    }, {
+                        '@tag': 'column',
+                        '@segment': false,
+                        '@columnId': 11,
+                        '@columnWidth': 4,
+                        '@centered': false,
+                        '@tagName': 'select',
+                        '@tagData': select
+                    }, {
+                        '@tag': 'column',
+                        '@segment': false,
+                        '@columnId': 12,
+                        '@columnWidth': 4,
+                        '@centered': false,
+                        '@tagName': 'input',
+                        '@tagData': input,
+                    }, {
+                        '@tag': 'column',
+                        '@segment': false,
+                        '@columnId': 13,
+                        '@columnWidth': 4,
+                        '@centered': false,
+                        '@tagName': 'select',
+                        '@tagData': select
+                    }]
+                }]
+            }, {
+                '@tag': 'row',
+                '>': [{
+                    '@tag': 'column',
+                    '@segment': false,
+                    '@columnId': 10,
+                    '@columnWidth': 4,
+                    '@tagName': 'card',
+                    '@tagData': stepCard
+                }]
+            }, {
+                '@tag': 'row',
+                '>': [{
+                    '@tag': 'column',
+                    '@segment': false,
+                    '@columnId': 10,
+                    '@columnWidth': '',
+                    '@tagName': 'tile',
+                    '@tagData': tile,
                 }]
             }]
         }
-
 
     </script>
     <script src="/assets/js/polyfills/index.min.js"></script>

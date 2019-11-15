@@ -1,8 +1,6 @@
 {
     "@id": "",
     "@title": "",
-    "@type": "classic chart || material chart",
-    "@complexity": "complex || simple",
     "@subtitle": "",
     "@chartWidth": 900,
     "@chartHeight": 400,

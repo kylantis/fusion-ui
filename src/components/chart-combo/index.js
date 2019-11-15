@@ -15,6 +15,10 @@ class ComboChart extends BaseComponent {
         google.charts.load('current', { packages: ['corechart'] });
         google.charts.setOnLoadCallback(drawVisualization);
 
+        function myReadyHandler() {
+            // console.log('ready');
+        }
+
         function drawVisualization() {
             const info = google.visualization.arrayToDataTable(data['>']);
 
@@ -58,6 +62,7 @@ class ComboChart extends BaseComponent {
 
             const chart = new google.visualization.ComboChart(document.getElementById(data['@id']));
             chart.draw(info, options);
+            google.visualization.events.addListener(chart, 'ready', myReadyHandler);
         }
     }
 

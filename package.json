@@ -24,10 +24,10 @@
         "test": "jest --runInBand --forceExit --coverage"
     },
     "dependencies": {
-        "browserify": "^16.3.0",
+        "browserify": "^16.5.0",
         "gulp": "^4.0.2",
         "gulp-babel": "^8.0.0",
-        "gulp-imagemin": "^6.0.0",
+        "gulp-imagemin": "^6.1.1",
         "gulp-rename": "^1.4.0",
         "gulp-sass": "^4.0.2",
         "gulp-sourcemaps": "^2.6.5",
@@ -36,22 +36,22 @@
         "gulplog": "^1.0.0",
         "normalize-scss": "7.0.1",
         "require-dir": "^1.2.0",
-        "restify": "^8.3.3",
+        "restify": "^8.4.0",
         "run-sequence": "^2.2.1",
         "vinyl-buffer": "^1.0.1",
         "vinyl-source-stream": "^2.0.0"
     },
     "devDependencies": {
-        "@babel/core": "^7.4.5",
-        "@babel/preset-env": "^7.4.5",
-        "@babel/plugin-proposal-private-methods": "^7.4.4",
-        "@babel/plugin-proposal-class-properties": "^7.5.0",
-        "babel-eslint": "^10.0.2",
-        "eslint": "^5.3.0",
-        "eslint-config-airbnb-base": "^13.1.0",
-        "eslint-plugin-import": "^2.17.3",
-        "jest": "^24.8.0",
-        "nodemon": "^1.19.1"
+        "@babel/core": "^7.6.4",
+        "@babel/plugin-proposal-class-properties": "^7.5.5",
+        "@babel/plugin-proposal-private-methods": "^7.6.0",
+        "@babel/preset-env": "^7.6.3",
+        "babel-eslint": "^10.0.3",
+        "eslint": "^5.16.0",
+        "eslint-config-airbnb-base": "^13.2.0",
+        "eslint-plugin-import": "^2.18.2",
+        "jest": "^24.9.0",
+        "nodemon": "^1.19.4"
     },
     "jest": {
         "verbose": true,

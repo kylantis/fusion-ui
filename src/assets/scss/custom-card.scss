@@ -1,34 +1,46 @@
 .ui {
-    &.cards > .card {
-      width: 250px;
+    &.container.card > .card {
+      width: 100%;
       cursor: default;
     }
-    &.cards > .pill.card:hover {
-      background-color: rgb(238, 245, 247);
-    }
-    &.cards > .card > .content > .header, &.card > .content > .header {
+    &.container.card > .card > .content > .header, &.card > .content > .header {
       display: inline-block;
     }
-    &.cards > .card > .content, &.card > .content {
+    &.container.card > .card > .content, &.card > .content {
       padding: 1em 1em 0.5em 0.5em;
     }
-    &.cards > .card > .content > .header:not(.ui), &.card > .content > .header:not(.ui) {
+    &.container.card > .card > .content > .header:not(.ui), &.card > .content > .header:not(.ui) {
       font-size: 1.1em;
+      padding-left: 1em;
     }
-    &.cards > .card .meta *, &.card .meta * {
-      padding: 0em 0em 0em 0.5em;
-    }
-    &.cards > .card > :last-child, &.card > :last-child {
+    &.container.card > .card > :last-child, &.card > :last-child {
       margin-bottom: 0.5em;
     }
-    &.cards > .card > .image > img, &.card > .image > img {
+    &.container.card > .card > .image > img, &.card > .image > img {
       height: 160px;
     }
-  }
-  
-  i {
-    &.icon, &.icons {
-      font-size: 1.1em;
+    &.container.card > .content > .right.floated > .icon.top.dropdown.left > i.bars.icon {
+      font-size: 1.5em;
+      cursor: pointer;
+      color: #504f4f;
+    }
+    &.container.card > .content > i.cardIcon.icon {
+      font-size: 1.5em;
+      cursor: default;
+      color: #504f4f;
+      padding: 0em 0em 0em 0.5em;
+    }
+    &.container.card > .content > .right.floated > .ui.dropdown .menu > .item {
+      font-size: inherit;
+    }
+    &.container.card > .content.extra.column {
+      text-align: center;
+      overflow: auto;
+    }
+    &.container.card > .extra.content > .actualContainer {
+      margin: auto;
+      width: 100%;
+      display: inline-block;
     }
   }
 

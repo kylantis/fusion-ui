@@ -3,7 +3,7 @@ class Carousel3D extends BaseComponent {
         return 'carousel3D';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     getCssDependencies() {
         return (['/assets/css/carousel3d.min.css']);
@@ -11,30 +11,11 @@ class Carousel3D extends BaseComponent {
 
     getJsDependencies() {
         return (['https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js', '/assets/js/carousel3d.min.js']);
+        // return super.getJsDependencies().concat(['/assets/js/carousel3d.min.js']);
     }
 
     getComponentId() {
-        return this.#componentId;
-    }
-
-    getBehaviourNames() {
-        return [
-            'getValue',
-        ];
-    }
-
-    invokeBehavior(behaviorName, data) {
-        switch (behaviorName) {
-        case 'getValue':
-            return $('#search_field').val();
-        default:
-            break;
-        }
-        return null;
-    }
-
-    getValue() {
-        this.invokeBehavior('getValue', null);
+        return this.componentId;
     }
 
     render() {
@@ -62,9 +43,6 @@ class Carousel3D extends BaseComponent {
             const rightShadow = this.appendNode(imgContainer, 'img', 'cc-decoration kc-shadow-right');
             rightShadow.src = rShadow;
             rightShadow.setAttribute('style', 'background-image: none;');
-        });
-        $(document).on(() => {
-            $('div:contains(Unlicensed Killer Carousel)').remove();
         });
     }
 }

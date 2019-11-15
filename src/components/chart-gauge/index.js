@@ -44,18 +44,18 @@ class GaugeChart extends BaseComponent {
             const chart = new google.visualization.Gauge(document.getElementById(data['@id']));
             chart.draw(info, options);
 
-            // setInterval(() => {
-            //     info.setValue(0, 1, 40 + Math.round(60 * Math.random()));
-            //     chart.draw(info, options);
-            // }, 1000);
-            // setInterval(() => {
-            //     info.setValue(1, 1, 40 + Math.round(60 * Math.random()));
-            //     chart.draw(info, options);
-            // }, 5000);
-            // setInterval(() => {
-            //     info.setValue(2, 1, 60 + Math.round(20 * Math.random()));
-            //     chart.draw(info, options);
-            // }, 10000);
+            setInterval(() => {
+                info.setValue(0, 1, 40 + Math.round(60 * Math.random()));
+                chart.draw(info, options);
+            }, 1000);
+            setInterval(() => {
+                info.setValue(1, 1, 40 + Math.round(60 * Math.random()));
+                chart.draw(info, options);
+            }, 5000);
+            setInterval(() => {
+                info.setValue(2, 1, 60 + Math.round(20 * Math.random()));
+                chart.draw(info, options);
+            }, 10000);
         }
     }
 

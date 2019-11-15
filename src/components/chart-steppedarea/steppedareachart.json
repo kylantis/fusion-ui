@@ -17,8 +17,6 @@
     "@chartWidth": 700,
     "@chartHeight": 400,
     "@colors": [],
-    "@pointSize": "",
-    "@pointShape": "",
     "@enableInteractivity": "true (default) || false",
     "@forceIFrame": "true || false (default)",
     "@selectionMode": "single(default) || multiple",
@@ -28,7 +26,6 @@
     "@connectSteps": "true || false(default)",
     "@areaOpacity": "0 - 1 || 0.3 (default)",
     "@orientation": "horizontal(default) || vertical",
-    "@interpolateNulls": "true || false",
     "@hAxis": {
         "@title": "",
         "@color": "",

@@ -10,7 +10,7 @@
     "@animateChart": true,
     "@animationDuration": 2000,
     "@transitionStyle": "linear || in || out || inAndOut",
-    "@region": "",
+    "@region": "world || countrycode",
     "@enableRegionInteractivity": "true(default) || false",
     "@magnifyingGlass": "true(default) || false",
     "@forceIFrame": "true || false(default)",

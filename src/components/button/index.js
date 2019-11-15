@@ -4,7 +4,7 @@ class Button extends BaseComponent {
         return 'button';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/button.min.css', '/assets/css/icon.min.css']);
@@ -17,7 +17,7 @@ class Button extends BaseComponent {
     invokeBehavior(behavior, data) {
         switch (behavior) {
         case 'click':
-            data['@clientCallbacks']['@execute']();
+            data['@clientCallbacks']();
             break;
         default:
             break;
@@ -29,7 +29,7 @@ class Button extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     render() {
@@ -43,10 +43,16 @@ class Button extends BaseComponent {
             button.className += ` ${jsonData['@color']}`;
             button.textContent = jsonData['@buttonText'];
             if (jsonData['@size']) {
-                button.className.add(`${jsonData['@size']}`);
+                button.classList.add(`${jsonData['@size']}`);
+            }
+            if (jsonData['@inverted']) {
+                button.classList.add('inverted');
             }
             if (jsonData['@fluid']) {
                 button.classList.add('fluid');
+            }
+            if (jsonData['@rounded']) {
+                button.style.borderRadius = '10rem';
             }
             if (jsonData['@position']) {
                 button.classList.add(jsonData['@position']);
@@ -151,6 +157,31 @@ class Button extends BaseComponent {
             iTag.className = jsonData['@socialButton'];
             iTag.classList.add('icon');
             button.classList.add('button');
+        } else if (jsonData['@buttonStyle'] === 'attached') {
+            const children = jsonData['>'];
+            const groupButtons = document.createElement('div');
+            groupButtons.className = `${children.length} ui fluid buttons`;
+            children.forEach((child) => {
+                const attbutton = document.createElement('button');
+                attbutton.className = 'ui button';
+                attbutton.textContent = child['@buttonText'];
+                if (jsonData['@inverted']) {
+                    attbutton.classList.add('inverted');
+                }
+                if (child['@color'] !== undefined && child['@color'] !== null) {
+                    attbutton.classList.add(`${child['@color']}`);
+                }
+                if (child['@size'] !== undefined && child['@size'] !== null) {
+                    attbutton.classList.add(`${child['@size']}`);
+                }
+                attbutton.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.click(child);
+                });
+                groupButtons.append(attbutton);
+            });
+            node.append(groupButtons);
+            return;
         }
 
         button.setAttribute('id', this.getComponentId());

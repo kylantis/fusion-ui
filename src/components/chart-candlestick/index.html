@@ -14,7 +14,7 @@
 
 <script>
     const jsonData = {
-        '@id': 'annotationChart',
+        '@id': 'candlestickChart',
         '@title': 'Company Performance',
         '@legendPosition': 'none',
         '@backgroundColor': '',
@@ -24,26 +24,26 @@
         '@chartHeight': 500,
         '@width': 600,
         '@height': 600,
-        '@barWidth': '90',
+        '@barWidth': 90,
         '@colors': null,
         '@enableInteractivity': true, //true (default) || false
         '@forceIFrame': false,
         '@animateChart': true,
         '@animationDuration': 2000,
         '@transitionStyle': 'linear',
-        '@orientation': '',
-        '@reverseCategories': '',
+        '@orientation': 'horizontal',
+        '@reverseCategories': true,
         '@selectionMode': 'single',
-        '@aggregationTarget': 'auto', // 'category' || 'series'
+        '@aggregationTarget': 'category', // 'category' || 'series'
         '@candlestick': {
-            '@hollowIsRising': 'false',
+            '@hollowIsRising': true,
             '@fallingColor': {
-                '@fill': 'auto',
+                '@fill': 'red',
                 '@stroke': '',
                 '@strokeWidth': '',
             },
             '@risingColor': {
-                '@fill': 'auto',
+                '@fill': 'blue',
                 '@stroke': '',
                 '@strokeWidth': '',
             }

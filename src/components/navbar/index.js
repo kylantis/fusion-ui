@@ -5,7 +5,7 @@ class NavBar extends BaseComponent {
         return 'navbar';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/label.min.css', '/assets/css/dropdown.min.css', '/assets/css/navbar.min.css', '/assets/css/transition.min.css', '/assets/css/icon.min.css', '/assets/css/menu.min.css']);
@@ -16,7 +16,7 @@ class NavBar extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     executeStuff() {
@@ -44,8 +44,6 @@ class NavBar extends BaseComponent {
                 let itemContainer;
 
                 if (item['@tag'] !== 'item') {
-                    // Render external component
-                    // Note: This is not fleshed out yet
                     const comp = BaseComponent.getComponent(item['@tag'], item['>'], uiDiv);
                     comp.then((data) => {
                         itemContainer = data;
@@ -83,7 +81,7 @@ class NavBar extends BaseComponent {
                     case 'left':
                     case 'right':
                         itemContainer.style.float = group['@position'];
-
+                        console.log(itemContainer);
                         if (isFirstNode && group['@position'] === 'right') {
                             itemContainer.style.marginLeft = 'auto';
                         }

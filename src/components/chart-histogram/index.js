@@ -23,9 +23,13 @@ class Histogram extends BaseComponent {
 
             const options = {
                 title: data['@title'],
-                width: data['@chartWidth'],
-                height: data['@chartHeight'],
+                width: data['@width'],
+                height: data['@height'],
                 colors: data['@colors'],
+                chartArea: {
+                    width: data['@chartWidth'],
+                    height: data['@chartHeight'],
+                },
                 legend: {
                     position: data['@legendPosition'],
                     maxLines: 3,
@@ -40,7 +44,7 @@ class Histogram extends BaseComponent {
                     groupWidth: data['@groupWidth'],
                 },
                 histogram: {
-                    bucketSize: data['@bucketSize'],
+                    bucketSize: data['@histogram']['@bucketSize'],
                     maxNumBuckets: data['@histogram']['@maxNumBuckets'],
                     minValue: data['@histogram']['@minValue'],
                     maxValue: data['@histogram']['@maxValue'],
@@ -49,7 +53,7 @@ class Histogram extends BaseComponent {
                     title: data['@hAxis']['@title'],
                     gridlines: {
                         color: data['@hAxis']['@gridlineColor'] || null,
-                        count: data['@hAxis']['@count'] || null,
+                        count: data['@hAxis']['@gridlineCount'] || null,
                     },
                     titleTextStyle: {
                         color: data['@hAxis']['@color'] || 'black',
@@ -64,7 +68,7 @@ class Histogram extends BaseComponent {
                     title: data['@vAxis']['@title'],
                     gridlines: {
                         color: data['@vAxis']['@gridlineColor'] || null,
-                        count: data['@vAxis']['@count'] || null,
+                        count: data['@vAxis']['@gridlineCount'] || null,
                     },
                     titleTextStyle: {
                         color: data['@vAxis']['@color'] || 'black',
@@ -74,11 +78,6 @@ class Histogram extends BaseComponent {
                         italic: data['@vAxis']['@italic'] || false,
                     },
                     ticks: data['@vAxis']['@ticks'] || 'auto',
-                },
-                animation: {
-                    startup: data['@animateChart'],
-                    duration: data['@animationDuration'],
-                    easing: data['@transitionStyle'],
                 },
             };
 
@@ -93,14 +92,7 @@ class Histogram extends BaseComponent {
         const chartDiv = document.createElement('div');
         chartDiv.id = this.data['@id'];
         node.append(chartDiv);
-
-        if (this.data['@type'] === 'classic chart' && this.data['@complexity'] === 'simple') {
-            this.initChart();
-        } else if (this.data['@type'] === 'classic chart' && this.data['@complexity'] === 'complex') {
-            this.initClassicComplexChart();
-        } else if (this.data['@type'] === 'material chart' && this.data['@complexity'] === 'complex') {
-            this.initComplexMaterialChart();
-        }
+        this.initChart();
     }
 }
 

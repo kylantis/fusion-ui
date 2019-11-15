@@ -4,7 +4,7 @@ class Input extends BaseComponent {
         return 'input';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/input.min.css', '/assets/css/label.min.css']);
@@ -19,7 +19,7 @@ class Input extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     required(element) {
@@ -106,7 +106,7 @@ class Input extends BaseComponent {
         const { node } = this;
         let uiDiv = document.createElement('div');
         const inputDiv = document.createElement('input');
-        uiDiv.classList.add('ui');
+        uiDiv.className = 'ui fluid ';
         const inputId = [];
 
         if (this.data['@type'] === 'text') {

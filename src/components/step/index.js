@@ -3,7 +3,7 @@ class Step extends BaseComponent {
         return 'step';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/step.min.css', '/assets/css/icon.min.css']);
@@ -27,7 +27,7 @@ class Step extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     render() {

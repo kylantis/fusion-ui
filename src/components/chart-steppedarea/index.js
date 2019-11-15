@@ -45,7 +45,7 @@ class SteppedAreaChart extends BaseComponent {
                 isStacked: data['@stacked'],
                 width: data['@width'],
                 height: data['@height'],
-                color: data['@colors'],
+                colors: data['@colors'],
                 pointShape: data['@pointShape'],
                 pointSize: data['@pointSize'],
                 enableInteractivity: data['@enableInteractivity'],
@@ -56,7 +56,6 @@ class SteppedAreaChart extends BaseComponent {
                 orientation: data['@orientation'],
                 connectSteps: data['@connectSteps'],
                 areaOpacity: data['@areaOpacity'],
-                interpolateNulls: data['@interpolateNulls'],
                 titleTextStyle: {
                     color: data['@titleTextStyle']['@color'] || 'black',
                     fontName: data['@titleTextStyle']['@fontName'],

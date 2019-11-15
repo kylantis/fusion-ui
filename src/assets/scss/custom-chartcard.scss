@@ -1,0 +1,37 @@
+.ui.chartCards {
+    &.cards > .chartCard.card {
+        justify-content: space-evenly;
+        cursor: default;
+    }
+    // main value
+    &.cards > .chartCard.card > .content > .header:not(.ui) {
+        font-size: 2em;
+        font-weight: inherit;
+    }
+    // indicating icon
+    &.cards > .chartCard.card > .content > .header:not(.ui) > i.angle.icon {
+        font-weight: 900;
+    }
+    // indicator
+    &.cards > .chartCard.card > .content > span.right.floated {
+        margin-top: -1.7em;
+        font-weight: 300;
+        font-size: 1.2em;
+        font-weight: 600;
+        color: blueviolet;
+    }
+    // currency symbol
+    &.cards > .chartCard.card > .content > .header:not(.ui) > span.currencySymbol{
+        color: #139603;
+    }
+    // Header text
+    &.cards > .chartCard.card > .content > .header:not(.ui) > div.headerText {
+        display: inline-block;
+        padding-left: 0.3em;
+    }
+    // card title
+    &.cards > .chartCard.card > .content > .meta {
+        font-size: 1.2em;
+        padding: 0em 0em 0.5em 0.3em;
+    }
+}

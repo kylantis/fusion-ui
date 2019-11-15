@@ -46,7 +46,7 @@ class CandlestickChart extends BaseComponent {
                 reverseCategories: data['@reverseCategories'],
                 selectionMode: data['@selectionMode'],
                 candlestick: {
-                    hollowIsRising: data['@hollowIsRising'],
+                    hollowIsRising: data['@candlestick']['@hollowIsRising'],
                     fallingColor: {
                         fill: data['@candlestick']['@fallingColor']['@fill'] || 'auto',
                         stroke: data['@candlestick']['@fallingColor']['@stroke'] || 'auto',

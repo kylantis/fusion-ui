@@ -29,10 +29,10 @@
             ["cats are better than kittens"],
             ["cats are evil"],
             ["cats are weird"],
-            ["cats eat mice"],
+            ["cats eat mice"]
         ],
         "explicit": [
-            ["id", "childLabel", "parent", "size", { role: "style" }],
+            ["id", "childLabel", "parent", "size", { "role": "style" }],
             [0, "Life", -1, 1, "black"],
             [1, "Archaea", 0, 1, "black"],
             [2, "Eukarya", 0, 5, "black"],

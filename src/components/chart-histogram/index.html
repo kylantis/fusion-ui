@@ -54,11 +54,11 @@
     const jsonData = {
         '@id': 'histogram',
         '@title': 'Lengths of dinosaurs, in meters',
-        '@type': 'classic chart',
-        '@complexity': 'simple', //complex || simple
         '@subtitle': 'Sample subtitle data',
-        '@chartWidth': 900,
+        '@chartWidth': 400,
         '@chartHeight': 400,
+        '@width': 400,
+        '@height': 500,
         '@titleTextStyle': {
             '@color': '',
             '@fontName': '',
@@ -67,10 +67,10 @@
             '@italic': '',
         },
         '@histogram': {
-            '@bucketSize': 0.02,
-            '@maxNumBuckets': 200,
-            '@minValue': -1,
-            '@maxValue': 1
+            '@bucketSize': 10,
+            '@maxNumBuckets': 20,
+            '@minValue': null,
+            '@maxValue': null
         },
         '@fontSize': '',
         '@fontName': '',
@@ -78,7 +78,7 @@
         '@backgroundColor': '',
         '@forceIFrame': false,
         '@groupWidth': 100,
-        '@legendPosition': 'top',
+        '@legendPosition': 'right',
         '@orientation': 'horizontal', //horizontal(default) || vertical
         '@selectionMode': 'single', //single(default) || multiple
         '@pointShape': '',
@@ -92,7 +92,7 @@
             '@fontSize': '',
             '@bold': '',
             '@italic': '',
-            '@gridlineCount': '',
+            '@gridlineCount': 10,
             '@gridlineColor': '',
             '@ticks': null,
         },
@@ -103,13 +103,10 @@
             '@fontSize': '',
             '@bold': '',
             '@italic': '',
-            '@gridlineCount': '',
+            '@gridlineCount': 10,
             '@gridlineColor': '',
             '@ticks': null,
         },
-        '@animateChart': true,
-        '@animationDuration': 2000,
-        '@transitionStyle': 'linear',
         '>': table,
     }
 

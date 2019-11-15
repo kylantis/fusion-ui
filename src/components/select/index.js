@@ -4,7 +4,7 @@ class Select extends BaseComponent {
         return 'select';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     behaviorNames() {
         return ['getSelectedValue', 'getCheckedValue'];
@@ -33,7 +33,7 @@ class Select extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     getCheckedValue() {
@@ -132,10 +132,6 @@ class Select extends BaseComponent {
         }
         return 'select';
     }
-
-    // setValue(value) {
-    //     value = value;
-    // }
 
     render() {
         const { node } = this;

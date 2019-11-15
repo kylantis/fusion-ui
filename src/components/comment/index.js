@@ -3,9 +3,11 @@ class Comment extends BaseComponent {
         return 'comment';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     #commentBox;
+
+    #result = '';
 
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/comment.min.css', '/assets/css/form.min.css', '/assets/css/button.min.css', '/assets/css/icon.min.css', '/assets/css/custom-comment.min.css']);
@@ -48,7 +50,11 @@ class Comment extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
+    }
+
+    getBehavior() {
+        console.log(this.invokeBehavior());
     }
 
     invokeBehavior(behavior, el, comment) {
@@ -59,6 +65,7 @@ class Comment extends BaseComponent {
         switch (behavior) {
         case 'addNewComment':
             $(lastDiv).after(this.createPost(this.newComment(comment)));
+            this.result = ($(comment).val());
             break;
 
         case 'replyComment':
@@ -78,6 +85,7 @@ class Comment extends BaseComponent {
             break;
         default:
         }
+        return this.result;
     }
 
     addNewComment(el, data) {
@@ -179,8 +187,11 @@ class Comment extends BaseComponent {
         const text = 'Add Comment';
         buttonDiv.append(text);
         $(buttonDiv).on('click', () => {
-            this.addNewComment(form, textArea);
-            $(textArea).val('');
+            if ($(textArea).val().trim()) {
+                this.addNewComment(form, textArea);
+                this.getBehavior();
+                $(textArea).val('');
+            }
         });
         return form;
     }
@@ -276,6 +287,19 @@ class Comment extends BaseComponent {
         this.loadModal(titleDiv);
 
         node.append(uiDiv);
+
+        const div = document.querySelector(`#${this.data['@id']}`);
+        console.log(div);
+        div.addEventListener('readystatechange', (event) => {
+            console.log(event.target.readyState);
+            if (event.target.readyState === 'interactive') {
+                console.log('interactive');
+            } else if (event.target.readyState === 'complete') {
+                console.log('complete');
+            } else if (event.target.readyState === 'loading') {
+                console.log('loading');
+            }
+        });
     }
 }
 

@@ -4,7 +4,7 @@ class SearchBar extends BaseComponent {
         return 'searchBar';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/input.min.css', '/assets/css/search.min.css', '/assets/css/icon.min.css',
@@ -58,7 +58,7 @@ class SearchBar extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     render() {

@@ -3,7 +3,7 @@ class Feed extends BaseComponent {
         return 'feed';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     #likeButton;
 
@@ -24,7 +24,7 @@ class Feed extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     // Modal

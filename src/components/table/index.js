@@ -4,7 +4,7 @@ class Table extends BaseComponent {
         return 'table';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     getBehaviourNames() {
         return [
@@ -37,7 +37,7 @@ class Table extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     invokeBehavior(behaviorName, data) {
@@ -163,88 +163,57 @@ class Table extends BaseComponent {
         }
         table.classList.add('table');
 
+        table.append(thead);
+        table.append(tbody);
+        // Create header row
+        const trHead = thead.insertRow(-1);
 
-        if (jsonData['@tableStyle'] === 'standard') {
-            table.append(thead);
-            table.append(tbody);
-            // Create header row
-            const trHead = thead.insertRow(-1);
+        const columns = this.data['>'][0]['>'];
+        for (let i = 0; i < columns.length; i++) {
+            columnTitles[i.toString()] = columns[i]['@title'];
+        }
+        let columnId = 0;
+        for (const value of Object.keys(columnTitles)) {
+            const th = document.createElement('th');
+            th.textContent = columnTitles[value];
+            th.id = `${id}-title-${columnId += 1}`;
+            trHead.appendChild(th);
+        }
 
-            const columns = this.data['>'][0]['>'];
-            for (let i = 0; i < columns.length; i++) {
-                columnTitles[i.toString()] = columns[i]['@title'];
-            }
-            let columnId = 0;
-            for (const value of Object.keys(columnTitles)) {
-                const th = document.createElement('th');
-                th.textContent = columnTitles[value];
-                th.id = `${id}-title-${columnId += 1}`;
-                trHead.appendChild(th);
-            }
-
-            if (jsonData['>'].length > 0) {
-                let rowId = 0;
-                for (let i = 1; i < this.data['>'].length; i++) {
-                    const rowData = this.data['>'][i];
-                    if (rowData['@tag'] === 'row') {
-                        const trBody = tbody.insertRow(-1);
+        if (jsonData['>'].length > 0) {
+            let rowId = 0;
+            for (let i = 1; i < this.data['>'].length; i++) {
+                const rowData = this.data['>'][i];
+                if (rowData['@tag'] === 'row') {
+                    const trBody = tbody.insertRow(-1);
+                    trBody.id = `${id}-row-${rowId += 1}`;
+                    if (!rowData['@id']) {
                         trBody.id = `${id}-row-${rowId += 1}`;
-                        if (!rowData['@id']) {
-                            trBody.id = `${id}-row-${rowId += 1}`;
-                        } else {
-                            trBody.id = rowData['@id'];
-                        }
-                        const innerRowData = rowData['>'];
-                        for (let j = 0; j < innerRowData.length; j++) {
-                            for (const [key, value] of Object.entries(rowData['>'][j])) {
-                                if (key === '@value') {
-                                    const tableCell = trBody.insertCell(-1);
-                                    tableCell.id = `${id}-${trBody.id}-${j + 1}`;
-                                    tableCell.innerHTML = value;
-                                }
+                    } else {
+                        trBody.id = rowData['@id'];
+                    }
+                    const innerRowData = rowData['>'];
+                    for (let j = 0; j < innerRowData.length; j++) {
+                        for (const [key, value] of Object.entries(rowData['>'][j])) {
+                            if (key === '@value') {
+                                const tableCell = trBody.insertCell(-1);
+                                tableCell.id = `${id}-${trBody.id}-${j + 1}`;
+                                tableCell.innerHTML = value;
                             }
                         }
-                        // Add click callback, e.t.c
-                        $(trBody).click((e) => {
-                            this.invokeBehavior('', e.target.parentNode);
-                        });
-                        $(trBody).dblclick((e) => {
-                            const editData = { id: e.target.id, content: 'new content added' };
-                            this.editRow(editData);
-                        });
                     }
+                    // Add click callback, e.t.c
+                    $(trBody).click((e) => {
+                        this.invokeBehavior('', e.target.parentNode);
+                    });
+                    $(trBody).dblclick((e) => {
+                        const editData = { id: e.target.id, content: 'new content added' };
+                        this.editRow(editData);
+                    });
                 }
             }
         }
 
-        if (jsonData['@tableStyle'] === 'inbox') {
-            table.append(tbody);
-            if (jsonData['>'].length > 0) {
-                let rowId = 0;
-                for (let i = 1; i < this.data['>'].length; i++) {
-                    const rowData = this.data['>'][i];
-                    if (rowData['@tag'] === 'row') {
-                        const trBody = tbody.insertRow(-1);
-                        trBody.id = `${id}-row-${rowId += 1}`;
-                        if (!rowData['@id']) {
-                            trBody.id = `${id}-row-${rowId += 1}`;
-                        } else {
-                            trBody.id = rowData['@id'];
-                        }
-                        const innerRowData = rowData['>'];
-                        for (let j = 0; j < innerRowData.length; j++) {
-                            for (const [key, value] of Object.entries(rowData['>'][j])) {
-                                if (key === '@value') {
-                                    const tableCell = trBody.insertCell(-1);
-                                    tableCell.id = `${id}-${trBody.id}-${j + 1}`;
-                                    tableCell.innerHTML = value;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
         tableId.push(`#${table.getAttribute('id')}`);
         table.setAttribute('id', this.getComponentId());
 

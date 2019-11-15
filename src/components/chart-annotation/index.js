@@ -28,7 +28,7 @@ class AnnotationChart extends BaseComponent {
             const chart = new google.visualization.AnnotationChart(document.getElementById(data['@id']));
 
             const options = {
-                displayAnnotations: true,
+                displayAnnotations: data['@displayAnotations'],
                 height: data['@chartHeight'],
                 width: data['@chartWidth'],
                 displayZoomButtons: data['@displayZoomButtons'],
@@ -38,6 +38,7 @@ class AnnotationChart extends BaseComponent {
                 displayExactValues: data['@displayExactValues'],
                 displayRangeSelector: data['@displayRangeSelector'],
                 fill: data['@fill'],
+                table: null,
             };
 
             chart.draw(info, options);

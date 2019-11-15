@@ -43,10 +43,14 @@ class LineChart extends BaseComponent {
                     bold: data['@titleTextStyle']['@bold'] || true,
                     italic: data['@titleTextStyle']['@italic'] || false,
                 },
+                chart: {
+                    '@width': data['@chartWidth'],
+                    '@height': data['@chartHeight'],
+                },
                 fontSize: data['@fontSize'],
                 fontName: data['@fontName'],
-                width: data['@chartWidth'],
-                height: data['@chartHeight'],
+                width: data['@width'],
+                height: data['@height'],
                 colors: data['@colors'],
                 backgroundColor: data['@backgroundColor'],
                 forceIFrame: data['@forceIFrame'],
@@ -187,7 +191,6 @@ class LineChart extends BaseComponent {
 
         const chartDiv = document.createElement('div');
         chartDiv.id = this.data['@id'];
-        chartDiv.setAttribute('style', 'width: 900px; height: 500px;');
         node.append(chartDiv);
 
         if (this.data['@type'] === 'classic chart' && this.data['@complexity'] === 'simple') {

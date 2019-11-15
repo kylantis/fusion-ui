@@ -1,6 +1,6 @@
 {
     "@id": "",
-    "@type": "classic-single chart || classic-multiple chart || material-single chart || material-multiple chart",
+    "@type": "classic-column chart || material-single chart || material-multiple chart",
     "@title": "",
     "@subtitle": "",
     "@chartWidth": 700,

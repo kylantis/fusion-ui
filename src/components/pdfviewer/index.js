@@ -3,7 +3,7 @@ class Viewer extends BaseComponent {
         return 'viewer';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     getCssDependencies() {
         return super.getCssDependencies();
@@ -14,7 +14,7 @@ class Viewer extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     render() {

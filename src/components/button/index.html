@@ -1,39 +1,93 @@
 <!DOCTYPE html>
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
 </head>
+
 <body>
     <div id="button"></div>
 
     <script>
-    let jsonData = {
+        let jsonData = {
             "@id": "buttonOne",
             "@name": "",
             "@value": "",
             "@buttonStyle": "basic",
             "@fluid": true,
             "@url": "",
+            "@borderRadius": "",
+            "@rounded": true,
             "@iconPosition": "left",
             "@size": "",
             "@visibleContent": "text",
+            "@inverted": false,
             "@hiddenContent": "icon",
             "@transition": "fade",
             "@iconName": "user",
             "@tabIndex": 0,
             "@buttonText": "Hello Button",
             "@transitionContent": "Hello",
-            "@color": "yellow",
+            "@color": "grey",
             "@socialButton": "twitter",
             "@position": "",
             "@linkedUrl": "https://www.google.com",
             "@hasServerCallback": true,
-            "@clientCallbacks": {
-                "@execute": () => {
-                    window.location.href = jsonData['@linkedUrl'];
+            "@clientCallbacks": function execute() {
+                if (this['@linkedUrl'] !== undefined) {
+                    window.location.href = this['@linkedUrl'];
                 }
-            }
+            },
+            ">": [{
+                "@tag": "button",
+                "@buttonText": "Overview",
+                "@color": "blue",
+                "@size": "massive",
+                "@linkedUrl": "https://www.google.com",
+                "@clientCallbacks": function execute() {
+                    if (this['@linkedUrl'] !== undefined) {
+                        window.location.href = this['@linkedUrl'];
+                    }
+                    // type code to execute
+                },
+            }, {
+                "@tag": "button",
+                "@buttonText": "Spec",
+                "@color": "blue",
+                "@size": "massive",
+                "@linkedUrl": "#warranty",
+                "@clientCallbacks": function execute() {
+                    if (this['@linkedUrl'] !== undefined) {
+                        window.location.href = this['@linkedUrl'];
+                    }
+                    // type code to execute
+                },
+            }, {
+                "@tag": "button",
+                "@buttonText": "Warranty",
+                "@color": "blue",
+                "@size": "massive",
+                "@linkedUrl": "#warranty",
+                "@clientCallbacks": function execute() {
+                    if (this['@linkedUrl'] !== undefined) {
+                        window.location.href = this['@linkedUrl'];
+                    }
+                    // type code to execute
+                },
+            }, {
+                "@tag": "button",
+                "@buttonText": "Reviews",
+                "@color": "blue",
+                "@size": "massive",
+                "@linkedUrl": "#warranty",
+                "@clientCallbacks": function execute() {
+                    if (this['@linkedUrl'] !== undefined) {
+                        window.location.href = this['@linkedUrl'];
+                    }
+                    // type code to execute
+                },
+            }]
         }
     </script>
     <script src="/assets/js/polyfills/index.min.js"></script>
@@ -41,4 +95,5 @@
     <script src="/components/button/index.min.js"></script>
     <script>new Button(jsonData, document.querySelector("#button"));</script>
 </body>
+
 </html>

@@ -3,7 +3,7 @@ class ProgressBar extends BaseComponent {
         return 'progressBar';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/progress.min.css']);
@@ -14,7 +14,7 @@ class ProgressBar extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     invokeBehavior(behavior, data) {

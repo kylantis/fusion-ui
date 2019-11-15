@@ -16,7 +16,7 @@ class GeoChart extends BaseComponent {
             packages: ['geochart'],
             // Note: you will need to get a mapsApiKey for your project.
             // See: https://developers.google.com/chart/interactive/docs/basic_load_libs#load-settings
-            mapsApiKey: 'get api key',
+            mapsApiKey: 'AIzaSyC-XiSO1VpnTs1Uf4O0XGyMbnAHLPXAl_Q',
         });
         google.charts.setOnLoadCallback(drawRegionsMap);
 

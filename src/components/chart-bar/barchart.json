@@ -8,7 +8,7 @@
         "@fontName": "",
         "@fontSize": "",
         "@bold": "",
-        "@italic": "",
+        "@italic": ""
     },
     "@fontSize": "",
     "@fontName": "",
@@ -30,7 +30,7 @@
         "@bold": "",
         "@italic": "",
         "@maxValue": "",
-        "@minValue": "",
+        "@minValue": ""
     },
     "@vAxis": {
         "@title": "",
@@ -40,7 +40,7 @@
         "@bold": "",
         "@italic": "",
         "@maxValue": "",
-        "@minValue": "",
+        "@minValue": ""
     },
     "@bottomXSeries": "",
     "@topXSeries": "",
@@ -56,18 +56,20 @@
         ["Ursa Major II Dwarf", 30000, 14.3],
         ["Lg. Magellanic Cloud", 50000, 0.9],
         ["Bootes I", 60000, 13.1]
-    ], [
-        ["Element", "Density", { role: "style" }, { role: "annotation" }],
+    ],
+    ">>": [
+        ["Element", "Density", { "role": "style" }, { "role": "annotation" }],
         ["Copper", 8.94, "color: #b87333", "Cu"],
         ["Silver", 10.49, "color: silver", "Ag"],
         ["Gold", 19.30, "color: gold", "Au"],
-        ["Platinum", 21.45, "color: #e5e4e2", "Pt"],
-    ], [
+        ["Platinum", 21.45, "color: #e5e4e2", "Pt"]
+    ],
+    ">>>": [
         ["Year", "Sales", "Expenses", "Profit"],
         ["2017", 1030, 540, 350],
         ["2016", 660, 1120, 300],
         ["2015", 1170, 460, 250],
-        ["2014", 1000, 400, 200],
-    ],
+        ["2014", 1000, 400, 200]
+    ]
 }
 

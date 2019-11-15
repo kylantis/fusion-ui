@@ -38,7 +38,7 @@
     ]
     const jsonData = {
         '@id': 'barChart',
-        '@type': 'material-single bar chart',
+        '@type': 'classic-multiple bar chart',
         '@title': 'Sample Bar Title For Testing',
         '@titleTextStyle': {
             '@color': 'black',
@@ -54,11 +54,11 @@
         '@chartHeight': 400,
         '@pointSize': '',
         '@pointShape': 'triangle',
-        '@enableInteractivity': false, //true (default) || false
+        '@enableInteractivity': true, //true (default) || false
         '@forceIFrame': true,
         '@selectionMode': 'multiple', //single(default) || multiple
-        '@xAxisPosition': 'top', //bottom || top || dual
-        '@barWidth': 95,
+        '@xAxisPosition': 'bottom', //bottom || top || dual
+        '@barWidth': 90,
         '@colors': ['#1b9e77', '#d95f02', '#7570b3'],
         '@legendPosition': 'none',
         '@stacked': true,
@@ -89,7 +89,7 @@
         '@animateChart': true,
         '@animationDuration': 2000,
         '@transitionStyle': 'linear',
-        '>': singleBar,
+        '>': multiBarTwo,
     }
 
 </script>

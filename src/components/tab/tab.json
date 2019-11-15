@@ -1,5 +1,5 @@
 {
-    "@style": "basic | pointing tab | tabbed",
+    "@style": "basic | pointingTab | tabbed",
     "@title": "",
     ">": [{
         "@tag": "tab",

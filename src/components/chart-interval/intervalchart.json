@@ -5,7 +5,7 @@
     "@fontSize": "",
     "@fontName": "",
     "@interval": {
-        "@style": "line || bar || boxes || sticks || points || area",
+        "@style": "line || bars || boxes || sticks || points || area",
         "@lineWidth": "",
         "@barWidth": "",
         "@pointSize": ""

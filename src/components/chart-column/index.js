@@ -174,7 +174,7 @@ class ColumnChart extends BaseComponent {
                     maxValue: data['@hAxis']['@maxValue'],
                     minValue: data['@hAxis']['@minValue'],
                     titleTextStyle: {
-                        color: data['@hAxis']['@color'] || 'Yellow',
+                        color: data['@hAxis']['@color'] || 'black',
                         fontName: data['@hAxis']['@fontName'],
                         fontSize: data['@hAxis']['@fontSize'],
                         bold: data['@hAxis']['@bold'] || true,
@@ -186,7 +186,7 @@ class ColumnChart extends BaseComponent {
                     maxValue: data['@vAxis']['@maxValue'],
                     minValue: data['@vAxis']['@minValue'],
                     titleTextStyle: {
-                        color: data['@vAxis']['@color'] || 'yellow',
+                        color: data['@vAxis']['@color'] || 'black',
                         fontName: data['@vAxis']['@fontName'],
                         fontSize: data['@vAxis']['@fontSize'],
                         bold: data['@vAxis']['@bold'] || true,
@@ -204,28 +204,6 @@ class ColumnChart extends BaseComponent {
         }
     }
 
-    initMultipleBarChart() {
-        const { data } = this;
-
-        google.charts.load('current', { packages: ['corechart'] });
-        google.charts.setOnLoadCallback(drawChart);
-
-        function drawChart() {
-            const info = google.visualization.arrayToDataTable(data['>']);
-
-            const options = {
-                chart: {
-                    title: data['@title'],
-                    subtitle: data['@subtitle'],
-                },
-                forceIFrame: data['@forceIFrame'],
-            };
-
-            const chart = new google.charts.Bar(document.getElementById(data['@id']));
-            chart.draw(info, options);
-        }
-    }
-
     render() {
         const { node } = this;
 
@@ -234,11 +212,8 @@ class ColumnChart extends BaseComponent {
         node.append(chartDiv);
 
         switch (this.data['@type']) {
-        case 'classic-single chart':
+        case 'classic-column chart':
             this.initSingleBarChart();
-            break;
-        case 'classic-multiple chart':
-            this.initMultipleBarChart();
             break;
         case 'material-single chart':
             this.initSingleMaterialChart();

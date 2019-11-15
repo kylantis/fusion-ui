@@ -3,7 +3,7 @@ class Scheduler extends BaseComponent {
         return 'scheduler';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/calendar-core.min.css', '/assets/css/calendar-daygrid.min.css', '/assets/css/calendar-timegrid.min.css']);
@@ -14,7 +14,7 @@ class Scheduler extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     currentDate() {

@@ -1,0 +1,53 @@
+.ui.card .meta.custompcmeta {
+    text-align: right;
+    font-size: 2em;
+    padding: 0.3em 0em;
+    font-weight: bold;
+}
+
+.ui.progress > .label {
+    font-size: 1.3em;
+    color: #1B1C1D;
+}
+
+.content > .custompcmeta {
+&.red {
+      color: #DB2828;
+    }
+  &.orange {
+      color: #F2711C;
+  }
+  &.yellow {
+      color: #FBBD08;
+    }
+  &.olive {
+      color: #B5CC18;
+  }
+  &.green {
+      color: #21BA45;
+    }
+  &.teal {
+      color: #00B5AD;
+    }
+  &.blue {
+      color: #2185D0;
+    }
+  &.violet {
+      color: #6435C9;
+    }
+  &.purple {
+      color: #A333C8;
+    }
+  &.pink {
+      color: #E03997;
+    }
+  &.brown {
+      color: #A5673F;
+  }
+  &.grey {
+      color: #767676;
+    }
+  &.black {
+      color: #1B1C1D;
+  }
+}

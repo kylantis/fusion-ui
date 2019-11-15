@@ -43,7 +43,7 @@ class IntervalChart extends BaseComponent {
             info.addRows(data['>']);
             // The intervals data as narrow lines (useful for showing raw source data)
             const optionsLines = {
-                title: 'Line intervals, default',
+                title: data['@title'],
                 chartArea: {
                     width: data['@chartWidth'],
                     height: data['@chartHeight'],
@@ -51,7 +51,7 @@ class IntervalChart extends BaseComponent {
                 width: data['@width'],
                 height: data['@height'],
                 enableInteractivity: data['@enableInteractivity'],
-                curveType: 'function',
+                curveType: data['@curveType'],
                 lineWidth: data['@lineWidth'],
                 forceIFrame: data['@forceIFrame'],
                 series: [{

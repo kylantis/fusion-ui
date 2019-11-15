@@ -3,14 +3,14 @@ class InputImage extends BaseComponent {
         return 'inputImage';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/input.min.css']);
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     required(element) {
@@ -32,49 +32,51 @@ class InputImage extends BaseComponent {
     }
 
     validateImage() {
-        $('#submit', () => {
-            const inputTag = this.node.getElementsByTagName('input');
-            const input = inputTag[0];
-            if (input.value === '') {
-                console.log('no image found');
-                return;
-            }
-            if (this.validateImageSize(input)) {
-                console.log('file located');
-            }
-        });
+        const inputTag = this.node.getElementsByTagName('input');
+        const input = inputTag[0];
+        if (input.value === '') {
+            console.log('no image found');
+            return false;
+        }
+        if (this.validateImageSize(input)) {
+            console.log('image size valid');
+            return true;
+        }
+        return false;
     }
 
-    validateImageSize(file) {
-        if (file.size > this.data['@maxSize']) {
-            this.loadModal().then((data) => {
+    validateImageSize(fileInput) {
+        const file = Math.round(fileInput.files[0].size / 1024);
+        if (file > this.data['@maxSize']) {
+            this.loadErrorModal().then((data) => {
                 const x = Object.getPrototypeOf(data);
-                x.openModal();
+                x.openModal(data.data);
             });
-            this.value = '';
+            // eslint-disable-next-line no-param-reassign
+            fileInput.value = '';
             return false;
         }
         return true;
     }
 
-    modalData = {
+    errorModalData = {
         '@id': 'inputImageModal',
         '@title': 'Image Upload Error',
         '@modalStyle': 'notification',
         '@size': 'mini',
         '@descriptionHeader': 'Image is too large',
-        '@descriptionText': 'Sorry, the image you uploaded is too large',
-        '@imageSrc': '/assets/images/error-icon.jpg',
+        '@descriptionText': 'The image you uploaded is too large',
+        '@imageSrc': '',
         '@modalIcon': 'archive',
-        '@imageWidth': '70',
-        '@imageHeight': '70',
+        '@imageWidth': '50',
+        '@imageHeight': '50',
         '@singleButtonText': 'Close',
         '@singleButtonColor': 'teal',
         '@hasServerCallback': false,
     };
 
-    loadModal(loc) {
-        const confirmBox = BaseComponent.getComponent('modal', this.modalData, loc);
+    loadErrorModal(loc) {
+        const confirmBox = BaseComponent.getComponent('modal', this.errorModalData, loc);
         return confirmBox;
     }
 
@@ -83,11 +85,13 @@ class InputImage extends BaseComponent {
         const imageId = [];
         const uiDiv = document.createElement('div');
         const inputDiv = document.createElement('input');
-
+        const cropperDiv = document.createElement('div');
+        cropperDiv.className = 'cropElem';
         uiDiv.classList.add('ui');
         uiDiv.classList.add('input');
         uiDiv.append(inputDiv);
         inputDiv.setAttribute('type', 'file');
+        inputDiv.id = 'inputEl';
         if (this.data['@acceptAll']) {
             inputDiv.setAttribute('accept', 'image/*');
         } else if (this.data['@pngOnly']) {
@@ -100,14 +104,27 @@ class InputImage extends BaseComponent {
         if (this.data['@multiple']) {
             inputDiv.setAttribute('multiple', true);
         }
-        $('#submit').click(() => {
-            this.validateImage();
-        });
         this.required(inputDiv);
-        this.loadModal(uiDiv);
+        this.loadErrorModal(uiDiv);
         uiDiv.id = this.getComponentId();
         imageId.push(`#${uiDiv.getAttribute('id')}`);
         node.append(uiDiv);
+        // eslint-disable-next-line consistent-return
+        $(inputDiv).on('change', () => {
+            if (this.validateImage()) {
+                if (this.data['@cropper']) {
+                    node.append(cropperDiv);
+                    const cropperData = {
+                        '@id': 'imageCropperOne',
+                        '@imgSrc': 'http://localhost:8080/assets/images/nan.jpg', // $(inputDiv).val()
+                        '@modal': true,
+                    };
+                    BaseComponent.getComponent('imageCropper', cropperData, cropperDiv);
+                } else {
+                    console.log('image uploaded');
+                }
+            }
+        });
     }
 }
 
