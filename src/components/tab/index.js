@@ -49,9 +49,11 @@ class Tab extends BaseComponent {
             childJson.forEach((children, i) => {
                 const atag = document.createElement('a');
                 atag.className = 'item';
-                const iTag = document.createElement('i');
-                iTag.className = `${children['@titleSymbol']} icon`;
-                atag.appendChild(iTag);
+                if (children['@titleSymbol']) {
+                    const iTag = document.createElement('i');
+                    iTag.className += `${children['@titleSymbol']} icon`;
+                    atag.appendChild(iTag);
+                }
                 if (this.data['@displayFull']) {
                     atag.classList.add('fulltab');
                 }

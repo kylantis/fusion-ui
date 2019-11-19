@@ -193,11 +193,13 @@
             "@id": "cardOne",
             "@title": "Performance",
             "@headerIcon": "book",
+            "@cardType": "cardButtons",
             "@maxHeight": '600px',
+            "@raised": false,
             "@overflow": 'auto',
             "@componentTag": "table",
             "@componentData": componentInfo,
-            ">": [{
+            "@dropdownOptions": [{
                 "@tag": "option",
                 "@optionText": "Weird Stuff",
                 "@clientCallback": function f0() {
@@ -233,7 +235,48 @@
                 "@clientCallback": function f0() {
                     console.log(this);
                 },
-            }]
+            }],
+            ">": [{
+                "@tag": "column",
+                "@icon": "ambulance",
+                "@width": "eight",
+                "@text": "Ambulance People",
+            }, {
+                "@tag": "column",
+                "@icon": "gamepad",
+                "@width": "eight",
+                "@text": "Warehouse People",
+            }, {
+                "@tag": "column",
+                "@icon": "flask",
+                "@width": "eight",
+                "@text": "Flask Users",
+            }, {
+                "@tag": "column",
+                "@icon": "hospital",
+                "@width": "eight",
+                "@text": "Hospital People",
+            }, {
+                "@tag": "column",
+                "@icon": "ambulance",
+                "@width": "eight",
+                "@text": "Ambulance People",
+            }, {
+                "@tag": "column",
+                "@icon": "gamepad",
+                "@width": "eight",
+                "@text": "Warehouse People",
+            }, {
+                "@tag": "column",
+                "@icon": "flask",
+                "@width": "eight",
+                "@text": "Flask Users",
+            }, {
+                "@tag": "column",
+                "@icon": "hospital",
+                "@width": "eight",
+                "@text": "Hospital People",
+            },]
         }
     </script>
     <script src="/assets/js/polyfills/index.min.js"></script>

@@ -120,64 +120,34 @@ class ComplexTable extends BaseComponent {
         const table = document.createElement('table');
         const thead = document.createElement('thead');
         const tbody = document.createElement('tbody');
-        table.classList.add('ui');
-        let id;
-        if (jsonData['@id']) {
-            id = jsonData['@id'];
-        } else {
-            id = `table-${this.getRandomInt()}`;
-        }
-        // set hoverable attribute
-        if (jsonData['@isHoverable']) {
-            table.classList.add('selectable');
-        }
-        // set responsive behavior
-        if (jsonData['@isResponsive']) {
-            table.classList.add('tablet');
-            table.classList.add('stackable');
-        }
+        table.className = 'ui selectable fixed compact';
+        table.id = this.getComponentId();
+        // set Color
         if (jsonData['@color'].length > 0) {
             table.classList.add(jsonData['@color']);
         }
-        if (jsonData['@isStriped']) {
-            table.classList.add('striped');
-        }
-        if (jsonData['@singleLine']) {
-            table.classList.remove('celled');
-            table.classList.add('single');
-            table.classList.add('line');
-        }
         if (jsonData['@isInverted']) {
-            table.classList.remove('celled');
-            table.classList.add('single');
-            table.classList.add('line');
             table.classList.add('inverted');
         }
-        if (jsonData['@isFixed']) {
-            table.classList.remove('stackable');
-            table.classList.remove('tablet');
-            table.classList.add('fixed');
-        }
-        if (jsonData['@hasBorder']) {
-            table.classList.add('celled');
-        }
         table.classList.add('table');
-
 
         table.append(thead);
         table.append(tbody);
         // Create header row
         const trHead = thead.insertRow(-1);
-
+        trHead.className = 'center aligned';
         const columns = this.data['>'][0]['>'];
-        for (let i = 0; i < columns.length; i++) {
+        for (let i = 0; i < columns.length; i += 1) {
             columnTitles[i.toString()] = columns[i]['@title'];
         }
         let columnId = 0;
         for (const value of Object.keys(columnTitles)) {
             const th = document.createElement('th');
             th.textContent = columnTitles[value];
-            th.id = `${id}-title-${columnId += 1}`;
+            th.id = `${table.id}-title-${columnId += 1}`;
+            if (value === '0') {
+                th.className = 'one wide';
+            }
             trHead.appendChild(th);
         }
 
@@ -187,19 +157,34 @@ class ComplexTable extends BaseComponent {
                 const rowData = this.data['>'][i];
                 if (rowData['@tag'] === 'row') {
                     const trBody = tbody.insertRow(-1);
-                    trBody.id = `${id}-row-${rowId += 1}`;
                     if (!rowData['@id']) {
-                        trBody.id = `${id}-row-${rowId += 1}`;
+                        trBody.id = `${table.id}-row-${rowId += 1}`;
                     } else {
                         trBody.id = rowData['@id'];
                     }
+                    trBody.className = 'center aligned';
                     const innerRowData = rowData['>'];
                     for (let j = 0; j < innerRowData.length; j++) {
+                        let componentData;
+                        let componentTag;
                         for (const [key, value] of Object.entries(rowData['>'][j])) {
                             if (key === '@value') {
+                                if (value !== undefined && value.length > 0) {
+                                    const tableCell = trBody.insertCell(-1);
+                                    tableCell.id = `${table.id}-${trBody.id}-${j + 1}`;
+                                    tableCell.innerHTML = value;
+                                }
+                            }
+                            if (key === '@component-data') {
+                                componentData = value;
+                            }
+                            if (key === '@component-tag') {
+                                componentTag = value;
+                            }
+                            if (componentData !== undefined && componentTag !== undefined && componentData !== '' && componentTag !== '') {
                                 const tableCell = trBody.insertCell(-1);
-                                tableCell.id = `${id}-${trBody.id}-${j + 1}`;
-                                tableCell.innerHTML = value;
+                                tableCell.id = `${table.id}-${trBody.id}-${j + 1}`;
+                                BaseComponent.getComponent(componentTag, componentData, tableCell);
                             }
                         }
                     }
@@ -216,7 +201,6 @@ class ComplexTable extends BaseComponent {
         }
 
         tableId.push(`#${table.getAttribute('id')}`);
-        table.setAttribute('id', this.getComponentId());
 
         node.appendChild(table);
     }

@@ -1,6 +1,6 @@
 .ui.chartCards {
-    &.cards > .chartCard.card {
-        justify-content: space-evenly;
+    &.cards {
+        justify-content: center;
         cursor: default;
     }
     // main value
@@ -21,7 +21,7 @@
         color: blueviolet;
     }
     // currency symbol
-    &.cards > .chartCard.card > .content > .header:not(.ui) > span.currencySymbol{
+    &.cards > .chartCard.card > .content > .header:not(.ui) > span.currencySymbol {
         color: #139603;
     }
     // Header text

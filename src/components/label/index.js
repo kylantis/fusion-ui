@@ -3,8 +3,14 @@ class Label extends BaseComponent {
         return 'label';
     }
 
+    componentId = this.getId();
+
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/label.min.css', '/assets/css/icon.min.css']);
+    }
+
+    getComponentId() {
+        return this.componentId;
     }
 
     imageData() {
@@ -32,12 +38,18 @@ class Label extends BaseComponent {
 
     render() {
         const { node } = this;
-        const labelId = [];
         let uiDiv;
+        if (this.data['@labelType'] === 'horizontal') {
+            uiDiv = document.createElement('a');
+            uiDiv.className = 'ui';
+            if (this.data['@color']) {
+                uiDiv.classList.add(this.data['@color']);
+            }
+            uiDiv.textContent = this.data['@text'];
+        }
         if (this.data['@labelType'] === 'tag') {
             uiDiv = document.createElement('a');
-            uiDiv.classList.add('ui');
-            uiDiv.classList.add('tag');
+            uiDiv.className = 'ui tag';
             uiDiv.classList.add(this.data['@color']);
             uiDiv.textContent = this.data['@text'];
         }
@@ -95,13 +107,7 @@ class Label extends BaseComponent {
             uiDiv.append(this.data['@text']);
         }
 
-        let id;
-        if (this.data['@id']) {
-            id = this.data['@id'];
-        } else {
-            id = `label-${this.getRandomInt()}`;
-        }
-        labelId.push(`#${id}`);
+        uiDiv.id = this.getComponentId();
         uiDiv.classList.add('label');
         node.append(uiDiv);
     }

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+</head>
+
+<body>
+    <div id="view"></div>
+
+    <script>
+        let jsonData = {
+            "@id": "roundProgressOnes",
+            "@data-color": "yellow",
+            "@data-value": 60,
+        }
+    </script>
+    <script>
+        // This is a polyfill that allows components to do
+        // module.exports = ... in the browser
+        window.module = {
+            exports: {}
+        }
+    </script>
+    <script src="/assets/js/polyfills/index.min.js"></script>
+    <script src="/components/base.min.js"></script>
+    <script src="/components/progress-round/index.min.js"></script>
+    <script>new ProgressRound(jsonData, document.querySelector("#view"));</script>
+
+</body>
+
+</html>

@@ -7,7 +7,7 @@ class Card extends BaseComponent {
     componentId = this.getId();
 
     getCssDependencies() {
-        return super.getCssDependencies().concat(['/assets/css/card.min.css', '/assets/css/dropdown.min.css', '/assets/css/icon.min.css', '/assets/css/transition.min.css', '/assets/css/dimmer.min.css', '/assets/css/custom-card.min.css', '/assets/css/custom-spinner.min.css']);
+        return super.getCssDependencies().concat(['/assets/css/card.min.css', '/assets/css/grid.min.css', '/assets/css/segment.min.css', '/assets/css/dropdown.min.css', '/assets/css/icon.min.css', '/assets/css/transition.min.css', '/assets/css/dimmer.min.css', '/assets/css/custom-card.min.css', '/assets/css/custom-spinner.min.css']);
     }
 
     getJsDependencies() {
@@ -86,6 +86,10 @@ class Card extends BaseComponent {
         if (data['@maxHeight']) {
             cardDiv.style.maxHeight = data['@maxHeight'];
         }
+        if (data['@raised']) {
+            cardDiv.classList.add('raised');
+        }
+
         const contentDiv = document.createElement('div');
         contentDiv.className = 'content';
         cardDiv.appendChild(contentDiv);
@@ -100,7 +104,7 @@ class Card extends BaseComponent {
         headerText.textContent = data['@title'];
         const componentContainer = this.appendNode(cardDiv, 'div', 'extra content column');
         const actualContainer = this.appendNode(componentContainer, 'div', 'actualContainer');
-        this.generateOptions(menuDiv, data['>'], actualContainer);
+        this.generateOptions(menuDiv, data['@dropdownOptions'], actualContainer);
         if (data['@overflow']) {
             componentContainer.style.overflow = data['@overflow'];
         }
@@ -109,6 +113,29 @@ class Card extends BaseComponent {
         node.append(cardDiv);
         $(burger).dropdown();
         this.mutationOb(actualContainer);
+
+        if (data['@cardType'] === 'cardButtons') {
+            const gridCardDiv = document.createElement('div');
+            gridCardDiv.className = 'ui fluid container card customCardClass';
+            const gridDiv = this.appendNode(gridCardDiv, 'div', 'ui equal width cCardGrid grid');
+            const row = this.appendNode(gridDiv, 'div', 'row');
+            data['>'].forEach((el) => {
+                const columnDiv = document.createElement('div');
+                columnDiv.className = 'column center aligned';
+                if (el['@width']) {
+                    columnDiv.className += ` ${el['@width']} wide`;
+                }
+                const div = this.appendNode(columnDiv, 'div', 'cardbutton');
+                const seg = this.appendNode(div, 'div', 'ui segment');
+                const contentDivTwo = this.appendNode(seg, 'div', 'content hoverablecontent');
+                // eslint-disable-next-line no-unused-vars
+                const icon = this.appendNode(contentDivTwo, 'i', `${el['@icon']} icon big cardIcon`);
+                const text = this.appendNode(contentDivTwo, 'div', 'header');
+                text.textContent = el['@text'];
+                row.append(columnDiv);
+            });
+            node.appendChild(gridCardDiv);
+        }
     }
 }
 module.exports = Card;

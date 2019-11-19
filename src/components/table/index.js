@@ -43,7 +43,7 @@ class Table extends BaseComponent {
     invokeBehavior(behaviorName, data) {
         let lastChildId;
         if (this.getLastChildId().includes('table')) {
-            lastChildId = parseInt(this.getLastChildId().split('-')[3], 10) + 1;
+            lastChildId = parseInt(this.getLastChildId().split('-')[2], 10) + 1;
         } else {
             lastChildId = parseInt(this.getLastChildId(), 10) + 1;
         }
@@ -121,12 +121,7 @@ class Table extends BaseComponent {
         const thead = document.createElement('thead');
         const tbody = document.createElement('tbody');
         table.classList.add('ui');
-        let id;
-        if (jsonData['@id']) {
-            id = jsonData['@id'];
-        } else {
-            id = `table-${this.getRandomInt()}`;
-        }
+        table.id = this.getComponentId();
         // set hoverable attribute
         if (jsonData['@isHoverable']) {
             table.classList.add('selectable');
@@ -176,7 +171,7 @@ class Table extends BaseComponent {
         for (const value of Object.keys(columnTitles)) {
             const th = document.createElement('th');
             th.textContent = columnTitles[value];
-            th.id = `${id}-title-${columnId += 1}`;
+            th.id = `${table.id}-title-${columnId += 1}`;
             trHead.appendChild(th);
         }
 
@@ -186,9 +181,8 @@ class Table extends BaseComponent {
                 const rowData = this.data['>'][i];
                 if (rowData['@tag'] === 'row') {
                     const trBody = tbody.insertRow(-1);
-                    trBody.id = `${id}-row-${rowId += 1}`;
                     if (!rowData['@id']) {
-                        trBody.id = `${id}-row-${rowId += 1}`;
+                        trBody.id = `${table.id}-row-${rowId += 1}`;
                     } else {
                         trBody.id = rowData['@id'];
                     }
@@ -197,7 +191,7 @@ class Table extends BaseComponent {
                         for (const [key, value] of Object.entries(rowData['>'][j])) {
                             if (key === '@value') {
                                 const tableCell = trBody.insertCell(-1);
-                                tableCell.id = `${id}-${trBody.id}-${j + 1}`;
+                                tableCell.id = `${table.id}-${trBody.id}-${j + 1}`;
                                 tableCell.innerHTML = value;
                             }
                         }
@@ -215,7 +209,6 @@ class Table extends BaseComponent {
         }
 
         tableId.push(`#${table.getAttribute('id')}`);
-        table.setAttribute('id', this.getComponentId());
 
         node.appendChild(table);
     }

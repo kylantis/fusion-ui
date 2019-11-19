@@ -48,7 +48,7 @@ class ChartCard extends BaseComponent {
     generateCards(parent, optionData) {
         optionData.forEach((option) => {
             const oneCard = document.createElement('div');
-            oneCard.className = 'chartCard card';
+            oneCard.className = 'ui raised chartCard card';
             oneCard.id = option['@id'];
             const contentDiv = this.appendNode(oneCard, 'div', 'content');
             const metaDiv = this.appendNode(contentDiv, 'div', 'meta');
