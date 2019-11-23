@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+</head>
+
+<body>
+    <div id="view"></div>
+
+</body>
+
+<script>
+    const multiBarTwo = [
+        ['Galaxy', 'Distance', 'Brightness'],
+        ['Canis Major Dwarf', 8000, 23.3],
+        ['Sagittarius Dwarf', 24000, 4.5],
+        ['Ursa Major II Dwarf', 30000, 14.3],
+        ['Lg. Magellanic Cloud', 50000, 0.9],
+        ['Bootes I', 60000, 13.1]
+    ]
+
+    const singleBar = [
+        ['Element', 'Density', { role: 'style' }, { role: 'annotation' }],
+        ['Copper', 8.94, 'color: #b87333', 'Cu'],
+        ['Silver', 10.49, 'color: silver', 'Ag'],
+        ['Gold', 19.30, 'color: gold', 'Au'],
+        ['Platinum', 21.45, 'color: #e5e4e2', 'Pt'],
+    ]
+    const multiBar = [
+        ['Year', 'Sales', 'Expenses', 'Profit'],
+        ['2017', 1030, 540, 350],
+        ['2016', 660, 1120, 300],
+        ['2015', 1170, 460, 250],
+        ['2014', 1000, 400, 200],
+    ]
+    const jsonData = {
+        '@id': 'barChart',
+        '@type': 'classic-multiple bar chart',
+        '@title': 'Sample Bar Title For Testing',
+        '@titleTextStyle': {
+            '@color': 'black',
+            '@fontName': '',
+            '@fontSize': '',
+            '@bold': '',
+            '@italic': '',
+        },
+        '@fontSize': '',
+        '@fontName': '',
+        '@subtitle': 'Sample subtitle data',
+        '@chartWidth': 700,
+        '@chartHeight': 400,
+        '@pointSize': '',
+        '@pointShape': 'triangle',
+        '@enableInteractivity': true, //true (default) || false
+        '@forceIFrame': true,
+        '@selectionMode': 'multiple', //single(default) || multiple
+        '@xAxisPosition': 'bottom', //bottom || top || dual
+        '@barWidth': 90,
+        '@colors': ['#1b9e77', '#d95f02', '#7570b3'],
+        '@legendPosition': 'none',
+        '@stacked': true,
+        '@hAxis': {
+            '@title': 'Total',
+            '@color': '#333',
+            '@fontName': '',
+            '@fontSize': '',
+            '@bold': '',
+            '@italic': '',
+            '@maxValue': '',
+            '@minValue': '',
+        },
+        '@vAxis': {
+            '@title': 'Year',
+            '@color': '#333',
+            '@fontName': '',
+            '@fontSize': '',
+            '@bold': '',
+            '@italic': '',
+            '@maxValue': '',
+            '@minValue': '',
+        },
+        '@bottomXSeries': 'brightness',
+        '@topXSeries': 'distance',
+        '@topXLabel': 'apparent magnitude',
+        '@bottomXLabel': 'parsecs',
+        '@animateChart': true,
+        '@animationDuration': 2000,
+        '@transitionStyle': 'linear',
+        '>': multiBarTwo,
+    }
+
+</script>
+<script>
+    // This is a polyfill that allows components to do
+    // module.exports = ... in the browser
+    window.module = {
+        exports: {}
+    }
+</script>
+<script src="/assets/js/polyfills/index.min.js"></script>
+<script src="/components/base.min.js"></script>
+<script src="/components/chart-bar/index.min.js"></script>
+<script>new BarChart(jsonData, document.querySelector('#view'));</script>
+
+</html>

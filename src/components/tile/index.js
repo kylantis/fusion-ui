@@ -4,10 +4,10 @@ class Tile extends BaseComponent {
         return 'tile';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     getCssDependencies() {
-        return super.getCssDependencies().concat(['/assets/css/card.min.css', '/assets/css/icon.min.css', '/assets/css/custom-card.min.css']);
+        return super.getCssDependencies().concat(['/assets/css/card.min.css', '/assets/css/icon.min.css', '/assets/css/button.min.css', '/assets/css/custom-tile.min.css']);
     }
 
     getJsDependencies() {
@@ -15,7 +15,31 @@ class Tile extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
+    }
+
+    addButtons(parent) {
+        const extraContent = document.createElement('div');
+        extraContent.className = 'extra content';
+        if (this.data['@buttons'].length > 1) {
+            const buttondiv = this.appendNode(extraContent, 'div', 'ui two buttons');
+            this.data['@buttons'].forEach((buttonEl) => {
+                const button = this.appendNode(buttondiv, 'div', `ui ${buttonEl['@buttonDisplay']} ${buttonEl['@color']} button`);
+                button.textContent = buttonEl['@buttonText'];
+            });
+            parent.append(extraContent);
+            return;
+        }
+        if (this.data['@buttons'].length === 1) {
+            this.data['@buttons'].forEach((buttonEl) => {
+                const button = this.appendNode(extraContent, 'div', `ui ${buttonEl['@buttonDisplay']} ${buttonEl['@color']} button`);
+                button.textContent = buttonEl['@buttonText'];
+                if (buttonEl['@fluid']) {
+                    button.classList.add('fluid');
+                }
+            });
+            parent.append(extraContent);
+        }
     }
 
     createTile(data) {
@@ -23,7 +47,12 @@ class Tile extends BaseComponent {
 
         uiDiv.setAttribute('id', data['@id']);
         uiDiv.className = 'card';
-
+        const number = this.data['@tilesPerRow'];
+        if (number > 0) {
+            let tileWidth = Math.round(window.innerWidth / number);
+            tileWidth -= 50;
+            uiDiv.style.width = `${tileWidth}px`;
+        }
         const aTag = this.appendNode(uiDiv, 'a', 'image');
         $(aTag).click((e) => {
             e.preventDefault();
@@ -44,14 +73,23 @@ class Tile extends BaseComponent {
             const aMetaTag = this.appendNode(metaDiv, 'div');
             aMetaTag.textContent = data['@secondaryText'];
         }
+        if (this.data['@buttons']) {
+            this.addButtons(uiDiv);
+        }
         return uiDiv;
     }
 
-    createTilePill(data) {
+    createPillTile(data) {
         const uiDiv = document.createElement('div');
 
         uiDiv.setAttribute('id', data['@id']);
         uiDiv.className = 'pill card';
+        const number = this.data['@tilesPerRow'];
+        if (number > 0) {
+            let tileWidth = Math.round(window.innerWidth / number);
+            tileWidth -= 50;
+            uiDiv.style.width = `${tileWidth}px`;
+        }
 
         const contentDiv = this.appendNode(uiDiv, 'div', 'content');
         // eslint-disable-next-line no-unused-vars
@@ -69,6 +107,9 @@ class Tile extends BaseComponent {
             console.log(data.clientCallbacks());
             console.log('clicked');
         });
+        if (this.data['@buttons']) {
+            this.addButtons(uiDiv);
+        }
         return uiDiv;
     }
 
@@ -87,7 +128,7 @@ class Tile extends BaseComponent {
                 node.append(cardDiv);
             }
             if (card['@tag'] === 'pill') {
-                cardDiv.appendChild(this.createTilePill(card));
+                cardDiv.appendChild(this.createPillTile(card));
                 node.append(cardDiv);
             }
         });

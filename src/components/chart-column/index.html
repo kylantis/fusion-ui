@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+</head>
+
+<body>
+    <div id="view"></div>
+
+</body>
+
+<script>
+    const singleBar = [
+        ['Element', 'Density', { role: 'style' }, { role: 'annotation' }],
+        ['Copper', 8.94, 'color: #b87333', 'Cu'],
+        ['Silver', 10.49, 'color: silver', 'Ag'],
+        ['Gold', 19.30, 'color: gold', 'Au'],
+        ['Platinum', 21.45, 'color: #e5e4e2', 'Pt'],
+    ]
+    const multiBar = [
+        ['Year', 'Sales', 'Expenses', 'Profit'],
+        ['2017', 1030, 540, 350],
+        ['2016', 660, 1120, 300],
+        ['2015', 1170, 460, 250],
+        ['2014', 1000, 400, 200],
+    ]
+    const jsonData = {
+        '@id': 'columnChart',
+        '@type': 'material-multiple chart',
+        '@title': 'Sample Bar Title For Testing',
+        '@subtitle': 'Sample subtitle data',
+        '@chartWidth': 700,
+        '@chartHeight': 400,
+        '@yAxisView': 'dual',
+        '@colors': ['#1b9e77', '#d95f02', '#7570b3'],
+        '@backgroundColor': '',
+        '@forceIFrame': false,
+        '@barWidth': 80,
+        '@legendPosition': 'right',
+        '@stacked': false,
+        '@fontSize': '',
+        '@fontName': '',
+        '@orientation': '', //horizontal || vertical
+        '@titleTextStyle': {
+            '@color': 'black',
+            '@fontName': '',
+            '@fontSize': '',
+            '@bold': '',
+            '@italic': '',
+        },
+        '@hAxis': {
+            '@title': 'Total',
+            '@color': '#333',
+            '@fontName': '',
+            '@fontSize': '',
+            '@bold': '',
+            '@italic': '',
+            '@maxValue': '',
+            '@minValue': '',
+        },
+        '@vAxis': {
+            '@title': 'Year',
+            '@color': '',
+            '@fontName': '',
+            '@fontSize': '',
+            '@bold': '',
+            '@italic': '',
+            '@maxValue': '',    
+            '@minValue': '',    
+        },
+        '@rightTitleY': 'brightness',
+        '@leftTitleY': 'distance',
+        '@leftLabelY': 'apparent magnitude',
+        '@rightLabelY': 'parsecs',
+        '@animateChart': true,
+        '@animationDuration': 2000,
+        '@transitionStyle': 'linear',
+        '>': multiBar,
+    }
+
+</script>
+<script>
+    // This is a polyfill that allows components to do
+    // module.exports = ... in the browser
+    window.module = {
+        exports: {}
+    }
+</script>
+<script src="/assets/js/polyfills/index.min.js"></script>
+<script src="/components/base.min.js"></script>
+<script src="/components/chart-column/index.min.js"></script>
+<script>new ColumnChart(jsonData, document.querySelector('#view'));</script>
+
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+</head>
+
+<body>
+    <div id="view"></div>
+
+</body>
+
+<script>
+    const jsonData = {
+        '@id': 'geoChart',
+        '@title': 'Sample Bar Title For Testing',
+        '@subtitle': 'Sample subtitle data',
+        '@mapType': 'classic',
+        '@chartWidth': 900,
+        '@chartHeight': 400,
+        '@legendPosition': 'top',
+        '@displayMode': 'region',
+        '@region': 'world',
+        '@enableRegionInteractivity': true,
+        '@forceIFrame': false,
+        '@magnifyingGlass': true,
+        '@keepAspectRatio': true,
+        '@backgroundColor': '#81d4fa',
+        '@datalessRegionColor': '#f8bbd0',
+        '@defaultColor': '#f5f5f5',
+        '@colorAxis': ['#00853f', 'black', '#e31b23'],
+        '>': [
+            ['Country', 'Popularity'],
+            ['Germany', 200],
+            ['United States', 300],
+            ['Brazil', 400],
+            ['Canada', 500],
+            ['France', 600],
+            ['RU', 700],
+            ['Nigeria', 900]
+        ]
+    }
+
+</script>
+<script>
+    // This is a polyfill that allows components to do
+    // module.exports = ... in the browser
+    window.module = {
+        exports: {}
+    }
+</script>
+<script src="/assets/js/polyfills/index.min.js"></script>
+<script src="/components/base.min.js"></script>
+<script src="/components/chart-geo/index.min.js"></script>
+<script>new GeoChart(jsonData, document.querySelector('#view'));</script>
+
+</html>

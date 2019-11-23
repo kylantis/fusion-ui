@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+</head>
+
+<body>
+    <div id="view"></div>
+
+</body>
+
+<script>
+    const jsonData = {
+        '@id': 'steppedAreaChart',
+        '@title': 'The decline of \'The 39 Steps\'',
+        '@legendPosition': 'top',
+        '@stacked': 'true', // false || relative || absolute/true(default) || percent
+        '@titleTextStyle': {
+            '@color': 'black',
+            '@fontName': '',
+            '@fontSize': '',
+            '@bold': '',
+            '@italic': '',
+        },
+        '@fontSize': '',
+        '@fontName': '',
+        '@width': 800,
+        '@height': 500,
+        '@chartWidth': 700,
+        '@chartHeight': 400,
+        '@colors': ['#4374E0', '#53A8FB'],
+        '@enableInteractivity': true, //true (default) || false
+        '@forceIFrame': false,
+        '@selectionMode': 'single', //single(default) || multiple
+        '@animateChart': true,
+        '@animationDuration': 2000,
+        '@transitionStyle': 'linear',
+        '@connectSteps': false,
+        '@areaOpacity': 0.3,
+        '@orientation': 'horizontal', //horizontal || vertical
+        '@hAxis': {
+            '@title': 'Director',
+            '@color': '#333',
+            '@fontName': '',
+            '@fontSize': '',
+            '@bold': '',
+            '@italic': '',
+            '@maxValue': '',
+            '@minValue': '',
+        },
+        '@vAxis': {
+            '@title': 'Accumulated Rating',
+            '@color': '#333',
+            '@fontName': '',
+            '@fontSize': '',
+            '@bold': '',
+            '@italic': '',
+            '@maxValue': '',
+            '@minValue': '',
+        },
+        '>': [
+            ['Director (Year)', 'Rotten Tomatoes', 'IMDB'],
+            ['Alfred Hitchcock (1935)', 8.4, 7.9],
+            ['Ralph Thomas (1959)', 6.9, 6.5],
+            ['Don Sharp (1978)', 6.5, 6.4],
+            ['James Hawes (2008)', 4.4, 6.2],
+        ]
+    }
+</script>
+<script>
+    // This is a polyfill that allows components to do
+    // module.exports = ... in the browser
+    window.module = {
+        exports: {}
+    }
+</script>
+<script src="/assets/js/polyfills/index.min.js"></script>
+<script src="/components/base.min.js"></script>
+<script src="/components/chart-steppedArea/index.min.js"></script>
+<script>new SteppedAreaChart(jsonData, document.querySelector('#view'));</script>
+
+</html>

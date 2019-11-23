@@ -1,0 +1,75 @@
+{
+    "@id": "",
+    "@type": "classic-single bar chart | classic-multiple bar chart | material-single bar chart | material-multiple bar chart",
+    "@title": "",
+    "@subtitle": "",
+    "@titleTextStyle": {
+        "@color": "",
+        "@fontName": "",
+        "@fontSize": "",
+        "@bold": "",
+        "@italic": ""
+    },
+    "@fontSize": "",
+    "@fontName": "",
+    "@chartWidth": 700,
+    "@chartHeight": 400,
+    "@enableInteractivity": "true (default) || false",
+    "@forceIFrame": "true || false(default)",
+    "@selectionMode": "single(default) || multiple",
+    "@xAxisPosition": "bottom || top || dual",
+    "@barWidth": "5 - 100",
+    "@colors": [],
+    "@legendPosition": "bottom || left || right || in || top || none",
+    "@stacked": "false || relative || absolute/true(default) || percent",
+    "@hAxis": {
+        "@title": "",
+        "@color": "",
+        "@fontName": "",
+        "@fontSize": "",
+        "@bold": "",
+        "@italic": "",
+        "@maxValue": "",
+        "@minValue": ""
+    },
+    "@vAxis": {
+        "@title": "",
+        "@color": "",
+        "@fontName": "",
+        "@fontSize": "",
+        "@bold": "",
+        "@italic": "",
+        "@maxValue": "",
+        "@minValue": ""
+    },
+    "@bottomXSeries": "",
+    "@topXSeries": "",
+    "@topXLabel": "",
+    "@bottomXLabel": "",
+    "@animateChart": "true || false(default)",
+    "@animationDuration": "2000ms",
+    "@transitionStyle": "linear || in || out || inAndOut",
+    ">": [
+        ["Galaxy", "Distance", "Brightness"],
+        ["Canis Major Dwarf", 8000, 23.3],
+        ["Sagittarius Dwarf", 24000, 4.5],
+        ["Ursa Major II Dwarf", 30000, 14.3],
+        ["Lg. Magellanic Cloud", 50000, 0.9],
+        ["Bootes I", 60000, 13.1]
+    ],
+    ">>": [
+        ["Element", "Density", { "role": "style" }, { "role": "annotation" }],
+        ["Copper", 8.94, "color: #b87333", "Cu"],
+        ["Silver", 10.49, "color: silver", "Ag"],
+        ["Gold", 19.30, "color: gold", "Au"],
+        ["Platinum", 21.45, "color: #e5e4e2", "Pt"]
+    ],
+    ">>>": [
+        ["Year", "Sales", "Expenses", "Profit"],
+        ["2017", 1030, 540, 350],
+        ["2016", 660, 1120, 300],
+        ["2015", 1170, 460, 250],
+        ["2014", 1000, 400, 200]
+    ]
+}
+

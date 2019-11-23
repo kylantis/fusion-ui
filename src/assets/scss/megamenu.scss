@@ -33,18 +33,18 @@ input:focus {
   outline: none;
 }
 
-html {
-  overflow-x: hidden;
-  max-width: 100%;
-}
+// html {
+//   overflow-x: hidden;
+//   max-width: 100%;
+// }
 
-body {
-  max-width: 100%;
-  padding: 0;
-  margin: 0;
-  cursor: default;
-  overflow-x: hidden;
-}
+// body {
+//   max-width: 100%;
+//   padding: 0;
+//   margin: 0;
+//   cursor: default;
+//   overflow-x: hidden;
+// }
 
 ol, ul {
   list-style: none;
@@ -131,7 +131,7 @@ a {
 /* Main Header Menu */
 
 #header-wrapper {
-  position: absolute;
+  // position: absolute;
   background: rgba(255, 255, 255, 0.99);
   width: 100%;
   margin: 0 auto;
@@ -976,4 +976,9 @@ ul.off-canvas-list {
       max-width: 1200px !important;
     }
   }
+}
+
+/* Custom from CE */
+li.has-children.has-dropdown  {
+  z-index: 99;
 }

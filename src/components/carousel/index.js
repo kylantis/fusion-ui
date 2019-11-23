@@ -17,6 +17,12 @@ class Carousel extends BaseComponent {
         return this.componentId;
     }
 
+    showCaption() {
+        if (this.data['@showCaption'] === false) {
+            $('div.caption').remove();
+        }
+    }
+
     render() {
         const { node } = this;
         const { data } = this;
@@ -31,6 +37,9 @@ class Carousel extends BaseComponent {
                 aTag.href = element['@imageLink'];
                 const imgTag = this.appendNode(aTag, 'img', null);
                 imgTag.src = element['@imageSrc'];
+                const captionDiv = this.appendNode(el, 'div', 'caption');
+                const caption = this.appendNode(captionDiv, 'p', null);
+                caption.textContent = element['@captionText'];
             });
         }
         node.append(carouselDiv);
@@ -47,6 +56,7 @@ class Carousel extends BaseComponent {
             maxSlide: 1,
             auto: true,
         });
+        this.showCaption();
     }
 }
 

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+</head>
+
+<body>
+    <div id="view"></div>
+
+</body>
+
+<script>
+    const singleBar = [
+        ['Element', 'Density', { role: 'style' }, { role: 'annotation' }],
+        ['Copper', 8.94, 'color: #b87333', 'Cu'],
+        ['Silver', 10.49, 'color: silver', 'Ag'],
+        ['Gold', 19.30, 'color: gold', 'Au'],
+        ['Platinum', 21.45, 'color: #e5e4e2', 'Pt'],
+    ]
+    const multiBar = [
+        ['Year', 'Sales', 'Expenses', 'Profit'],
+        ['2017', 1030, 540, 350],
+        ['2016', 660, 1120, 300],
+        ['2015', 1170, 460, 250],
+        ['2014', 1000, 400, 200],
+    ]
+    const plentyBar = [
+        [0, 0, 0],    [1, 10, 5],   [2, 23, 15],  [3, 17, 9],   [4, 18, 10],  [5, 9, 5],
+        [6, 11, 3],   [7, 27, 19],  [8, 33, 25],  [9, 40, 32],  [10, 32, 24], [11, 35, 27],
+        [12, 30, 22], [13, 40, 32], [14, 42, 34], [15, 47, 39], [16, 44, 36], [17, 48, 40],
+        [18, 52, 44], [19, 54, 46], [20, 42, 34], [21, 55, 47], [22, 56, 48], [23, 57, 49],
+        [24, 60, 52], [25, 50, 42], [26, 52, 44], [27, 51, 43], [28, 49, 41], [29, 53, 45],
+        [30, 55, 47], [31, 60, 52], [32, 61, 53], [33, 59, 51], [34, 62, 54], [35, 65, 57],
+        [36, 62, 54], [37, 58, 50], [38, 55, 47], [39, 61, 53], [40, 64, 56], [41, 65, 57],
+        [42, 63, 55], [43, 66, 58], [44, 67, 59], [45, 69, 61], [46, 69, 61], [47, 70, 62],
+        [48, 72, 64], [49, 68, 60], [50, 66, 58], [51, 65, 57], [52, 67, 59], [53, 70, 62],
+        [54, 71, 63], [55, 72, 64], [56, 73, 65], [57, 75, 67], [58, 70, 62], [59, 68, 60],
+        [60, 64, 56], [61, 60, 52], [62, 65, 57], [63, 67, 59], [64, 68, 60], [65, 69, 61],
+        [66, 70, 62], [67, 72, 64], [68, 75, 67], [69, 80, 72]
+    ]
+    const jsonData = {
+        '@id': 'lineChart',
+        '@title': 'Sample Bar Title For Testing',
+        '@type': 'classic chart',
+        '@complexity': 'simple', //complex || simple
+        '@subtitle': 'Sample subtitle data',
+        '@chartWidth': 900,
+        '@chartHeight': 500,
+        '@width': 500,
+        '@height': 500,
+        '@titleTextStyle': {
+            '@color': '',
+            '@fontName': '',
+            '@fontSize': '',
+            '@bold': '',
+            '@italic': '',
+        },
+        '@fontSize': '',
+        '@fontName': '',
+        '@curveType': 'none',
+        '@colors': ['#1b9e77', '#d95f02', '#7570b3'],
+        '@backgroundColor': '',
+        '@forceIFrame': false,
+        '@lineWidth': 4,
+        '@legendPosition': 'none',
+        '@orientation': 'horizontal', //horizontal(default) || vertical
+        '@selectionMode': 'single', //single(default) || multiple
+        '@pointShape': '',
+        '@enableInteractivity': 'true', //true (default) || false
+        '@interpolateNulls': false,
+        '@pointSize': '',
+        '@hAxis': {
+            '@title': 'Total',
+            '@color': '#333',
+            '@fontName': '',
+            '@fontSize': '',
+            '@bold': '',
+            '@italic': '',
+            '@maxValue': '',
+            '@minValue': '', 
+        },
+        '@vAxis': {
+            '@title': 'Year',
+            '@color': '#333',
+            '@fontName': '',
+            '@fontSize': '',
+            '@bold': '',
+            '@italic': '',   
+            '@maxValue': '',
+            '@minValue': '', 
+        },
+        '@animateChart': true,
+        '@animationDuration': 2000,
+        '@transitionStyle': 'linear',
+        '@columns': [{
+            '@tag': 'column',
+            '@type': 'number',
+            '@title': 'Animals'
+        }, {
+            '@tag': 'column',
+            '@type': 'number',
+            '@title': 'Dogs'
+        }, {
+            '@tag': 'column',
+            '@type': 'number',
+            '@title': 'Cats'
+        }],
+        '>': multiBar,
+    }
+
+</script>
+<script>
+    // This is a polyfill that allows components to do
+    // module.exports = ... in the browser
+    window.module = {
+        exports: {}
+    }
+</script>
+<script src="/assets/js/polyfills/index.min.js"></script>
+<script src="/components/base.min.js"></script>
+<script src="/components/chart-line/index.min.js"></script>
+<script>new LineChart(jsonData, document.querySelector('#view'));</script>
+
+</html>

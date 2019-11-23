@@ -3,7 +3,7 @@ class VirtualKeyboard extends BaseComponent {
         return 'virtualKeyboard';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/virtual-keyboard.min.css', '/assets/css/custom-vkeyboard.min.css']);
@@ -14,7 +14,7 @@ class VirtualKeyboard extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     getBehaviourNames() {

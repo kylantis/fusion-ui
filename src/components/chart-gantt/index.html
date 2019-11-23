@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+</head>
+
+<body>
+    <div id="view"></div>
+
+</body>
+
+<script>
+    const jsonData = {
+        '@id': 'ganttChart',
+        '@title': 'Company Performance',
+        '@width': 900,
+        '@height': 500,
+        '@backgroundColor': 'pink',
+        '@arrow': {
+            '@angle': 45,
+            '@color': '#000',
+            '@length': null,
+            '@radius': null,
+            '@width': 1.4
+        },
+        '@criticalPathEnabled': false,
+        '@criticalPathstroke': '#e64a19',
+        '@criticalPathstrokeWidth': 5,
+        '@shadowEnabled': true, 
+        '@shadowColor': 'black',
+        '@shadowOffset': '',
+        '@percentEnabled': true,
+        '@percentStyleFill': 'yellow',
+        '@trackHeight': 50,
+        '@barCornerRadius': null,
+        '@barHeight': null,
+        '@columns': [{
+            '@tag': 'column',
+            '@type': 'string',
+            '@title': 'Task ID',
+        }, {
+            '@tag': 'column',
+            '@type': 'string',
+            '@title': 'Task Name',
+        }, {
+            '@tag': 'column',
+            '@type': 'date',
+            '@title': 'Start Date',
+        }, {
+            '@tag': 'column',
+            '@type': 'date',
+            '@title': 'End Date',
+        }, {
+            '@tag': 'column',
+            '@type': 'number',
+            '@title': 'Duration',
+        }, {
+            '@tag': 'column',
+            '@type': 'number',
+            '@title': 'Percent Complete',
+        }, {
+            '@tag': 'column',
+            '@type': 'string',
+            '@title': 'Dependencies',
+        }],
+        '>': [
+            ['Research', 'Find sources',
+                new Date(2015, 0, 1), new Date(2015, 0, 5), null, 100, null],
+            ['Write', 'Write paper',
+                null, new Date(2015, 0, 9), 3, 25, 'Research,Outline'],
+            ['Cite', 'Create bibliography',
+                null, new Date(2015, 0, 7), 1, 20, 'Research'],
+            ['Complete', 'Hand in paper',
+                null, new Date(2015, 0, 10), 1, 0, 'Cite,Write'],
+            ['Outline', 'Outline paper',
+                null, new Date(2015, 0, 6), 1, 100, 'Research']
+        ]
+    }
+</script>
+<script>
+    // This is a polyfill that allows components to do
+    // module.exports = ... in the browser
+    window.module = {
+        exports: {}
+    }
+</script>
+<script src="/assets/js/polyfills/index.min.js"></script>
+<script src="/components/base.min.js"></script>
+<script src="/components/chart-gantt/index.min.js"></script>
+<script>new GanttChart(jsonData, document.querySelector('#view'));</script>
+
+</html>

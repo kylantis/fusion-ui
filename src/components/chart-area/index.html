@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+</head>
+
+<body>
+    <div id="view"></div>
+
+</body>
+
+<script>
+    const jsonData = {
+        '@id': 'areaChart',
+        '@title': 'Company Performance',
+        '@legendPosition': 'top',
+        '@stacked': 'absolute', // false || relative || absolute/true(default) || percent
+        '@titleTextStyle': {
+            '@color': 'black',
+            '@fontName': '',
+            '@fontSize': '',
+            '@bold': '',
+            '@italic': '',
+        },
+        '@areaOpacity': 0.3,
+        '@fontSize': '',
+        '@fontName': '',
+        '@chartWidth': 700,
+        '@chartHeight': 400,
+        '@colors': ['red', 'yellow'],
+        '@pointSize': '',
+        '@pointShape': '',
+        '@enableInteractivity': true, //true (default) || false
+        '@forceIFrame': false,        
+        '@selectionMode': 'multiple', //single(default) || multiple
+        '@animateChart': true,
+        '@animationDuration': 2000,
+        '@transitionStyle': 'linear',
+        '@reverseCategories': 'false',
+        '@orientation': 'horizontal', //horizontal || vertical
+        '@interpolateNulls': false,
+        '@crosshairTrigger': 'both', // both || selection || focus
+        '@hAxis': {
+            '@title': 'Year',
+            '@color': '#333',
+            '@fontName': '',
+            '@fontSize': '',
+            '@bold': '',
+            '@italic': '',
+            '@maxValue': '',
+            '@minValue': '', 
+        },
+        '@vAxis': {
+            '@title': 'Profit',
+            '@color': '#333',
+            '@fontName': '',
+            '@fontSize': '',
+            '@bold': '',
+            '@italic': '',
+            '@maxValue': '',
+            '@minValue': '', 
+        },
+        '>': [
+            ['Year', 'Sales', 'Expenses'],
+            ['2013', 1000, 400],
+            ['2014', 1170, 460],
+            ['2015', 660, 1120],
+            ['2016', 1030, 540],
+        ]
+    }
+</script>
+<script>
+    // This is a polyfill that allows components to do
+    // module.exports = ... in the browser
+    window.module = {
+        exports: {}
+    }
+</script>
+<script src="/assets/js/polyfills/index.min.js"></script>
+<script src="/components/base.min.js"></script>
+<script src="/components/chart-area/index.min.js"></script>
+<script>new AreaChart(jsonData, document.querySelector('#view'));</script>
+
+</html>

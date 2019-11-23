@@ -1,0 +1,41 @@
+{
+    "@id": "",
+    "@title": "",
+    "@legendPosition": "bottom || left || right || in || top || none",
+    "@3D": "true || false(default)",
+    "@donutChart": "true || false(default)",
+    "@donutChartRadius": "0 - 1 || false",
+    "@backgroundColor": "",
+    "@subject": "",
+    "@chartheight": 500,
+    "@chartwidth": 900,
+    "@width": 600,
+    "@height": 400,
+    "@subjectType": "",
+    "@subjectValue": "",
+    "@subjectValueType": "",
+    "@forceIFrame": "true || false(default)",
+    "@reverseCategories": "true || false(default)", 
+    "@selectionMode": "single(default) || multiple",
+    "@pieSliceTextStyle": {
+        "@textColor": "white",
+        "@fontName": "",
+        "@fontSize": ""
+    },
+    "@enableInteractivity": "true (default) || false",
+    "@animateChart": "true || false(default)",
+    "@animationDuration": "2000ms",
+    "@transitionStyle": "linear || in || out || inAndOut",
+    "@slices": {
+        "3": { "offset": 0.1 },
+        "0": { "offset": 0.1 },
+        "4": { "color": "transparent" }
+    },
+    ">": [
+        ["Mushrooms", 3],
+        ["Onions", 1],
+        ["Olives", 2],
+        ["Zucchini", 2],
+        ["Pepperoni", 2],
+    ]
+}

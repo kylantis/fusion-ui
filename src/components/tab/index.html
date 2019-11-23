@@ -11,34 +11,165 @@
     <div id="tab"></div>
 
     <script>
+        const mail = {
+            "@id": "menuOne",
+            "@displayStyle": "basic",
+            "@title": "messages",
+            "@position": "left",
+            "menuDisplayStyle": "",
+            "@pointing": false,
+            "@secondaryPointing": false,
+            ">": [
+                {
+                    "@tag": "mail",
+                    "@id": 123,
+                    ">": [{
+                        "@icon": ""
+                    }, {
+                        "@sender": "James Bond"
+                    }, {
+                        "@subject": "Elyse is a kind girl but sometimes you don't really have enough room to describe everything you'd like and other times it just doesnt make sense"
+                    }, {
+                        "@entryTime": "14 Aug"
+                    }, {
+                        "@options": ""
+                    }]
+                },
+                {
+                    "@tag": "mail",
+                    "@id": 124,
+                    ">": [{
+                        "@icon": ""
+                    }, {
+                        "@subject": "Elyse is a kind girl but sometimes you don't really have enough room to describe everything you'd like and other times it just doesnt make sense"
+                    }, {
+                        "@sender": "Sam Dede"
+                    }, {
+                        "@entryTime": "14 Aug"
+                    }, {
+                        "@options": ""
+                    }]
+                }, {
+                    "@tag": "mail",
+                    "@id": 125,
+                    ">": [{
+                        "@icon": ""
+                    }, {
+                        "@sender": "Steven Seagal"
+                    }, {
+                        "@subject": "Elyse is a kind girl but sometimes you don't really have enough room to describe everything you'd like and other times it just doesnt make sense"
+                    }, {
+                        "@options": ""
+                    }, {
+                        "@entryTime": "14 Aug"
+                    }]
+                }]
+        }
+        const step = {
+            'id': 'stepOne',
+            '@title': 'step',
+            '@alignment': 'horizontal',
+            "stackable": "true | false",
+            ">": [{
+                    "@tag": "step",
+                    "@stepId": "step-1234",
+                    "@title": "Shipping",
+                    "@icon": "truck",
+                    "@description": "Choose your shipping option",
+                    "@completed": false
+                },{
+                    "@tag": "step",
+                    "@stepId": "step-12345",
+                    "@title": "Billing",
+                    "@icon": "payment",
+                    "@description": "Enter Billing information",
+                    "@completed":false
+                },{
+                    "@tag": "step",
+                    "@stepId": "step-123456",
+                    "@title": "Confirm Order",
+                    "@icon": "info",
+                    "@description": "Verify order details",
+                    "@completed": false
+                }]
+        }
+
+        const feed = {
+            "@id": "feedOne",
+            "@title": "feed",
+            ">": [{
+                "@tag": "activityFeed",
+                "@userId": "134",
+                "@userName": "Eliot Fu",
+                "@activity": "added you as a friend",
+                "@time": "1 hour ago",
+                "@avatarImage": "/assets/images/tom.jpg",
+            }, {
+                "@tag": "newsFeed",
+                "@userId": "136",
+                "@userName": "Jacob Fu",
+                "@time": "2 hours ago",
+                "@activity": "updated his status",
+                "@statusText": "Ours is a life of constant reruns. We're always circling back to where we'd we started, then starting all over again. Even if we don't run extra laps that day, we surely will come back for more of the same another day soon.",
+                "@avatarImage": "/assets/images/tom.jpg",
+                "@statusImage": [{
+                    '@tag': 'image',
+                    '@id': 'imageOne',
+                    '@src': '/assets/images/tom.jpg'
+                }, {
+                    '@tag': 'image',
+                    '@id': 'imageTwo',
+                    '@src': '/assets/images/nan.jpg'
+                }]
+            }, {
+                "@tag": "activityFeed",
+                "@userId": "138",
+                "@userName": "Greg Junior",
+                "@activity": "Travelled to Spain",
+                "@time": "3 hours ago",
+                "@avatarImage": "/assets/images/tom.jpg",
+            }]
+        }
+
         const jsonData = {
             "@id": "tabOne",
-            "@displayStyle": "tabbed",
+            "@displayStyle": "basic",
+            "@displayFull": false,
+            "@centered": true,
             "@title": "",
             "@position": "top",
             ">": [{
                 "@tag": "tab",
                 "@title": "Tab One",
+                "@titleSymbol": "hand pointing down",
                 "@data-tab": "first",
                 ">": {
                     "@tag": "tab-body",
-                    "@content": "First Content"
+                    "@textContent": "",
+                    "@componentTag": "step",
+                    "@componentData": step,
                 }
             }, {
                 "@tag": "tab",
                 "@title": "Tab Two",
+                "@titleSymbol": "book",
                 "@data-tab": "second",
                 ">": {
                     "@tag": "tab-body",
-                    "@content": "Second Content"
+                    "@textContent": "",
+                    "@componentTag": "mail",
+                    "@componentData": mail,
                 }
             }, {
                 "@tag": "tab",
                 "@title": "Tab Three",
+                "@titleSymbol": "desktop",
                 "@data-tab": "three",
                 ">": {
                     "@tag": "tab-body",
-                    "@content": "Third Content"
+                    "@textContent": "",
+                    "@componentTag": "feed",
+                    "@componentData": feed,
                 }
             }]
         }

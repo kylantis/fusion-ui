@@ -3,9 +3,11 @@ class Feed extends BaseComponent {
         return 'feed';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     #likeButton;
+
+    idCounter = 0;
 
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/feed.min.css', '/assets/css/divider.min.css', '/assets/css/label.min.css', '/assets/css/icon.min.css', '/assets/css/custom-feed.min.css']);
@@ -16,7 +18,35 @@ class Feed extends BaseComponent {
     }
 
     behaviorNames() {
-        return ['addNewFeed', 'deleteFeed', 'editFeed', 'updateTime'];
+        return ['addNewsFeed', 'deleteFeed', 'updateTime'];
+    }
+
+    invokeBehavior(behavior, data) {
+        const feed = document.getElementById(`${this.getComponentId()}`);
+        switch (behavior) {
+        case 'addFeed':
+            this.feedGenerator(feed, data);
+            return data;
+
+        case 'deleteFeed': {
+            const oneFeed = feed.querySelector(`#${data.id}`);
+            if (oneFeed) {
+                $(oneFeed).remove();
+            }
+            return oneFeed;
+        }
+        default:
+            break;
+        }
+        return null;
+    }
+
+    addFeed(data) {
+        this.invokeBehavior('addFeed', data);
+    }
+
+    deleteFeed(data) {
+        this.invokeBehavior('deleteFeed', data);
     }
 
     getNumberOfLikes() {
@@ -24,7 +54,7 @@ class Feed extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     // Modal
@@ -76,9 +106,10 @@ class Feed extends BaseComponent {
         this.#likeButton += 1;
     }
 
-    genActivityFeed(parent, data) {
+    genActivityFeed(parent, data, id) {
         const eventDiv = document.createElement('div');
         eventDiv.className = 'event';
+        eventDiv.id = `${this.getComponentId()}-feed-${id}`;
         const labelDiv = this.appendNode(eventDiv, 'div', 'label');
         const imgTag = this.appendNode(labelDiv, 'img');
         imgTag.src = data['@avatarImage'];
@@ -94,9 +125,10 @@ class Feed extends BaseComponent {
         parent.appendChild(eventDiv);
     }
 
-    genNewsFeed(parent, data) {
+    genNewsFeed(parent, data, id) {
         const eventDiv = document.createElement('div');
         eventDiv.className = 'event';
+        eventDiv.id = `${this.getComponentId()}-feed-${id}`;
         const labelDiv = this.appendNode(eventDiv, 'div', 'label');
         const imgTag = this.appendNode(labelDiv, 'img');
         imgTag.src = data['@avatarImage'];
@@ -154,23 +186,29 @@ class Feed extends BaseComponent {
         parent.append(eventDiv);
     }
 
+    feedGenerator(parent, data) {
+        data.forEach((feed) => {
+            this.idCounter += 1;
+            if (feed['@tag'] === 'newsFeed') {
+                this.genNewsFeed(parent, feed, this.counter);
+            }
+            if (feed['@tag'] === 'activityFeed') {
+                this.genActivityFeed(parent, feed, this.counter);
+            }
+            const divider = this.appendNode(parent, 'div', 'ui divider');
+        });
+    }
+
     render() {
         const { node } = this;
         const { data } = this;
         const uiDiv = document.createElement('div');
         uiDiv.className = 'ui pushable feed';
         uiDiv.id = this.getComponentId();
-        data['>'].forEach((feed) => {
-            if (feed['@tag'] === 'newsFeed') {
-                this.genNewsFeed(uiDiv, feed);
-            }
-            if (feed['@tag'] === 'activityFeed') {
-                this.genActivityFeed(uiDiv, feed);
-            }
-            const divider = this.appendNode(uiDiv, 'div', 'ui divider');
-        });
-        this.loadModal(uiDiv);
+        this.feedGenerator(uiDiv, data['>']);
+        this.loadModal(node);
         node.append(uiDiv);
+        this.isRendered(this.tagName());
     }
 }
 

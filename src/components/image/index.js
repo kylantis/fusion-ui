@@ -3,7 +3,7 @@ class Image extends BaseComponent {
         return 'image';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/image.min.css']);
@@ -59,7 +59,7 @@ class Image extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     render() {

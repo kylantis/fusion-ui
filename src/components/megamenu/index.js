@@ -57,7 +57,7 @@ class MegaMenu extends BaseComponent {
         // eslint-disable-next-line no-unused-vars
         const titleImg = this.appendNode(titleATag, 'img', null);
         titleImg.src = data['@homeImgSrc'];
-        titleImg.setAttribute('style', 'position: absolute; top: 0px; left: 0px; height: 50px; width: 150px; margin-top: 24.5px; margin-bottom: 24.5px; display: inline-block;');
+        titleImg.setAttribute('style', 'top: 0px; left: 0px; height: 50px; width: 150px; margin-top: 24.5px; margin-bottom: 24.5px; display: inline-block;');
         const topBar = this.appendNode(titleUl, 'li', 'toggle-topbar');
         const topBarATag = this.appendNode(topBar, 'a', 'left-off-canvas-toggle');
         topBarATag.href = data['@homeURL'];

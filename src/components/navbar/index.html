@@ -14,7 +14,7 @@
             "@id": "",
             "@title": "",
             "@navBarType": "standard",
-            "@orientation": "vertical",
+            "@orientation": "",
             ">": [{
                 "@tag": "group",
                 "@position": "left",
@@ -23,7 +23,7 @@
                     "@title": "Home",
                     "@iconName": "home",
                     "@iconColor": "red",
-                    "@badge": '',
+                    "@badge": "",
                     "@iconOnly": false,
                     "@iconPosition": "",
                     "@url": ""
@@ -182,17 +182,15 @@
                     "@url": "",
                     ">": {
                         "@id": "navbarButton",
-                        "@fluid": true,
+                        "@fluid": false,
                         "@buttonStyle": "basic",
                         "@iconPosition": "left",
                         "@buttonText": "Compose",
                         "@iconName": "edit",
                         "@color": "yellow",
                         "@linkedUrl": "https://www.google.com",
-                        "@clientCallbacks": {
-                            "@execute": () => {
-                                window.location.href = "https://www.google.com";
-                            }
+                        "@clientCallbacks": function execute() {
+                            console.log('Clicked');
                         }
                     }
 

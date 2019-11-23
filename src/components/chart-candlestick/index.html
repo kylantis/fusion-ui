@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+</head>
+
+<body>
+    <div id="view"></div>
+
+</body>
+
+<script>
+    const jsonData = {
+        '@id': 'candlestickChart',
+        '@title': 'Company Performance',
+        '@legendPosition': 'none',
+        '@backgroundColor': '',
+        '@fontSize': '',
+        '@fontName': '',
+        '@chartWidth': 500,
+        '@chartHeight': 500,
+        '@width': 600,
+        '@height': 600,
+        '@barWidth': 90,
+        '@colors': null,
+        '@enableInteractivity': true, //true (default) || false
+        '@forceIFrame': false,
+        '@animateChart': true,
+        '@animationDuration': 2000,
+        '@transitionStyle': 'linear',
+        '@orientation': 'horizontal',
+        '@reverseCategories': true,
+        '@selectionMode': 'single',
+        '@aggregationTarget': 'category', // 'category' || 'series'
+        '@candlestick': {
+            '@hollowIsRising': true,
+            '@fallingColor': {
+                '@fill': 'red',
+                '@stroke': '',
+                '@strokeWidth': '',
+            },
+            '@risingColor': {
+                '@fill': 'blue',
+                '@stroke': '',
+                '@strokeWidth': '',
+            }
+        },
+        '@hAxis': {
+            '@title': 'Days',
+            '@color': '#333',
+            '@fontName': '',
+            '@fontSize': '',
+            '@bold': '',
+            '@italic': '',
+            '@maxValue': '',
+            '@minValue': '',
+            '@direction': 1, // 1 or -1. -1 reverses the order of the values
+        },
+        '@vAxis': {
+            '@title': 'Amount',
+            '@color': '#333',
+            '@fontName': '',
+            '@fontSize': '',
+            '@bold': '',
+            '@italic': '',
+            '@maxValue': '',
+            '@minValue': '',
+            '@direction': 1, // 1 or -1. -1 reverses the order of the values
+        },
+        '>': [
+            ['Mon', 20, 28, 38, 45],
+            ['Tue', 31, 38, 55, 66],
+            ['Wed', 50, 55, 77, 80],
+            ['Thu', 77, 77, 66, 50],
+            ['Fri', 68, 66, 22, 15],
+            // Treat first row as data as well.
+        ]
+    }
+</script>
+<script>
+    // This is a polyfill that allows components to do
+    // module.exports = ... in the browser
+    window.module = {
+        exports: {}
+    }
+</script>
+<script src="/assets/js/polyfills/index.min.js"></script>
+<script src="/components/base.min.js"></script>
+<script src="/components/chart-candlestick/index.min.js"></script>
+<script>new CandlestickChart(jsonData, document.querySelector('#view'));</script>
+
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+</head>
+
+<body>
+    <div id="view"></div>
+
+</body>
+
+<script>
+    const sampleTwo = [
+        [0, 67], [1, 88], [2, 77],
+        [3, 93], [4, 85], [5, 91],
+        [6, 71], [7, 78], [8, 93],
+        [9, 80], [10, 82], [0, 75],
+        [5, 80], [3, 90], [1, 72],
+        [5, 75], [6, 68], [7, 98],
+        [3, 82], [9, 94], [2, 79],
+        [2, 95], [2, 86], [3, 67],
+        [4, 60], [2, 80], [6, 92],
+        [2, 81], [8, 79], [9, 83],
+        [3, 75], [1, 80], [3, 71],
+        [3, 89], [4, 92], [5, 85],
+        [6, 92], [7, 78], [6, 95],
+        [3, 81], [0, 64], [4, 85],
+        [2, 83], [3, 96], [4, 77],
+        [5, 89], [4, 89], [7, 84],
+        [4, 92], [9, 98],
+    ]
+
+    const sampleOne = [
+        ['Age', 'Weight'],
+        [8, 12],
+        [4, 5.5],
+        [11, 14],
+        [4, 5],
+        [3, 3.5],
+        [6.5, 7],
+    ]
+    const jsonData = {
+        '@id': 'scatterChart',
+        '@title': 'Age vs. Weight comparison',
+        '@subtitle': 'subtitle data',
+        '@chartStyle': 'materialScatterChart',
+        '@titleTextStyle': {
+            '@color': '',
+            '@fontName': '',
+            '@fontSize': '',
+            '@bold': '',
+            '@italic': '',
+        },
+        '@legendPosition': 'none',
+        '@fontSize': '',
+        '@fontName': '',
+        '@width': 700,
+        '@height': 500,
+        '@forceIFrame': false,
+        '@backgroundColor': '',
+        '@colors': ['red'],
+        '@trendline': false,
+        '@pointShape': 'triangle',
+        '@pointSize': 20,
+        '@selectionMode': 'single', //single(default) || multiple
+        '@enableInteractivity': 'true', //true (default) || false
+        '@columns': [{
+            '@tag': 'column',
+            '@type': 'number',
+            '@title': 'Hours Studied',
+        }, {
+            '@tag': 'column',
+            '@type': 'number',
+            '@title': 'Final',
+        }],
+        '@hAxis': {
+            '@title': 'Length',
+            '@color': '#333',
+            '@fontName': '',
+            '@fontSize': '',
+            '@bold': '',
+            '@italic': '',
+            '@gridlineCount': '',
+            '@gridlineColor': '',
+            '@ticks': null,
+            '@minValue': 0,
+            '@maxValue': 15,
+        },
+        '@vAxis': {
+            '@title': 'Dinosaur',
+            '@color': '#333',
+            '@fontName': '',
+            '@fontSize': '',
+            '@bold': '',
+            '@italic': '',
+            '@gridlineCount': '',
+            '@gridlineColor': '',
+            '@ticks': null,
+            '@minValue': 0,
+            '@maxValue': 15,
+        },
+        '@animateChart': true,
+        '@animationDuration': 2000,
+        '@transitionStyle': 'linear',
+        '>': sampleTwo,
+    }
+</script>
+<script>
+    // This is a polyfill that allows components to do
+    // module.exports = ... in the browser
+    window.module = {
+        exports: {}
+    }
+</script>
+<script src="/assets/js/polyfills/index.min.js"></script>
+<script src="/components/base.min.js"></script>
+<script src="/components/chart-scatter/index.min.js"></script>
+<script>new ScatterChart(jsonData, document.querySelector('#view'));</script>
+
+</html>

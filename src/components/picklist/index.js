@@ -3,7 +3,7 @@ class PickList extends BaseComponent {
         return 'picklist';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/picklist.min.css']);
@@ -14,7 +14,7 @@ class PickList extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     behaviorNames() {

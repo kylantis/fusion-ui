@@ -12,24 +12,26 @@
         const jsonData = {
             "@id": "listOne",
             "@title": "fruitlist",
-            "@listType": "iconList",
+            "@listType": "imageList",
             "@icon": "bullet",
             "@listOrientation": "vertical",
             "@hrefLink": true,
             "@animated": false,
             "@divider": true,
-            "@celled": false,
+            "@celled": true,
             ">": [{
                 "@tag": "item",
                 "@id": 1,
                 "@text": "Apple",
                 "@icon": "folder",
+                "@imageSrc": "/assets/images/kiwi.svg",
                 "@description": "I ate it a few mins ago"
             }, {
                 "@tag": "item",
                 "@id": 2,
                 "@text": "Banana",
                 "@icon": "folder",
+                "@imageSrc": "/assets/images/nan.jpg",
                 "@description": "I ate it 10 mins ago",
                 ">": [{
                     "@tag": "subitem",
@@ -62,6 +64,7 @@
                 "@id": 3,
                 "@text": "Orange",
                 "@icon": "folder",
+                "@imageSrc": "/assets/images/tom.jpg",
                 "@description": "I ate it 20 mins ago",
                 ">": [{
                     "@tag": "subitem",
@@ -86,12 +89,14 @@
                 "@tag": "item",
                 "@id": 4,
                 "@text": "Cashew",
+                "@imageSrc": "/assets/images/kiwi.svg",
                 "@icon": "file",
                 "@description": "I ate it 30 mins ago"
             }, {
                 "@tag": "item",
                 "@id": 5,
                 "@text": "Mango",
+                "@imageSrc": "/assets/images/nan.jpg",
                 "@icon": "folder",
                 "@description": "I ate it an hour ago"
             }]
@@ -102,9 +107,9 @@
     <script src="/components/list/index.min.js"></script>
     <script>
     let list = new List(jsonData, document.querySelector('#list'))
-    setTimeout(() => {
-        list.appendSiblingItem('listOne', 'hello');
-    }, 2000)
+    // setTimeout(() => {
+    //     list.appendSiblingItem('listOne', 'hello');
+    // }, 2000)
     </script>
 </body>
 

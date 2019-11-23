@@ -3,10 +3,10 @@ class ProgressBar extends BaseComponent {
         return 'progressBar';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     getCssDependencies() {
-        return super.getCssDependencies().concat(['/assets/css/progress.min.css']);
+        return super.getCssDependencies().concat(['/assets/css/progress.min.css', '/assets/css/custom-progress-bar.min.css']);
     }
 
     getJsDependencies() {
@@ -14,7 +14,7 @@ class ProgressBar extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     invokeBehavior(behavior, data) {
@@ -34,8 +34,7 @@ class ProgressBar extends BaseComponent {
             $(`#${this.getComponentId()}`).progress('complete');
             break;
         case 'getPercent':
-            $(`#${this.getComponentId()}`).progress('get percent');
-            break;
+            return $(`#${this.getComponentId()}`).progress('get percent');
         case 'getValue':
             $(`#${this.getComponentId()}`).progress('get value');
             break;
@@ -47,6 +46,7 @@ class ProgressBar extends BaseComponent {
 
     increment() {
         this.invokeBehavior('increment');
+        this.updateProgressText();
     }
 
     decrement() {
@@ -66,7 +66,7 @@ class ProgressBar extends BaseComponent {
     }
 
     getPercent() {
-        this.invokeBehavior('getPercent');
+        return this.invokeBehavior('getPercent');
     }
 
     getValue() {
@@ -77,6 +77,10 @@ class ProgressBar extends BaseComponent {
         $(`#${this.getComponentId()}`).progress('get text', text);
     }
 
+    updateProgressText() {
+        console.log(this.getPercent());
+        $('.metabar').html(`${this.getPercent()}%`);
+    }
 
     render() {
         const { node } = this;
@@ -93,6 +97,9 @@ class ProgressBar extends BaseComponent {
         if (jsonData['@type'].length > 0) {
             uiDiv.classList.add(jsonData['@type']);
         }
+        if (jsonData['@size']) {
+            uiDiv.classList.add(jsonData['@size']);
+        }
         uiDiv.append(barDiv);
         barDiv.className = 'bar';
         barDiv.appendChild(progressDiv);
@@ -102,6 +109,21 @@ class ProgressBar extends BaseComponent {
             uiDiv.append(labelDiv);
             labelDiv.className = 'label';
             labelDiv.innerHTML = jsonData['@label'];
+        }
+
+        if (jsonData['@percentText']) {
+            const text = document.createElement('div');
+            text.className = 'metabar';
+            node.prepend(text);
+            text.textContent = `${jsonData['@data-value']}%`;
+            $(progressDiv).remove();
+            if (jsonData['@color']) {
+                text.classList.add(jsonData['@color']);
+            }
+        }
+
+        if (jsonData['@color']) {
+            uiDiv.classList.add(jsonData['@color']);
         }
 
         uiDiv.classList.add('progress');

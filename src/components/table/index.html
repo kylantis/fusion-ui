@@ -53,18 +53,17 @@
         const jsonData = {
             "@id": "tableOne",
             "@title": "People Of The World",
-            "@tableStyle": "inbox",
             "@isHoverable": true,
             "@isResponsive": true,
             "@textAlign": "center",
             "@isStriped": false,
             "@hasBorder": false,
-            "@singleLine": true,
+            "@singleLine": false,
             "@isInverted": false,
             "@color": "blue",
             "@isDataTable": false,
             "@isEditableTable": false,
-            "@isFixed": true,
+            "@isFixed": false,
             ">": [{
                 "@tag": "columns-definitions",
                 ">": [{
@@ -150,7 +149,7 @@
     <script>
         const tableId = document.getElementById('table');
         let table = new Table(jsonData, document.querySelector("#table"));
-        // setTimeout(() => table.appendRow(appendRowData), 2500);
+        setTimeout(() => table.appendRow(appendRowData), 2500);
         
         // tableId.addEventListener('dblclick', (event) => {
         //     table.deleteRow(Table.getRow(event));

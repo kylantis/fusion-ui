@@ -7,14 +7,13 @@
 
 <body>
     <div id="imageUpload"></div>
-    <input type="submit" id="submit">
 
     <script>
         const jsonData = {
             "@id": "inputImageOne",
             "@title": "profile picture",
-            "@type": "image",
-            "@maxSize": "",
+            "@maxSize": 1000,
+            "@cropper": true,
             "@multiple": true,
             "@acceptAll": true,
             "@pngOnly": false,

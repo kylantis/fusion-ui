@@ -1,0 +1,67 @@
+{
+    "@id": "",
+    "@type": "classic-column chart || material-single chart || material-multiple chart",
+    "@title": "",
+    "@subtitle": "",
+    "@chartWidth": 700,
+    "@chartHeight": 400,
+    "@yAxisView": "single || dual",
+    "@colors": [],
+    "@backgroundColor": "",
+    "@forceIFrame": false,
+    "@barWidth": "5 - 100",
+    "@legendPosition": "bottom || left || right || in || top || none",
+    "@stacked": "false || relative || absolute/true(default) || percent",
+    "@fontSize": "",
+    "@fontName": "",
+    "@orientation": "horizontal || vertical",
+    "@titleTextStyle": {
+        "@color": "",
+        "@fontName": "",
+        "@fontSize": "",
+        "@bold": "",
+        "@italic": ""
+    },
+    "@hAxis": {
+        "@title": "",
+        "@color": "",
+        "@fontName": "",
+        "@fontSize": "",
+        "@bold": "",
+        "@italic": "",
+        "@maxValue": "",
+        "@minValue": ""
+    },
+    "@vAxis": {
+        "@title": "",
+        "@color": "",
+        "@fontName": "",
+        "@fontSize": "",
+        "@bold": "",
+        "@italic": "",
+        "@maxValue": "",    
+        "@minValue": "" 
+    },
+    "@rightTitleY": "",
+    "@leftTitleY": "",
+    "@leftLabelY": "",
+    "@rightLabelY": "",
+    "@animateChart": "true || false (default)",
+    "@animationDuration": "2000ms",
+    "@transitionStyle": "linear || in || out || inAndOut",
+    "singleData": [
+        ["Element", "Density", { "role": "style" }, { "role": "annotation" }],
+        ["Copper", 8.94, "color: #b87333", "Cu"],
+        ["Silver", 10.49, "color: silver", "Ag"],
+        ["Gold", 19.30, "color: gold", "Au"],
+        ["Platinum", 21.45, "color: #e5e4e2", "Pt"]
+    ],
+    "multiData":
+    [
+        ["Year", "Sales", "Expenses", "Profit"],
+        ["2017", 1030, 540, 350],
+        ["2016", 660, 1120, 300],
+        ["2015", 1170, 460, 250],
+        ["2014", 1000, 400, 200]
+    ]
+}

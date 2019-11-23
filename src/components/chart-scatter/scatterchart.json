@@ -1,0 +1,92 @@
+{
+    "@id": "",
+    "@title": "",
+    "@subtitle": "",
+    "@chartStyle": "classicScatterChart || materialScatterChart",
+    "@titleTextStyle": {
+        "@color": "",
+        "@fontName": "",
+        "@fontSize": "",
+        "@bold": "",
+        "@italic": ""
+    },
+    "@legendPosition": "bottom || left || right || in || top || none",
+    "@fontSize": "",
+    "@fontName": "",
+    "@width": 700,
+    "@height": 500,
+    "@forceIFrame": "true || false(default)",
+    "@backgroundColor": "",
+    "@colors": [],
+    "@trendline": "true || false(default)",
+    "@pointShape": "circle || triangle || square || diamond || star || polygon",
+    "@pointSize": 7,
+    "@selectionMode": "single(default) || multiple",
+    "@enableInteractivity": "true (default) || false",
+    "@columns": [{
+        "@tag": "column",
+        "@type": "",
+        "@title": ""
+    }, {
+        "@tag": "column",
+        "@type": "",
+        "@title": ""
+    }],
+    "@hAxis": {
+        "@title": "",
+        "@color": "",
+        "@fontName": "",
+        "@fontSize": "",
+        "@bold": "",
+        "@italic": "",
+        "@gridlineCount": "",
+        "@gridlineColor": "",
+        "@ticks": null,
+        "@minValue": "",
+        "@maxValue": ""
+    },
+    "@vAxis": {
+        "@title": "",
+        "@color": "",
+        "@fontName": "",
+        "@fontSize": "",
+        "@bold": "",
+        "@italic": "",
+        "@gridlineCount": "",
+        "@gridlineColor": "",
+        "@ticks": null,
+        "@minValue": "",
+        "@maxValue": ""
+    },
+    "@animateChart": "true || false(default)",
+    "@animationDuration": "2000ms",
+    "@transitionStyle": "linear || in || out || inAndOut",
+    ">": [
+        [0, 67], [1, 88], [2, 77],
+        [3, 93], [4, 85], [5, 91],
+        [6, 71], [7, 78], [8, 93],
+        [9, 80], [10, 82], [0, 75],
+        [5, 80], [3, 90], [1, 72],
+        [5, 75], [6, 68], [7, 98],
+        [3, 82], [9, 94], [2, 79],
+        [2, 95], [2, 86], [3, 67],
+        [4, 60], [2, 80], [6, 92],
+        [2, 81], [8, 79], [9, 83],
+        [3, 75], [1, 80], [3, 71],
+        [3, 89], [4, 92], [5, 85],
+        [6, 92], [7, 78], [6, 95],
+        [3, 81], [0, 64], [4, 85],
+        [2, 83], [3, 96], [4, 77],
+        [5, 89], [4, 89], [7, 84],
+        [4, 92], [9, 98]
+    ],
+    ">>": [
+        ["Age", "Weight"],
+        [8, 12],
+        [4, 5.5],
+        [11, 14],
+        [4, 5],
+        [3, 3.5],
+        [6.5, 7]
+    ]
+}

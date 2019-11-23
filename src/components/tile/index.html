@@ -16,6 +16,23 @@
     <script>
         const appendData = {
             "@title": "Flat Tile",
+            "@title": "Tile",
+            "@tilesPerRow": 2,
+            "@buttons": [{
+                "@tag": "button",
+                "@position": "left",
+                "@color": "red",
+                "@buttonText": "Decline",
+                "@buttonDisplay": "basic",
+                "@fluid": true,
+            }, {
+                "@tag": "button",
+                "@position": "right",
+                "@color": "green",
+                "@buttonText": "Accept",
+                "@buttonDisplay": "basic",
+                "@fluid": true,
+            }],
             ">": [{
                 "@tag": "pill",
                 "@id": "tileOne",
@@ -119,7 +136,24 @@
         }
         
         const jsonData = {
+            "@id": "tileOne",
             "@title": "Tile",
+            "@tilesPerRow": 2,
+            "@buttons": [{
+                "@tag": "button",
+                "@position": "left",
+                "@color": "red",
+                "@buttonText": "Decline",
+                "@buttonDisplay": "basic",
+                "@fluid": true,
+            }, {
+                "@tag": "button",
+                "@position": "right",
+                "@color": "green",
+                "@buttonText": "Accept",
+                "@buttonDisplay": "basic",
+                "@fluid": true,
+            }],
             ">": [{
                 "@tag": "tile",
                 "@id": "tileOne",
@@ -211,6 +245,17 @@
             }, {
                 "@tag": "tile",
                 "@id": "tileNine",
+                "@tileImage": "/assets/images/placeholder.jpg",
+                "@tileHeader": "Getting Started",
+                "@headerIcon": "th",
+                "@secondaryText": "You edited recently",
+                "@linkedUrl": "https://www.google.com",
+                clientCallbacks() {
+                    window.location.href = this['@linkedUrl'];
+                }
+            }, , {
+                "@tag": "tile",
+                "@id": "tileTen",
                 "@tileImage": "/assets/images/placeholder.jpg",
                 "@tileHeader": "Getting Started",
                 "@headerIcon": "th",

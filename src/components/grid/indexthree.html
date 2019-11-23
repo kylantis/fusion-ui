@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+</head>
+
+<body>
+    <div id='grid'></div>
+
+    <script>
+        const progressBar = {
+            "@id": "ctableProgressOne",
+            "@title": "first progress bar",
+            "@label": "",
+            "@size": "tiny",
+            "@percentText": true,
+            "@state": "active",
+            "@type": "indicating",
+            "@content": "progress",
+            "@color": "green",
+            "@data-value": 30,
+            "@data-total": 50
+        }
+
+        const avatarDataOne = {
+            "@id": "tableImageOne",
+            "@type": "avatar",
+            "@avatarName": "",
+            "@href": "https://google.com",
+            "@src": "https://robohash.org/one.jpg?size=64x64",
+            "@size": "mini",
+        }
+
+        const avatarDataTwo = {
+            "@id": "tableImageTwo",
+            "@type": "avatar",
+            "@avatarName": "",
+            "@href": "https://google.com",
+            "@src": "https://robohash.org/two.jpg?size=64x64",
+            "@size": "mini",
+        }
+
+        const avatarDataThree = {
+            "@id": "tableImageThree",
+            "@type": "avatar",
+            "@avatarName": "",
+            "@href": "https://google.com",
+            "@src": "https://robohash.org/three.jpg?size=64x64",
+            "@size": "mini",
+        }
+
+        const avatarDataFour = {
+            "@id": "tableImageFour",
+            "@type": "avatar",
+            "@avatarName": "",
+            "@href": "https://google.com",
+            "@src": "https://robohash.org/four.jpg?size=64x64",
+            "@size": "mini",
+        }
+
+        const avatarDataFive = {
+            "@id": "tableImageFive",
+            "@type": "avatar",
+            "@avatarName": "",
+            "@href": "https://google.com",
+            "@src": "https://robohash.org/five.jpg?size=64x64",
+            "@size": "mini",
+        }
+        
+        const labelData = {
+            "@id": "tableLabelOne",
+            "@title": "label",
+            "@labelType": "horizontal",
+            "@labelPosition": "left",
+            "@icon": "",
+            "@text": "Cancelled",
+            "@color": "red"   
+        }
+
+        const aLabelData = {
+            "@id": "tableLabelOne",
+            "@title": "label",
+            "@labelType": "horizontal",
+            "@labelPosition": "left",
+            "@icon": "",
+            "@text": "Pending",
+            "@color": "pink"   
+        }
+
+        const bLabelData = {
+            "@id": "tableLabelOne",
+            "@title": "label",
+            "@labelType": "horizontal",
+            "@labelPosition": "left",
+            "@icon": "",
+            "@text": "On Hold",
+            "@color": "blue"   
+        }
+
+        const cLabelData = {
+            "@id": "tableLabelOne",
+            "@title": "label",
+            "@labelType": "horizontal",
+            "@labelPosition": "left",
+            "@icon": "",
+            "@text": "In Progress",
+            "@color": "yellow"   
+        }
+
+        const dLabelData = {
+            "@id": "tableLabelOne",
+            "@title": "label",
+            "@labelType": "horizontal",
+            "@labelPosition": "left",
+            "@icon": "",
+            "@text": "Completed",
+            "@color": "green"   
+        }
+
+        const attachedButtons = {
+            "@id": "buttonOne",
+            "@buttonStyle": "attached",
+            "@fluid": true,
+            "@rounded": false,
+            ">": [{
+                "@tag": "button",
+                "@buttonText": "Hire",
+                "@color": "blue",
+                "@size": "tiny",
+                "@linkedUrl": "https://www.google.com",
+                "@clientCallbacks": function execute() {
+                    if (this['@linkedUrl'] !== undefined) {
+                        window.location.href = this['@linkedUrl'];
+                    }
+                    // type code to execute
+                },
+            }, {
+                "@tag": "button",
+                "@buttonText": "Fire",
+                "@color": "blue",
+                "@size": "tiny",
+                "@linkedUrl": "#warranty",
+                "@clientCallbacks": function execute() {
+                    if (this['@linkedUrl'] !== undefined) {
+                        window.location.href = this['@linkedUrl'];
+                    }
+                    // type code to execute
+                },
+            }]
+
+        }
+        
+        const complexTableGrid = {
+            "@id": "complexTableGridOne",
+            "@title": "People Of The World",
+            "@isInverted": false,
+            "@color": "blue",
+            ">": [{
+                "@tag": "columns-definitions",
+                ">": [{
+                    "@tag": "column",
+                    "@table-index": 1,
+                    "@title": "S/No"
+                }, {
+                    "@tag": "column",
+                    "@table-index": 2,
+                    "@title": "Avatar"
+                }, {
+                    "@tag": "column",
+                    "@table-index": 3,
+                    "@title": "Name"
+                }, {
+                    "@tag": "column",
+                    "@table-index": 4,
+                    "@title": "Company"
+                }, {
+                    "@tag": "column",
+                    "@table-index": 5,
+                    "@title": "Status"
+                }, {
+                    "@tag": "column",
+                    "@table-index": 6,
+                    "@title": "Due Date"
+                }, {
+                    "@tag": "column",
+                    "@table-index": 7,
+                    "@title": "Target Achievement"
+                }, {
+                    "@tag": "column",
+                    "@table-index": 8,
+                    "@title": "Actions"
+                }]
+            }, {
+                "@tag": "row",
+                "@id": '',
+                ">": [{
+                    "@tag": "column",
+                    "@table-index": 1,
+                    "@value": "1",
+                    "@component-tag": "",
+                    "@component-data": "",
+                }, {
+                    "@tag": "column",
+                    "@table-index": 2,
+                    "@value": "",
+                    "@component-tag": "image",
+                    "@component-data": avatarDataOne,
+                }, {
+                    "@tag": "column",
+                    "@table-index": 3,
+                    "@value": "James Brown",
+                    "@component-tag": "",
+                    "@component-data": "",
+                }, {
+                    "@tag": "column",
+                    "@table-index": 4,
+                    "@value": "Micro Electronics",
+                    "@component-tag": "",
+                    "@component-data": "",
+                }, {
+                    "@tag": "column",
+                    "@table-index": 5,
+                    "@value": "",
+                    "@component-tag": "label",
+                    "@component-data": labelData,
+                }, {
+                    "@tag": "column",
+                    "@table-index": 6,
+                    "@value": "15 February",
+                    "@component-tag": "",
+                    "@component-data": "",
+                }, {
+                    "@tag": "column",
+                    "@table-index": 7,
+                    "@value": "",
+                    "@component-tag": "progressBar",
+                    "@component-data": progressBar,
+                }, {
+                    "@tag": "column",
+                    "@table-index": 8,
+                    "@value": "",
+                    "@component-tag": "button",
+                    "@component-data": attachedButtons,
+                }]
+            }, {
+                "@tag": "row",
+                "@id": '',
+                ">": [{
+                    "@tag": "column",
+                    "@table-index": 1,
+                    "@value": "2",
+                    "@component-tag": "",
+                    "@component-data": "",
+                }, {
+                    "@tag": "column",
+                    "@table-index": 2,
+                    "@value": "",
+                    "@component-tag": "image",
+                    "@component-data": avatarDataTwo,
+                }, {
+                    "@tag": "column",
+                    "@table-index": 3,
+                    "@value": "Justin Synk",
+                    "@component-tag": "",
+                    "@component-data": "",
+                }, {
+                    "@tag": "column",
+                    "@table-index": 4,
+                    "@value": "PixelCloud",
+                    "@component-tag": "",
+                    "@component-data": "",
+                }, {
+                    "@tag": "column",
+                    "@table-index": 5,
+                    "@value": "",
+                    "@component-tag": "label",
+                    "@component-data": aLabelData,
+                }, {
+                    "@tag": "column",
+                    "@table-index": 6,
+                    "@value": "31 June",
+                    "@component-tag": "",
+                    "@component-data": "",
+                }, {
+                    "@tag": "column",
+                    "@table-index": 7,
+                    "@value": "",
+                    "@component-tag": "progressBar",
+                    "@component-data": progressBar,
+                }, {
+                    "@tag": "column",
+                    "@table-index": 8,
+                    "@value": "",
+                    "@component-tag": "button",
+                    "@component-data": attachedButtons,
+                }]
+            }, {
+                "@tag": "row",
+                "@id": '',
+                ">": [{
+                    "@tag": "column",
+                    "@table-index": 1,
+                    "@value": "3",
+                    "@component-tag": "",
+                    "@component-data": "",
+                }, {
+                    "@tag": "column",
+                    "@table-index": 2,
+                    "@value": "",
+                    "@component-tag": "image",
+                    "@component-data": avatarDataThree,
+                }, {
+                    "@tag": "column",
+                    "@table-index": 3,
+                    "@value": "Hugh Bruno",
+                    "@component-tag": "",
+                    "@component-data": "",
+                }, {
+                    "@tag": "column",
+                    "@table-index": 4,
+                    "@value": "System Electronics",
+                    "@component-tag": "",
+                    "@component-data": "",
+                }, {
+                    "@tag": "column",
+                    "@table-index": 5,
+                    "@value": "",
+                    "@component-tag": "label",
+                    "@component-data": bLabelData,
+                }, {
+                    "@tag": "column",
+                    "@table-index": 6,
+                    "@value": "29 February",
+                    "@component-tag": "",
+                    "@component-data": "",
+                }, {
+                    "@tag": "column",
+                    "@table-index": 7,
+                    "@value": "",
+                    "@component-tag": "progressBar",
+                    "@component-data": progressBar,
+                }, {
+                    "@tag": "column",
+                    "@table-index": 8,
+                    "@value": "",
+                    "@component-tag": "button",
+                    "@component-data": attachedButtons,
+                }]
+            }, {
+                "@tag": "row",
+                "@id": '',
+                ">": [{
+                    "@tag": "column",
+                    "@table-index": 1,
+                    "@value": "4",
+                    "@component-tag": "",
+                    "@component-data": "",
+                }, {
+                    "@tag": "column",
+                    "@table-index": 2,
+                    "@value": "",
+                    "@component-tag": "image",
+                    "@component-data": avatarDataFour,
+                }, {
+                    "@tag": "column",
+                    "@table-index": 3,
+                    "@value": "Juan Franc",
+                    "@component-tag": "",
+                    "@component-data": "",
+                }, {
+                    "@tag": "column",
+                    "@table-index": 4,
+                    "@value": "Advanced Systems",
+                    "@component-tag": "",
+                    "@component-data": "",
+                }, {
+                    "@tag": "column",
+                    "@table-index": 5,
+                    "@value": "",
+                    "@component-tag": "label",
+                    "@component-data": cLabelData,
+                }, {
+                    "@tag": "column",
+                    "@table-index": 6,
+                    "@value": "12 December",
+                    "@component-tag": "",
+                    "@component-data": "",
+                }, {
+                    "@tag": "column",
+                    "@table-index": 7,
+                    "@value": "",
+                    "@component-tag": "progressBar",
+                    "@component-data": progressBar,
+                }, {
+                    "@tag": "column",
+                    "@table-index": 8,
+                    "@value": "",
+                    "@component-tag": "button",
+                    "@component-data": attachedButtons,
+                }]
+            }, {
+                "@tag": "row",
+                "@id": '',
+                ">": [{
+                    "@tag": "column",
+                    "@table-index": 1,
+                    "@value": "5",
+                    "@component-tag": "",
+                    "@component-data": "",
+                }, {
+                    "@tag": "column",
+                    "@table-index": 2,
+                    "@value": "",
+                    "@component-tag": "image",
+                    "@component-data": avatarDataFive,
+                }, {
+                    "@tag": "column",
+                    "@table-index": 3,
+                    "@value": "Williams Blake",
+                    "@component-tag": "",
+                    "@component-data": "",
+                }, {
+                    "@tag": "column",
+                    "@table-index": 4,
+                    "@value": "Micro Engineering",
+                    "@component-tag": "",
+                    "@component-data": "",
+                }, {
+                    "@tag": "column",
+                    "@table-index": 5,
+                    "@value": "",
+                    "@component-tag": "label",
+                    "@component-data": dLabelData,
+                }, {
+                    "@tag": "column",
+                    "@table-index": 6,
+                    "@value": "12 July",
+                    "@component-tag": "",
+                    "@component-data": "",
+                }, {
+                    "@tag": "column",
+                    "@table-index": 7,
+                    "@value": "",
+                    "@component-tag": "progressBar",
+                    "@component-data": progressBar,
+                }, {
+                    "@tag": "column",
+                    "@table-index": 8,
+                    "@value": "",
+                    "@component-tag": "button",
+                    "@component-data": attachedButtons,
+                }]
+            }]
+        }
+
+        const firstProgressCard = {
+            "@id": "firstProgressCardDemo",
+            "@headerText": "Income",
+            "@value": 30,
+            "@activeLabel": "Target Income",
+            "@color": "red",
+            "@data-value": 80,
+            "@data-total": 100
+        }
+
+        const secondProgressCard = {
+            "@id": "secondProgressCardDemo",
+            "@headerText": "Expenses",
+            "@value": 30,
+            "@activeLabel": "Expenses Target",
+            "@color": "green",
+            "@data-value": 40,
+            "@data-total": 100
+        }
+
+        const thirdProgressCard = {
+            "@id": "thirdProgressCardDemo",
+            "@headerText": "Spendings",
+            "@value": 30,
+            "@activeLabel": "Spendings Target",
+            "@color": "yellow",
+            "@data-value": 15,
+            "@data-total": 100
+        }
+
+        const fourthProgressCard = {
+            "@id": "fourthProgressCardDemo",
+            "@headerText": "Total",
+            "@value": 30,
+            "@activeLabel": "Total Target",
+            "@color": "blue",
+            "@data-value": 89,
+            "@data-total": 100
+        }
+
+        const firstButton = {
+            "@id": "firstDemoButton",
+            "@buttonStyle": "basic",
+            "@fluid": true,
+            "@size": "massive",
+            "@inverted": true,
+            "@rounded": true,
+            "@buttonText": "Sales",
+            "@color": "red",
+            "@linkedUrl": "https://www.google.com",
+            "@hasServerCallback": true,
+            "@clientCallbacks": function execute() {
+                if (this['@linkedUrl'] !== undefined) {
+                    window.location.href = this['@linkedUrl'];
+                }
+            },
+        }
+
+        const secondButton = {
+            "@id": "secondDemoButton",
+            "@buttonStyle": "basic",
+            "@fluid": true,
+            "@size": "massive",
+            "@inverted": true,
+            "@rounded": true,
+            "@buttonText": "Activity",
+            "@color": "red",
+            "@linkedUrl": "https://www.google.com",
+            "@hasServerCallback": true,
+            "@clientCallbacks": function execute() {
+                if (this['@linkedUrl'] !== undefined) {
+                    window.location.href = this['@linkedUrl'];
+                }
+            },
+        }
+
+        const thirdButton = {
+            "@id": "thirdDemoButton",
+            "@buttonStyle": "basic",
+            "@fluid": true,
+            "@size": "massive",
+            "@inverted": true,
+            "@rounded": true,
+            "@buttonText": "Profile",
+            "@color": "red",
+            "@linkedUrl": "https://www.google.com",
+            "@hasServerCallback": true,
+            "@clientCallbacks": function execute() {
+                if (this['@linkedUrl'] !== undefined) {
+                    window.location.href = this['@linkedUrl'];
+                }
+            },
+        }
+
+        const fourthButton = {
+            "@id": "fourthDemoButton",
+            "@buttonStyle": "basic",
+            "@fluid": true,
+            "@size": "massive",
+            "@inverted": true,
+            "@rounded": true,
+            "@buttonText": "Accounts",
+            "@color": "red",
+            "@linkedUrl": "https://www.google.com",
+            "@hasServerCallback": true,
+            "@clientCallbacks": function execute() {
+                if (this['@linkedUrl'] !== undefined) {
+                    window.location.href = this['@linkedUrl'];
+                }
+            },
+        }
+
+        const barChartConfig = {
+            '@id': 'threeGridBarChartDemo',
+            '@type': 'classic-multiple bar chart',
+            '@title': 'Sample Bar Title For Testing',
+            '@titleTextStyle': {
+                '@color': 'black',
+                '@fontName': '',
+                '@fontSize': '',
+                '@bold': '',
+                '@italic': '',
+            },
+            '@fontSize': '',
+            '@fontName': '',
+            '@subtitle': 'Sample subtitle data',
+            '@chartWidth': 1900,
+            '@chartHeight': 600,
+            '@pointSize': '',
+            '@pointShape': 'triangle',
+            '@enableInteractivity': true, //true (default) || false
+            '@forceIFrame': true,
+            '@selectionMode': 'multiple', //single(default) || multiple
+            '@xAxisPosition': 'bottom', //bottom || top || dual
+            '@barWidth': 90,
+            '@colors': ['#1b9e77', '#d95f02', '#7570b3'],
+            '@legendPosition': 'top',
+            '@stacked': true,
+            '@hAxis': {
+                '@title': 'Total',
+                '@color': '#333',
+                '@fontName': '',
+                '@fontSize': '',
+                '@bold': '',
+                '@italic': '',
+                '@maxValue': '',
+                '@minValue': '',
+            },
+            '@vAxis': {
+                '@title': 'Year',
+                '@color': '#333',
+                '@fontName': '',
+                '@fontSize': '',
+                '@bold': '',
+                '@italic': '',
+                '@maxValue': '',
+                '@minValue': '',
+            },
+            '@bottomXSeries': 'brightness',
+            '@topXSeries': 'distance',
+            '@topXLabel': 'apparent magnitude',
+            '@bottomXLabel': 'parsecs',
+            '@animateChart': true,
+            '@animationDuration': 2000,
+            '@transitionStyle': 'linear',
+            '>': [
+                ['Galaxy', 'Distance', 'Brightness'],
+                ['Canis Major Dwarf', 8000, 23.3],
+                ['Sagittarius Dwarf', 24000, 4.5],
+                ['Ursa Major II Dwarf', 30000, 14.3],
+                ['Lg. Magellanic Cloud', 50000, 0.9],
+                ['Bootes I', 60000, 13.1]
+            ],
+        }
+
+        const cardWithButtonsBelow = {
+            "@id": "thirdGridCardOne",
+            "@title": "Performance",
+            "@headerIcon": "book",
+            "@cardType": "cardButtons",
+            "@maxHeight": '600px',
+            "@raised": false,
+            "@overflow": 'auto',
+            "@componentTag": "barChart",
+            "@componentData": barChartConfig,
+            "@dropdownOptions": [{
+                "@tag": "option",
+                "@optionText": "Weird Stuff",
+                "@clientCallback": function f0() {
+                    console.log(this);
+                }
+            }, {
+                "@tag": "option",
+                "@optionText": "Maximize",
+                "@clientCallback": function f0() {
+                    console.log(this);
+                },
+            }, {
+                "@tag": "option",
+                "@optionText": "Minimize",
+                "@clientCallback": function f0() {
+                    console.log(this);
+                },
+            }, {
+                "@tag": "option",
+                "@optionText": "More Options",
+                "@clientCallback": function f0() {
+                    console.log(this);
+                },
+            }, {
+                "@tag": "option",
+                "@optionText": "Expand",
+                "@clientCallback": function f0() {
+                    console.log(this);
+                },
+            }, {
+                "@tag": "option",
+                "@optionText": "Do something",
+                "@clientCallback": function f0() {
+                    console.log(this);
+                },
+            }],
+            ">": [{
+                "@tag": "column",
+                "@icon": "ambulance",
+                "@width": "eight",
+                "@text": "Ambulance People",
+            }, {
+                "@tag": "column",
+                "@icon": "gamepad",
+                "@width": "eight",
+                "@text": "Warehouse People",
+            }, {
+                "@tag": "column",
+                "@icon": "flask",
+                "@width": "eight",
+                "@text": "Flask Users",
+            }, {
+                "@tag": "column",
+                "@icon": "hospital",
+                "@width": "eight",
+                "@text": "Hospital People",
+            }]
+        }
+
+        const annotationChartConfig = {
+            '@id': 'gridThreeAnnotationDemo',
+            '@title': 'Company Performance',
+            '@chartWidth': 1850,
+            '@chartHeight': 600,
+            '@enableInteractivity': true, //true (default) || false
+            '@forceIFrame': true,
+            '@displayZoomButtons': false,
+            '@displayAnnotation': false,
+            '@displayAnnotationsFilter': false,
+            '@displayExactValues': false,
+            '@colors': ['yellow', 'pink'],
+            '@displayRangeSelector': false,
+            '@thickness': 2,
+            '@fill': 50, // Between 0 to 100
+            '@columns': [{
+                '@tag': 'column',
+                '@type': 'date',
+                '@title': 'Date',
+            }, {
+                '@tag': 'column',
+                '@type': 'number',
+                '@title': 'Kepler-22b mission',
+            }, {
+                '@tag': 'column',
+                '@type': 'string',
+                '@title': 'Kepler title',
+            }, {
+                '@tag': 'column',
+                '@type': 'string',
+                '@title': 'Kepler text',
+            }, {
+                '@tag': 'column',
+                '@type': 'number',
+                '@title': 'Gliese 163 mission',
+            }, {
+                '@tag': 'column',
+                '@type': 'string',
+                '@title': 'Gliese title',
+            }, {
+                '@tag': 'column',
+                '@type': 'string',
+                '@title': 'Gliese text',
+            }],
+            '>': [
+                [new Date(2314, 2, 15), 12400, undefined, undefined, 10645, undefined, undefined],
+                [new Date(2314, 2, 16), 24045, 'Lalibertines', 'First encounter', 12374, undefined, undefined],
+                [new Date(2314, 2, 17), 35022, 'Lalibertines', 'They are very tall', 15766, 'Gallantors', 'First Encounter'],
+                [new Date(2314, 2, 18), 12284, 'Lalibertines', 'Attack on our crew!', 34334, 'Gallantors', 'Statement of shared principles'],
+                [new Date(2314, 2, 19), 8476, 'Lalibertines', 'Heavy casualties', 66467, 'Gallantors', 'Mysteries revealed'],
+                [new Date(2314, 2, 20), 0, 'Lalibertines', 'All crew lost', 79463, 'Gallantors', 'Omniscience achieved']
+            ]
+        }
+
+        const comboChartConfig = {
+            '@id': 'gridThreeComboChartDemo',
+            '@title': 'Sample Bar Title For Testing',
+            '@titleTextStyle': {
+                '@color': '',
+                '@fontName': '',
+                '@fontSize': '',
+                '@bold': '',
+                '@italic': '',
+            },
+            '@subtitle': 'Sample subtitle data',
+            '@chartWidth': 1900,
+            '@chartHeight': 600,
+            '@colors': ['#1b9e77', '#d95f02', '#7570b3'],
+            '@legendPosition': 'top',
+            '@backgroundColor': '',
+            '@forceIFrame': false,
+            '@orientation': 'horizontal', //horizontal(default) || vertical
+            '@hAxisTitle': 'Month',
+            '@vAxisTitle': 'Cup',
+            '@enableInteractivity': false, //true (default) || false
+            '@animateChart': true,
+            '@pointSize': '',
+            '@pointShape': '',
+            '@animationDuration': 2000,
+            '@transitionStyle': 'linear',
+            '>': [
+                ['Month', 'Bolivia', 'Ecuador', 'Madagascar', 'Papua New Guinea', 'Rwanda', 'Average'],
+                ['2004/05', 165, 938, 522, 998, 450, 614.6],
+                ['2005/06', 135, 1120, 599, 1268, 288, 682],
+                ['2006/07', 157, 1167, 587, 807, 397, 623],
+                ['2007/08', 139, 1110, 615, 968, 215, 609.4],
+                ['2008/09', 136, 691, 629, 1026, 366, 569.6],
+            ],
+        }
+
+        const fullTabWithCharts = {
+            "@id": "tabOne",
+            "@displayStyle": "basic",
+            "@displayFull": true,
+            "@centered": true,
+            "@title": "",
+            "@position": "top",
+            ">": [{
+                "@tag": "tab",
+                "@title": "Online Sales",
+                "@titleSymbol": "book",
+                "@data-tab": "firstComboChart",
+                ">": {
+                    "@tag": "tab-body",
+                    "@textContent": "",
+                    "@componentTag": "comboChart",
+                    "@componentData": comboChartConfig,
+                }
+            }, {
+                "@tag": "tab",
+                "@title": "Offline Sales",
+                "@titleSymbol": "hand pointing up",
+                "@data-tab": "secondAnnotationChart",
+                ">": {
+                    "@tag": "tab-body",
+                    "@textContent": "",
+                    "@componentTag": "annotationChart",
+                    "@componentData": annotationChartConfig,
+                }
+            }, {
+                "@tag": "tab",
+                "@title": "Total Income",
+                "@titleSymbol": "book",
+                "@data-tab": "threeBarChart",
+                ">": {
+                    "@tag": "tab-body",
+                    "@textContent": "",
+                    "@componentTag": "barChart",
+                    "@componentData": barChartConfig,
+                }
+            }]
+        }
+
+        const besideCardTable = {
+            "@id": "gridThreeDemoTable",
+            "@title": "People Of The World",
+            "@tableStyle": "standard",
+            "@isHoverable": true,
+            "@isResponsive": true,
+            "@textAlign": "center",
+            "@isStriped": false,
+            "@hasBorder": false,
+            "@singleLine": false,
+            "@isInverted": false,
+            "@color": "blue",
+            "@isDataTable": false,
+            "@isEditableTable": false,
+            "@isFixed": false,
+            ">": [{
+                "@tag": "columns-definitions",
+                ">": [{
+                    "@tag": "column",
+                    "@title": "name"
+                }, {
+                    "@tag": "column",
+                    "@title": "age"
+                }, {
+                    "@tag": "column",
+                    "@title": "job"
+                }, {
+                    "@tag": "column",
+                    "@title": "salary"
+                }, {
+                    "@tag": "column",
+                    "@title": "description"
+                }]
+            }, {
+                "@tag": "row",
+                "@id": 123,
+                ">": [{
+                    "@tag": "column",
+                    "@value": "James"
+                }, {
+                    "@tag": "column",
+                    "@value": "24"
+                }, {
+                    "@tag": "column",
+                    "@value": "Engineer"
+                }, {
+                    "@tag": "column",
+                    "@value": "Elyse is a kind girl but sometimes you don't really have enough room to describe everything you'd like"
+                }, {
+                    "@tag": "column",
+                    "@value": "125000.60"
+                }]
+            }, {
+                "@tag": "row",
+                "@id": 124,
+                ">": [{
+                    "@tag": "column",
+                    "@value": "Jill"
+                }, {
+                    "@tag": "column",
+                    "@value": "26"
+                }, {
+                    "@tag": "column",
+                    "@value": "Engineer"
+                }, {
+                    "@tag": "column",
+                    "@value": "Elyse is a kind girl but sometimes you don't really have enough room to describe everything you'd like"
+                }, {
+                    "@tag": "column",
+                    "@value": "516000.00"
+                }]
+            }, {
+                "@tag": "row",
+                "@id": 125,
+                ">": [{
+                    "@tag": "column",
+                    "@value": "Elyse"
+                }, {
+                    "@tag": "column",
+                    "@value": "24"
+                }, {
+                    "@tag": "column",
+                    "@value": "Designer"
+                }, {
+                    "@tag": "column",
+                    "@value": "Elyse is a kind girl but sometimes you don't really have enough room to describe everything you'd like"
+                }, {
+                    "@tag": "column",
+                    "@value": "210000.40"
+                }]
+            }, {
+                "@tag": "row",
+                "@id": 126,
+                ">": [{
+                    "@tag": "column",
+                    "@value": "Emilia"
+                }, {
+                    "@tag": "column",
+                    "@value": "27"
+                }, {
+                    "@tag": "column",
+                    "@value": "Consultant"
+                }, {
+                    "@tag": "column",
+                    "@value": "Emilia is a kind girlie boy but sometimes you don't really have enough room to describe everything you'd like"
+                }, {
+                    "@tag": "column",
+                    "@value": "410000.40"
+                }]
+            }]
+        }
+
+        const chartCardData = {
+            "@id": "chartCard",
+            "@title": "Performance",
+            ">": [{
+                "@tag": "card",
+                "@id": "chartCardOne",
+                "@title": "Income",
+                "@currency": "$",
+                "@presentValue": "5,456",
+                "@indicatorIcon": "up",
+                "@percentageValue": "+15%",
+            }, {
+                "@tag": "card",
+                "@id": "chartCardTwo",
+                "@title": "Expenses",
+                "@currency": "$",
+                "@presentValue": "4,764",
+                "@indicatorIcon": "down",
+                "@percentageValue": "-8%",
+            }, {
+                "@tag": "card",
+                "@id": "chartCardThree",
+                "@title": "Spendings",
+                "@currency": "$",
+                "@presentValue": "1.5M",
+                "@indicatorIcon": "up",
+                "@percentageValue": "+15%",
+            }, {
+                "@tag": "card",
+                "@id": "chartCardFour",
+                "@title": "Expenses",
+                "@currency": "$",
+                "@presentValue": "31,564",
+                "@indicatorIcon": "down",
+                "@percentageValue": "-76%",
+            }, {
+                "@tag": "card",
+                "@id": "chartCardFive",
+                "@title": "Child Support",
+                "@currency": "$",
+                "@presentValue": "3.5M",
+                "@indicatorIcon": "up",
+                "@percentageValue": "+55%",
+            }, {
+                "@tag": "card",
+                "@id": "chartCardSix",
+                "@title": "Accumulated Profit",
+                "@currency": "$",
+                "@presentValue": "10.5M",
+                "@indicatorIcon": "down",
+                "@percentageValue": "-6%",
+            }]
+        }
+
+        const tabData = {
+            "@id": "tabTop",
+            "@displayStyle": "tabbed",
+            "@displayFull": false,
+            "@centered": true,
+            "@title": "",
+            ">": [{
+                "@tag": "tab",
+                "@title": "Overview",
+                "@data-tab": "first",
+            }, {
+                "@tag": "tab",
+                "@title": "Audiences",
+                "@data-tab": "second",
+            }, {
+                "@tag": "tab",
+                "@title": "Demographics",
+                "@data-tab": "three",
+            }]
+        }
+
+        const jsonData = {
+            '@title': 'grid',
+            '@equalWidth': true,
+            '@stackable': true,
+            '@numberOfColumns': '',
+            '>': [{
+                '@tag': 'row',
+                '>': [{
+                    '@tag': 'column',
+                    '@segment': false,
+                    '@columnId': 121,
+                    '@columnWidth': '',
+                    '@tagName': 'tab',
+                    '@tagData': tabData,
+                }]
+            },
+            {
+                '@tag': 'row',
+                '>': [{
+                    '@tag': 'column',
+                    '@segment': false,
+                    '@columnId': 'columnButton1',
+                    '@columnWidth': 4,
+                    '@tagName': 'button',
+                    '@tagData': firstButton,
+                }, {
+                    '@tag': 'column',
+                    '@segment': false,
+                    '@columnId': 'columnButton2',
+                    '@columnWidth': 4,
+                    '@tagName': 'button',
+                    '@tagData': secondButton,
+                }, {
+                    '@tag': 'column',
+                    '@segment': false,
+                    '@columnId': 'columnButton3',
+                    '@columnWidth': 4,
+                    '@tagName': 'button',
+                    '@tagData': thirdButton,
+                }, , {
+                    '@tag': 'column',
+                    '@segment': false,
+                    '@columnId': 'columnButton4',
+                    '@columnWidth': 4,
+                    '@tagName': 'button',
+                    '@tagData': fourthButton,
+                }]
+            },
+            {
+                '@tag': 'row',
+                '>': [{
+                    '@tag': 'column',
+                    '@segment': false,
+                    '@columnId': 121,
+                    '@columnWidth': '',
+                    '@tagName': 'chartCard',
+                    '@tagData': chartCardData,
+                }, {
+                    '@tag': 'column',
+                    '@segment': false,
+                    '@columnId': 111,
+                    '@columnWidth': '',
+                    '@tagName': 'table',
+                    '@tagData': besideCardTable,
+                }]
+            },
+            {
+                '@tag': 'row',
+                '>': [{
+                    '@tag': 'column',
+                    '@segment': false,
+                    '@columnId': 10,
+                    '@columnWidth': '',
+                    '@tagName': 'tab',
+                    '@tagData': fullTabWithCharts,
+                }]
+            },
+            {
+                '@tag': 'row',
+                '>': [{
+                    '@tag': 'column',
+                    '@segment': 'segmented',
+                    '@columnId': 'progressCard1',
+                    '@columnWidth': 4,
+                    '@tagName': 'progressCard',
+                    '@tagData': firstProgressCard,
+                }, {
+                    '@tag': 'column',
+                    '@segment': 'segmented',
+                    '@columnId': 'progressCard2',
+                    '@columnWidth': 4,
+                    '@tagName': 'progressCard',
+                    '@tagData': secondProgressCard
+                }, {
+                    '@tag': 'column',
+                    '@segment': 'segmented',
+                    '@columnId': 'progressCard3',
+                    '@columnWidth': 4,
+                    '@tagName': 'progressCard',
+                    '@tagData': thirdProgressCard,
+                }, {
+                    '@tag': 'column',
+                    '@segment': 'segmented',
+                    '@columnId': 'progressCard4',
+                    '@columnWidth': 4,
+                    '@tagName': 'progressCard',
+                    '@tagData': fourthProgressCard
+                }]
+            }, {
+                '@tag': 'row',
+                '>': [{
+                    '@tag': 'column',
+                    '@segment': false,
+                    '@columnId': 23,
+                    '@columnWidth': 4,
+                    '@tagName': 'complexTable',
+                    '@tagData': complexTableGrid
+                }]
+            },
+            {
+                '@tag': 'row',
+                '>': [{
+                    '@tag': 'column',
+                    '@segment': false,
+                    '@columnId': 23,
+                    '@columnWidth': 4,
+                    '@tagName': 'card',
+                    '@tagData': cardWithButtonsBelow
+                }, {
+                    '@tag': 'column',
+                    '@segment': false,
+                    '@columnId': 234,
+                    '@columnWidth': 4,
+                    '@tagName': 'card',
+                    '@tagData': cardWithButtonsBelow,
+                }, ]
+            }]
+                // {
+            //         '@tag': 'row',
+            //         '>': [{
+            //             '@tag': 'column',
+            //             '@segment': false,
+            //             '@columnId': 10,
+            //             '@columnWidth': 4,
+            //             '@tagName': 'input',
+            //             '@tagData': input,
+            //         }, {
+            //             '@tag': 'column',
+            //             '@segment': false,
+            //             '@columnId': 11,
+            //             '@columnWidth': 4,
+            //             '@tagName': 'select',
+            //             '@tagData': select
+            //         }, {
+            //             '@tag': 'column',
+            //             '@segment': false,
+            //             '@columnId': 12,
+            //             '@columnWidth': 4,
+            //             '@tagName': 'input',
+            //             '@tagData': input,
+            //         }, {
+            //             '@tag': 'column',
+            //             '@segment': false,
+            //             '@columnId': 13,
+            //             '@columnWidth': 4,
+            //             '@tagName': 'select',
+            //             '@tagData': select
+            //         }]
+            //     }]
+            // }, {
+            //     '@tag': 'row',
+            //     '>': [{
+            //         '@tag': 'column',
+            //         '@segment': false,
+            //         '@columnId': 10,
+            //         '@columnWidth': 4,
+            //         '@tagName': 'card',
+            //         '@tagData': stepCard
+            //     }]
+            // }, {
+            //     '@tag': 'row',
+            //     '>': [{
+            //         '@tag': 'column',
+            //         '@segment': false,
+            //         '@columnId': 10,
+            //         '@columnWidth': '',
+            //         '@tagName': 'tile',
+            //         '@tagData': tile,
+            //     }]
+            // }]
+        }
+
+    </script>
+    <script src="/assets/js/polyfills/index.min.js"></script>
+    <script src="/components/base.min.js"></script>
+    <script src="/components/grid/index.min.js"></script>
+    <script>new Grid(jsonData, document.querySelector('#grid'))</script>
+</body>
+
+</html>

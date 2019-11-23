@@ -1,0 +1,77 @@
+{
+    "@id": "",
+    "@title": "",
+    "@headerIcon": "",
+    "@cardType": "",
+    "@maxHeight": "",
+    "@raised": "true | false",
+    "@overflow": "auto | hidden",
+    "@componentTag": "",
+    "@componentData": "",
+    "@dropdownOptions": [{
+        "@tag": "option",
+        "@optionText": "Weird Stuff",
+        "@clientCallback": "function f0() { console.log(this); }"
+    }, {
+        "@tag": "option",
+        "@optionText": "Maximize",
+        "@clientCallback": "function f0() { console.log(this); }"
+    }, {
+        "@tag": "option",
+        "@optionText": "Minimize",
+        "@clientCallback": "function f0() { console.log(this); }"
+    }, {
+        "@tag": "option",
+        "@optionText": "More Options",
+        "@clientCallback": "function f0() { console.log(this); }"
+    }, {
+        "@tag": "option",
+        "@optionText": "Expand",
+        "@clientCallback": "function f0() { console.log(this); }"
+    }, {
+        "@tag": "option",
+        "@optionText": "Do something",
+        "@clientCallback": "function f0() { console.log(this); }"
+    }],
+    ">": [{
+        "@tag": "column",
+        "@icon": "",
+        "@width": "eight",
+        "@text": ""
+    }, {
+        "@tag": "column",
+        "@icon": "",
+        "@width": "eight",
+        "@text": ""
+    }, {
+        "@tag": "column",
+        "@icon": "",
+        "@width": "eight",
+        "@text": ""
+    }, {
+        "@tag": "column",
+        "@icon": "",
+        "@width": "eight",
+        "@text": ""
+    }, {
+        "@tag": "column",
+        "@icon": "",
+        "@width": "eight",
+        "@text": ""
+    }, {
+        "@tag": "column",
+        "@icon": "",
+        "@width": "eight",
+        "@text": ""
+    }, {
+        "@tag": "column",
+        "@icon": "",
+        "@width": "eight",
+        "@text": ""
+    }, {
+        "@tag": "column",
+        "@icon": "",
+        "@width": "eight",
+        "@text": ""
+    }]
+}

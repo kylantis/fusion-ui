@@ -3,7 +3,7 @@ class PhotoCam extends BaseComponent {
         return 'photocam';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     getCssDependencies() {
         return super.getCssDependencies();
@@ -14,7 +14,7 @@ class PhotoCam extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     render() {

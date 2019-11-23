@@ -4,7 +4,7 @@ class Rating extends BaseComponent {
         return 'rating';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/rating.min.css', '/assets/css/icon.min.css']);
@@ -19,7 +19,7 @@ class Rating extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     getRating(e) {

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+</head>
+
+<body>
+    <div id="view"></div>
+
+    <script>
+        let jsonData = {
+            "@id": "progressCardOne",
+            "@headerText": "Orders",
+            "@value": 30,
+            "@activeLabel": "Target Sales",
+            "@color": "blue",
+            "@data-value": 18,
+            "@data-total": 100
+        }
+    </script>
+    <script>
+        // This is a polyfill that allows components to do
+        // module.exports = ... in the browser
+        window.module = {
+            exports: {}
+        }
+    </script>
+    <script src="/assets/js/polyfills/index.min.js"></script>
+    <script src="/components/base.min.js"></script>
+    <script src="/components/progress-card/index.min.js"></script>
+    <script> let progress = new ProgressCard(jsonData, document.querySelector("#view"));
+    setInterval(() => {
+        progress.increment();
+    }, 500);
+    
+    </script>
+
+</body>
+
+</html>

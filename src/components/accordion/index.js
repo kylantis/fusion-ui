@@ -4,7 +4,7 @@ class Accordion extends BaseComponent {
         return 'accordion';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/accordion.min.css',
@@ -29,7 +29,7 @@ class Accordion extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     addContents(data, parentNode) {

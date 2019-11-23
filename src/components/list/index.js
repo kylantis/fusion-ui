@@ -3,10 +3,10 @@ class List extends BaseComponent {
         return 'list';
     }
 
-    #componentId = this.getId();
+    componentId = this.getId();
 
     getCssDependencies() {
-        return super.getCssDependencies().concat(['/assets/css/list.min.css', '/assets/css/icon.min.css']);
+        return super.getCssDependencies().concat(['/assets/css/list.min.css', '/assets/css/icon.min.css', '/assets/css/image.min.css']);
     }
 
     getJsDependencies() {
@@ -14,7 +14,7 @@ class List extends BaseComponent {
     }
 
     getComponentId() {
-        return this.#componentId;
+        return this.componentId;
     }
 
     appendSiblingItem(parentId, item) {
@@ -85,24 +85,24 @@ class List extends BaseComponent {
     }
 
     render() {
-        const { node } = this;
+        const { node, data } = this;
         const uiDiv = document.createElement('div');
         uiDiv.className = 'ui list';
         uiDiv.setAttribute('id', this.getComponentId());
-        if (this.data['@animated']) {
+        if (data['@animated']) {
             uiDiv.classList.add('animated');
         }
-        if (this.data['@listType'] === 'unordered') {
-            if (this.data['@icon'] !== 'bullet') {
-                this.data['>'].forEach((element) => {
-                    if (this.data['@listOrientation'] === 'horizontal') {
+        if (data['@listType'] === 'unordered') {
+            if (data['@icon'] !== 'bullet') {
+                data['>'].forEach((element) => {
+                    if (data['@listOrientation'] === 'horizontal') {
                         uiDiv.className += ' horizontal bulleted';
                         const a = document.createElement('a');
                         a.className = 'item';
                         a.textContent = element['@text'];
                         uiDiv.appendChild(a);
                     }
-                    if (this.data['@listOrientation'] === 'vertical') {
+                    if (data['@listOrientation'] === 'vertical') {
                         const div = document.createElement('div');
                         div.className = 'item';
                         div.textContent = element['@text'];
@@ -110,11 +110,11 @@ class List extends BaseComponent {
                     }
                 });
             }
-            if (this.data['@icon'] === 'bullet') {
+            if (data['@icon'] === 'bullet') {
                 const ul = document.createElement('ul');
                 ul.id = this.getComponentId();
                 ul.className = 'ui list';
-                this.data['>'].forEach((element) => {
+                data['>'].forEach((element) => {
                     const li = document.createElement('li');
                     li.textContent = element['@text'];
                     if (element['>']) {
@@ -128,11 +128,11 @@ class List extends BaseComponent {
             }
             return;
         }
-        if (this.data['@listType'] === 'ordered') {
+        if (data['@listType'] === 'ordered') {
             const ol = document.createElement('ol');
             ol.id = this.getComponentId();
             ol.className = 'ui list';
-            this.data['>'].forEach((element) => {
+            data['>'].forEach((element) => {
                 const li = document.createElement('li');
                 li.textContent = element['@text'];
                 if (element['>']) {
@@ -145,11 +145,11 @@ class List extends BaseComponent {
             });
             return;
         }
-        if (this.data['@listType'] === 'iconList') {
-            this.data['>'].forEach((element) => {
+        if (data['@listType'] === 'iconList') {
+            data['>'].forEach((element) => {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'item';
-                itemDiv.id = `${this.data['@id']}-${element['@id']}`;
+                itemDiv.id = `${data['@id']}-${element['@id']}`;
                 const iconDiv = document.createElement('i');
                 iconDiv.className = `${element['@icon']} icon`;
                 itemDiv.appendChild(iconDiv);
@@ -160,14 +160,14 @@ class List extends BaseComponent {
                 uiDiv.appendChild(itemDiv);
             });
         }
-        if (this.data['@listType'] === 'divided') {
+        if (data['@listType'] === 'divided') {
             uiDiv.className += ' relaxed divided';
-            this.data['>'].forEach((element) => {
+            data['>'].forEach((element) => {
                 const itemDiv = document.createElement('div');
                 const iconDiv = document.createElement('i');
                 itemDiv.appendChild(iconDiv);
                 itemDiv.className = 'item';
-                itemDiv.id = `${this.data['@id']}-${element['@id']}`;
+                itemDiv.id = `${data['@id']}-${element['@id']}`;
                 iconDiv.className = `large ${element['@icon']} middle aligned icon`;
                 const contentDiv = document.createElement('div');
                 itemDiv.appendChild(contentDiv);
@@ -183,13 +183,13 @@ class List extends BaseComponent {
                 uiDiv.appendChild(itemDiv);
             });
         }
-        if (this.data['@listType'] === 'tree view') {
-            this.data['>'].forEach((element) => {
+        if (data['@listType'] === 'tree view') {
+            data['>'].forEach((element) => {
                 const itemDiv = document.createElement('div');
                 const iconDiv = document.createElement('i');
                 itemDiv.appendChild(iconDiv);
                 itemDiv.className = 'item';
-                itemDiv.id = `${this.data['@id']}-${element['@id']}`;
+                itemDiv.id = `${data['@id']}-${element['@id']}`;
                 iconDiv.className = `${element['@icon']} icon`;
                 const contentDiv = document.createElement('div');
                 itemDiv.appendChild(contentDiv);
@@ -206,6 +206,23 @@ class List extends BaseComponent {
                     contentDiv.appendChild(this.traverseEl(element['>']));
                 }
                 uiDiv.appendChild(itemDiv);
+            });
+        }
+        if (data['@listType'] === 'imageList') {
+            if (data['@celled']) {
+                uiDiv.classList.add('celled');
+            }
+            data['>'].forEach((element) => {
+                const itemDiv = this.appendNode(uiDiv, 'div', 'item');
+                const imageTag = this.appendNode(itemDiv, 'img', 'ui avatar image');
+                imageTag.src = element['@imageSrc'];
+                const contentDiv = this.appendNode(itemDiv, 'div', 'content');
+                const aHeader = this.appendNode(contentDiv, 'a', 'header');
+                aHeader.textContent = element['@text'];
+                if (element['@description']) {
+                    const descDiv = this.appendNode(contentDiv, 'div', 'description');
+                    descDiv.textContent = element['@description'];
+                }
             });
         }
         node.append(uiDiv);
