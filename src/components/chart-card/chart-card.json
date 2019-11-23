@@ -1,21 +1,37 @@
 {
-    "@style": "basic | pointing tab | tabbed",
+    "@id": "",
     "@title": "",
     ">": [{
-        "@tag": "tab",
+        "@tag": "card",
+        "@id": "",
         "@title": "",
-        "@position": "top",
-        ">": [{
-            "@tag": "tab-body",
-            "@content": ""
-        }]
+        "@currency": "$",
+        "@presentValue": "",
+        "@indicatorIcon": "",
+        "@percentageValue": ""
     }, {
-        "@tag": "tab",
+        "@tag": "card",
+        "@id": "",
         "@title": "",
-        "@data-tab": "",
-        ">": [{
-            "@tag": "tab-body",
-            "@content": ""
-        }]
+        "@currency": "",
+        "@presentValue": "",
+        "@indicatorIcon": "",
+        "@percentageValue": ""
+    }, {
+        "@tag": "card",
+        "@id": "",
+        "@title": "",
+        "@currency": "",
+        "@presentValue": "",
+        "@indicatorIcon": "",
+        "@percentageValue": ""
+    }, {
+        "@tag": "card",
+        "@id": "",
+        "@title": "",
+        "@currency": "",
+        "@presentValue": "",
+        "@indicatorIcon": "",
+        "@percentageValue": ""
     }]
 }

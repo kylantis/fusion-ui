@@ -265,6 +265,11 @@ class BaseComponent {
     getRandomInt(min = Math.ceil(1000), max = Math.floor(2000000)) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
+
+    isRendered(tagname) {
+        console.log(tagname, 'loaded successfully');
+        return true;
+    }
 }
 BaseComponent.loadedStyles = [];
 BaseComponent.loadedScripts = [];

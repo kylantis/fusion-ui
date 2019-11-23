@@ -5,6 +5,10 @@ class ActivityTimeline extends BaseComponent {
 
     componentId = this.getId();
 
+    getComponentId() {
+        return this.componentId;
+    }
+
     getCssDependencies() {
         return super.getCssDependencies().concat(['/assets/css/custom-feed.min.css']);
     }
@@ -14,15 +18,28 @@ class ActivityTimeline extends BaseComponent {
     }
 
     behaviorNames() {
-        return [''];
+        return ['includeActivity'];
     }
 
-    render() {
-        const { node } = this;
-        const { data } = this;
-        const ulTag = document.createElement('ul');
-        ulTag.className = 'activity-list activityListClass';
-        data['>'].forEach((eve) => {
+    invokeBehavior(behavior, data) {
+        const parentEl = document.getElementById(this.getComponentId());
+        switch (behavior) {
+        case 'includeActivity': {
+            const ulTag = parentEl.querySelector('ul');
+            this.createList(ulTag, data);
+            break;
+        }
+        default:
+            break;
+        }
+    }
+
+    includeActivity(data) {
+        this.invokeBehavior('includeActivity', data);
+    }
+
+    createList(parent, data) {
+        data.forEach((eve) => {
             const liTag = document.createElement('li');
             liTag.className = eve['@color'];
             const activityTime = this.appendNode(liTag, 'time', 'text-muted');
@@ -30,9 +47,20 @@ class ActivityTimeline extends BaseComponent {
             activityTime.textContent = eve['@timeDifference'];
             const pTag = this.appendNode(liTag, 'p', '');
             pTag.textContent = eve['@activityText'];
-            ulTag.append(liTag);
+            parent.append(liTag);
         });
-        node.append(ulTag);
+    }
+
+    render() {
+        const { node } = this;
+        const { data } = this;
+        const mainDiv = document.createElement('div');
+        mainDiv.id = this.getComponentId();
+        const ulTag = document.createElement('ul');
+        ulTag.className = 'activity-list activityListClass';
+        this.createList(ulTag, data['>']);
+        mainDiv.appendChild(ulTag);
+        node.append(mainDiv);
     }
 }
 

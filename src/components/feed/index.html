@@ -10,6 +10,15 @@
 <body>
     <div id="feed"></div>
     <script>
+        const appendData = [{
+            "@tag": "activityFeed",
+            "@userId": "137",
+            "@userName": "Someone Fu",
+            "@activity": "added you as a friend",
+            "@time": "1 minute ago",
+            "@avatarImage": "/assets/images/kiwi.svg",
+        }]
+
         const jsonData = {
             "@id": "feedOne",
             "@title": "feed",
@@ -57,7 +66,12 @@
     <script src="/assets/js/polyfills/index.min.js"></script>
     <script src="/components/base.min.js"></script>
     <script src="/components/feed/index.min.js"></script>
-    <script>new Feed(jsonData, document.querySelector('#feed'));</script>
+    <script>
+    const feed = new Feed(jsonData, document.querySelector('#feed'));
+    setTimeout(() => {
+        feed.addFeed(appendData);
+    }, 2000);
+    </script>
 </body>
 
 </html>

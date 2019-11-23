@@ -6,11 +6,11 @@
 </head>
 
 <body>
-    <div id="table"></div>
+    <div id="view"></div>
 
     <script>
         const progressBar = {
-            "@id": "ctableProgressOne",
+            "@id": "cTableProgressOne",
             "@title": "first progress bar",
             "@label": "",
             "@size": "tiny",
@@ -67,7 +67,7 @@
             "@src": "https://robohash.org/five.jpg?size=64x64",
             "@size": "mini",
         }
-        
+
         const labelData = {
             "@id": "tableLabelOne",
             "@title": "label",
@@ -75,7 +75,7 @@
             "@labelPosition": "left",
             "@icon": "",
             "@text": "Cancelled",
-            "@color": "red"   
+            "@color": "red"
         }
 
         const aLabelData = {
@@ -85,7 +85,7 @@
             "@labelPosition": "left",
             "@icon": "",
             "@text": "Pending",
-            "@color": "pink"   
+            "@color": "pink"
         }
 
         const bLabelData = {
@@ -95,7 +95,7 @@
             "@labelPosition": "left",
             "@icon": "",
             "@text": "On Hold",
-            "@color": "blue"   
+            "@color": "blue"
         }
 
         const cLabelData = {
@@ -105,7 +105,7 @@
             "@labelPosition": "left",
             "@icon": "",
             "@text": "In Progress",
-            "@color": "yellow"   
+            "@color": "yellow"
         }
 
         const dLabelData = {
@@ -115,7 +115,7 @@
             "@labelPosition": "left",
             "@icon": "",
             "@text": "Completed",
-            "@color": "green"   
+            "@color": "green"
         }
 
         const attachedButtons = {
@@ -130,9 +130,7 @@
                 "@size": "tiny",
                 "@linkedUrl": "https://www.google.com",
                 "@clientCallbacks": function execute() {
-                    if (this['@linkedUrl'] !== undefined) {
-                        window.location.href = this['@linkedUrl'];
-                    }
+                    window.location.href = this['@linkedUrl'];
                     // type code to execute
                 },
             }, {
@@ -142,15 +140,66 @@
                 "@size": "tiny",
                 "@linkedUrl": "#warranty",
                 "@clientCallbacks": function execute() {
-                    if (this['@linkedUrl'] !== undefined) {
-                        window.location.href = this['@linkedUrl'];
-                    }
+                    window.location.href = this['@linkedUrl'];
                     // type code to execute
                 },
             }]
-
         }
-        
+
+        const appendRowData = [{
+            "@tag": "row",
+            "@id": '',
+            ">": [{
+                "@tag": "column",
+                "@table-index": 1,
+                "@value": "6",
+                "@component-tag": "",
+                "@component-data": "",
+            }, {
+                "@tag": "column",
+                "@table-index": 2,
+                "@value": "",
+                "@component-tag": "image",
+                "@component-data": avatarDataTwo,
+            }, {
+                "@tag": "column",
+                "@table-index": 3,
+                "@value": "Justin Synk",
+                "@component-tag": "",
+                "@component-data": "",
+            }, {
+                "@tag": "column",
+                "@table-index": 4,
+                "@value": "PixelCloud",
+                "@component-tag": "",
+                "@component-data": "",
+            }, {
+                "@tag": "column",
+                "@table-index": 5,
+                "@value": "",
+                "@component-tag": "label",
+                "@component-data": aLabelData,
+            }, {
+                "@tag": "column",
+                "@table-index": 6,
+                "@value": "31 June",
+                "@component-tag": "",
+                "@component-data": "",
+            }, {
+                "@tag": "column",
+                "@table-index": 7,
+                "@value": "",
+                "@component-tag": "progressBar",
+                "@component-data": progressBar,
+            }, {
+                "@tag": "column",
+                "@table-index": 8,
+                "@value": "",
+                "@component-tag": "button",
+                "@component-data": attachedButtons,
+            }]
+        }]
+
         const jsonData = {
             "@id": "complexTableOne",
             "@title": "People Of The World",
@@ -459,17 +508,8 @@
     <script src="/components/base.min.js"></script>
     <script src="/components/complex-table/index.min.js"></script>
     <script>
-        const tableId = document.getElementById('table');
-        let table = new ComplexTable(jsonData, document.querySelector("#table"));
-        // setTimeout(() => table.appendRow(appendRowData), 2500);
-        
-        // tableId.addEventListener('dblclick', (event) => {
-        //     table.deleteRow(Table.getRow(event));
-        // });
-        // tableId.addEventListener('dblclick', (event) => {
-        //     let cellId = Table.getCellId(event);
-        //     table.editRow({ id: cellId, content: 'Hello New Content' });
-        // });
+        let table = new ComplexTable(jsonData, document.querySelector("#view"));
+        setTimeout(() => table.appendRow(appendRowData), 2500);
     </script>
 
 </body>

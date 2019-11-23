@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+</head>
+
+<body>
+  <div id="select"></div>
+  <input type="submit" id="submit">
+
+  <script>
+    const jsonData = {
+      "@id": "selectOne",
+      "@title": "subjects",
+      "@iconName": "",
+      "@labelIcon": "",
+      "@selectionType": "multiple",
+      "@viewType": "check",
+      "@viewSubType": "nonlabeled",
+      "@alignment": "inline",
+      "@placeholderValue": "Subject",
+      "@search": true,
+      "@isRequired": false,
+      "@scrolling": false,
+      ">": [{
+        "@tag": "item",
+        "@id": 1,
+        "@title": "Geography",
+        "@slider": "",
+        "@dataValue": "geography",
+        "@imageUrl": "",
+        "@iconName": "red"
+      }, {
+        "@tag": "item",
+        "@id": 2,
+        "@title": "Biology",
+        "@slider": "",
+        "@dataValue": "biology",
+        "@imageUrl": "",
+        "@iconName": "black"
+      }, {
+        "@tag": "item",
+        "@id": 3,
+        "@title": "Mathematics",
+        "@slider": "",
+        "@dataValue": "mathematics",
+        "@imageUrl": "",
+        "@iconName": "blue"
+      }, {
+        "@tag": "item",
+        "@id": 4,
+        "@title": "English",
+        "@slider": "",
+        "@dataValue": "english",
+        "@imageUrl": "",
+        "@iconName": "yellow"
+      }, {
+        "@tag": "item",
+        "@id": 5,
+        "@title": "Computer",
+        "@slider": "",
+        "@dataValue": "computer",
+        "@imageUrl": "",
+        "@iconName": "purple"
+      }, {
+        "@tag": "item",
+        "@id": 6,
+        "@title": "Chemistry",
+        "@slider": "",
+        "@dataValue": "chemistry",
+        "@imageUrl": "",
+        "@iconName": "orange"
+      }, {
+        "@tag": "item",
+        "@id": 7,
+        "@title": "Further Mathematics",
+        "@slider": "",
+        "@dataValue": "further",
+        "@imageUrl": "",
+        "@iconName": "orange"
+      }, {
+        "@tag": "item",
+        "@id": 8,
+        "@title": "Fine Arts",
+        "@slider": "",
+        "@dataValue": "fine",
+        "@imageUrl": "",
+        "@iconName": "orange"
+      }, {
+        "@tag": "item",
+        "@id": 9,
+        "@title": "French",
+        "@slider": "",
+        "@dataValue": "french",
+        "@imageUrl": "",
+        "@iconName": "orange"
+      }, {
+        "@tag": "item",
+        "@id": 10,
+        "@title": "Igbo",
+        "@slider": "",
+        "@dataValue": "igbo",
+        "@imageUrl": "",
+        "@iconName": "pink"
+      }, {
+        "@tag": "item",
+        "@id": 11,
+        "@title": "Physics",
+        "@slider": "",
+        "@dataValue": "physics",
+        "@imageUrl": "",
+        "@iconName": "",
+      }]
+    }
+  </script>
+  <script>
+    // This is a polyfill that allows components to do
+    // module.exports = ... in the browser
+    window.module = {
+      exports: {}
+    }
+  </script>
+  <script src="/assets/js/polyfills/index.min.js"></script>
+  <script src="/components/base.min.js"></script>
+  <script src="/components/selecte/index.min.js"></script>
+  <script>
+    new Select(jsonData, document.querySelector("#select"));
+  </script>
+
+</body>
+
+</html>

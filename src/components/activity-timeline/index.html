@@ -10,6 +10,20 @@
 <body>
     <div id="view"></div>
     <script>
+        const addData = [{
+                "@tag": "activityFeed",
+                "@activityText": "You recommended Nobody",
+                "@timeDifference": "24 hours ago",
+                "@color": "activity-purple",
+                "@timePosted": "2017-01-01 00:00"
+            }, {
+                "@tag": "activityFeed",
+                "@activityText": "You followed Someone special",
+                "@timeDifference": "10 hours ago",
+                "@color": "activity-warning",
+                "@timePosted": "2017-01-01 00:00"
+            }]
+
         const jsonData = {
             "@id": "activityOne",
             "@title": "feed",
@@ -62,7 +76,12 @@
     <script src="/assets/js/polyfills/index.min.js"></script>
     <script src="/components/base.min.js"></script>
     <script src="/components/activity-timeline/index.min.js"></script>
-    <script>new ActivityTimeline(jsonData, document.querySelector('#view'));</script>
+    <script>
+    const actTime = new ActivityTimeline(jsonData, document.querySelector('#view'));
+        setTimeout(() => {
+            actTime.includeActivity(addData);
+        }, 1000);
+    </script>
 </body>
 
 </html>

@@ -8,7 +8,7 @@ class ComplexTable extends BaseComponent {
 
     getBehaviourNames() {
         return [
-            'appendRow', 'deleteRow', 'editRow',
+            'appendRow', 'deleteRow',
         ];
     }
 
@@ -16,24 +16,8 @@ class ComplexTable extends BaseComponent {
         return super.getCssDependencies().concat(['/assets/css/table.min.css', '/assets/css/input.min.css']);
     }
 
-    getTableBody() {
-        return this.node.querySelector('tbody');
-    }
-
-    getTableId() {
-        return this.node.querySelector('table').getAttribute('id');
-    }
-
-    static getCellId(event) {
-        return event.target.id;
-    }
-
-    static getRow(event) {
-        return event.target.parentNode;
-    }
-
-    getLastChildId() {
-        return this.node.querySelector('tbody').lastChild.getAttribute('id');
+    getJsDependencies() {
+        return super.getJsDependencies().concat(['/assets/js/checkbox.min.js']);
     }
 
     getComponentId() {
@@ -41,71 +25,84 @@ class ComplexTable extends BaseComponent {
     }
 
     invokeBehavior(behaviorName, data) {
-        let lastChildId;
-        if (this.getLastChildId().includes('table')) {
-            lastChildId = parseInt(this.getLastChildId().split('-')[3], 10) + 1;
-        } else {
-            lastChildId = parseInt(this.getLastChildId(), 10) + 1;
-        }
-        const element = document.getElementById(data.id); // get html element from the data
-        const newContent = data.content; // Data from json
-        const id = this.getTableId(); // get id from table component
-
+        const tab = document.getElementById(`${this.getComponentId()}`);
+        const tbody = tab.querySelector('tbody');
         switch (behaviorName) {
-        case 'appendRow':
-
-            for (let i = 0; i < data.length; i += 1) {
-                if (data[i]['@tag'] === 'row') {
-                    const updatedBody = this.getTableBody().insertRow(-1);
-                    if (!data[i]['@id']) {
-                        updatedBody.id = `${id}-row-${lastChildId + i}`;
-                    } else {
-                        updatedBody.id = data[i]['@id'];
-                    }
-                    // check if row tag
-                    const columns = data[i]['>'];
-                    let j = 0;
-                    for (const k in columns) {
-                        if (Object.prototype.hasOwnProperty.call(columns, k)) {
-                            const tableCell = updatedBody.insertCell(-1);
-                            tableCell.id = `${updatedBody.id}-${j += 1}`;
-                            tableCell.innerHTML = columns[k];
-                        }
-                    }
-                    $(updatedBody).click((e) => {
-                        this.invokeBehavior('', e.target.parentNode);
-                    });
-                }
-            }
-            break;
-
-        case 'deleteRow':
+        case 'appendRow': {
+            // eslint-disable-next-line max-len
+            const newInfo = data.map(rowEl => this.createRows(tab, tbody, rowEl, this.incrementId()));
+            return newInfo;
+        }
+        case 'deleteRow': {
             // Currently, element returns a html element but it should be a javascript object
-            if (element) {
-                element.parentNode.removeChild(element);
+            // a row has to be passed in as data for row to be deleted for now.
+            const rowData = tbody.querySelector(`#${data.id}`);
+            if (rowData) {
+                $(rowData).remove();
             }
-            break;
-
-        case 'editRow':
-            element.innerHTML = newContent;
-            break;
-
+            return rowData;
+        }
         default:
-
             break;
         }
+        return null;
     }
 
     appendRow(data) {
-        this.invokeBehavior('appendRow', data);
+        return this.invokeBehavior('appendRow', data);
     }
 
     deleteRow(data) {
-        this.invokeBehavior('deleteRow', data);
+        return this.invokeBehavior('deleteRow', data);
     }
 
-    editRow(data) {
-        this.invokeBehavior('editRow', data);
+    incrementId() {
+        const table = document.getElementById(`${this.getComponentId()}`);
+        let index;
+        if (document.body.contains(table)) {
+            const tbody = table.querySelector('tbody');
+            const { lastChild } = tbody;
+            const lastDigit = lastChild.id.split('-').pop();
+            index = parseInt(lastDigit, 10);
+        }
+        return index;
+    }
+
+    createRows(table, tbody, rowData, rowId) {
+        if (rowData['@tag'] === 'row') {
+            const trBody = tbody.insertRow(-1);
+            if (!rowData['@id']) {
+                trBody.id = `${table.id}-row-${rowId + 1}`;
+            } else {
+                trBody.id = rowData['@id'];
+            }
+            trBody.className = 'center aligned';
+            const innerRowData = rowData['>'];
+            for (let j = 0; j < innerRowData.length; j += 1) {
+                let componentData;
+                let componentTag;
+                for (const [key, value] of Object.entries(rowData['>'][j])) {
+                    if (key === '@value') {
+                        if (value !== undefined && value.length > 0) {
+                            const tableCell = trBody.insertCell(-1);
+                            tableCell.id = `${trBody.id}-${j + 1}`;
+                            tableCell.innerHTML = value;
+                        }
+                    }
+                    if (key === '@component-data') {
+                        componentData = value;
+                    }
+                    if (key === '@component-tag') {
+                        componentTag = value;
+                    }
+                    if (componentData !== undefined && componentTag !== undefined && componentData !== '' && componentTag !== '') {
+                        const tableCell = trBody.insertCell(-1);
+                        tableCell.id = `${trBody.id}-${j + 1}`;
+                        BaseComponent.getComponent(componentTag, componentData, tableCell);
+                    }
+                }
+            }
+        }
     }
 
     render() {
@@ -152,57 +149,18 @@ class ComplexTable extends BaseComponent {
         }
 
         if (jsonData['>'].length > 0) {
-            let rowId = 0;
-            for (let i = 1; i < this.data['>'].length; i++) {
-                const rowData = this.data['>'][i];
-                if (rowData['@tag'] === 'row') {
-                    const trBody = tbody.insertRow(-1);
-                    if (!rowData['@id']) {
-                        trBody.id = `${table.id}-row-${rowId += 1}`;
-                    } else {
-                        trBody.id = rowData['@id'];
-                    }
-                    trBody.className = 'center aligned';
-                    const innerRowData = rowData['>'];
-                    for (let j = 0; j < innerRowData.length; j++) {
-                        let componentData;
-                        let componentTag;
-                        for (const [key, value] of Object.entries(rowData['>'][j])) {
-                            if (key === '@value') {
-                                if (value !== undefined && value.length > 0) {
-                                    const tableCell = trBody.insertCell(-1);
-                                    tableCell.id = `${table.id}-${trBody.id}-${j + 1}`;
-                                    tableCell.innerHTML = value;
-                                }
-                            }
-                            if (key === '@component-data') {
-                                componentData = value;
-                            }
-                            if (key === '@component-tag') {
-                                componentTag = value;
-                            }
-                            if (componentData !== undefined && componentTag !== undefined && componentData !== '' && componentTag !== '') {
-                                const tableCell = trBody.insertCell(-1);
-                                tableCell.id = `${table.id}-${trBody.id}-${j + 1}`;
-                                BaseComponent.getComponent(componentTag, componentData, tableCell);
-                            }
-                        }
-                    }
-                    // Add click callback, e.t.c
-                    $(trBody).click((e) => {
-                        this.invokeBehavior('', e.target.parentNode);
-                    });
-                    $(trBody).dblclick((e) => {
-                        const editData = { id: e.target.id, content: 'new content added' };
-                        this.editRow(editData);
-                    });
-                }
+            // let rowId = 0;
+            for (let i = 1; i < jsonData['>'].length; i += 1) {
+                const rowData = jsonData['>'][i];
+                const rowId = i - 1;
+                this.createRows(table, tbody, rowData, rowId);
             }
         }
 
         tableId.push(`#${table.getAttribute('id')}`);
 
         node.appendChild(table);
+        this.isRendered(this.tagName());
     }
 }
 module.exports = ComplexTable;

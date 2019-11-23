@@ -279,22 +279,22 @@ class Mail extends BaseComponent {
                     const subjectCell = trBody.insertCell(2);
                     const entryTimeCell = trBody.insertCell(3);
                     const optionsCell = trBody.insertCell(-1);
+
+                    // Checkbox and Favorite Icon box for all rows
+                    iconCell.className = 'left aligned first';
+                    const checkBoxUi = document.createElement('div');
+                    checkBoxUi.className = 'ui child checkbox';
+                    const checkBox = document.createElement('input');
+                    checkBox.type = 'checkbox';
+                    checkBox.name = 'mailCheckbox';
+                    checkBoxUi.appendChild(checkBox);
+                    const rating = document.createElement('div');
+                    rating.className = 'ui star rating';
+                    rating.setAttribute('data-max-rating', 1);
+                    iconCell.appendChild(checkBoxUi);
+                    iconCell.appendChild(rating);
                     for (let j = 0; j < innerRowData.length; j++) {
                         for (const [key, value] of Object.entries(rowData['>'][j])) {
-                            if (key === '@icon') {
-                                iconCell.className = 'left aligned first';
-                                const checkBoxUi = document.createElement('div');
-                                checkBoxUi.className = 'ui child checkbox';
-                                const checkBox = document.createElement('input');
-                                checkBox.type = 'checkbox';
-                                checkBox.name = 'mailCheckbox';
-                                checkBoxUi.appendChild(checkBox);
-                                const rating = document.createElement('div');
-                                rating.className = 'ui star rating';
-                                rating.setAttribute('data-max-rating', 1);
-                                iconCell.appendChild(checkBoxUi);
-                                iconCell.appendChild(rating);
-                            }
                             if (key === '@sender') {
                                 senderCell.className = 'second';
                                 senderCell.textContent = value;

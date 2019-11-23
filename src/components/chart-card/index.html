@@ -11,6 +11,17 @@
     <div id="view"></div>
 
     <script>
+        const addCardData = [{
+            "@tag": "card",
+            "@id": "appendedChartCardOne",
+            "@title": "Charity",
+            "@currency": "$",
+            "@presentValue": 23356,
+            "@indicatorIcon": "up",
+            "@percentageValue": "+30%",
+        }]
+
+
         const jsonData = {
             "@id": "chartCard",
             "@title": "Performance",
@@ -19,7 +30,7 @@
                 "@id": "chartCardOne",
                 "@title": "Income",
                 "@currency": "$",
-                "@presentValue": "5,456",
+                "@presentValue": 5456,
                 "@indicatorIcon": "up",
                 "@percentageValue": "+15%",
             }, {
@@ -27,7 +38,7 @@
                 "@id": "chartCardTwo",
                 "@title": "Expenses",
                 "@currency": "$",
-                "@presentValue": "4,764",
+                "@presentValue": 4764,
                 "@indicatorIcon": "down",
                 "@percentageValue": "-8%",
             }, {
@@ -35,7 +46,7 @@
                 "@id": "chartCardThree",
                 "@title": "Spendings",
                 "@currency": "$",
-                "@presentValue": "1.5M",
+                "@presentValue": 1500,
                 "@indicatorIcon": "up",
                 "@percentageValue": "+15%",
             }, {
@@ -43,7 +54,7 @@
                 "@id": "chartCardFour",
                 "@title": "Expenses",
                 "@currency": "$",
-                "@presentValue": "31,564",
+                "@presentValue": 31564,
                 "@indicatorIcon": "down",
                 "@percentageValue": "-76%",
             }]
@@ -52,7 +63,11 @@
     <script src="/assets/js/polyfills/index.min.js"></script>
     <script src="/components/base.min.js"></script>
     <script src="/components/chart-card/index.min.js"></script>
-    <script>new ChartCard(jsonData, document.querySelector("#view"));</script>
+    <script>let card = new ChartCard(jsonData, document.querySelector("#view"));
+    setTimeout(() => {
+        card.addCard('chartCard', addCardData);
+    }, 5000)
+    </script>
 
 </body>
 

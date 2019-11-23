@@ -3,7 +3,7 @@
     width: 600px;
     height: 600px;
     margin: 20px auto 0 auto;
-    background: url("/assets/images/clockface.jpg");
+    background: url("/assets/images/clock/clockface.jpg");
     list-style: none;
   }
   
@@ -16,17 +16,17 @@
   }
   
   #sec {
-    background: url("/assets/images/sechand.png");
+    background: url("/assets/images/clock/sechand.png");
     z-index: 3;
   }
   
   #min {
-    background: url("/assets/images/minhand.png");
+    background: url("/assets/images/clock/minhand.png");
     z-index: 2;
   }
   
   #hour {
-    background: url("/assets/images/hourhand.png");
+    background: url("/assets/images/clock/hourhand.png");
     z-index: 1;
   }
   

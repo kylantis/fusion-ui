@@ -11,6 +11,7 @@
     }
     &.container.card > .card > .content > .header:not(.ui), &.card > .content > .header:not(.ui) {
       font-size: 1.1em;
+      padding-left: 1em;
     }
     &.container.card > .card > :last-child, &.card > :last-child {
       margin-bottom: 0.5em;

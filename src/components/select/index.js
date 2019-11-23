@@ -37,11 +37,11 @@ class Select extends BaseComponent {
     }
 
     getCheckedValue() {
-        this.invokeBehavior('getCheckedValue', null);
+        return this.invokeBehavior('getCheckedValue', null);
     }
 
     getSelectedValue() {
-        this.invokeBehavior('getSelectedValue', null);
+        return this.invokeBehavior('getSelectedValue', null);
     }
 
     invokeBehavior(behavior, data) {
@@ -90,21 +90,22 @@ class Select extends BaseComponent {
             }
         }
         if (behavior === 'getCheckedValue') {
+            // eslint-disable-next-line consistent-return
             return (() => {
                 let val = [];
                 $(`input[name=${this.data['@title']}]:checked`).each((i) => {
                     val[i] = $(':checked');
+                    console.log($(val).next().html());
                 });
                 if (val.length > 0) {
                     const valueArray = val[0];
                     val = [];
                     $.each(valueArray, (i, value) => val.push(value.id));
-                    val.forEach((value) => {
+                    const values = val.map((value) => {
                         const x = $(`#${value}`);
-                        console.log($(x).next().html());
+                        return $(x).next().html();
                     });
-                } else {
-                    console.log('select an item');
+                    return values;
                 }
             })();
         }
@@ -348,7 +349,7 @@ class Select extends BaseComponent {
             }
             // callback
             $('#submit').click(() => {
-                this.getCheckedValue();
+                console.log(this.getCheckedValue());
             });
         }
 

@@ -34,7 +34,6 @@ class Card extends BaseComponent {
             div.className = 'item';
             div.textContent = option['@optionText'];
             div.addEventListener('click', () => {
-                console.log('inside', this);
                 option['@clientCallback'].apply(this);
             });
             parent.appendChild(div);
@@ -133,8 +132,12 @@ class Card extends BaseComponent {
                 const text = this.appendNode(contentDivTwo, 'div', 'header');
                 text.textContent = el['@text'];
                 row.append(columnDiv);
+                contentDivTwo.addEventListener('click', () => {
+                    el['@clientCallback'].apply(this);
+                });
             });
             node.appendChild(gridCardDiv);
+            this.isRendered(this.tagName());
         }
     }
 }
