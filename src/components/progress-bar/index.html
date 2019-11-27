@@ -15,13 +15,14 @@
             "@title": "first progress bar",
             "@label": "Everything worked just fine",
             "@size": "tiny",
-            "@percentText": false,
+            "@percentText": true,
             "@state": "active",
             "@type": "indicating",
             "@content": "progress",
             "@color": "yellow",
             "@data-value": 5,
-            "@data-total": 50
+            "@data-total": 50,
+            "@hasServerCallback": "",
         }
     </script>
     <script>
@@ -38,7 +39,7 @@
     setInterval(() => {
         progress.increment();
     }, 1000);
-    
+    setInterval(() => progress.getValue(), 4000);
     </script>
 
 </body>

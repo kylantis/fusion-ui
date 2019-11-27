@@ -50,7 +50,7 @@ class ImageCropper extends BaseComponent {
         switch (behavior) {
         case 'upload': {
             if ($('.ui.dimmer').children().first().is('img')) {
-                console.log(originalImage[0].currentSrc);
+                this.triggerEvent('upload', { imagesrc: originalImage[0].currentSrc }, this.data);
             }
             break;
         }

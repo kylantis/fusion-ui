@@ -59,7 +59,7 @@ class Modal extends BaseComponent {
 
     buttonClicked(clicked) {
         if (clicked) {
-            this.data['@clientCallback']();
+            this.data['@clientCallbacks']();
         }
     }
 

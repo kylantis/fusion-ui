@@ -52,13 +52,16 @@ class Input extends BaseComponent {
 
     invokeBehavior(behavior, element, data) {
         switch (behavior) {
-        case 'getValue':
-            return $(element).val();
-
-        case 'setValue':
-            $(element).val(data);
+        case 'getValue': {
+            const value = $(element).val();
+            this.triggerEvent('getValue', { value }, this.data);
             break;
-
+        }
+        case 'setValue': {
+            const value = $(element).val(data);
+            this.triggerEvent('setValue', { value }, this.data);
+            break;
+        }
         default:
             break;
         }
@@ -66,7 +69,7 @@ class Input extends BaseComponent {
     }
 
     getValue(element) {
-        this.invokeBehavior('setValue', element, null);
+        this.invokeBehavior('getValue', element, null);
     }
 
     setValue(element, value) {

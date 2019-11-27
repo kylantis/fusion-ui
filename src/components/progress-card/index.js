@@ -20,10 +20,12 @@ class ProgressCard extends BaseComponent {
     invokeBehavior(behavior, data) {
         switch (behavior) {
         case 'increment':
-            $(`#${this.getComponentId()}bar`).progress('increment');
+            $(`#${this.getComponentId()}`).progress('increment');
+            this.triggerEvent('increment', { increment: true }, this.data);
             break;
         case 'decrement':
-            $(`#${this.getComponentId()}bar`).progress('decrement');
+            $(`#${this.getComponentId()}`).progress('decrement');
+            this.triggerEvent('decrement', { decrement: true }, this.data);
             break;
         case 'setPercent':
             return $(`#${this.getComponentId()}bar`).progress('set percent', data);

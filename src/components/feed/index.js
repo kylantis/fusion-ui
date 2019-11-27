@@ -26,14 +26,16 @@ class Feed extends BaseComponent {
         switch (behavior) {
         case 'addFeed':
             this.feedGenerator(feed, data);
-            return data;
+            this.triggerEvent('addFeed', data, this.data);
+            break;
 
         case 'deleteFeed': {
             const oneFeed = feed.querySelector(`#${data.id}`);
             if (oneFeed) {
                 $(oneFeed).remove();
             }
-            return oneFeed;
+            this.triggerEvent('deleteFeed', { id: oneFeed }, this.data);
+            break;
         }
         default:
             break;

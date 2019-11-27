@@ -13,11 +13,11 @@ class ComplexTable extends BaseComponent {
     }
 
     getCssDependencies() {
-        return super.getCssDependencies().concat(['/assets/css/table.min.css', '/assets/css/input.min.css']);
+        return super.getCssDependencies().concat(['/assets/css/table.min.css', '/assets/css/input.min.css', '/assets/css/menu.min.css']);
     }
 
     getJsDependencies() {
-        return super.getJsDependencies().concat(['/assets/js/checkbox.min.js']);
+        return super.getJsDependencies().concat();
     }
 
     getComponentId() {
@@ -29,9 +29,9 @@ class ComplexTable extends BaseComponent {
         const tbody = tab.querySelector('tbody');
         switch (behaviorName) {
         case 'appendRow': {
-            // eslint-disable-next-line max-len
-            const newInfo = data.map(rowEl => this.createRows(tab, tbody, rowEl, this.incrementId()));
-            return newInfo;
+            data.forEach(rowEl => this.createRows(tab, tbody, rowEl, this.incrementId()));
+            this.triggerEvent('appendRow', data, this.data);
+            break;
         }
         case 'deleteRow': {
             // Currently, element returns a html element but it should be a javascript object
@@ -40,7 +40,8 @@ class ComplexTable extends BaseComponent {
             if (rowData) {
                 $(rowData).remove();
             }
-            return rowData;
+            this.triggerEvent('deleteRow', data, this.data);
+            break;
         }
         default:
             break;
@@ -49,11 +50,11 @@ class ComplexTable extends BaseComponent {
     }
 
     appendRow(data) {
-        return this.invokeBehavior('appendRow', data);
+        this.invokeBehavior('appendRow', data);
     }
 
     deleteRow(data) {
-        return this.invokeBehavior('deleteRow', data);
+        this.invokeBehavior('deleteRow', data);
     }
 
     incrementId() {
@@ -66,6 +67,19 @@ class ComplexTable extends BaseComponent {
             index = parseInt(lastDigit, 10);
         }
         return index;
+    }
+
+    addFooter(table) {
+        const tfoot = document.createElement('tfoot');
+        const trfoot = this.appendNode(tfoot, 'tr');
+        const trth = this.appendNode(trfoot, 'th');
+        trth.setAttribute('colspan', 8);
+        const menuDiv = this.appendNode(trth, 'div', 'ui right floated pagination menu');
+        const atag = this.appendNode(menuDiv, 'a', 'item');
+        atag.textContent = 'Delete';
+        const aTag = this.appendNode(menuDiv, 'a', 'item');
+        aTag.textContent = 'Edit';
+        table.append(tfoot);
     }
 
     createRows(table, tbody, rowData, rowId) {
@@ -114,6 +128,12 @@ class ComplexTable extends BaseComponent {
 
         const tableId = [];
 
+        function selectRow(e) {
+            if (e.target.parentElement) {
+                console.log(e.target.parentElement);
+            }
+        }
+
         const table = document.createElement('table');
         const thead = document.createElement('thead');
         const tbody = document.createElement('tbody');
@@ -156,7 +176,8 @@ class ComplexTable extends BaseComponent {
                 this.createRows(table, tbody, rowData, rowId);
             }
         }
-
+        tbody.addEventListener('click', selectRow);
+        this.addFooter(table);
         tableId.push(`#${table.getAttribute('id')}`);
 
         node.appendChild(table);

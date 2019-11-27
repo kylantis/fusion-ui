@@ -63,44 +63,51 @@ class Comment extends BaseComponent {
         const commentNode = $(el).parent().closest('[id]')[0];
         const commentDiv = document.createElement('div');
         switch (behavior) {
-        case 'addNewComment':
-            $(lastDiv).after(this.createPost(this.newComment(comment)));
+        case 'addNewComment': {
+            const latestComment = this.createPost(this.newComment(comment));
+            $(lastDiv).after(latestComment);
             this.result = ($(comment).val());
-            return (this.newComment(comment));
+            this.triggerEvent('addNewComment', latestComment, this.data);
+            break;
+        }
 
-        case 'replyComment':
+        case 'replyComment': {
+            const repliedComment = this.newComment(comment);
             if (commentNode.parentElement.classList.contains('step')) {
                 commentDiv.className = 'comment step';
                 commentNode.parentElement.lastElementChild.appendChild(commentDiv);
-                commentDiv.append(this.createPost(this.newComment(comment)));
-                return (this.newComment(comment));
+                commentDiv.append(this.createPost(repliedComment));
             }
             if (!commentNode.parentElement.classList.contains('step')) {
                 commentDiv.className = 'comment step';
                 commentNode.lastElementChild.appendChild(commentDiv);
-                commentDiv.append(this.createPost(this.newComment(comment)));
-                return (this.newComment(comment));
+                commentDiv.append(this.createPost(repliedComment));
             }
+            this.triggerEvent('replyComment', repliedComment, this.data);
             break;
+        }
 
         case 'deleteComment':
             $(`#${comment.id}`).remove();
-            return comment.id;
+            this.triggerEvent('deleteComment', { id: comment.id }, this.data);
+            break;
+
         default:
+            break;
         }
-        return this.result;
+        return null;
     }
 
     addNewComment(el, data) {
-        return this.invokeBehavior('addNewComment', el, data);
+        this.invokeBehavior('addNewComment', el, data);
     }
 
     replyComment(el, data) {
-        return this.invokeBehavior('replyComment', el, data);
+        this.invokeBehavior('replyComment', el, data);
     }
 
     deleteComment(data) {
-        return this.invokeBehavior('deleteComment', null, data);
+        this.invokeBehavior('deleteComment', null, data);
     }
 
     likeComment() {}
@@ -133,8 +140,8 @@ class Comment extends BaseComponent {
         '@approveButtonText': 'Approve',
         '@denyButtonText': 'Decline',
         '@hasServerCallback': true,
-        '@clientCallback': () => {
-            console.log(this.deleteComment(this.getCommentBox()));
+        '@clientCallbacks': () => {
+            this.deleteComment(this.getCommentBox());
         },
     };
 
@@ -192,7 +199,6 @@ class Comment extends BaseComponent {
         $(buttonDiv).on('click', () => {
             if ($(textArea).val().trim()) {
                 this.addNewComment(form, textArea);
-                this.getBehavior();
                 $(textArea).val('');
             }
         });
@@ -200,12 +206,13 @@ class Comment extends BaseComponent {
     }
 
     createPost(element) {
+        // console.log(element);
         const commentDiv = document.createElement('div');
         commentDiv.className = 'comment';
-        if (!element['@id']) {
-            commentDiv.id = this.generateCommentId();
-        } else {
+        if (element['@id']) {
             commentDiv.id = element['@id'];
+        } else {
+            commentDiv.id = this.generateCommentId();
         }
         const avatag = document.createElement('a');
         commentDiv.appendChild(avatag);

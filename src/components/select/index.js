@@ -56,6 +56,7 @@ class Select extends BaseComponent {
                     val = $(`${id} .active, .filtered`);
                     const values = [];
                     $.each(val, (i, value) => values.push($(value).text()));
+                    this.triggerEvent('getValue', values, this.data);
                     return values;
                 })();
             case 'select': case 'labeled':
@@ -65,6 +66,7 @@ class Select extends BaseComponent {
                     $(`${id}.dropdown, .active, .selected:selected`).each((i) => {
                         val[i] = $('.active, .selected:selected').text();
                     });
+                    this.triggerEvent('getValue', val, this.data);
                     return val;
                 })();
             case 'labeled multiple':
@@ -74,6 +76,7 @@ class Select extends BaseComponent {
                     val = $(`${id}, a.visible`);
                     const values = [];
                     $.each(val, (i, value) => values.push($(value).text()));
+                    this.triggerEvent('getValue', values, this.data);
                     return values;
                 })();
             case 'labeled dropdown':
@@ -83,6 +86,7 @@ class Select extends BaseComponent {
                     $(`${id}, span.text`).each((i) => {
                         val[i] = $('span').text();
                     });
+                    this.triggerEvent('getValue', val, this.data);
                     return val;
                 })();
             default:
@@ -105,6 +109,7 @@ class Select extends BaseComponent {
                         const x = $(`#${value}`);
                         return $(x).next().html();
                     });
+                    this.triggerEvent('getValue', values, this.data);
                     return values;
                 }
             })();

@@ -16,7 +16,6 @@
     <script>
         const appendData = {
             "@title": "Flat Tile",
-            "@title": "Tile",
             "@tilesPerRow": 2,
             "@buttons": [{
                 "@tag": "button",
@@ -35,7 +34,7 @@
             }],
             ">": [{
                 "@tag": "pill",
-                "@id": "tileOne",
+                "@id": "tilePillOne",
                 "@tileImage": "/assets/images/placeholder.jpg",
                 "@tileHeader": "Getting Started",
                 "@headerIcon": "th",
@@ -46,7 +45,7 @@
                 }
             }, {
                 "@tag": "pill",
-                "@id": "tileTwo",
+                "@id": "tilePillTwo",
                 "@tileImage": "/assets/images/placeholder.jpg",
                 "@tileHeader": "Not Getting Started",
                 "@headerIcon": "th",
@@ -57,7 +56,7 @@
                 }
             }, {
                 "@tag": "pill",
-                "@id": "tileThree",
+                "@id": "tilePillThree",
                 "@tileImage": "/assets/images/placeholder.jpg",
                 "@tileHeader": "Why Getting Started",
                 "@headerIcon": "th",
@@ -68,7 +67,7 @@
                 }
             }, {
                 "@tag": "pill",
-                "@id": "tilefour",
+                "@id": "tilePillFour",
                 "@tileImage": "/assets/images/placeholder.jpg",
                 "@tileHeader": "OOOhhh! Getting Started",
                 "@headerIcon": "th",
@@ -79,7 +78,7 @@
                 }
             }, {
                 "@tag": "pill",
-                "@id": "tileFive",
+                "@id": "tilePillFive",
                 "@tileImage": "/assets/images/placeholder.jpg",
                 "@tileHeader": "Hmmm.. Getting Started",
                 "@headerIcon": "th",
@@ -90,7 +89,7 @@
                 }
             }, {
                 "@tag": "pill",
-                "@id": "tileSix",
+                "@id": "tilePillSix",
                 "@tileImage": "/assets/images/placeholder.jpg",
                 "@tileHeader": "Why Getting Started",
                 "@headerIcon": "th",
@@ -101,7 +100,7 @@
                 }
             }, {
                 "@tag": "pill",
-                "@id": "tileSeven",
+                "@id": "tilePillSeven",
                 "@tileImage": "/assets/images/placeholder.jpg",
                 "@tileHeader": "Ok, Getting Started",
                 "@headerIcon": "th",
@@ -112,7 +111,7 @@
                 }
             }, {
                 "@tag": "pill",
-                "@id": "tileEight",
+                "@id": "tilePillEight",
                 "@tileImage": "/assets/images/placeholder.jpg",
                 "@tileHeader": "Not Getting Started",
                 "@headerIcon": "th",
@@ -123,7 +122,7 @@
                 }
             }, {
                 "@tag": "pill",
-                "@id": "tileNine",
+                "@id": "tilePillNine",
                 "@tileImage": "/assets/images/placeholder.jpg",
                 "@tileHeader": "Getting Started",
                 "@headerIcon": "th",
@@ -142,17 +141,23 @@
             "@buttons": [{
                 "@tag": "button",
                 "@position": "left",
-                "@color": "red",
+                "@color": "",
                 "@buttonText": "Decline",
-                "@buttonDisplay": "basic",
+                "@buttonDisplay": "",
                 "@fluid": true,
+                clientCallbacks() {
+                    console.log(this);
+                }
             }, {
                 "@tag": "button",
                 "@position": "right",
-                "@color": "green",
+                "@color": "",
                 "@buttonText": "Accept",
-                "@buttonDisplay": "basic",
+                "@buttonDisplay": "",
                 "@fluid": true,
+                clientCallbacks() {
+                    window.location.href = this['@linkedUrl'];
+                }
             }],
             ">": [{
                 "@tag": "tile",
@@ -272,7 +277,9 @@
     <script src="/components/tile/index.min.js"></script>
     <script>
         let tile = new Tile(jsonData, document.querySelector("#tile"));
-        let tile2 = new Tile(appendData, document.querySelector("#tile2"));
+        setTimeout(() => tile.addTile(appendData), 3000);
+        
+        // let tile2 = new Tile(appendData, document.querySelector("#tile2"));
     </script>
 
 </body>

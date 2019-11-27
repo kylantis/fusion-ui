@@ -16,7 +16,7 @@ class SearchBar extends BaseComponent {
     // }
 
     getJsDependencies() {
-        return super.getJsDependencies().concat(['/assets/js/search.min.js', '/cdn/jqueryeasing.min.js']);
+        return super.getJsDependencies().concat(['/assets/js/search.min.js', '/assets/js/api.min.js', '/cdn/jqueryeasing.min.js']);
     }
 
     invokeBehavior(behavior, data) {
@@ -59,6 +59,26 @@ class SearchBar extends BaseComponent {
 
     getComponentId() {
         return this.componentId;
+    }
+
+    apiSearchInit() {
+        let newUrl = '';
+        if (this.data['@apiUrl'].startsWith('http') || this.data['@apiUrl'].startsWith('https')) {
+            const infoUrl = this.data['@apiUrl'];
+            newUrl = infoUrl.split(':').pop();
+        }
+        $('.ui.search')
+            .search({
+                apiSettings: {
+                    url: newUrl,
+                },
+                fields: {
+                    results: 'items',
+                    title: 'name',
+                    url: 'html_url',
+                },
+                minCharacters: 3,
+            });
     }
 
     render() {
@@ -109,6 +129,9 @@ class SearchBar extends BaseComponent {
                 title: json['@title'],
             }));
             this.autoSuggest(suggestData);
+        }
+        if (jsonData['@apiUrl'].length > 0) {
+            this.apiSearchInit();
         }
     }
 }
