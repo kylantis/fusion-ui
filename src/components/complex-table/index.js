@@ -6,6 +6,8 @@ class ComplexTable extends BaseComponent {
 
     componentId = this.getId();
 
+    selectedRows = new Set();
+
     getBehaviourNames() {
         return [
             'appendRow', 'deleteRow',
@@ -13,11 +15,11 @@ class ComplexTable extends BaseComponent {
     }
 
     getCssDependencies() {
-        return super.getCssDependencies().concat(['/assets/css/table.min.css', '/assets/css/input.min.css']);
+        return super.getCssDependencies().concat(['/assets/css/table.min.css', '/assets/css/input.min.css', '/assets/css/menu.min.css']);
     }
 
     getJsDependencies() {
-        return super.getJsDependencies().concat(['/assets/js/checkbox.min.js']);
+        return super.getJsDependencies().concat();
     }
 
     getComponentId() {
@@ -29,18 +31,19 @@ class ComplexTable extends BaseComponent {
         const tbody = tab.querySelector('tbody');
         switch (behaviorName) {
         case 'appendRow': {
-            // eslint-disable-next-line max-len
-            const newInfo = data.map(rowEl => this.createRows(tab, tbody, rowEl, this.incrementId()));
-            return newInfo;
+            data.forEach(rowEl => this.createRows(tab, tbody, rowEl, this.incrementId()));
+            this.triggerEvent('appendRow', data, this.data);
+            break;
         }
         case 'deleteRow': {
             // Currently, element returns a html element but it should be a javascript object
             // a row has to be passed in as data for row to be deleted for now.
-            const rowData = tbody.querySelector(`#${data.id}`);
+            const rowData = tbody.querySelector(`#${data}`);
             if (rowData) {
                 $(rowData).remove();
             }
-            return rowData;
+            this.triggerEvent('deleteRow', data, this.data);
+            break;
         }
         default:
             break;
@@ -49,11 +52,25 @@ class ComplexTable extends BaseComponent {
     }
 
     appendRow(data) {
-        return this.invokeBehavior('appendRow', data);
+        this.invokeBehavior('appendRow', data);
     }
 
     deleteRow(data) {
-        return this.invokeBehavior('deleteRow', data);
+        this.invokeBehavior('deleteRow', data);
+    }
+
+    modalData = {
+        '@id': 'complexTableModalOne',
+        '@title': 'Delete',
+        '@modalStyle': 'confirm',
+        '@size': 'tiny',
+        '@descriptionText': 'Are you sure you want to delete the selected rows?',
+        '@approveButtonText': 'Confirm',
+        '@denyButtonText': 'Cancel',
+        '@hasServerCallback': true,
+        '@clientCallbacks': () => {
+            this.selectedRows.forEach(el => this.deleteRow(el));
+        },
     }
 
     incrementId() {
@@ -66,6 +83,32 @@ class ComplexTable extends BaseComponent {
             index = parseInt(lastDigit, 10);
         }
         return index;
+    }
+
+    addFooter(table) {
+        const tfoot = document.createElement('tfoot');
+        const trfoot = this.appendNode(tfoot, 'tr');
+        const trth = this.appendNode(trfoot, 'th');
+        trth.setAttribute('colspan', 8);
+        const menuDiv = this.appendNode(trth, 'div', 'ui right floated pagination menu');
+        const deleteButton = this.appendNode(menuDiv, 'a', 'item');
+        deleteButton.textContent = 'Delete';
+        const editButton = this.appendNode(menuDiv, 'a', 'item');
+        editButton.textContent = 'Edit';
+        deleteButton.addEventListener('click', () => {
+            if (this.selectedRows.size >= 1) {
+                this.loadModal().then((data) => {
+                    const x = Object.getPrototypeOf(data);
+                    x.openModal(this.modalData);
+                });
+            }
+        });
+        table.append(tfoot);
+    }
+
+    loadModal(loc) {
+        const confirmBox = BaseComponent.getComponent('modal', this.modalData, loc);
+        return confirmBox;
     }
 
     createRows(table, tbody, rowData, rowId) {
@@ -107,8 +150,21 @@ class ComplexTable extends BaseComponent {
 
     render() {
         // Add listeners that respond to user event, then this should buuble up to this.callback();
-        const { node } = this;
+        const { node, selectedRows, triggerEvent } = this;
         const jsonData = this.data;
+
+        function selectRow(e) {
+            if (!e.target.parentElement.matches('tr')) return;
+            const trElement = e.target.parentElement;
+            trElement.classList.toggle('negative');
+            const sel = this.querySelectorAll('.negative');
+            selectedRows.clear();
+            sel.forEach((el) => {
+                selectedRows.add(el.id);
+                triggerEvent('selectRow', selectedRows, jsonData);
+            });
+        }
+
         // Save the column titles to the column object in the constructor
         const columnTitles = {};
 
@@ -127,7 +183,7 @@ class ComplexTable extends BaseComponent {
             table.classList.add('inverted');
         }
         table.classList.add('table');
-
+        tbody.style.cursor = 'pointer';
         table.append(thead);
         table.append(tbody);
         // Create header row
@@ -156,9 +212,11 @@ class ComplexTable extends BaseComponent {
                 this.createRows(table, tbody, rowData, rowId);
             }
         }
-
+        tbody.addEventListener('click', selectRow);
+        this.addFooter(table);
         tableId.push(`#${table.getAttribute('id')}`);
 
+        this.loadModal(document.querySelector('body'));
         node.appendChild(table);
         this.isRendered(this.tagName());
     }

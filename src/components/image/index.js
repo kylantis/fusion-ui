@@ -139,6 +139,7 @@ class Image extends BaseComponent {
         imageId.push(`#${uiDiv.getAttribute('id')}`);
         uiDiv.classList.add('image');
         node.prepend(uiDiv);
+        this.isRendered(this.getComponentId());
     }
 }
 

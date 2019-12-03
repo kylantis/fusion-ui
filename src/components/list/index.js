@@ -126,6 +126,7 @@ class List extends BaseComponent {
                     node.appendChild(ul);
                 });
             }
+            this.isRendered(this.getComponentId());
             return;
         }
         if (data['@listType'] === 'ordered') {
@@ -143,6 +144,7 @@ class List extends BaseComponent {
                 ol.appendChild(li);
                 node.appendChild(ol);
             });
+            this.isRendered(this.getComponentId());
             return;
         }
         if (data['@listType'] === 'iconList') {
@@ -226,6 +228,7 @@ class List extends BaseComponent {
             });
         }
         node.append(uiDiv);
+        this.isRendered(this.getComponentId());
     }
 }
 

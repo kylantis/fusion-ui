@@ -27,6 +27,7 @@ class FileUpload extends BaseComponent {
         form.action = data['@action'];
         form.method = 'post';
         node.appendChild(form);
+        this.isRendered(this.getComponentId());
     }
 }
 module.exports = FileUpload;

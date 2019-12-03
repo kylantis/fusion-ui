@@ -18,6 +18,22 @@ class Card extends BaseComponent {
         return this.componentId;
     }
 
+    invokeBehavior(behavior, data) {
+        switch (behavior) {
+        case 'click':
+            data['@clientCallbacks'].apply(this);
+            this.triggerEvent('click', data, this.data);
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    click(data) {
+        this.invokeBehavior('click', data);
+    }
+
     generateOptions(parent, optionData, container) {
         const { data } = this;
         const newCon = container;
@@ -34,7 +50,7 @@ class Card extends BaseComponent {
             div.className = 'item';
             div.textContent = option['@optionText'];
             div.addEventListener('click', () => {
-                option['@clientCallback'].apply(this);
+                this.click(option);
             });
             parent.appendChild(div);
         });
@@ -133,11 +149,11 @@ class Card extends BaseComponent {
                 text.textContent = el['@text'];
                 row.append(columnDiv);
                 contentDivTwo.addEventListener('click', () => {
-                    el['@clientCallback'].apply(this);
+                    this.click(el);
                 });
             });
             node.appendChild(gridCardDiv);
-            this.isRendered(this.tagName());
+            this.isRendered(this.getComponentId());
         }
     }
 }

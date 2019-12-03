@@ -78,9 +78,7 @@
     <script src="/components/activity-timeline/index.min.js"></script>
     <script>
     const actTime = new ActivityTimeline(jsonData, document.querySelector('#view'));
-        setTimeout(() => {
-            actTime.includeActivity(addData);
-        }, 1000);
+        setTimeout(() =>actTime.includeActivity(addData), 1000);
     </script>
 </body>
 

@@ -190,6 +190,7 @@ class NavBar extends BaseComponent {
         }
 
         parentNode.appendChild(menuDiv);
+        this.isRendered(this.getComponentId());
     }
 
     /**

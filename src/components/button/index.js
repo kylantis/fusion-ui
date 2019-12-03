@@ -18,6 +18,7 @@ class Button extends BaseComponent {
         switch (behavior) {
         case 'click':
             data['@clientCallbacks']();
+            this.triggerEvent('click', data, this.data);
             break;
         default:
             break;
@@ -191,6 +192,7 @@ class Button extends BaseComponent {
             this.click(this.data);
         });
         node.append(button);
+        this.isRendered(this.getComponentId());
     }
 }
 module.exports = Button;

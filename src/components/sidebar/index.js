@@ -169,6 +169,7 @@ class Sidebar extends BaseComponent {
         uiDiv.classList.add('menu');
 
         node.append(uiDiv);
+        this.isRendered(this.getComponentId());
     }
 }
 

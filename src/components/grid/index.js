@@ -160,6 +160,7 @@ class Grid extends BaseComponent {
         }
         node.append(uiDiv);
         this.getRenderedComponents();
+        this.isRendered(this.getComponentId());
     }
 }
 module.exports = Grid;

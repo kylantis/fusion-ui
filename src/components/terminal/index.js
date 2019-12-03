@@ -10,44 +10,21 @@ class Terminal extends BaseComponent {
     }
 
     getJsDependencies() {
-        return super.getJsDependencies().concat(['/assets/js/jquery-terminal.min.js', '/assets/js/jquery-mousewheel.min.js']);
+        return (['/cdn/jquery-3.4.1.min.js', '/assets/js/jquery-terminal.min.js', '/assets/js/jquery-mousewheel.min.js']);
     }
 
     getComponentId() {
         return this.componentId;
     }
 
-    // initializeTerminal(el) {
-    //     $(el).terminal({
-    //         add(a, b) {
-    //             this.echo(a + b);
-    //         },
-    //         foo: 'foo.php',
-    //         bar: {
-    //             sub(a, b) {
-    //                 this.echo(a - b);
-    //             },
-    //         },
-    //         echo(arg1) {
-    //             this.echo(arg1);
-    //         },
-    //     }, {
-    //         greetings: 'JavaScript Interpreter',
-    //         name: 'js_demo',
-    //         height: 200,
-    //         prompt: 'js> ',
-    //     });
-    // }
-
     render() {
-        const { node } = this;
-        const { data } = this;
+        const { node, data } = this;
 
         const mainDiv = document.createElement('div');
         mainDiv.id = data['@id'];
         node.append(mainDiv);
 
-        $('body').terminal({
+        $(mainDiv).terminal({
             add(a, b) {
                 this.echo(a + b);
             },
@@ -66,6 +43,7 @@ class Terminal extends BaseComponent {
             height: 200,
             prompt: 'js> ',
         });
+        this.isRendered(this.getComponentId());
     }
 }
 

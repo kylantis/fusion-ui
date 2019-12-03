@@ -18,6 +18,31 @@ class Tile extends BaseComponent {
         return this.componentId;
     }
 
+    invokeBehavior(behavior, data) {
+        const id = this.getComponentId();
+        switch (behavior) {
+        case 'click':
+            data.clientCallbacks.apply(this);
+            this.triggerEvent('click', data, this.data);
+            break;
+
+        case 'addTile':
+            this.appendTile(id, data);
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    click(data) {
+        this.invokeBehavior('click', data);
+    }
+
+    addTile(data) {
+        this.invokeBehavior('addTile', data);
+    }
+
     addButtons(parent) {
         const extraContent = document.createElement('div');
         extraContent.className = 'extra content';
@@ -26,6 +51,7 @@ class Tile extends BaseComponent {
             this.data['@buttons'].forEach((buttonEl) => {
                 const button = this.appendNode(buttondiv, 'div', `ui ${buttonEl['@buttonDisplay']} ${buttonEl['@color']} button`);
                 button.textContent = buttonEl['@buttonText'];
+                button.addEventListener('click', () => { this.click(buttonEl); });
             });
             parent.append(extraContent);
             return;
@@ -37,6 +63,7 @@ class Tile extends BaseComponent {
                 if (buttonEl['@fluid']) {
                     button.classList.add('fluid');
                 }
+                button.addEventListener('click', () => { this.click(); });
             });
             parent.append(extraContent);
         }
@@ -47,17 +74,16 @@ class Tile extends BaseComponent {
 
         uiDiv.setAttribute('id', data['@id']);
         uiDiv.className = 'card';
-        const number = this.data['@tilesPerRow'];
-        if (number > 0) {
-            let tileWidth = Math.round(window.innerWidth / number);
+        const numCols = this.data['@tilesPerRow'];
+        if (numCols > 0) {
+            let tileWidth = Math.round(window.innerWidth / numCols);
             tileWidth -= 50;
             uiDiv.style.width = `${tileWidth}px`;
         }
         const aTag = this.appendNode(uiDiv, 'a', 'image');
         $(aTag).click((e) => {
             e.preventDefault();
-            // console.log(data['@clientCallbacks']['@execute']());
-            console.log(data.clientCallbacks());
+            data.clientCallbacks();
         });
         const imgTag = this.appendNode(aTag, 'img');
         imgTag.src = data['@tileImage'];
@@ -84,9 +110,9 @@ class Tile extends BaseComponent {
 
         uiDiv.setAttribute('id', data['@id']);
         uiDiv.className = 'pill card';
-        const number = this.data['@tilesPerRow'];
-        if (number > 0) {
-            let tileWidth = Math.round(window.innerWidth / number);
+        const numCols = this.data['@tilesPerRow'];
+        if (numCols > 0) {
+            let tileWidth = Math.round(window.innerWidth / numCols);
             tileWidth -= 50;
             uiDiv.style.width = `${tileWidth}px`;
         }
@@ -104,8 +130,7 @@ class Tile extends BaseComponent {
             aMetaTag.textContent = data['@secondaryText'];
         }
         $(uiDiv).click(() => {
-            console.log(data.clientCallbacks());
-            console.log('clicked');
+            data.clientCallbacks();
         });
         if (this.data['@buttons']) {
             this.addButtons(uiDiv);
@@ -113,15 +138,10 @@ class Tile extends BaseComponent {
         return uiDiv;
     }
 
-    render() {
-        const { node } = this;
-        const cards = this.data['>'];
-        const headerText = document.createElement('h4');
-        headerText.className = 'ui header';
-        headerText.textContent = this.data['@title'];
-        node.append(headerText);
+    generateTile(cards, node) {
         const cardDiv = document.createElement('div');
         cardDiv.className = 'ui cards';
+        cardDiv.id = this.getComponentId();
         cards.forEach((card) => {
             if (card['@tag'] === 'tile') {
                 cardDiv.appendChild(this.createTile(card));
@@ -132,6 +152,32 @@ class Tile extends BaseComponent {
                 node.append(cardDiv);
             }
         });
+    }
+
+    appendTile(node, appendData) {
+        // eslint-disable-next-line no-param-reassign
+        node = document.getElementById(node);
+        appendData['>'].forEach((card) => {
+            if (card['@tag'] === 'tile') {
+                node.appendChild(this.createTile(card));
+            }
+            if (card['@tag'] === 'pill') {
+                node.appendChild(this.createPillTile(card));
+            }
+        });
+    }
+
+    render() {
+        const { node } = this;
+        const cards = this.data['>'];
+        const div = document.createElement('div');
+        const headerText = document.createElement('h4');
+        headerText.className = 'ui header';
+        headerText.textContent = this.data['@title'];
+        div.appendChild(headerText);
+        node.append(div);
+        this.generateTile(cards, div);
+        this.isRendered(this.getComponentId());
     }
 }
 module.exports = Tile;

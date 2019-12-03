@@ -53,15 +53,18 @@ class ChartCard extends BaseComponent {
             }
             if (argThree !== undefined) {
                 percentValEl.textContent = argThree;
+                this.triggerEvent('updatePercent', { percent: argThree }, data);
             }
             if (argTwo !== undefined) {
                 presentValEl.textContent = argTwo;
+                this.triggerEvent('updateValue', { value: argThree }, data);
             }
             break;
         }
         case 'addCard': {
             const card = document.getElementById(data['@id']);
-            this.generateCards(card, argTwo);
+            const cardInfo = this.generateCards(card, argTwo);
+            this.triggerEvent('addCard', cardInfo, data);
             break;
         }
         default:
@@ -78,6 +81,7 @@ class ChartCard extends BaseComponent {
     }
 
     generateCards(parent, optionData) {
+        let cardInfo = {};
         optionData.forEach((option) => {
             const oneCard = document.createElement('div');
             oneCard.className = 'ui raised chartCard card';
@@ -105,7 +109,9 @@ class ChartCard extends BaseComponent {
             const percentSpan = this.appendNode(contentDiv, 'span', 'right floated percentVal');
             percentSpan.textContent = option['@percentageValue'];
             parent.append(oneCard);
+            cardInfo = option;
         });
+        return cardInfo;
     }
 
     render() {
@@ -124,6 +130,7 @@ class ChartCard extends BaseComponent {
         setTimeout(() => {
             this.updateValues('chartCardFour', '323220', '-54%');
         }, 3000);
+        this.isRendered(this.getComponentId());
     }
 }
 module.exports = ChartCard;

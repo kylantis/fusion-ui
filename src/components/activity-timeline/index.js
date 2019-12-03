@@ -61,6 +61,7 @@ class ActivityTimeline extends BaseComponent {
         this.createList(ulTag, data['>']);
         mainDiv.appendChild(ulTag);
         node.append(mainDiv);
+        this.isRendered(this.getComponentId());
     }
 }
 

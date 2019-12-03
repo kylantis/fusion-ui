@@ -21,9 +21,11 @@ class ProgressBar extends BaseComponent {
         switch (behavior) {
         case 'increment':
             $(`#${this.getComponentId()}`).progress('increment');
+            this.triggerEvent('increment', { increment: true }, this.data);
             break;
         case 'decrement':
             $(`#${this.getComponentId()}`).progress('decrement');
+            this.triggerEvent('decrement', { decrement: true }, this.data);
             break;
         case 'setPercent':
             return $(`#${this.getComponentId()}`).progress('set percent', data);
@@ -32,12 +34,18 @@ class ProgressBar extends BaseComponent {
             break;
         case 'complete':
             $(`#${this.getComponentId()}`).progress('complete');
+            this.triggerEvent('complete', { complete: true }, this.data);
             break;
-        case 'getPercent':
-            return $(`#${this.getComponentId()}`).progress('get percent');
-        case 'getValue':
-            $(`#${this.getComponentId()}`).progress('get value');
-            break;
+        case 'getPercent': {
+            const percent = $(`#${this.getComponentId()}`).progress('get percent');
+            this.triggerEvent('getPercent', { percent }, this.data);
+            return percent;
+        }
+        case 'getValue': {
+            const value = $(`#${this.getComponentId()}`).progress('get value');
+            this.triggerEvent('getValue', { value }, this.data);
+            return value;
+        }
         default:
             break;
         }
@@ -78,8 +86,7 @@ class ProgressBar extends BaseComponent {
     }
 
     updateProgressText() {
-        console.log(this.getPercent());
-        $('.metabar').html(`${this.getPercent()}%`);
+        $('div.metabar').html(`${this.getPercent()}%`);
     }
 
     render() {
@@ -128,14 +135,12 @@ class ProgressBar extends BaseComponent {
 
         uiDiv.classList.add('progress');
 
-        $(uiDiv).on('click', () => {
-            console.log(this.getText('hello'));
-        });
         uiDiv.setAttribute('id', `${this.getComponentId()}`);
         uiDiv.setAttribute('data-value', jsonData['@data-value']);
         uiDiv.setAttribute('data-total', jsonData['@data-total']);
 
         node.append(uiDiv);
+        this.isRendered(this.getComponentId());
     }
 }
 module.exports = ProgressBar;

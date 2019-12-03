@@ -125,6 +125,7 @@ class InputImage extends BaseComponent {
                 }
             }
         });
+        this.isRendered(this.getComponentId());
     }
 }
 

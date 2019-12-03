@@ -59,6 +59,7 @@ class PickList extends BaseComponent {
         });
         node.append(select);
         $(`#${this.getComponentId()}`).pickList();
+        this.isRendered(this.getComponentId());
     }
 }
 

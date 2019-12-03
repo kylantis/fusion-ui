@@ -56,6 +56,7 @@ class Rating extends BaseComponent {
                 initialRating: this.data['@data-rating'],
                 maxRating: this.data['@data-max-rating'],
             });
+        this.isRendered(this.getComponentId());
     }
 }
 module.exports = Rating;

@@ -211,6 +211,7 @@ class Table extends BaseComponent {
         tableId.push(`#${table.getAttribute('id')}`);
 
         node.appendChild(table);
+        this.isRendered(this.getComponentId());
     }
 }
 module.exports = Table;

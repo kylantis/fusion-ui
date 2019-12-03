@@ -26,14 +26,16 @@ class Feed extends BaseComponent {
         switch (behavior) {
         case 'addFeed':
             this.feedGenerator(feed, data);
-            return data;
+            this.triggerEvent('addFeed', data, this.data);
+            break;
 
         case 'deleteFeed': {
             const oneFeed = feed.querySelector(`#${data.id}`);
             if (oneFeed) {
-                $(oneFeed).remove();
+                $(oneFeed).empty();
             }
-            return oneFeed;
+            this.triggerEvent('deleteFeed', { id: oneFeed }, this.data);
+            break;
         }
         default:
             break;
@@ -208,7 +210,7 @@ class Feed extends BaseComponent {
         this.feedGenerator(uiDiv, data['>']);
         this.loadModal(node);
         node.append(uiDiv);
-        this.isRendered(this.tagName());
+        this.isRendered(this.getComponentId());
     }
 }
 

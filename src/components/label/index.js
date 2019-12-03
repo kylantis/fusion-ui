@@ -110,6 +110,7 @@ class Label extends BaseComponent {
         uiDiv.id = this.getComponentId();
         uiDiv.classList.add('label');
         node.append(uiDiv);
+        this.isRendered(this.getComponentId());
     }
 }
 

@@ -33,6 +33,7 @@ class Timeline extends BaseComponent {
             });
         });
         node.append(timelineDiv);
+        this.isRendered(this.getComponentId());
     }
 }
 

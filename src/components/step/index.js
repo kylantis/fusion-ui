@@ -59,6 +59,7 @@ class Step extends BaseComponent {
             $(stepDiv).click((event) => { this.setCompleted(event); });
         });
         node.append(uiDiv);
+        this.isRendered(this.getComponentId());
     }
 }
 

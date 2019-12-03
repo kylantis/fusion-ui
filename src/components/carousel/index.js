@@ -17,12 +17,6 @@ class Carousel extends BaseComponent {
         return this.componentId;
     }
 
-    showCaption() {
-        if (this.data['@showCaption'] === false) {
-            $('div.caption').remove();
-        }
-    }
-
     render() {
         const { node } = this;
         const { data } = this;
@@ -56,7 +50,10 @@ class Carousel extends BaseComponent {
             maxSlide: 1,
             auto: true,
         });
-        this.showCaption();
+        if (!this.data['@showCaption']) {
+            $(`#${this.getComponentId()} div.caption`).remove();
+        }
+        this.isRendered(this.getComponentId());
     }
 }
 

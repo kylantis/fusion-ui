@@ -36,6 +36,7 @@ class Mail extends BaseComponent {
         switch (behaviorName) {
         case 'deleteMessage':
             $(data).remove();
+            this.triggerEvent('deleteRow', data, this.data);
             break;
         default:
             break;
@@ -417,6 +418,7 @@ class Mail extends BaseComponent {
 
         this.initializeRating();
         this.initializeCheckbox();
+        this.isRendered(this.getComponentId());
     }
 }
 module.exports = Mail;
