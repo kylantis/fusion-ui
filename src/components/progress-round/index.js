@@ -27,6 +27,7 @@ class ProgressRound extends BaseComponent {
         progress.setAttribute('data-color', data['@data-color']);
         node.append(mainDiv);
         $('.progress-bar').loading();
+        this.isRendered(this.getComponentId());
     }
 }
 

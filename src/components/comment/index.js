@@ -297,6 +297,7 @@ class Comment extends BaseComponent {
         this.loadModal(titleDiv);
 
         node.append(uiDiv);
+        this.isRendered(this.getComponentId());
     }
 }
 

@@ -53,6 +53,7 @@ class Carousel extends BaseComponent {
         if (!this.data['@showCaption']) {
             $(`#${this.getComponentId()} div.caption`).remove();
         }
+        this.isRendered(this.getComponentId());
     }
 }
 

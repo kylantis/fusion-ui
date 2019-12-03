@@ -130,6 +130,7 @@ class ChartCard extends BaseComponent {
         setTimeout(() => {
             this.updateValues('chartCardFour', '323220', '-54%');
         }, 3000);
+        this.isRendered(this.getComponentId());
     }
 }
 module.exports = ChartCard;

@@ -75,6 +75,7 @@ class PhotoCam extends BaseComponent {
 
         // Load init
         init();
+        this.isRendered(this.getComponentId());
 
         // Draw image
         const context = canvas.getContext('2d');

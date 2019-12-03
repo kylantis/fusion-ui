@@ -197,6 +197,7 @@ class ImageCropper extends BaseComponent {
         $(`#${data['@id']}`)
             .modal('setting', 'closable', false)
             .modal('show');
+        this.isRendered(this.getComponentId());
     }
 }
 

@@ -51,6 +51,7 @@ class VirtualKeyboard extends BaseComponent {
             input: $('#search_field'),
         });
         $('li .return').click(() => this.getValue());
+        this.isRendered(this.getComponentId());
     }
 }
 

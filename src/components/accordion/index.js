@@ -7,13 +7,11 @@ class Accordion extends BaseComponent {
     componentId = this.getId();
 
     getCssDependencies() {
-        return super.getCssDependencies().concat(['/assets/css/accordion.min.css',
-            '/assets/css/dropdown.min.css', '/assets/css/transition.min.css']);
+        return super.getCssDependencies().concat(['/assets/css/accordion.min.css']);
     }
 
     getJsDependencies() {
-        return super.getJsDependencies().concat(['/assets/js/accordion.min.js',
-            '/assets/js/dropdown.min.js', '/assets/js/transition.min.js']);
+        return super.getJsDependencies().concat(['/assets/js/accordion.min.js']);
     }
 
     behaviorNames() {
@@ -127,6 +125,7 @@ class Accordion extends BaseComponent {
             node.append(uiDiv);
             $('.ui.accordion').accordion();
         }
+        this.isRendered(this.getComponentId());
     }
 }
 

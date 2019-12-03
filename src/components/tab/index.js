@@ -97,6 +97,7 @@ class Tab extends BaseComponent {
         node.prepend(uiDiv);
 
         $('.menu .item').tab();
+        this.isRendered(this.getComponentId());
     }
 }
 module.exports = Tab;

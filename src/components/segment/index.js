@@ -51,6 +51,7 @@ class Segment extends BaseComponent {
         uiDiv.id = this.getComponentId();
         segmentId.push(`#${uiDiv.getAttribute('id')}`);
         node.append(uiDiv);
+        this.isRendered(this.getComponentId());
     }
 }
 

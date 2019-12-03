@@ -121,6 +121,7 @@ class ProgressCard extends BaseComponent {
                 $('.custompcmeta').css('color', '#21ba45');
             },
         });
+        this.isRendered(this.getComponentId());
     }
 }
 module.exports = ProgressCard;

@@ -233,6 +233,7 @@ class Select extends BaseComponent {
                     console.log(this.getSelectedValue());
                 });
                 $(`#${this.getComponentId()}`).dropdown();
+                this.isRendered(this.getComponentId());
                 return;
             }
 
@@ -364,6 +365,7 @@ class Select extends BaseComponent {
                 .dropdown();
             // eslint-disable-next-line no-empty
         } catch (e) { }
+        this.isRendered(this.getComponentId());
     }
 }
 module.exports = Select;

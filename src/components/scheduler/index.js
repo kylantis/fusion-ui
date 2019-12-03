@@ -76,6 +76,7 @@ class Scheduler extends BaseComponent {
         $(document).ready(() => {
             this.initCalendar();
         });
+        this.isRendered(this.getComponentId());
     }
 }
 

@@ -61,6 +61,7 @@ class Clock extends BaseComponent {
                 $('#min').css({ '-moz-transform': mrotate, '-webkit-transform': mrotate });
             }, 1000);
         });
+        this.isRendered(this.getComponentId());
     }
 }
 

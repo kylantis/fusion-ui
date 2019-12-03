@@ -140,6 +140,7 @@ class ProgressBar extends BaseComponent {
         uiDiv.setAttribute('data-total', jsonData['@data-total']);
 
         node.append(uiDiv);
+        this.isRendered(this.getComponentId());
     }
 }
 module.exports = ProgressBar;

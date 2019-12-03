@@ -228,6 +228,7 @@ class Input extends BaseComponent {
         inputDiv.id = this.getComponentId();
         inputId.push(`#${inputDiv.getAttribute('id')}`);
         node.append(uiDiv);
+        this.isRendered(this.getComponentId());
     }
 }
 

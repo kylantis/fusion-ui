@@ -133,6 +133,7 @@ class SearchBar extends BaseComponent {
         if (jsonData['@apiUrl'].length > 0) {
             this.apiSearchInit();
         }
+        this.isRendered(this.getComponentId());
     }
 }
 module.exports = SearchBar;

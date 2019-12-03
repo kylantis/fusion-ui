@@ -153,7 +153,7 @@ class Card extends BaseComponent {
                 });
             });
             node.appendChild(gridCardDiv);
-            this.isRendered(this.tagName());
+            this.isRendered(this.getComponentId());
         }
     }
 }

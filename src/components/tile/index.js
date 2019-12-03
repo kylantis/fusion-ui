@@ -177,6 +177,7 @@ class Tile extends BaseComponent {
         div.appendChild(headerText);
         node.append(div);
         this.generateTile(cards, div);
+        this.isRendered(this.getComponentId());
     }
 }
 module.exports = Tile;

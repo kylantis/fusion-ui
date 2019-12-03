@@ -32,7 +32,7 @@ class Feed extends BaseComponent {
         case 'deleteFeed': {
             const oneFeed = feed.querySelector(`#${data.id}`);
             if (oneFeed) {
-                $(oneFeed).remove();
+                $(oneFeed).empty();
             }
             this.triggerEvent('deleteFeed', { id: oneFeed }, this.data);
             break;
@@ -210,7 +210,7 @@ class Feed extends BaseComponent {
         this.feedGenerator(uiDiv, data['>']);
         this.loadModal(node);
         node.append(uiDiv);
-        this.isRendered(this.tagName());
+        this.isRendered(this.getComponentId());
     }
 }
 

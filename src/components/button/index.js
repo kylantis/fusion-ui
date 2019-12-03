@@ -192,6 +192,7 @@ class Button extends BaseComponent {
             this.click(this.data);
         });
         node.append(button);
+        this.isRendered(this.getComponentId());
     }
 }
 module.exports = Button;

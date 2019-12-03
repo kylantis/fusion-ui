@@ -64,6 +64,7 @@ class Spinner extends BaseComponent {
             break;
         }
         node.append(mainDiv);
+        this.isRendered(this.getComponentId());
     }
 }
 
