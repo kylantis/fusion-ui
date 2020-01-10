@@ -86,6 +86,7 @@ class List extends BaseComponent {
 
     render() {
         const { node, data } = this;
+        const mainParent = document.createElement('kc-list');
         const uiDiv = document.createElement('div');
         uiDiv.className = 'ui list';
         uiDiv.setAttribute('id', this.getComponentId());
@@ -101,14 +102,20 @@ class List extends BaseComponent {
                         a.className = 'item';
                         a.textContent = element['@text'];
                         uiDiv.appendChild(a);
+                        mainParent.appendChild(uiDiv);
+                        node.append(mainParent);
+                        return;
                     }
                     if (data['@listOrientation'] === 'vertical') {
                         const div = document.createElement('div');
                         div.className = 'item';
                         div.textContent = element['@text'];
-                        uiDiv.appendChild(div);
+                        mainParent.appendChild(uiDiv);
+                        node.append(mainParent);
                     }
                 });
+                this.isRendered(this.getComponentId());
+                return;
             }
             if (data['@icon'] === 'bullet') {
                 const ul = document.createElement('ul');
@@ -123,7 +130,8 @@ class List extends BaseComponent {
                         this.traverse(element['>'], ulEl, 'li', 'ul');
                     }
                     ul.appendChild(li);
-                    node.appendChild(ul);
+                    mainParent.appendChild(ul);
+                    node.appendChild(mainParent);
                 });
             }
             this.isRendered(this.getComponentId());
@@ -142,7 +150,8 @@ class List extends BaseComponent {
                     this.traverse(element['>'], olEl, 'li', 'ol');
                 }
                 ol.appendChild(li);
-                node.appendChild(ol);
+                mainParent.appendChild(ol);
+                node.appendChild(mainParent);
             });
             this.isRendered(this.getComponentId());
             return;
@@ -185,7 +194,7 @@ class List extends BaseComponent {
                 uiDiv.appendChild(itemDiv);
             });
         }
-        if (data['@listType'] === 'tree view') {
+        if (data['@listType'] === 'treeView') {
             data['>'].forEach((element) => {
                 const itemDiv = document.createElement('div');
                 const iconDiv = document.createElement('i');
@@ -227,7 +236,8 @@ class List extends BaseComponent {
                 }
             });
         }
-        node.append(uiDiv);
+        mainParent.appendChild(uiDiv);
+        node.append(mainParent);
         this.isRendered(this.getComponentId());
     }
 }

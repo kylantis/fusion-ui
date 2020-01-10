@@ -38,6 +38,7 @@ class Label extends BaseComponent {
 
     render() {
         const { node } = this;
+        const mainParent = document.createElement('kc-label');
         let uiDiv;
         if (this.data['@labelType'] === 'horizontal') {
             uiDiv = document.createElement('a');
@@ -109,7 +110,8 @@ class Label extends BaseComponent {
 
         uiDiv.id = this.getComponentId();
         uiDiv.classList.add('label');
-        node.append(uiDiv);
+        mainParent.appendChild(uiDiv);
+        node.append(mainParent);
         this.isRendered(this.getComponentId());
     }
 }

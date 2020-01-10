@@ -6,11 +6,11 @@ class PhotoCam extends BaseComponent {
     componentId = this.getId();
 
     getCssDependencies() {
-        return super.getCssDependencies();
+        return [];
     }
 
     getJsDependencies() {
-        return super.getJsDependencies();
+        return [];
     }
 
     getComponentId() {
@@ -19,6 +19,7 @@ class PhotoCam extends BaseComponent {
 
     render() {
         const { node } = this;
+        const mainParent = document.createElement('kc-photo-camera');
         // Stream video via webcam
         const vidWrap = document.createElement('div');
         vidWrap.className = 'video-wrap';
@@ -42,9 +43,10 @@ class PhotoCam extends BaseComponent {
         canV.setAttribute('width', '400');
         canV.setAttribute('height', '300');
 
-        node.append(vidWrap);
-        node.append(contDiv);
-        node.append(canV);
+        mainParent.append(vidWrap);
+        mainParent.append(contDiv);
+        mainParent.append(canV);
+        node.append(mainParent);
 
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');

@@ -64,6 +64,7 @@ class Image extends BaseComponent {
 
     render() {
         const { node } = this;
+        const mainParent = document.createElement('kc-image');
         let uiDiv;
         if (this.data['@type'] === 'imageLink') {
             uiDiv = document.createElement('a');
@@ -134,11 +135,12 @@ class Image extends BaseComponent {
         if (this.data['@size']) {
             uiDiv.classList.add(this.data['@size']);
         }
+        mainParent.appendChild(uiDiv)
         uiDiv.id = this.getComponentId();
         const imageId = [];
         imageId.push(`#${uiDiv.getAttribute('id')}`);
         uiDiv.classList.add('image');
-        node.prepend(uiDiv);
+        node.prepend(mainParent);
         this.isRendered(this.getComponentId());
     }
 }

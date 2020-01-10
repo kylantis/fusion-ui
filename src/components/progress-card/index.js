@@ -6,7 +6,7 @@ class ProgressCard extends BaseComponent {
     componentId = this.getId();
 
     getCssDependencies() {
-        return super.getCssDependencies().concat(['/assets/css/progress.min.css', '/assets/css/card.min.css', '/assets/css/custom-progress-card.min.css']);
+        return super.getCssDependencies().concat(['/assets/css/progress.min.css', '/assets/css/custom-progress-card.min.css']);
     }
 
     getJsDependencies() {
@@ -20,11 +20,11 @@ class ProgressCard extends BaseComponent {
     invokeBehavior(behavior, data) {
         switch (behavior) {
         case 'increment':
-            $(`#${this.getComponentId()}`).progress('increment');
+            $(`#${this.getComponentId()}bar`).progress('increment');
             this.triggerEvent('increment', { increment: true }, this.data);
             break;
         case 'decrement':
-            $(`#${this.getComponentId()}`).progress('decrement');
+            $(`#${this.getComponentId()}bar`).progress('decrement');
             this.triggerEvent('decrement', { decrement: true }, this.data);
             break;
         case 'setPercent':
@@ -84,7 +84,7 @@ class ProgressCard extends BaseComponent {
 
     render() {
         const { node, data } = this;
-
+        const mainParent = document.createElement('kc-progress-card');
         const cardMain = document.createElement('div');
         cardMain.className = 'ui fluid card';
         cardMain.id = this.getComponentId();
@@ -106,8 +106,8 @@ class ProgressCard extends BaseComponent {
         progressMain.setAttribute('id', `${this.getComponentId()}bar`);
         progressMain.setAttribute('data-value', data['@data-value']);
         progressMain.setAttribute('data-total', data['@data-total']);
-
-        node.append(cardMain);
+        mainParent.appendChild(cardMain);
+        node.append(mainParent);
 
         $(`#${this.getComponentId()}bar`)
             .progress({

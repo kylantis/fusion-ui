@@ -14,9 +14,9 @@ class Modal extends BaseComponent {
             return super.getCssDependencies().concat(['/assets/css/modal.min.css', '/assets/css/dimmer.min.css', '/assets/css/transition.min.css', '/assets/css/custom-modal.min.css']);
         }
         if (this.data['@modalStyle'] === 'notification') {
-            return super.getCssDependencies().concat(['/assets/css/modal.min.css', '/assets/css/dimmer.min.css', '/assets/css/transition.min.css', '/assets/css/icon.min.css', '/assets/css/button.min.css']);
+            return super.getCssDependencies().concat(['/assets/css/modal.min.css', '/assets/css/dimmer.min.css', '/assets/css/transition.min.css', '/assets/css/icon.min.css', '/assets/css/button-labeled.min.css']);
         }
-        return super.getCssDependencies().concat(['/assets/css/modal.min.css', '/assets/css/dimmer.min.css', '/assets/css/transition.min.css', '/assets/css/icon.min.css', '/assets/css/button.min.css', '/assets/css/input.min.css', '/assets/css/form.min.css', '/assets/css/custom-modal.min.css']);
+        return super.getCssDependencies().concat(['/assets/css/modal.min.css', '/assets/css/dimmer.min.css', '/assets/css/transition.min.css', '/assets/css/icon.min.css', '/assets/css/button-labeled.min.css', '/assets/css/input.min.css', '/assets/css/form.min.css', '/assets/css/custom-modal.min.css']);
     }
 
     getJsDependencies() {

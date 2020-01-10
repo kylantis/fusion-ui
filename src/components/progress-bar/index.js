@@ -92,6 +92,7 @@ class ProgressBar extends BaseComponent {
     render() {
         const { node } = this;
         const jsonData = this.data;
+        const mainParent = document.createElement('kc-progress-bar');
         const uiDiv = document.createElement('div');
         const barDiv = document.createElement('div');
         const progressDiv = document.createElement('div');
@@ -121,7 +122,7 @@ class ProgressBar extends BaseComponent {
         if (jsonData['@percentText']) {
             const text = document.createElement('div');
             text.className = 'metabar';
-            node.prepend(text);
+            mainParent.prepend(text);
             text.textContent = `${jsonData['@data-value']}%`;
             $(progressDiv).remove();
             if (jsonData['@color']) {
@@ -139,7 +140,8 @@ class ProgressBar extends BaseComponent {
         uiDiv.setAttribute('data-value', jsonData['@data-value']);
         uiDiv.setAttribute('data-total', jsonData['@data-total']);
 
-        node.append(uiDiv);
+        mainParent.append(uiDiv);
+        node.append(mainParent);
         this.isRendered(this.getComponentId());
     }
 }

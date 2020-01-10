@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Comment</title>
+    <link rel="stylesheet" href="/assets/css/site.min.css">
+    <link rel="stylesheet" href="/assets/css/reset.min.css">
+    <link rel="stylesheet" href="/assets/css/comment.min.css">
+    <link rel="stylesheet" href="/assets/css/form.min.css">
+    <link rel="stylesheet" href="/assets/css/button.min.css">
+    <link rel="stylesheet" href="/assets/css/icon.min.css">
+    <link rel="stylesheet" href="/assets/css/modal.min.css">
+    <link rel="stylesheet" href="/assets/css/custom-comment.min.css">
+    <script src="/cdn/jquery-3.4.1.min.js"></script>
+</head>
+
+<body>
+    <div id="commentbox">
+        <div class="ui comments threaded" id="commentOne">
+            <h3 class="ui dividing header">Comments<div class="ui tiny modal" id="commentModal">
+                    <div class="header">Delete Comment?</div>
+                    <div class="content">Are you sure you want to delete the comment?</div>
+                    <div class="actions">
+                        <div class="ui black deny button">Decline</div>
+                        <div class="ui positive right labeled icon button">Approve<i class="checkmark icon"></i></div>
+                    </div>
+                </div>
+            </h3>
+            <div class="comment" id="10">
+                <a class="avatar"><img src="/assets/images/nan.jpg"></a>
+                <div class="content">
+                    <a class="author">Matt</a>
+                    <div class="metadata">
+                        <span class="date">5 days ago</span>
+                    </div>
+                    <div class="text">How artistic!</div>
+                    <div class="actions">
+                        <a class="delete">Reply</a>
+                        <a class="edit">Edit</a>
+                        <a>Delete</a>
+                    </div>
+                </div>
+            </div>
+            <div class="comment" id="11"><a class="avatar"><img src="/assets/images/nan.jpg"></a>
+                <div class="content"><a class="author">Elliot Fu</a>
+                    <div class="metadata">
+                        <span class="date">Yesterday at 12:30AM</span>
+                    </div>
+                    <div class="text">This has been very useful for my research. Thanks as well!</div>
+                    <div class="actions">
+                        <a class="delete">Reply</a>
+                        <a class="edit">Edit</a>
+                        <a>Delete</a>
+                    </div>
+                </div>
+                <div class="comments step">
+                    <div class="comment" id="111"><a class="avatar"><img src="/assets/images/tom.jpg"></a>
+                        <div class="content"><a class="author">Jenny Hess</a>
+                            <div class="metadata"><span class="date">2 hours ago</span></div>
+                            <div class="text">I re-tweeted this.</div>
+                            <div class="actions">
+                                <a class="delete">Reply</a>
+                                <a class="edit">Edit</a>
+                                <a>Delete</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="comment" id="122"><a class="avatar"><img src="/assets/images/tom.jpg"></a>
+                        <div class="content"><a class="author">Jenny Hess</a>
+                            <div class="metadata"><span class="date">3 hours ago</span></div>
+                            <div class="text">This has been very useful for my research. Thanks as well!</div>
+                            <div class="actions">
+                                <a class="delete">Reply</a>
+                                <a class="edit">Edit</a>
+                                <a>Delete</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="comment" id="12"><a class="avatar"><img src="/assets/images/nan.jpg"></a>
+                <div class="content"><a class="author">Joe Henderson</a>
+                    <div class="metadata"><span class="date">Just now</span></div>
+                    <div class="text">Dude, this is awesome. Thanks so much</div>
+                    <div class="actions">
+                        <a class="delete">Reply</a>
+                        <a class="edit">Edit</a>
+                        <a>Delete</a>
+                    </div>
+                </div>
+            </div>
+            <form class="ui reply form">
+                <div class="field"><textarea></textarea></div>
+                <div class="ui blue labeled submit icon button"><i class="icon edit"></i>Add Comment</div>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -19,14 +19,15 @@ class ProgressRound extends BaseComponent {
 
     render() {
         const { node, data } = this;
-
+        const mainParent = document.createElement('kc-progress-round');
         const mainDiv = document.createElement('div');
         const progress = this.appendNode(mainDiv, 'div', 'progress-bar round position');
         progress.id = data['@id'];
         progress.setAttribute('data-percent', data['@data-value']);
         progress.setAttribute('data-color', data['@data-color']);
-        node.append(mainDiv);
-        $('.progress-bar').loading();
+        mainParent.appendChild(mainDiv);
+        node.append(mainParent);
+        $(`#${data['@id']}`).loading();
         this.isRendered(this.getComponentId());
     }
 }

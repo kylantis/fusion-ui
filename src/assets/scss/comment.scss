@@ -1,5 +1,5 @@
-
-.ui {
+kc-comment {
+  .ui {
     &.comments {
       margin: 1.5em 0em;
       max-width: 650px;
@@ -42,7 +42,8 @@
           float: left;
           margin: 0.2em 0em 0em;
         }
-        img.avatar, .avatar img {
+        img.avatar,
+        .avatar img {
           display: block;
           margin: 0em auto;
           width: 100%;
@@ -100,7 +101,8 @@
             &:last-child {
               margin-right: 0em;
             }
-            &.active, &:hover {
+            &.active,
+            &:hover {
               color: rgba(0, 0, 0, 0.8);
             }
           }
@@ -122,7 +124,8 @@
       display: none;
     }
     &.comments .collapsed {
-      &.comments, &.comment {
+      &.comments,
+      &.comment {
         display: none;
       }
     }
@@ -173,3 +176,18 @@
       font-size: 1.71428571rem;
     }
   }
+}
+
+/********************************/
+// CUSTOM-COMMENT.SCSS
+/********************************/
+.ui .comments.threaded {
+	text-align: left;
+}
+.ui.form textarea:not([rows]) {
+	min-height: 3em;
+	max-height: 4em;
+}
+a {
+cursor: pointer;
+}

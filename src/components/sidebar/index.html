@@ -7,15 +7,17 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
 </head>
 
-<body>
+<body class="pushable">
     <div id="sidebar"></div>
+    <div class="pusher open"> Some text inside </div>
 
     <script>
         const jsonData = {
             "@id": "sidebarOne",
             "@title": "Sidebar",
-            "@orientation": "vertical",
-            "@direction": "right",
+            "@displayType": "itemListing",
+            "@orientation": "horizontal",
+            "@direction": "top",
             "@animation": "overlay",
             "@width": "wide",
             ">": [
@@ -40,6 +42,7 @@
         const userProfileJsonData = {
             "@id": "sidebarOne",
             "@title": "Sidebar",
+            "@displayType": "profileListing",
             "@orientation": "vertical",
             "@direction": "right",
             "@animation": "overlay",
@@ -57,8 +60,8 @@
         const propsJsonData = {
             "@id": "sidebarOne",
             "@title": "Sidebar",
-            "@orientation": "vertical",
-            "@direction": "right",
+            "@displayType": "propertyListing",
+            "@direction": "left",
             "@animation": "overlay",
             "@width": "wide",
             ">": [{

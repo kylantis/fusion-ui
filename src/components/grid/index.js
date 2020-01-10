@@ -148,11 +148,19 @@ class Grid extends BaseComponent {
                             const segment = document.createElement('div');
                             segment.className = 'segment';
                             div.appendChild(segment);
-                            BaseComponent.getComponent(element['@tagName'], element['@tagData'], segment);
+                            const comp = BaseComponent.getComponent(element['@tagName'], element['@tagData'], segment);
+                            comp.then((blob) => {
+                                const props = Object.getPrototypeOf(blob);
+                                console.log(props.getCssDependencies());
+                            }); // TODO find a way to make sure CSS files loaded by getComponent loads once
                             parent.appendChild(div);
                             return;
                         }
-                        BaseComponent.getComponent(element['@tagName'], element['@tagData'], div);
+                        const comp = BaseComponent.getComponent(element['@tagName'], element['@tagData'], div);
+                        comp.then((blob) => {
+                            const props = Object.getPrototypeOf(blob);
+                            console.log(props);
+                        });
                         parent.appendChild(div);
                     }
                 });
@@ -160,7 +168,6 @@ class Grid extends BaseComponent {
         }
         node.append(uiDiv);
         this.getRenderedComponents();
-        this.isRendered(this.getComponentId());
     }
 }
 module.exports = Grid;

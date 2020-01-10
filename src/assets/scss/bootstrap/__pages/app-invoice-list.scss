@@ -1,0 +1,178 @@
+
+// Core variables and mixins
+@import "../bootstrap/functions";
+@import "../bootstrap/mixins";
+@import "../bootstrap-extended/mixins";
+
+// Load variable overrides
+@import "../core/variables/variables";
+@import "../bootstrap/variables";
+
+// Overrides user variable
+@import "../core/variables/components-variables";
+@import '../plugins/tables/datatables';
+
+// Invoice List //
+.invoice-list-wrapper{
+  .dataTables_wrapper{
+    // data table top action
+    .top{
+      border: 1px solid $border-color;
+      background-color: $white;
+      border-top-left-radius: $border-radius;
+      border-top-right-radius: $border-radius;
+      // datatable search
+      .action-filters{
+        .dataTables_filter{
+          padding: 0 15px;
+          label{
+            width: 100%;
+            margin-bottom: 0;
+            position: relative;
+            font-family: boxicons!important;
+            line-height: 1;
+            font-size: 1rem;
+            // search icon
+            &::after{
+              position: absolute;
+              content: "\eb5b";
+              left: 20px;
+              top: 12px;
+            }
+            // search input
+            input{
+              width: 99%;
+              height: 38px;
+              font-family:$font-family-sans-serif;
+              padding-left: 2rem;
+              font-size: 1rem;
+              &::placeholder{
+                font-family:$font-family-sans-serif;
+                color: $gray-200;
+                font-size: 1rem;
+              }
+            }
+          }
+        }
+      }
+      // data table action button
+      .action-btns{
+        button{
+          padding:0.367rem 1.5rem;
+        }
+      }
+    }
+    // data table
+    .invoice-data-table{
+      background-color: $white;
+      border: 1px solid $border-color;
+      border-top: none;
+      border-bottom-left-radius: $border-radius;
+      border-bottom-right-radius: $border-radius;
+      border-collapse:separate !important;
+      border-spacing: 0;
+      thead{
+        th{
+          font-weight: normal;
+          font-size: .99rem;
+          // last child sorting arrow remove
+          &:last-child{
+            &::after,
+            &::before{
+              display: none;
+            }
+          }
+        }
+      }
+      // second td and th padding change
+      tr{
+        &:hover{
+          box-shadow: 0 0 6px 0 rgba($black, 0.12);
+        }
+        th:nth-child(2),
+        td:nth-child(2){
+          padding-left: 10px;
+        }
+        .invoice-action{
+          a{
+            color: #b3c0ce;
+          }
+        }
+        // for all td
+        td{
+          white-space: nowrap;
+        }
+       }
+      //  checkbox cell
+      .dt-checkboxes-cell{
+        width: 1px !important;
+        padding: 0 20px 3px 19px ;
+        &::after,
+        &::before{
+          display: none;
+        }
+        // checkbox customization
+       input{
+        width: 0;
+        position: relative;
+          &::before{
+            content: '';
+            height: 20px;
+            width: 20px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            border-radius: 4px;
+            background-color: $white;
+            border: 1px solid $border-color;
+          }
+          &::after{
+            content: ' ';
+            height: 20px;
+            width: 20px;
+            border: 1px solid $border-color;
+            position: absolute;
+            border-radius: 4px;
+            top: 0;
+            left: 0;
+            transition: 100ms ease-in-out;
+          }
+          &:checked{
+            &::after{
+              border-top-style: none;
+              border-right-style: none;
+              -ms-transform: rotate(-45deg);
+              transform: rotate(-45deg);
+              height: 0.4rem;
+              width: 0.8rem;
+              border-color: $primary;
+              border-radius: 0;
+              border-width: 2px;
+              top: 6px;
+              left: 4px;
+            }
+            &::before{
+              box-shadow: 0 0 6px 0 rgba(22, 22, 22, 0.2);
+            }
+          }
+        }
+      }
+      tbody{
+        .selected-row-bg{
+          background-color: #e7edf3;
+        }
+        .bullet-sm{
+          margin-right: .2rem;
+        }
+      }
+    }
+  }
+}
+
+@media screen and (max-width:596px){
+  // action btn
+ .action-btns{
+   margin-bottom: 1rem;
+   padding-left: 23px;
+ }
+}

@@ -7,7 +7,7 @@ class Accordion extends BaseComponent {
     componentId = this.getId();
 
     getCssDependencies() {
-        return super.getCssDependencies().concat(['/assets/css/accordion.min.css']);
+        return (['/assets/css/accordion.min.css']);
     }
 
     getJsDependencies() {
@@ -23,7 +23,7 @@ class Accordion extends BaseComponent {
     }
 
     getAccordionNode() {
-        return this.node.firstChild;
+        return document.getElementById(`${this.getComponentId()}`);
     }
 
     getComponentId() {
@@ -107,9 +107,10 @@ class Accordion extends BaseComponent {
     render() {
         const { node } = this;
         const accordionId = [];
-
+        const mainParent = document.createElement('kc-accordion');
         const uiDiv = document.createElement('div');
         uiDiv.className = 'ui fluid';
+        mainParent.appendChild(uiDiv);
 
         if (this.data['@displayStyle'] === 'styled') {
             uiDiv.classList.add('styled');
@@ -122,7 +123,7 @@ class Accordion extends BaseComponent {
             uiDiv.setAttribute('id', this.getComponentId());
             accordionId.push(`#${uiDiv.getAttribute('id')}`);
             uiDiv.classList.add('accordion');
-            node.append(uiDiv);
+            node.append(mainParent);
             $('.ui.accordion').accordion();
         }
         this.isRendered(this.getComponentId());

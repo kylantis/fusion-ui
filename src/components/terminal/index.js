@@ -10,7 +10,7 @@ class Terminal extends BaseComponent {
     }
 
     getJsDependencies() {
-        return (['/cdn/jquery-3.4.1.min.js', '/assets/js/jquery-terminal.min.js', '/assets/js/jquery-mousewheel.min.js']);
+        return (['/cdn/jquery-3.4.1.min.js', '/assets/js/jquery-terminal.min.js']);
     }
 
     getComponentId() {
@@ -21,10 +21,11 @@ class Terminal extends BaseComponent {
         const { node, data } = this;
 
         const mainDiv = document.createElement('div');
-        mainDiv.id = data['@id'];
+        mainDiv.id = 'terminalOne';
         node.append(mainDiv);
+        // jQuery(($, undefined) => {
 
-        $(mainDiv).terminal({
+        $('#terminalOne').terminal({
             add(a, b) {
                 this.echo(a + b);
             },
@@ -44,6 +45,7 @@ class Terminal extends BaseComponent {
             prompt: 'js> ',
         });
         this.isRendered(this.getComponentId());
+        // });
     }
 }
 

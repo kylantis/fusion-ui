@@ -7,7 +7,7 @@ class Tile extends BaseComponent {
     componentId = this.getId();
 
     getCssDependencies() {
-        return super.getCssDependencies().concat(['/assets/css/card.min.css', '/assets/css/icon.min.css', '/assets/css/button.min.css', '/assets/css/custom-tile.min.css']);
+        return (['/assets/css/tile-flat.min.css', '/assets/css/icon.min.css']);
     }
 
     getJsDependencies() {

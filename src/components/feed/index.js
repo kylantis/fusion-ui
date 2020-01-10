@@ -10,7 +10,7 @@ class Feed extends BaseComponent {
     idCounter = 0;
 
     getCssDependencies() {
-        return super.getCssDependencies().concat(['/assets/css/feed.min.css', '/assets/css/divider.min.css', '/assets/css/label.min.css', '/assets/css/icon.min.css', '/assets/css/custom-feed.min.css']);
+        return super.getCssDependencies().concat(['/assets/css/feed.min.css', '/assets/css/icon.min.css']);
     }
 
     getJsDependencies() {
@@ -204,12 +204,14 @@ class Feed extends BaseComponent {
     render() {
         const { node } = this;
         const { data } = this;
+        const mainParent = document.createElement('kc-feed');
         const uiDiv = document.createElement('div');
+        mainParent.appendChild(uiDiv);
         uiDiv.className = 'ui pushable feed';
         uiDiv.id = this.getComponentId();
         this.feedGenerator(uiDiv, data['>']);
         this.loadModal(node);
-        node.append(uiDiv);
+        node.append(mainParent);
         this.isRendered(this.getComponentId());
     }
 }
