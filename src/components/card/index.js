@@ -7,7 +7,8 @@ class Card extends BaseComponent {
     componentId = this.getId();
 
     getCssDependencies() {
-        return super.getCssDependencies().concat(['/assets/css/card.min.css', '/assets/css/grid.min.css', '/assets/css/segment.min.css', '/assets/css/dropdown.min.css', '/assets/css/icon.min.css', '/assets/css/transition.min.css', '/assets/css/dimmer.min.css', '/assets/css/custom-card.min.css', '/assets/css/custom-spinner.min.css']);
+        // return super.getCssDependencies().concat(['/assets/css/card.min.css', '/assets/css/grid.min.css', '/assets/css/segment.min.css', '/assets/css/dropdown.min.css', '/assets/css/icon.min.css', '/assets/css/transition.min.css', '/assets/css/dimmer.min.css', '/assets/css/custom-card.min.css', '/assets/css/custom-spinner.min.css']);
+        return super.getCssDependencies().concat(['/assets/css/card-card.min.css', '/assets/css/icon.min.css']);
     }
 
     getJsDependencies() {

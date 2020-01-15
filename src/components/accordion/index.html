@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" <head>
+<html lang="en">
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="X-UA-Compatible" content="ie=edge">
@@ -40,7 +41,7 @@
         const jsonData = {
             "@id": "accordionOne",
             "@title": "Sample",
-            "@displayStyle": "basic",
+            "@displayStyle": "styled",
             ">": [{
                 "@tag": "menu",
                 "@title": "What is a dog?",
@@ -76,7 +77,7 @@
 
         const accordionDiv = document.getElementById('accordion');
         let accordion = new Accordion(jsonData, document.querySelector("#accordion"))
-        setTimeout(() => accordion.addContent(appendData), 2500);
+        setTimeout(() => accordion.addContent(appendData), 1000);
 
         // Delete Content 
         // accordionDiv.addEventListener('dblclick', (event) => {

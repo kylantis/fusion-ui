@@ -21,6 +21,10 @@ class Spinner extends BaseComponent {
         $(id).remove();
     }
 
+    getComponentId() {
+        return this.componentId;
+    }
+
     render() {
         const { node } = this;
         const { data } = this;

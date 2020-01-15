@@ -40,7 +40,7 @@ class MegaMenu extends BaseComponent {
     render() {
         const { node } = this;
         const { data } = this;
-
+        const mainParent = document.createElement('kc-mega-menu');
         const headerDiv = document.createElement('header');
         headerDiv.id = 'top';
         headerDiv.className = 'wide-layout';
@@ -88,7 +88,8 @@ class MegaMenu extends BaseComponent {
                 }
             });
         }
-        node.append(headerDiv);
+        mainParent.appendChild(headerDiv);
+        node.append(mainParent);
         (jQuery)('.top-bar-section').megamenu(1200);
     }
 }

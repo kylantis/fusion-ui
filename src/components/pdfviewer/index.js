@@ -19,12 +19,14 @@ class Viewer extends BaseComponent {
 
     render() {
         const { node } = this;
+        const mainParent = document.createElement('kc-pdfviewer');
         const imgTag = document.createElement('img');
         imgTag.src = this.data['@pdfSrc'];
         imgTag.href = this.data['@pdfSrc'];
         imgTag.id = 'viewerFile';
         imgTag.className = 'pdfFile';
-        node.append(imgTag);
+        mainParent.appendChild(imgTag);
+        node.append(mainParent);
         $('.pdfFile').EZView();
     }
 }

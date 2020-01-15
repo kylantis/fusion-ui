@@ -7,8 +7,7 @@ class SearchBar extends BaseComponent {
     componentId = this.getId();
 
     getCssDependencies() {
-        return super.getCssDependencies().concat(['/assets/css/input.min.css', '/assets/css/search.min.css', '/assets/css/icon.min.css',
-            '/assets/css/custom-search.min.css']);
+        return (['/assets/css/icon.min.css', '/assets/css/custom-search.min.css']);
     }
 
     // getJsDependencies() {
@@ -16,7 +15,7 @@ class SearchBar extends BaseComponent {
     // }
 
     getJsDependencies() {
-        return super.getJsDependencies().concat(['/assets/js/search.min.js', '/assets/js/api.min.js', '/cdn/jqueryeasing.min.js']);
+        return super.getJsDependencies().concat(['/assets/js/search.min.js', '/cdn/jqueryeasing.min.js']);
     }
 
     invokeBehavior(behavior, data) {
@@ -84,6 +83,7 @@ class SearchBar extends BaseComponent {
     render() {
         const { node } = this;
         const jsonData = this.data;
+        const mainParent = document.createElement('kc-search-bar');
         const uiDiv = document.createElement('div');
         uiDiv.className = 'ui ';
         const inputTag = document.createElement('input');
@@ -120,7 +120,8 @@ class SearchBar extends BaseComponent {
         }
 
         uiDiv.classList.add('search');
-        node.append(uiDiv);
+        mainParent.appendChild(uiDiv);
+        node.append(mainParent);
 
         if (jsonData['>'] && jsonData['@autoComplete']) {
             let suggestData = jsonData['>'];

@@ -5,12 +5,13 @@ class Comment extends BaseComponent {
 
     componentId = this.getId();
 
-    #commentBox;
+    commentBox;
 
-    #result = '';
+    result = '';
 
     getCssDependencies() {
-        return super.getCssDependencies().concat(['/assets/css/comment.min.css', '/assets/css/form.min.css', '/assets/css/button.min.css', '/assets/css/icon.min.css', '/assets/css/custom-comment.min.css']);
+        // return super.getCssDependencies().concat(['/assets/css/comment.min.css', '/assets/css/form.min.css', '/assets/css/button-labeled.min.css', '/assets/css/icon.min.css', '/assets/css/custom-comment.min.css']);
+        return super.getCssDependencies().concat(['/assets/css/custom-comment.min.css', '/assets/css/icon.min.css']);
     }
 
     getJsDependencies() {
@@ -53,9 +54,7 @@ class Comment extends BaseComponent {
         return this.componentId;
     }
 
-    getBehavior() {
-        // console.log(this.invokeBehavior());
-    }
+    getBehavior() {}
 
     invokeBehavior(behavior, el, comment) {
         const parent = $(`#${this.getComponentId()}`);
@@ -162,6 +161,7 @@ class Comment extends BaseComponent {
         textArea.textContent = `@${userData} `;
         textArea.className = 'textBox focus';
         textArea.setAttribute('autofocus', 'autofocus');
+        textArea.setAttribute('rows', 3);
         fieldDiv.appendChild(textArea);
         const buttonDiv = document.createElement('div');
         form.appendChild(buttonDiv);
@@ -206,7 +206,6 @@ class Comment extends BaseComponent {
     }
 
     createPost(element) {
-        // console.log(element);
         const commentDiv = document.createElement('div');
         commentDiv.className = 'comment';
         if (element['@id']) {
@@ -278,7 +277,9 @@ class Comment extends BaseComponent {
 
     render() {
         const { node } = this;
+        const mainParent = document.createElement('kc-comment');
         const uiDiv = document.createElement('div');
+        mainParent.appendChild(uiDiv);
         uiDiv.className = 'ui comments';
         uiDiv.id = this.getComponentId();
         if (this.data['@threaded']) {
@@ -296,7 +297,7 @@ class Comment extends BaseComponent {
         // Load the dependencies of the modal component
         this.loadModal(titleDiv);
 
-        node.append(uiDiv);
+        node.append(mainParent);
         this.isRendered(this.getComponentId());
     }
 }

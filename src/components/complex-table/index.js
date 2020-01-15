@@ -15,11 +15,11 @@ class ComplexTable extends BaseComponent {
     }
 
     getCssDependencies() {
-        return super.getCssDependencies().concat(['/assets/css/table.min.css', '/assets/css/input.min.css', '/assets/css/menu.min.css']);
+        return super.getCssDependencies().concat(['/assets/css/complex-table.min.css']);
     }
 
     getJsDependencies() {
-        return super.getJsDependencies().concat();
+        return super.getJsDependencies();
     }
 
     getComponentId() {
@@ -169,12 +169,13 @@ class ComplexTable extends BaseComponent {
         const columnTitles = {};
 
         const tableId = [];
-
+        const mainParent = document.createElement('kc-complex-table');
         const table = document.createElement('table');
         const thead = document.createElement('thead');
         const tbody = document.createElement('tbody');
         table.className = 'ui selectable fixed compact';
         table.id = this.getComponentId();
+        mainParent.appendChild(table);
         // set Color
         if (jsonData['@color'].length > 0) {
             table.classList.add(jsonData['@color']);
@@ -217,7 +218,7 @@ class ComplexTable extends BaseComponent {
         tableId.push(`#${table.getAttribute('id')}`);
 
         this.loadModal(document.querySelector('body'));
-        node.appendChild(table);
+        node.appendChild(mainParent);
         this.isRendered(this.tagName());
     }
 }

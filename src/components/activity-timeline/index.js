@@ -10,7 +10,7 @@ class ActivityTimeline extends BaseComponent {
     }
 
     getCssDependencies() {
-        return super.getCssDependencies().concat(['/assets/css/custom-feed.min.css']);
+        return (['/assets/css/custom-activityfeed.min.css']);
     }
 
     getJsDependencies() {
@@ -54,13 +54,15 @@ class ActivityTimeline extends BaseComponent {
     render() {
         const { node } = this;
         const { data } = this;
+        const mainParent = document.createElement('kc-activity-timeline');
         const mainDiv = document.createElement('div');
+        mainParent.appendChild(mainDiv);
         mainDiv.id = this.getComponentId();
         const ulTag = document.createElement('ul');
         ulTag.className = 'activity-list activityListClass';
         this.createList(ulTag, data['>']);
         mainDiv.appendChild(ulTag);
-        node.append(mainDiv);
+        node.append(mainParent);
         this.isRendered(this.getComponentId());
     }
 }

@@ -1,0 +1,78 @@
+
+// Core variables and mixins
+@import "../bootstrap/functions";
+@import "../bootstrap/mixins";
+@import "../bootstrap-extended/mixins";
+
+// Load variable overrides
+@import "../core/variables/variables";
+@import "../bootstrap/variables";
+
+// Overrides user variable
+@import "../core/variables/components-variables";
+
+.invoice-view-wrapper{
+
+  .card {
+    // Prototype, remove if necessary
+    box-shadow: none;
+    margin-bottom: 0;
+  }
+  
+  // divider border style change
+  hr{
+    border-style: dashed;
+  }
+  // invoice address
+  .invoice-info{
+    .invoice-from,
+    .invoice-to{
+      margin-bottom: .8rem;
+    }
+  }
+  // Invoice Product details
+  .invoice-product-details{
+    .table{
+      th{
+        font-weight: 500;
+      }
+      th,
+      td{
+        padding: .75rem 2rem;
+      }
+    }
+  }
+  // invoice subtotal
+  .invoice-subtotal{
+    .invoice-calc{
+      margin: .2rem 0;
+      .invoice-title{
+        width: 171px;
+      }
+      .invoice-value{
+        color: $invoice-value-color;
+        margin-bottom: 0;
+      }
+    }
+  }
+// invoice action section
+  .invoice-action-wrapper{
+    background-color: $invoice-actions-bg;
+    .invoice-action-btn{
+      margin-bottom: 1.2rem;
+      // invoice send btn
+      .invoice-send-btn{
+        box-shadow: 0 2px 4px 0 rgba($primary, 0.6);
+      }
+    }
+  }
+}
+
+// to make invoice subtotal responsive
+@media screen and(max-width:1290px){
+  .invoice-view-wrapper{
+    .invoice-title{
+      width: auto !important;
+    }
+  }
+}

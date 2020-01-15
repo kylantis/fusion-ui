@@ -25,6 +25,7 @@ class NavBar extends BaseComponent {
 
     render() {
         const { node } = this;
+        const mainParent = document.createElement('kc-navbar');
         const uiDiv = document.createElement('div');
         uiDiv.setAttribute('id', `${this.getComponentId()}`);
         uiDiv.className = 'ui';
@@ -102,8 +103,9 @@ class NavBar extends BaseComponent {
             }
         }
         uiDiv.classList.add('menu');
-
-        node.append(uiDiv);
+        mainParent.appendChild(uiDiv);
+        node.append(mainParent);
+        this.isRendered(this.getComponentId());
 
         $(dropdownIds.join(','))
             .dropdown({
@@ -190,7 +192,6 @@ class NavBar extends BaseComponent {
         }
 
         parentNode.appendChild(menuDiv);
-        this.isRendered(this.getComponentId());
     }
 
     /**

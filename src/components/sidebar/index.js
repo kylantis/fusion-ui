@@ -10,11 +10,21 @@ class Sidebar extends BaseComponent {
     }
 
     getCssDependencies() {
-        return super.getCssDependencies().concat(['/assets/css/sidebar.min.css', '/assets/css/transition.min.css', '/assets/css/table.min.css', '/assets/css/image.min.css', '/assets/css/menu.min.css', '/assets/css/icon.min.css', '/assets/css/card.min.css', '/assets/css/tab.min.css', '/assets/css/custom-sidebar.min.css']);
+        if (this.data['@displayType'] === 'itemListing') {
+            return (['/assets/css/sidebar-item.min.css', '/assets/css/icon.min.css']);
+        }
+        if (this.data['@displayType'] === 'profileListing') {
+            return (['/assets/css/sidebar-profile.min.css', '/assets/css/icon.min.css']);
+        }
+        if (this.data['@displayType'] === 'propertyListing') {
+            return (['/assets/css/sidebar-props.min.css', '/assets/css/icon.min.css']);
+        }
+        return null;
     }
 
     getJsDependencies() {
-        return super.getJsDependencies().concat(['/assets/js/sidebar.min.js', '/assets/js/tab.min.js', '/assets/js/transition.min.js']);
+        return super.getJsDependencies().concat(['/assets/js/sidebar.min.js', '/assets/js/tab.min.js',
+            '/assets/js/transition.min.js']);
     }
 
     toggleSidebar() {
@@ -89,11 +99,11 @@ class Sidebar extends BaseComponent {
         contentDiv.appendChild(tabDiv);
         tabDiv.id = 'tabbedProps';
         tabDiv.className = 'ui pointing secondary top menu';
-        const detailTab = this.appendNode(tabDiv, 'a', 'detail item');
+        const detailTab = this.appendNode(tabDiv, 'a', 'detail item active');
         detailTab.textContent = 'Detail';
         detailTab.setAttribute('data-tab', 'detail');
         const detailContent = document.createElement('div');
-        detailContent.className = 'ui bottom attached tab segment';
+        detailContent.className = 'ui bottom attached tab segment active';
         detailContent.setAttribute('data-tab', 'detail');
         const imgContent = this.appendNode(detailContent, 'img', 'ui image fluid');
         imgContent.src = data['@imageUrl'];
@@ -149,6 +159,9 @@ class Sidebar extends BaseComponent {
         if (data['@orientation']) {
             uiDiv.classList.add(data['@orientation']);
         }
+        if (!data['@orientation']) {
+            uiDiv.classList.add('vertical');
+        }
         if (data['@width']) {
             uiDiv.className += ` ${data['@width']}`;
         }
@@ -163,7 +176,8 @@ class Sidebar extends BaseComponent {
                 }
             });
         }
-        setTimeout(() => {
+        const opener = document.querySelector('.open');
+        opener.addEventListener('click', () => {
             this.toggleSidebar();
         });
         uiDiv.classList.add('menu');

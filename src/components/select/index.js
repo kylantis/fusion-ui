@@ -142,7 +142,7 @@ class Select extends BaseComponent {
     render() {
         const { node } = this;
         const jsonData = this.data;
-
+        const mainParent = document.createElement('kc-select');
         const uiDiv = document.createElement('div');
         uiDiv.setAttribute('id', this.getComponentId());
 
@@ -194,7 +194,8 @@ class Select extends BaseComponent {
                 uiDiv.setAttribute('required', '');
             }
             uiDiv.classList.add('dropdown');
-            node.append(uiDiv);
+            mainParent.appendChild(uiDiv);
+            node.append(mainParent);
             $('#submit').click(() => {
                 console.log(this.getSelectedValue());
             });
@@ -227,7 +228,8 @@ class Select extends BaseComponent {
                     itemDiv.append(jsonData['>'][key]['@title']);
                     itemDiv.className = 'item';
                     menuDiv.append(itemDiv);
-                    node.append(uiDiv);
+                    mainParent.appendChild(uiDiv);
+                    node.append(mainParent);
                 }
                 $('#submit').click(() => {
                     console.log(this.getSelectedValue());
@@ -358,8 +360,8 @@ class Select extends BaseComponent {
                 console.log(this.getCheckedValue());
             });
         }
-
-        node.append(uiDiv);
+        mainParent.appendChild(uiDiv);
+        node.append(mainParent);
         try {
             $(`#${this.getComponentId()}`)
                 .dropdown();

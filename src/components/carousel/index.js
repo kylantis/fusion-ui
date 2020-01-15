@@ -6,7 +6,7 @@ class Carousel extends BaseComponent {
     componentId = this.getId();
 
     getCssDependencies() {
-        return super.getCssDependencies().concat(['/assets/css/carousel.min.css', '/assets/css/custom-carousel.min.css']);
+        return super.getCssDependencies().concat(['/assets/css/carousel.min.css']);
     }
 
     getJsDependencies() {

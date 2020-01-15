@@ -1,0 +1,139 @@
+form {
+  margin: 10px;
+}
+
+body .shell {
+  width: 400px;
+  height: 200px;
+
+  .terminal {
+    height: calc(100% - 29px);
+    padding: 10px;
+
+    /*
+       * padding bottom 0 on terminal and margin
+       * on .cmd will be in version 2.0.1
+       * that fixes FireFox issue
+       */
+    padding-bottom: 0;
+
+    .cmd {
+      margin-bottom: 10px;
+    }
+  }
+}
+
+.shell {
+  .typed-cursor,
+  .cursor {
+    background: transparent;
+  }
+
+  > .status-bar .title {
+    cursor: move;
+  }
+
+  &.windows .status-bar .title {
+    right: 106px;
+  }
+}
+
+/*
+   * fix to shell.js to center title to free space
+   */
+
+@supports (--css: variables) {
+  .shell {
+    .terminal {
+      --color: #aaa;
+    }
+
+    &.ubuntu .terminal {
+      --background: #300924;
+    }
+
+    &.osx .content.terminal {
+      --background: #222;
+    }
+
+    &.light .content.terminal {
+      --background: white;
+      --color: black;
+    }
+
+    &.windows .content.terminal {
+      --background: black;
+      --color: white;
+      --animation: terminal-underline;
+    }
+
+    &.custom .content.terminal {
+      --background: #292929;
+      --color: #aaa;
+    }
+  }
+
+  /*
+    * windows and custom are the last ones so
+    * they don't get overwritten by light
+    */
+}
+
+/*
+   * overwrite shell.js style because shell.js   
+   * selectors are stronger then terminal ones
+   */
+
+.cmd span.cursor {
+  animation: none;
+  width: auto;
+  background-color: var(--background, #000);
+}
+
+.shell {
+  terminal.content,
+  &.osx.dark .content,
+  &.ubuntu .content {
+    background-color: var(--background, #222) !important;
+  }
+
+  .terminal.content {
+    font-size: 12px;
+  }
+}
+
+.cmd {
+  background-color: inherit;
+}
+
+@supports (--css: variables) {
+  .shell .terminal.content {
+    font-size: calc(var(--size, 1) * 12px);
+  }
+}
+
+/* fix for Firefox */
+
+.terminal {
+  > {
+    .resizer,
+    .font .resizer {
+      visibility: visible;
+      pointer-events: none;
+    }
+  }
+
+  &::-webkit-scrollbar-track {
+    border: 1px solid var(--color, #aaa);
+    background-color: var(--background);
+  }
+
+  &::-webkit-scrollbar {
+    width: 10px;
+    background-color: var(--background);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--color, #aaa);
+  }
+}

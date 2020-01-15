@@ -20,13 +20,14 @@ class FileUpload extends BaseComponent {
     render() {
         const { node } = this;
         const { data } = this;
-
+        const mainParent = document.createElement('kc-file-upload');
         const form = document.createElement('form');
+        mainParent.appendChild(form);
         form.id = data['@id'];
         form.className = 'dropzone';
         form.action = data['@action'];
         form.method = 'post';
-        node.appendChild(form);
+        node.appendChild(mainParent);
         this.isRendered(this.getComponentId());
     }
 }

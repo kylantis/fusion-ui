@@ -7,6 +7,28 @@ class Button extends BaseComponent {
     componentId = this.getId();
 
     getCssDependencies() {
+        switch (this.data['@buttonStyle']) {
+        case 'basic' || '' || undefined:
+            return (['/assets/css/button-basic.min.css', '/assets/css/icon.min.css']);
+        case 'animated':
+            return (['/assets/css/button-animated.min.css', '/assets/css/icon.min.css']);
+        case 'labeled':
+            return (['/assets/css/button-labeled.min.css', '/assets/css/icon.min.css']);
+        case 'icon':
+            return (['/assets/css/button-icon.min.css', '/assets/css/icon.min.css']);
+        case 'disabled':
+            return (['/assets/css/button-disabled.min.css', '/assets/css/icon.min.css']);
+        case 'outline':
+            return (['/assets/css/button-outline.min.css', '/assets/css/icon.min.css']);
+        case 'circular':
+            return (['/assets/css/button-circular.min.css', '/assets/css/icon.min.css']);
+        case 'social':
+            return (['/assets/css/button-social.min.css', '/assets/css/icon.min.css']);
+        case 'attachd':
+            return (['/assets/css/button-attached.min.css', '/assets/css/icon.min.css']);
+        default:
+            break;
+        }
         return super.getCssDependencies().concat(['/assets/css/button.min.css', '/assets/css/icon.min.css']);
     }
 
@@ -36,7 +58,9 @@ class Button extends BaseComponent {
     render() {
         const { node } = this;
         const jsonData = this.data;
+        const mainParent = document.createElement('kc-button');
         const button = document.createElement('button');
+        mainParent.appendChild(button);
         const buttonId = [];
 
         if (jsonData['@buttonStyle'] === 'basic' || jsonData['@buttonStyle'].length === 0) {
@@ -48,12 +72,6 @@ class Button extends BaseComponent {
             }
             if (jsonData['@inverted']) {
                 button.classList.add('inverted');
-            }
-            if (jsonData['@fluid']) {
-                button.classList.add('fluid');
-            }
-            if (jsonData['@rounded']) {
-                button.style.borderRadius = '10rem';
             }
             if (jsonData['@position']) {
                 button.classList.add(jsonData['@position']);
@@ -123,6 +141,9 @@ class Button extends BaseComponent {
                 button.classList.add(jsonData['@position']);
                 button.classList.add('floated');
             }
+            if (jsonData['@inverted']) {
+                button.classList.add('inverted');
+            }
             button.appendChild(iTag);
             iTag.className = 'icon ';
             iTag.className += jsonData['@iconName'];
@@ -135,17 +156,22 @@ class Button extends BaseComponent {
                 button.classList.add(jsonData['@position']);
                 button.classList.add('floated');
             }
-            button.textContent = jsonData['@buttonText'];
+            const buttonText = jsonData['@buttonText'];
             if (jsonData['@color']) {
                 button.classList.add(jsonData['@color']);
                 button.className += ' button';
             }
-        } else if (jsonData['@buttonStyle'] === 'disabled') {
-            button.className = `ui disabled button ${jsonData['@size']}`;
             const iTag = document.createElement('i');
-            button.textContent = jsonData['@buttonText'];
+            iTag.className = `${jsonData['@iconName']} icon`;
             button.appendChild(iTag);
-            iTag.className = jsonData['@iconName'];
+            button.append(buttonText);
+        } else if (jsonData['@buttonStyle'] === 'disabled') {
+            button.className = `ui disabled ${jsonData['@size']} ${jsonData['@color']} button`;
+            const iTag = document.createElement('i');
+            const buttonText = jsonData['@buttonText'];
+            button.appendChild(iTag);
+            iTag.className = `${jsonData['@iconName']} icon`;
+            button.append(buttonText);
         } else if (jsonData['@buttonStyle'] === 'social') {
             button.className = `ui ${jsonData['@socialButton']}`;
             const iTag = document.createElement('i');
@@ -159,9 +185,13 @@ class Button extends BaseComponent {
             iTag.classList.add('icon');
             button.classList.add('button');
         } else if (jsonData['@buttonStyle'] === 'attached') {
+            mainParent.removeChild(button);
             const children = jsonData['>'];
             const groupButtons = document.createElement('div');
-            groupButtons.className = `${children.length} ui fluid buttons`;
+            const arrayOfNums = ['', 'one ', 'two ', 'three ', 'four ', 'five ', 'six ', 'seven ', 'eight ', 'nine ', 'ten ', 'eleven ', 'twelve '];
+            groupButtons.className = `ui ${arrayOfNums[children.length]}fluid buttons`;
+            mainParent.append(groupButtons);
+            console.log(mainParent);
             children.forEach((child) => {
                 const attbutton = document.createElement('button');
                 attbutton.className = 'ui button';
@@ -181,17 +211,22 @@ class Button extends BaseComponent {
                 });
                 groupButtons.append(attbutton);
             });
-            node.append(groupButtons);
+            node.append(mainParent);
             return;
         }
-
+        if (jsonData['@fluid']) {
+            button.classList.add('fluid');
+        }
+        if (jsonData['@rounded']) {
+            button.style.borderRadius = '10rem';
+        }
         button.setAttribute('id', this.getComponentId());
         buttonId.push(button.getAttribute('id'));
         $(button).click((e) => {
             e.preventDefault();
             this.click(this.data);
         });
-        node.append(button);
+        node.append(mainParent);
         this.isRendered(this.getComponentId());
     }
 }

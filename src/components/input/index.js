@@ -107,6 +107,7 @@ class Input extends BaseComponent {
 
     render() {
         const { node } = this;
+        const mainParent = document.createElement('kc-input');
         let uiDiv = document.createElement('div');
         const inputDiv = document.createElement('input');
         uiDiv.className = 'ui fluid ';
@@ -227,7 +228,8 @@ class Input extends BaseComponent {
         }
         inputDiv.id = this.getComponentId();
         inputId.push(`#${inputDiv.getAttribute('id')}`);
-        node.append(uiDiv);
+        mainParent.appendChild(uiDiv);
+        node.append(mainParent);
         this.isRendered(this.getComponentId());
     }
 }

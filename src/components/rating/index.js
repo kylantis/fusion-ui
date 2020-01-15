@@ -30,6 +30,7 @@ class Rating extends BaseComponent {
 
     render() {
         const { node } = this;
+        const mainParent = document.createElement('kc-rating');
         const uiDiv = document.createElement('div');
         uiDiv.setAttribute('id', this.getComponentId());
         uiDiv.className = 'ui';
@@ -49,7 +50,8 @@ class Rating extends BaseComponent {
         $(uiDiv).click('submit', (e) => {
             this.getRating(e);
         });
-        node.append(uiDiv);
+        mainParent.appendChild(uiDiv);
+        node.append(mainParent);
 
         $('.ui.rating')
             .rating({

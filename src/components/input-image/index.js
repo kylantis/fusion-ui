@@ -83,6 +83,7 @@ class InputImage extends BaseComponent {
     render() {
         const { node } = this;
         const imageId = [];
+        const mainParent = document.createElement('kc-input');
         const uiDiv = document.createElement('div');
         const inputDiv = document.createElement('input');
         const cropperDiv = document.createElement('div');
@@ -108,8 +109,8 @@ class InputImage extends BaseComponent {
         this.loadErrorModal(uiDiv);
         uiDiv.id = this.getComponentId();
         imageId.push(`#${uiDiv.getAttribute('id')}`);
-        node.append(uiDiv);
-        // eslint-disable-next-line consistent-return
+        mainParent.appendChild(uiDiv);
+        node.append(mainParent);
         $(inputDiv).on('change', () => {
             if (this.validateImage()) {
                 if (this.data['@cropper']) {

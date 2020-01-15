@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="/assets/css/clock.min.css">
+    <script src="/cdn/jquery-3.4.1.min.js"></script>
+</head>
+
+<body>
+    <ul id="clock">
+        <li id="sec" style="transform: rotate(354deg);"></li>
+        <li id="hour" style="transform: rotate(355.5deg);"></li>
+        <li id="min" style="transform: rotate(306deg);"></li>
+    </ul>
+</body>
+<script>
+    $(document).ready(() => {
+        setInterval(() => {
+            const seconds = new Date().getSeconds();
+            const sdegree = seconds * 6;
+            const srotate = `rotate(${sdegree}deg)`;
+
+            $('#sec').css({ '-moz-transform': srotate, '-webkit-transform': srotate });
+        }, 1000);
+
+
+        setInterval(() => {
+            const hours = new Date().getHours();
+            const mins = new Date().getMinutes();
+            const hdegree = hours * 30 + (mins / 2);
+            const hrotate = `rotate(${hdegree}deg)`;
+
+            $('#hour').css({ '-moz-transform': hrotate, '-webkit-transform': hrotate });
+        }, 1000);
+
+
+        setInterval(() => {
+            const mins = new Date().getMinutes();
+            const mdegree = mins * 6;
+            const mrotate = `rotate(${mdegree}deg)`;
+
+            $('#min').css({ '-moz-transform': mrotate, '-webkit-transform': mrotate });
+        }, 1000);
+    });
+</script>
+
+</html>

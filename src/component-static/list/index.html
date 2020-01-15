@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>List</title>
+    <link rel="stylesheet" href="/assets/css/site.min.css">
+    <link rel="stylesheet" href="/assets/css/reset.min.css">
+    <link rel="stylesheet" href="/assets/css/list.min.css">
+    <link rel="stylesheet" href="/assets/css/image.min.css">
+    <script src="/cdn/jquery-3.4.1.min.js"></script>
+</head>
+
+<body>
+    <!-- UNORDERED -->
+    <div id="list">
+        <ul id="listOne" class="ui list">
+            <li>Apple</li>
+            <li>Banana<ul>
+                    <li>Red Banana</li>
+                    <li>Yellow Banana<ul>
+                            <li>Red Banana</li>
+                            <li>Yellow Banana</li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+            <li>Orange<ul>
+                    <li>Red Orange</li>
+                    <li>Yellow Orange</li>
+                    <li>Green Orange</li>
+                </ul>
+            </li>
+            <li>Cashew</li>
+            <li>Mango</li>
+        </ul>
+    </div>
+    <br>
+    <br>
+    <!-- ORDERED LIST -->
+    <div id="list">
+        <ol id="listOne" class="ui list">
+            <li>Apple</li>
+            <li>Banana<ol>
+                    <li>Red Banana</li>
+                    <li>Yellow Banana<ol>
+                            <li>Red Banana</li>
+                            <li>Yellow Banana</li>
+                        </ol>
+                    </li>
+                </ol>
+            </li>
+            <li>Orange<ol>
+                    <li>Red Orange</li>
+                    <li>Yellow Orange</li>
+                    <li>Green Orange</li>
+                </ol>
+            </li>
+            <li>Cashew</li>
+            <li>Mango</li>
+        </ol>
+    </div>
+    <br>
+    <br>
+
+    <!-- ICON LIST -->
+    <div id="list">
+        <div class="ui list" id="listOne">
+            <div class="item" id="listOne-1"><i class="folder icon"></i>
+                <div class="content">Apple</div>
+            </div>
+            <div class="item" id="listOne-2"><i class="folder icon"></i>
+                <div class="content">Banana</div>
+            </div>
+            <div class="item" id="listOne-3"><i class="folder icon"></i>
+                <div class="content">Orange</div>
+            </div>
+            <div class="item" id="listOne-4"><i class="file icon"></i>
+                <div class="content">Cashew</div>
+            </div>
+            <div class="item" id="listOne-5"><i class="folder icon"></i>
+                <div class="content">Mango</div>
+            </div>
+        </div>
+    </div>
+    <br>
+    <br>
+
+    <!-- DIVIDED -->
+    <div id="list">
+        <div class="ui list relaxed divided" id="listOne">
+            <div class="item" id="listOne-1"><i class="large folder middle aligned icon"></i>
+                <div class="content"><a class="header">Apple</a>
+                    <div class="description">I ate it a few mins ago</div>
+                </div>
+            </div>
+            <div class="item" id="listOne-2"><i class="large folder middle aligned icon"></i>
+                <div class="content"><a class="header">Banana</a>
+                    <div class="description">I ate it 10 mins ago</div>
+                </div>
+            </div>
+            <div class="item" id="listOne-3"><i class="large folder middle aligned icon"></i>
+                <div class="content"><a class="header">Orange</a>
+                    <div class="description">I ate it 20 mins ago</div>
+                </div>
+            </div>
+            <div class="item" id="listOne-4"><i class="large file middle aligned icon"></i>
+                <div class="content"><a class="header">Cashew</a>
+                    <div class="description">I ate it 30 mins ago</div>
+                </div>
+            </div>
+            <div class="item" id="listOne-5"><i class="large folder middle aligned icon"></i>
+                <div class="content"><a class="header">Mango</a>
+                    <div class="description">I ate it an hour ago</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <br>
+    <br>
+
+    <!-- TREE VIEW -->
+    <div id="list">
+        <div class="ui list" id="listOne">
+            <div class="item" id="listOne-1"><i class="folder icon"></i>
+                <div class="content">
+                    <div class="header">Apple</div>
+                    <div class="description">I ate it a few mins ago</div>
+                </div>
+            </div>
+            <div class="item" id="listOne-2"><i class="folder icon"></i>
+                <div class="content">
+                    <div class="header">Banana</div>
+                    <div class="description">I ate it 10 mins ago</div>
+                    <div class="list">
+                        <div class="item" id="listOne-21"><i class="user icon"></i>
+                            <div class="content">
+                                <div class="header">Red Banana</div>
+                                <div class="description">I ate it a few mins ago</div>
+                            </div>
+                        </div>
+                        <div class="item" id="listOne-22"><i class="file icon"></i>
+                            <div class="content">
+                                <div class="header">Yellow Banana</div>
+                                <div class="description">I ate it a few mins ago</div>
+                                <div class="list">
+                                    <div class="item" id="listOne-221"><i class="file icon"></i>
+                                        <div class="content">
+                                            <div class="header">Red Banana</div>
+                                            <div class="description">I ate it 2 mins ago</div>
+                                        </div>
+                                    </div>
+                                    <div class="item" id="listOne-222"><i class="file icon"></i>
+                                        <div class="content">
+                                            <div class="header">Yellow Banana</div>
+                                            <div class="description">I ate it 3 mins ago</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="item" id="listOne-3"><i class="folder icon"></i>
+                <div class="content">
+                    <div class="header">Orange</div>
+                    <div class="description">I ate it 20 mins ago</div>
+                    <div class="list">
+                        <div class="item" id="listOne-31"><i class="file icon"></i>
+                            <div class="content">
+                                <div class="header">Red Orange</div>
+                                <div class="description">I ate it a few mins ago</div>
+                            </div>
+                        </div>
+                        <div class="item" id="listOne-32"><i class="file icon"></i>
+                            <div class="content">
+                                <div class="header">Yellow Orange</div>
+                                <div class="description">I ate it a few mins ago</div>
+                            </div>
+                        </div>
+                        <div class="item" id="listOne-33"><i class="file icon"></i>
+                            <div class="content">
+                                <div class="header">Green Orange</div>
+                                <div class="description">I ate it a few mins ago</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="item" id="listOne-4"><i class="file icon"></i>
+                <div class="content">
+                    <div class="header">Cashew</div>
+                    <div class="description">I ate it 30 mins ago</div>
+                </div>
+            </div>
+            <div class="item" id="listOne-5"><i class="folder icon"></i>
+                <div class="content">
+                    <div class="header">Mango</div>
+                    <div class="description">I ate it an hour ago</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <br>
+    <br>
+
+    <!-- IMAGE LIST -->
+    <div id="list">
+        <div class="ui list celled" id="listOne">
+            <div class="item"><img class="ui avatar image" src="/assets/images/kiwi.svg">
+                <div class="content"><a class="header">Apple</a>
+                    <div class="description">I ate it a few mins ago</div>
+                </div>
+            </div>
+            <div class="item"><img class="ui avatar image" src="/assets/images/nan.jpg">
+                <div class="content"><a class="header">Banana</a>
+                    <div class="description">I ate it 10 mins ago</div>
+                </div>
+            </div>
+            <div class="item"><img class="ui avatar image" src="/assets/images/tom.jpg">
+                <div class="content"><a class="header">Orange</a>
+                    <div class="description">I ate it 20 mins ago</div>
+                </div>
+            </div>
+            <div class="item"><img class="ui avatar image" src="/assets/images/kiwi.svg">
+                <div class="content"><a class="header">Cashew</a>
+                    <div class="description">I ate it 30 mins ago</div>
+                </div>
+            </div>
+            <div class="item"><img class="ui avatar image" src="/assets/images/nan.jpg">
+                <div class="content"><a class="header">Mango</a>
+                    <div class="description">I ate it an hour ago</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

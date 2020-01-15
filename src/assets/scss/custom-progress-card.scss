@@ -1,53 +1,163 @@
-.ui.card .meta.custompcmeta {
-    text-align: right;
-    font-size: 2em;
-    padding: 0.3em 0em;
-    font-weight: bold;
+kc-progress-card, .ui {
+  .ui {
+    &.card {
+      max-width: 100%;
+      position: relative;
+      display: -webkit-box;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-box-orient: vertical;
+      -webkit-box-direction: normal;
+      -ms-flex-direction: column;
+      flex-direction: column;
+      width: 290px;
+      min-height: 0px;
+      background: #ffffff;
+      padding: 0em;
+      border: none;
+      border-radius: 0.28571429rem;
+      -webkit-box-shadow: 0px 1px 3px 0px #d4d4d5, 0px 0px 0px 1px #d4d4d5;
+      box-shadow: 0px 1px 3px 0px #d4d4d5, 0px 0px 0px 1px #d4d4d5;
+      -webkit-transition: -webkit-box-shadow 0.1s ease, -webkit-transform 0.1s ease;
+      transition: -webkit-box-shadow 0.1s ease, -webkit-transform 0.1s ease;
+      transition: box-shadow 0.1s ease, transform 0.1s ease;
+      transition: box-shadow 0.1s ease, transform 0.1s ease, -webkit-box-shadow 0.1s ease, -webkit-transform 0.1s ease;
+      z-index: "";
+      margin: 1em 0em;
+    }
+    &.cards > .card a {
+      cursor: pointer;
+    }
+    &.card {
+      a {
+        cursor: pointer;
+      }
+      .meta.custompcmeta {
+        text-align: right;
+        font-size: 2em;
+        padding: 0.3em 0em;
+        font-weight: bold;
+      }
+      &:first-child {
+        margin-top: 0em;
+      }
+      &:last-child {
+        margin-bottom: 0em;
+      }
+    }
+    &.card:after {
+      display: block;
+      content: " ";
+      height: 0px;
+      clear: both;
+      overflow: hidden;
+      visibility: hidden;
+    }
+    &.card > :first-child {
+      border-radius: 0.28571429rem 0.28571429rem 0em 0em !important;
+      border-top: none !important;
+    }
+    &.cards > .card > :last-child,
+    &.card > :last-child {
+      border-radius: 0em 0em 0.28571429rem 0.28571429rem !important;
+    }
+    &.cards > .card > :only-child,
+    &.card > :only-child {
+      border-radius: 0.28571429rem !important;
+    }
+    &.cards > .card > .content,
+    &.card > .content {
+      -webkit-box-flex: 1;
+      -ms-flex-positive: 1;
+      flex-grow: 1;
+      border: none;
+      border-top: 1px solid rgba(34, 36, 38, 0.1);
+      background: none;
+      margin: 0em;
+      padding: 1em 1em;
+      -webkit-box-shadow: none;
+      box-shadow: none;
+      font-size: 1em;
+      border-radius: 0em;
+    }
+    &.cards > .card > .content:after,
+    &.card > .content:after {
+      display: block;
+      content: " ";
+      height: 0px;
+      clear: both;
+      overflow: hidden;
+      visibility: hidden;
+    }
+    &.cards > .card > .content > .header,
+    &.card > .content > .header {
+      display: block;
+      margin: "";
+      font-family: "Lato", "Helvetica Neue", Arial, Helvetica, sans-serif;
+      color: rgba(0, 0, 0, 0.85);
+    }
+    &.cards > .card > .content > .header:not(.ui),
+    &.card > .content > .header:not(.ui) {
+      font-weight: bold;
+      font-size: 1.28571429em;
+      margin-top: -0.21425em;
+      line-height: 1.28571429em;
+    }
+    &.cards > .card .meta,
+    &.card .meta {
+      font-size: 1em;
+      color: rgba(0, 0, 0, 0.4);
+    }
+    &.fluid.card {
+      width: 100%;
+      max-width: 9999px;
+    }
+  }
 }
 
 .ui.progress > .label {
-    font-size: 1.3em;
-    color: #1B1C1D;
+  font-size: 1.3em;
+  color: #1b1c1d;
 }
 
 .content > .meta.custompcmeta {
-&.red {
-      color: #DB2828;
-    }
+  &.red {
+    color: #db2828;
+  }
   &.orange {
-      color: #F2711C;
+    color: #f2711c;
   }
   &.yellow {
-      color: #FBBD08;
-    }
+    color: #fbbd08;
+  }
   &.olive {
-      color: #B5CC18;
+    color: #b5cc18;
   }
   &.green {
-      color: #21BA45;
-    }
+    color: #21ba45;
+  }
   &.teal {
-      color: #00B5AD;
-    }
+    color: #00b5ad;
+  }
   &.blue {
-      color: #2185D0;
-    }
+    color: #2185d0;
+  }
   &.violet {
-      color: #6435C9;
-    }
+    color: #6435c9;
+  }
   &.purple {
-      color: #A333C8;
-    }
+    color: #a333c8;
+  }
   &.pink {
-      color: #E03997;
-    }
+    color: #e03997;
+  }
   &.brown {
-      color: #A5673F;
+    color: #a5673f;
   }
   &.grey {
-      color: #767676;
-    }
+    color: #767676;
+  }
   &.black {
-      color: #1B1C1D;
+    color: #1b1c1d;
   }
 }
