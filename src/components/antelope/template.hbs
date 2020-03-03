@@ -1,0 +1,9 @@
+{{!
+{"firstName":"Mr","lastName":"Antelope","parent":{"a":"hello"},"array":[1,2,3]}
+}}
+{{#each people}}
+    {{#with person}}
+        <span>Hello {{capitalize name 5 'Param A' true null undefined (inner-helper 'abc' (inner-helper2 'xyz')) hash1=val  }}</span>
+    {{/with}}
+{{/each}}
+

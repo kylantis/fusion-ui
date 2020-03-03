@@ -38,7 +38,7 @@ const renameConfig = {
 gulp.task('scripts', () => gulp.src('src/**/*.js')
   .pipe(babel())
   .pipe(uglify({
-    mangle: true,
+    mangle: false,
     compress: true,
   }).on('error', (msg) => {
     // eslint-disable-next-line no-console

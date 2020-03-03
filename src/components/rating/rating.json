@@ -1,9 +1,0 @@
-{
-    "@id": "",
-    "@title": "",
-    "@displayStyle": "heart | star | like",
-    "@data-value": "",
-    "@data-max-rating": "",
-    "@size": "small | medium | large | extra-large",
-    "@disabled": false
-}

@@ -7,23 +7,138 @@ class BaseComponent {
 
     static #clientStubs;
 
-    constructor(data, node, render = true) {
-        this.data = {
-            ...data,
-            id: data['@id'] || `${this.tagName()}-${this.getRandomInt()}`,
-        };
+    static arrayIndexTracker = {};
 
-        this.node = node || document.body;
+    constructor({ data, parent = document.body, render = true } = {}) {
+        this.data = {
+            ...data || this.getSampleInputData(),
+            id: `${this.tagName()}-${this.getRandomInt()}`,
+        };
+        this.parent = parent;
+
+        // Register in store
+        BaseComponent.getComponentStore().set(this.data.id, this.data);
 
         if (render) {
             this.loadDependencies().then(() => {
-                this.render();
+                Promise.all(this.getInitTasks()).then(() => { this.render(); });
             });
         }
     }
 
     getId() {
         return this.data.id;
+    }
+
+    getType() {
+        return -1;
+    }
+
+    /**
+     * A list of tasks to be executed after all js dependencies have loaded, but
+     * before DOM rendering begins.
+     * @returns {Promise[]}
+     */
+    getInitTasks() {
+        return [];
+    }
+
+    getName() {
+        return this.constructor.name.toLowerCase();
+    }
+
+    /**
+     * This returns the components store for the current page context
+     */
+    static getComponentStore() {
+        if (!window.componentStore) {
+            window.componentStore = new Map();
+        }
+        return window.componentStore;
+    }
+
+    static getDataPath({ fqPath, indexResolver }) {
+        const segments = fqPath.split('__');
+        const parts = [];
+
+        for (let i = 0; i < segments.length; i++) {
+            let part = segments[i];
+
+            if (part.endsWith('_$')) {
+                [part] = part.split('_$');
+
+                const arrayPath = parts.slice(0, i).concat([part]).join('__');
+
+                if (!indexResolver) {
+                    // eslint-disable-next-line no-param-reassign
+                    indexResolver = path => BaseComponent.arrayIndexTracker[path];
+                }
+
+                const index = indexResolver(arrayPath);
+                part += `[${index}]`;
+            }
+
+            parts.push(part);
+        }
+
+        const compId = parts[0];
+        const dataPath = parts.slice(1, parts.length).join('.');
+
+        return this.getComponentStore.get(compId)[dataPath];
+    }
+
+    static lookupDataStore({ fqPath }) {
+        const { compId, dataPath } = BaseComponent.getDataPath({ fqPath });
+        return this.getComponentStore.get(compId)[dataPath];
+    }
+
+    /**
+     * This should contain a sample component input data. This is typically used to:
+     * 1. Automatically render a template for demo purposes in the studio
+     * 2. It is used to determine mustache properties for which to configure a two-way data binding
+     * 3. For documentation and more importantly, code testing purposes
+     *
+     * Note: if any of the entries has an array value, at least one valid item
+     * should be represented in the array value
+     */
+    getSampleInputData() {
+        return {};
+    }
+
+    /**
+     * Get the list of procedures that respond to client events
+     */
+    getProcedures() {
+        return {};
+    }
+
+    // Sample helper
+    capitalize() {
+        return this.lastName.toUpperCase();
+    }
+
+    // Sample helper
+    toLowercase(str) {
+        return str.toLowerCase();
+    }
+
+    render() {
+        // eslint-disable-next-line no-undef
+        const helpers = $.extend({}, Handlebars.helpers, {
+            // Add custom helpers
+        });
+        this.transformedData = this.transformData();
+
+        const precompiledTemplate = window[`kclient_${this.getName()}_template`];
+
+        // eslint-disable-next-line no-undef
+        const template = Handlebars.template(precompiledTemplate);
+        const html = template(this.transformedData, { helpers });
+
+        const container = `<div id="${this.getId()}">${html}</div>`;
+        $(this.parent).append(container);
+
+        this.rendered();
     }
 
     static init() {
@@ -75,17 +190,27 @@ class BaseComponent {
         return ['/assets/css/site.min.css', '/assets/css/reset.min.css'];
     }
 
-    // getJsDependencies() {
-    //     return [
-    //         'https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js',
-    //         '/assets/js/site.min.js'];
-    // }
     getJsDependencies() {
-        return [
-            // 'https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js',
-            '/cdn/jquery-3.4.1.min.js',
+        const deps = [
+            'https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js',
+            // '/cdn/jquery-3.4.1.min.js',
             '/assets/js/site.min.js',
+            'https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js',
         ];
+
+        let templates = ['template'];
+        this.getPartialsNames().forEach((e) => {
+            templates.push(e);
+        });
+
+        templates = templates.map(name => `/components/${this.getName()}/${name}.min.js`);
+
+        // Add template and partials
+        templates.forEach((e) => {
+            deps.push(e);
+        });
+
+        return deps;
     }
 
     /**
@@ -250,6 +375,10 @@ class BaseComponent {
         return false;
     }
 
+    getRandomInt(min = Math.ceil(1000), max = Math.floor(2000000)) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
     /**
      * This writes data to the web socket, inorder to notify fusion
      * of a bubble
@@ -262,15 +391,17 @@ class BaseComponent {
 
     }
 
-    getRandomInt(min = Math.ceil(1000), max = Math.floor(2000000)) {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
+    static ABSTRACT_COMPONENT_TYPE = 1;
 
-    isRendered(tagname) {
-        console.log(tagname, 'loaded successfully');
-        return true;
-    }
+    static VISUAL_COMPONENT_TYPE = 2;
+
+    static ACTION_TYPE = 3;
+
+    static TEMPLATE_TYPE = 4;
+
+    static TRANSFORMER_TYPE = 5;
 }
+
 BaseComponent.loadedStyles = [];
 BaseComponent.loadedScripts = [];
 

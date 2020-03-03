@@ -6,9 +6,9 @@
 const gulp = require('gulp');
 const watch = require('gulp-watch');
 
-gulp.task('views', () => gulp.src(['src/**/*.html'])
+gulp.task('views', () => gulp.src('src/**/*.{html,hbs}')
   .pipe(gulp.dest('./dist/')));
 
 
-gulp.task('views:watch', () => watch('src/**/*.html', { ignoreInitial: false })
+gulp.task('views:watch', () => watch('src/**/*.{html,hbs}', { ignoreInitial: false })
   .pipe(gulp.dest('./dist/')));

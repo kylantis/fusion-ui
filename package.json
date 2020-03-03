@@ -25,6 +25,7 @@
     },
     "dependencies": {
         "browserify": "^16.5.0",
+        "esprima": "^4.0.1",
         "gulp": "^4.0.2",
         "gulp-babel": "^8.0.0",
         "gulp-imagemin": "^6.1.1",
@@ -34,10 +35,12 @@
         "gulp-uglify": "^3.0.2",
         "gulp-watch": "5.0.1",
         "gulplog": "^1.0.0",
+        "handlebars": "^4.7.2",
         "normalize-scss": "7.0.1",
         "require-dir": "^1.2.0",
         "restify": "^8.4.0",
         "run-sequence": "^2.2.1",
+        "through2": "^3.0.1",
         "vinyl-buffer": "^1.0.1",
         "vinyl-source-stream": "^2.0.0"
     },
