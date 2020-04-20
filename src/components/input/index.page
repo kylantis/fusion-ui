@@ -1,3 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<input title="" name="" value="" type="text | radio | checkbox | date | month | email | time | url | textarea | number | range | toggle | slider"
-        placeholder="" maxlength="" checked="true | false" autofocus="true | false" required="true | false" disabled="true | false" />  

@@ -1,0 +1,16 @@
+
+{{#each people}}
+    {{#with person}}
+        {{createPerson}}
+        My name is {{name}}
+        <span>Hello {{capitalize name 5 'Param A' true null undefined (sayHello 'Tonia' (getAge 1996) year=birthYear fakeAge = (getAge 1996)) sex=gender  }}</span>
+    {{/with}}
+{{/each}}
+
+{{#each users as |user userId|}}
+  {{#each user.book as |book bookId|}}
+    User Id: {{user}}
+    {{!-- Book Id: {{bookId}} Book Name: {{book}} --}}
+  {{/each}}
+{{/each}}
+

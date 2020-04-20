@@ -1,0 +1,14 @@
+{
+    "people": [{
+        "person": {
+            "name": "Anthony",
+            "gender": "male",
+            "birthYear": 1996
+        }
+    }],
+    "users": [
+        {
+            "book": ["Angels and Demons", "The Red man"]
+        }
+    ]
+}

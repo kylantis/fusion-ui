@@ -1,4 +1,3 @@
-// import { formatResultsErrors } from 'jest-message-util';
 
 class BaseComponent {
     static #initialized = false;
@@ -7,23 +6,168 @@ class BaseComponent {
 
     static #clientStubs;
 
-    constructor(data, node, render = true) {
-        this.data = {
-            ...data,
-            id: data['@id'] || `${this.tagName()}-${this.getRandomInt()}`,
-        };
+    static arrayIndexTracker = {};
 
-        this.node = node || document.body;
+    constructor({
+        input, parent = document.body, render = true,
+    } = {}) {
+        this.id = `${this.getName()}-${this.getRandomInt()}`;
+        this.parent = parent;
 
+        BaseComponent.getComponentStore().set(this.id, {
+            input,
+        });
+
+        // Render, if applicable
         if (render) {
-            this.loadDependencies().then(() => {
-                this.render();
-            });
+            this.loadDependencies()
+                .then(() => Promise.all(this.init()))
+                .then(() => this.render());
         }
     }
 
+    deepExtend() {
+        // Variables
+        const extended = {};
+        let deep = false;
+        let i = 0;
+        const { length } = arguments;
+
+        // Check if a deep merge
+        if (Object.prototype.toString.call(arguments[0]) === '[object Boolean]') {
+            deep = arguments[0];
+            i++;
+        }
+
+        // Merge the object into the extended object
+        const merge = function (obj) {
+            for (const prop in obj) {
+                if (Object.prototype.hasOwnProperty.call(obj, prop)) {
+                    // If deep merge and property is an object, merge properties
+                    if (deep && Object.prototype.toString.call(obj[prop]) === '[object Object]') {
+                        extended[prop] = extend(true, extended[prop], obj[prop]);
+                    } else {
+                        extended[prop] = obj[prop];
+                    }
+                }
+            }
+        };
+
+        // Loop through each object and conduct a merge
+        for (; i < length; i++) {
+            const obj = arguments[i];
+            merge(obj);
+        }
+
+        return extended;
+    }
+
     getId() {
-        return this.data.id;
+        return this.id;
+    }
+
+    getName() {
+        try {
+            return this.getSyntheticMethod('name')();
+        } catch (e) {
+            // This likely happened during pre-compiled time
+            // when the synthetic method have not been emmited yet
+            return this.constructor.name.toLowerCase();
+        }
+    }
+
+    getHelpers() {
+        return this.getSyntheticMethod('helpers')();
+    }
+
+    /**
+     * A list of tasks to be executed after all js dependencies have loaded, but
+     * before DOM rendering begins.
+     * For example, if the user wants
+     * @returns {Promise[]}
+     */
+    init() {
+        return [];
+    }
+
+    /**
+     * This returns the components store for the current page context
+     */
+    static getComponentStore() {
+        if (!window.componentStore) {
+            window.componentStore = new Map();
+        }
+        return window.componentStore;
+    }
+
+    getDataPath({ fqPath, indexResolver }) {
+        if (!indexResolver) {
+            // eslint-disable-next-line no-param-reassign
+            indexResolver = path => BaseComponent.arrayIndexTracker[path];
+        }
+
+        const segments = fqPath.split('__');
+        const parts = [];
+
+        for (let i = 0; i < segments.length; i++) {
+            let part = segments[i];
+
+            if (part.endsWith('_$')) {
+                [part] = part.split('_$');
+
+                const arrayPath = parts.slice(0, i).concat([part]).join('.');
+                const array = this.lookupDataStore0({
+                    path: arrayPath,
+                });
+
+                if (array && array instanceof Array) {
+                    const index = indexResolver(arrayPath);
+                    part += `[${index}]`;
+                } else {
+                    throw new Error(`Unknown array path: ${arrayPath}`);
+                }
+            }
+
+            parts.push(part);
+        }
+
+        return parts.join('.');
+    }
+
+    lookupDataStore({ fqPath, indexResolver }) {
+        const path = this.getDataPath({ fqPath, indexResolver });
+        return this.lookupDataStore0({ path });
+    }
+
+    lookupDataStore0({ path }) {
+        // eslint-disable-next-line no-eval
+        return eval(`BaseComponent.getComponentStore()
+            .get(this.id).input.${path}`);
+    }
+
+    render() {
+        const componentHelpers = {};
+
+        for (const helperName of this.getHelpers()) {
+            componentHelpers[helperName] = this[helperName];
+        }
+
+        // eslint-disable-next-line no-undef
+        const helpers = this.deepExtend({}, Handlebars.helpers, componentHelpers);
+
+        window.customHelpers = helpers;
+
+        const precompiledTemplate = window[`kclient_${this.getName()}_template`];
+
+        const inputData = BaseComponent.getComponentStore().get(this.id).input;
+
+        // eslint-disable-next-line no-undef
+        const template = Handlebars.template(precompiledTemplate);
+
+        const html = template(inputData, { helpers });
+
+        const container = `<div id="${this.getId()}">${html}</div>`;
+        $(this.parent).append(container);
     }
 
     static init() {
@@ -75,16 +219,12 @@ class BaseComponent {
         return ['/assets/css/site.min.css', '/assets/css/reset.min.css'];
     }
 
-    // getJsDependencies() {
-    //     return [
-    //         'https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js',
-    //         '/assets/js/site.min.js'];
-    // }
     getJsDependencies() {
         return [
-            // 'https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js',
-            '/cdn/jquery-3.4.1.min.js',
+            'https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js',
             '/assets/js/site.min.js',
+            'https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js',
+            `/components/${this.getName()}/template.min.js`,
         ];
     }
 
@@ -165,6 +305,20 @@ class BaseComponent {
         return BaseComponent.loadJS(this.getJsDependencies());
     }
 
+    static load(url) {
+        return new Promise((resolve, reject) => {
+            const oReq = new XMLHttpRequest();
+            oReq.onload = () => {
+                resolve(oReq.response);
+            };
+            oReq.onerror = () => {
+                reject(new Error(`Could not load ${url}`));
+            };
+            oReq.open('GET', url);
+            oReq.send();
+        });
+    }
+
     static loadJS(scriptList, timeout = 5000) {
         // eslint-disable-next-line consistent-return
         return new Promise((resolve, reject) => {
@@ -182,15 +336,13 @@ class BaseComponent {
                 return resolve([]);
             }
 
-            console.log(`${scripts.map(script => script.url)}`);
-
             for (const elem of scripts) {
                 const script = document.createElement('script');
                 script.src = elem.url;
                 script.type = 'text/javascript';
                 script.async = false;
                 // eslint-disable-next-line func-names
-                script.onload = function () {
+                script.onload = function (yy) {
                     loaded.push(this.src);
                     BaseComponent.loadedScripts.push(this.src);
                     if (elem.onload) {
@@ -214,10 +366,6 @@ class BaseComponent {
         });
     }
 
-    static registerServices(services) {
-        console.log(services);
-    }
-
     appendNode(parent, tag, classNames) {
         const elem = document.createElement(tag);
         if (classNames) {
@@ -229,51 +377,44 @@ class BaseComponent {
         return elem;
     }
 
-    generateComponentId() {
-        return `${this.data['@title']}-${this.getRandomInt()}`;
-    }
-
-    triggerEvent(eventName, eventData, componentData) {
-        if (componentData.hasServerCallback) {
-            // Why return?
-            return this.triggerFusionCallback(eventName, eventData);
-        }
-
-        const { clientCallbacks } = componentData;
-
-        if (clientCallbacks && clientCallbacks[eventName]) {
-            // Call client-side hook
-            // Why return?
-            return clientCallbacks[eventName](eventData);
-        }
-        console.log(eventName, eventData, componentData);
-        return false;
-    }
-
-    /**
-     * This writes data to the web socket, inorder to notify fusion
-     * of a bubble
-     *
-     * @param {String} callbackName
-     * @param {Object} callbackData
-     */
-    // eslint-disable-next-line no-unused-vars
-    triggerFusionCallback(callbackName, callbackData) {
-
-    }
-
     getRandomInt(min = Math.ceil(1000), max = Math.floor(2000000)) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
-    isRendered(tagname) {
-        console.log(tagname, 'loaded successfully');
-        return true;
+    flattenJson(data) {
+        const result = {};
+        function recurse(cur, prop) {
+            if (Object(cur) !== cur) {
+                result[prop] = cur;
+            } else if (Array.isArray(cur)) {
+                const l = cur.length;
+                for (let i = 0; i < l; i++) recurse(cur[i], prop ? `${prop}.${i}` : `${i}`);
+                if (l === 0) result[prop] = [];
+            } else {
+                let isEmpty = true;
+                for (const p in cur) {
+                    if (Object.prototype.hasOwnProperty.call(cur, p)) {
+                        isEmpty = false;
+                        recurse(cur[p], prop ? `${prop}.${p}` : p);
+                    }
+                }
+                if (isEmpty) result[prop] = {};
+            }
+        }
+        recurse(data, '');
+        return result;
+    }
+
+    getSyntheticMethod(name) {
+        return this[`s$_${name}`];
     }
 }
+
 BaseComponent.loadedStyles = [];
 BaseComponent.loadedScripts = [];
 
 if (window.Event) {
     BaseComponent.init();
 }
+
+module.exports = BaseComponent;

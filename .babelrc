@@ -5,28 +5,28 @@
             {
                 "corejs": {
                     "version": 3,
-                    "proposals": true,
+                    "proposals": true
                 },
                 "useBuiltIns": "false",
-                // "targets": {
-                //   "browsers": ["last 2 versions"],
-                // },
-                "debug": false,
+                "targets": {
+                  "browsers": ["last 2 versions"]
+                },
+                "debug": false
             }
-        ],
+        ]
     ],
     "plugins": [
         [
             "@babel/plugin-proposal-private-methods",
             {
-                "loose": false,
+                "loose": false
             }
         ],
         [
             "@babel/plugin-proposal-class-properties",
             {
-                "loose": false,
-            },
-        ],
-    ],
+                "loose": false
+            }
+        ]
+    ]
 }

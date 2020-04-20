@@ -1,3 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<progressbar title="" value="" label="" size="small | standard | large" content="bar | progress" color=""
-            animated="true | false" state="active | success | error | warning" type="standard | indicating" /> 
