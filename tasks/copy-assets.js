@@ -6,9 +6,9 @@
 const gulp = require('gulp');
 const watch = require('gulp-watch');
 
-gulp.task('views', () => gulp.src('src/**/*.{html,hbs}')
+gulp.task('copy-assets', () => gulp.src('src/**/*.json')
   .pipe(gulp.dest('./dist/')));
 
 
-gulp.task('views:watch', () => watch('src/**/*.{html,hbs}', { ignoreInitial: false })
+gulp.task('copy-assets:watch', () => watch('src/**/*.json', { ignoreInitial: false })
   .pipe(gulp.dest('./dist/')));

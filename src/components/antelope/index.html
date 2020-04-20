@@ -12,7 +12,13 @@
     <script src="/components/base.min.js"></script>
     <script src="/components/antelope/index.min.js"></script>
     <script>
-        new Antelope({})
+         await BaseComponent.loadJS([`/components/antelope/sample.json`])
+            .then((data) => {
+                new Antelope({
+                    input: JSON.parse(data),
+                })
+            });
+        
     </script>
 </body>
 

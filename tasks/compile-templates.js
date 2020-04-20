@@ -10,9 +10,9 @@ const TemplateReader = require('../lib/template-reader');
 // eslint-disable-next-line func-names
 const gulpTransform = function () {
   return through.obj((vinylFile, _encoding, callback) => {
-    const transformedFile = vinylFile.clone();
+    const hbsFile = vinylFile.clone();
 
-    const dir = path.dirname(transformedFile.path);
+    const dir = path.dirname(hbsFile.path);
     const templatePath = `${dir}/template.hbs`;
 
     const componentName = path.relative(path.dirname(dir), dir);
@@ -23,28 +23,29 @@ const gulpTransform = function () {
 
     TemplateReader.reset();
 
-    const rendered = new TemplateProcessor({
+    const processor = new TemplateProcessor({
       templatePath,
-      ast: handlebars.parseWithoutProcessing(content),
+      componentName,
+      ast: handlebars.parse(content),
       registerDynamicDataHelpers: true,
-    }).process();
+    });
 
-    // eslint-disable-next-line no-console
-    console.log('\n');
+    const compiled = handlebars.precompile(processor.ast);
 
-    const output = `window.kclient_${componentName}_template=${rendered}`;
+    const output = `window.kclient_${componentName}_template=${compiled}`;
 
-    transformedFile.basename = 'template.min.js';
+    hbsFile.basename = 'template.min.js';
     // eslint-disable-next-line no-buffer-constructor
-    transformedFile.contents = Buffer.from(output);
+    hbsFile.contents = Buffer.from(output);
 
-    callback(null, transformedFile);
+    callback(null, hbsFile);
   });
 };
 
-gulp.task('compile-templates', () => gulp.src('src/components/**/template.hbs')
-  .pipe(gulpTransform())
-  .pipe(gulp.dest('./dist/components')));
+gulp.task('compile-templates',
+  () => gulp.src('src/components/**/template.hbs')
+    .pipe(gulpTransform())
+    .pipe(gulp.dest('./dist/components')));
 
 
 gulp.task('compile-templates-all:watch', () => watch('src/components/**/*.hbs', { ignoreInitial: true })

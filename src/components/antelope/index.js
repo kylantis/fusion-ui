@@ -1,9 +1,4 @@
 class Antelope extends BaseComponent {
-    getInitTasks() {
-        // If you are using non-basic partial declarations in your template, you can
-        // register them here
-        // i.e. return ['title'].map(e => this.registerNonBasicPartials(e));
-    }
 
     getType() {
         return BaseComponent.VISUAL_COMPONENT_TYPE;
@@ -14,7 +9,7 @@ class Antelope extends BaseComponent {
     }
 
     capitalize(name) {
-        const c = 'Hi';
+        const c = 'Hello';
         return this.tagName(c);
     }
 
@@ -22,19 +17,19 @@ class Antelope extends BaseComponent {
         return this.id;
     }
 
-    // eslint-disable-next-line no-unused-vars
-    invokeBehavior(behavior, data) {
+    sayHello(name, age) {
+        return `Hello ${name}. You are ${age} years old`;
     }
 
-    transformData() {
-        // Do transformations here
+    /**
+     * Synthetic Method
+     */
+    getAge(year) {
+        return 2020 - year;
+    }
 
-        return {
-            ...this.data,
+    createPerson() {
 
-            // Add extra data here that goes into the template
-            // Also, for all Json Data, stop using @ for attributes
-        };
     }
 }
 
