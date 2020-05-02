@@ -1,14 +1,50 @@
 {
-    "people": [{
-        "person": {
-            "name": "Anthony",
-            "gender": "male",
-            "birthYear": 1996
+    "people": [
+        {
+            "person": {
+                "name": "Anthony",
+                "gender": "male",
+                "birthYear": 1996
+            }
+        },
+        {
+            "person": {
+                "name": "Agnes",
+                "gender": "female",
+                "birthYear": 2000
+            }
         }
-    }],
+    ],
     "users": [
         {
-            "book": ["Angels and Demons", "The Red man"]
+            "id": 1234,
+            "books": [
+                {
+                    "name": "Angels and Demons",
+                    "releaseYear": 1994,
+                    "authors": ["John Kelly", "Amber Rose"]
+                },
+                {
+                    "name": "The Red man",
+                    "releaseYear": 1994,
+                    "authors": ["Peter Clinch", "James Ivy"]
+                }
+            ]
+        },
+        {
+            "id": 5678,
+            "books": [
+                {
+                    "name": "Girls and Buys",
+                    "releaseYear": 1245,
+                    "authors": ["Jogn Bol", "Koko Haj"]
+                },
+                {
+                    "name": "Mirange",
+                    "releaseYear": 2000,
+                    "authors": ["James Edward", "Peter Tucker"]
+                }
+            ]
         }
     ]
 }

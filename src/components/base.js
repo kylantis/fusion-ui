@@ -1,65 +1,39 @@
 
 class BaseComponent {
-    static #initialized = false;
-
-    static #componentTags;
-
-    static #clientStubs;
-
-    static arrayIndexTracker = {};
+    static syntheticMethodPrefix = 's$_';
 
     constructor({
-        input, parent = document.body, render = true,
+        id, input, parent,
+        render = true,
     } = {}) {
-        this.id = `${this.getName()}-${this.getRandomInt()}`;
+        this.id = id;
         this.parent = parent;
 
-        BaseComponent.getComponentStore().set(this.id, {
-            input,
-        });
+        // Add to data store
+        BaseComponent.getDataStore()
+            .set(this.id, {
+                input,
+            });
+
+        // Initialze block data map
+        this.blockData = {};
+
+        // Polyfill NodeJS global object
+        window.global = window;
 
         // Render, if applicable
+        this.rendered = false;
         if (render) {
             this.loadDependencies()
                 .then(() => Promise.all(this.init()))
-                .then(() => this.render());
+                .then(() => this.render())
+                .then(() => { this.rendered = true; });
         }
     }
 
-    deepExtend() {
-        // Variables
-        const extended = {};
-        let deep = false;
-        let i = 0;
-        const { length } = arguments;
-
-        // Check if a deep merge
-        if (Object.prototype.toString.call(arguments[0]) === '[object Boolean]') {
-            deep = arguments[0];
-            i++;
-        }
-
-        // Merge the object into the extended object
-        const merge = function (obj) {
-            for (const prop in obj) {
-                if (Object.prototype.hasOwnProperty.call(obj, prop)) {
-                    // If deep merge and property is an object, merge properties
-                    if (deep && Object.prototype.toString.call(obj[prop]) === '[object Object]') {
-                        extended[prop] = extend(true, extended[prop], obj[prop]);
-                    } else {
-                        extended[prop] = obj[prop];
-                    }
-                }
-            }
-        };
-
-        // Loop through each object and conduct a merge
-        for (; i < length; i++) {
-            const obj = arguments[i];
-            merge(obj);
-        }
-
-        return extended;
+    getInput() {
+        return BaseComponent.getDataStore()
+            .get(this.id).input;
     }
 
     getId() {
@@ -68,7 +42,7 @@ class BaseComponent {
 
     getName() {
         try {
-            return this.getSyntheticMethod('name')();
+            return this.getSyntheticMethod({ name: 'name' })();
         } catch (e) {
             // This likely happened during pre-compiled time
             // when the synthetic method have not been emmited yet
@@ -77,7 +51,7 @@ class BaseComponent {
     }
 
     getHelpers() {
-        return this.getSyntheticMethod('helpers')();
+        return this.getSyntheticMethod({ name: 'helpers' })();
     }
 
     /**
@@ -93,17 +67,65 @@ class BaseComponent {
     /**
      * This returns the components store for the current page context
      */
-    static getComponentStore() {
-        if (!window.componentStore) {
-            window.componentStore = new Map();
+    static getDataStore() {
+        if (!window.dataStore) {
+            window.dataStore = new Map();
         }
-        return window.componentStore;
+        return window.dataStore;
+    }
+
+    doBlockInit({ path, blockId }) {
+        const blockData = this.blockData[path] || (this.blockData[path] = {});
+
+        if (blockId) {
+            // eslint-disable-next-line no-unused-expressions
+            blockData.blockIds
+                ? blockData.blockIds.push(blockId) : (blockData.blockIds = [blockId]);
+        }
+
+        blockData.index = -1;
+    }
+
+    doBlockUpdate({ path }) {
+        const blockData = this.blockData[path];
+        // eslint-disable-next-line no-plusplus
+        blockData.index++;
+    }
+
+    getBlockData({ path, dataVariable }) {
+        // eslint-disable-next-line no-unused-vars
+        const blockData = this.blockData[path];
+
+        // eslint-disable-next-line no-unused-vars
+        const value = this.lookupDataStore({
+            fqPath: path,
+        });
+
+        const length = value instanceof Array
+            ? value.length : Object.keys(value);
+
+        switch (dataVariable) {
+        case '@first':
+            return blockData.index === 0;
+
+        case '@last':
+            return blockData.index === length - 1 || this.rendered;
+
+        case '@index':
+            return blockData.index;
+
+        case '@key':
+            return Object.keys(value)[blockData.index];
+
+        default:
+            throw new Error(`Unknown data variable: ${dataVariable}`);
+        }
     }
 
     getDataPath({ fqPath, indexResolver }) {
         if (!indexResolver) {
             // eslint-disable-next-line no-param-reassign
-            indexResolver = path => BaseComponent.arrayIndexTracker[path];
+            indexResolver = path => this.blockData[path].index;
         }
 
         const segments = fqPath.split('__');
@@ -115,16 +137,26 @@ class BaseComponent {
             if (part.endsWith('_$')) {
                 [part] = part.split('_$');
 
-                const arrayPath = parts.slice(0, i).concat([part]).join('.');
-                const array = this.lookupDataStore0({
-                    path: arrayPath,
+                // This should resolve to either an array or object
+                const path = parts.slice(0, i).concat([part]).join('.');
+
+                const value = this.lookupDataStore0({
+                    path,
                 });
 
-                if (array && array instanceof Array) {
-                    const index = indexResolver(arrayPath);
+                const index = indexResolver(
+                    segments.slice(0, i).concat([part]).join('__'),
+                );
+
+                switch (true) {
+                case value instanceof Array:
                     part += `[${index}]`;
-                } else {
-                    throw new Error(`Unknown array path: ${arrayPath}`);
+                    break;
+                case value instanceof Object:
+                    part += `['${Object.keys(value)[index]}']`;
+                    break;
+                default:
+                    throw new Error(`Unknown object path: ${path}`);
                 }
             }
 
@@ -135,120 +167,83 @@ class BaseComponent {
     }
 
     lookupDataStore({ fqPath, indexResolver }) {
+        // console.log(fqPath);
         const path = this.getDataPath({ fqPath, indexResolver });
+        // console.log(path);
+
         return this.lookupDataStore0({ path });
     }
 
     lookupDataStore0({ path }) {
-        // eslint-disable-next-line no-eval
-        return eval(`BaseComponent.getComponentStore()
-            .get(this.id).input.${path}`);
+        try {
+            // eslint-disable-next-line no-eval
+            return eval(`this.getInput().${path}`);
+        } catch (e) {
+            throw new Error(`Unknown path: ${path}`);
+        }
     }
 
     render() {
+        // Registers helpers
         const componentHelpers = {};
-
         for (const helperName of this.getHelpers()) {
-            componentHelpers[helperName] = this[helperName];
+            componentHelpers[helperName] = () => this[helperName].apply(this);
         }
 
-        // eslint-disable-next-line no-undef
-        const helpers = this.deepExtend({}, Handlebars.helpers, componentHelpers);
-
-        window.customHelpers = helpers;
-
-        const precompiledTemplate = window[`kclient_${this.getName()}_template`];
-
-        const inputData = BaseComponent.getComponentStore().get(this.id).input;
-
-        // eslint-disable-next-line no-undef
-        const template = Handlebars.template(precompiledTemplate);
-
-        const html = template(inputData, { helpers });
-
-        const container = `<div id="${this.getId()}">${html}</div>`;
-        $(this.parent).append(container);
-    }
-
-    static init() {
-        if (BaseComponent.#initialized) {
-            return;
-        }
-
-        // Perform initializations
-        BaseComponent.fetchTagsMetadata();
-        BaseComponent.setupWebSocket();
-        BaseComponent.fetchClientStubs();
-
-
-        BaseComponent.#initialized = true;
-    }
-
-    static setupWebSocket() {
-
-    }
-
-    static fetchClientStubs() {
-        return {};
-        // Flow
-        // Note: when the WS connection is created
-        // a token is sent
-
-        // 1. Query for services, the reaponse format:
-        // {'app1': ['serviceA', 'serviceB'], ...}
-        // 2. Based on data fetched above, fetch the
-        // associated JSON for each. The json contains
-        // a function factory(token).
-    }
-
-    static fetchTagsMetadata() {
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', '/components/tags.json', true);
-        xhr.onload = (e) => {
-            if (e.target.status === 200) {
-                BaseComponent.#componentTags = JSON.parse(e.target.response);
-            } else {
-                // eslint-disable-next-line no-alert
-                alert('ERROR: Could not load component tags');
-            }
+        const helpers = {
+            // eslint-disable-next-line no-undef
+            ...Handlebars.helpers,
+            ...componentHelpers,
         };
-        xhr.send();
+
+        // Create proxy
+        // eslint-disable-next-line no-undef
+        const proxy = DsProxy.create({ component: this });
+
+        // Control prototype access, to prevent attackers from executing
+        // arbitray code on user machine, more info here:
+        // https://handlebarsjs.com/api-reference/runtime-options.html#options-to-control-prototype-access
+        const dataPaths = this.getSyntheticMethod({ name: 'dataPaths' })();
+        const allowedProtoProperties = {};
+        for (const path of dataPaths) {
+            allowedProtoProperties[path] = true;
+        }
+
+        // Todo: This is not necessary, remove
+        window.dataHelpers = dataPaths;
+
+        // eslint-disable-next-line no-undef
+        const template = Handlebars.template(
+            global[`kclient_${this.getName()}_template`],
+        );
+
+        const html = template(proxy, {
+            helpers,
+            allowedProtoProperties: {
+                ...allowedProtoProperties,
+            },
+            strict: true,
+        });
+
+        if (this.parent) {
+            this.parent.appendChild(
+                `<div id="${this.getId()}">${html}</div>`,
+            );
+        }
+
+        return html;
     }
 
-    getCssDependencies() {
+    static baseCssDeps() {
         return ['/assets/css/site.min.css', '/assets/css/reset.min.css'];
     }
 
-    getJsDependencies() {
+    static baseJsDeps() {
         return [
-            'https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js',
-            '/assets/js/site.min.js',
             'https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js',
             `/components/${this.getName()}/template.min.js`,
+            '/components/proxy.min.js',
         ];
-    }
-
-    /**
-   *
-   *
-   * @param {String} tag
-   * @param {Element} node
-   * @param {Object} data
-   *
-   * @returns {Promise}
-   */
-    // eslint-disable-next-line no-unused-vars
-    static async getComponent(tag, data, node) {
-        const metadata = BaseComponent.#componentTags[tag];
-        if (!metadata) {
-            console.error(`No metadata was found for component tag: ${tag}`);
-            return null;
-        }
-        return BaseComponent.loadJS([`/components/${metadata.url}`]).then(() => {
-            // eslint-disable-next-line no-eval
-            const component = eval(`new ${metadata.className} (data, node)`);
-            return Promise.resolve(component);
-        });
     }
 
     loadDependencies() {
@@ -262,7 +257,7 @@ class BaseComponent {
         // eslint-disable-next-line consistent-return
         return new Promise((resolve, reject) => {
             const loaded = [];
-            let styles = this.getCssDependencies();
+            let styles = [...BaseComponent.baseCssDeps(), ...(this.cssDeps ? this.cssDeps() : [])];
             // Filter styles that have previously loaded
             styles = styles.filter(style => !BaseComponent.loadedStyles
                 .includes((style.startsWith('/') ? window.location.origin : '') + style));
@@ -302,7 +297,9 @@ class BaseComponent {
 
     loadJSDependencies() {
         console.log('Loading JS dependencies');
-        return BaseComponent.loadJS(this.getJsDependencies());
+        return BaseComponent.loadJS(
+            [...BaseComponent.baseJsDeps(), ...(this.jsDeps ? this.jsDeps() : [])],
+        );
     }
 
     static load(url) {
@@ -342,7 +339,7 @@ class BaseComponent {
                 script.type = 'text/javascript';
                 script.async = false;
                 // eslint-disable-next-line func-names
-                script.onload = function (yy) {
+                script.onload = function () {
                     loaded.push(this.src);
                     BaseComponent.loadedScripts.push(this.src);
                     if (elem.onload) {
@@ -366,55 +363,16 @@ class BaseComponent {
         });
     }
 
-    appendNode(parent, tag, classNames) {
-        const elem = document.createElement(tag);
-        if (classNames) {
-            elem.className = `${classNames}`;
-        }
-        if (parent) {
-            parent.appendChild(elem);
-        }
-        return elem;
+    isSynthetic(name) {
+        return name.startsWith(BaseComponent.syntheticMethodPrefix);
     }
 
-    getRandomInt(min = Math.ceil(1000), max = Math.floor(2000000)) {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
-
-    flattenJson(data) {
-        const result = {};
-        function recurse(cur, prop) {
-            if (Object(cur) !== cur) {
-                result[prop] = cur;
-            } else if (Array.isArray(cur)) {
-                const l = cur.length;
-                for (let i = 0; i < l; i++) recurse(cur[i], prop ? `${prop}.${i}` : `${i}`);
-                if (l === 0) result[prop] = [];
-            } else {
-                let isEmpty = true;
-                for (const p in cur) {
-                    if (Object.prototype.hasOwnProperty.call(cur, p)) {
-                        isEmpty = false;
-                        recurse(cur[p], prop ? `${prop}.${p}` : p);
-                    }
-                }
-                if (isEmpty) result[prop] = {};
-            }
-        }
-        recurse(data, '');
-        return result;
-    }
-
-    getSyntheticMethod(name) {
-        return this[`s$_${name}`];
+    getSyntheticMethod({
+        name,
+        autoPrefix = true,
+    }) {
+        return this[`${autoPrefix
+            ? BaseComponent.syntheticMethodPrefix : ''}${name}`];
     }
 }
-
-BaseComponent.loadedStyles = [];
-BaseComponent.loadedScripts = [];
-
-if (window.Event) {
-    BaseComponent.init();
-}
-
 module.exports = BaseComponent;

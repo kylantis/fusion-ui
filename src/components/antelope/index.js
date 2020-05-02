@@ -8,6 +8,10 @@ class Antelope extends BaseComponent {
         return 'antelope';
     }
 
+    echo(object) {
+        return JSON.stringify(object);
+    }
+
     capitalize(name) {
         const c = 'Hello';
         return this.tagName(c);

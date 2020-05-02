@@ -1,16 +1,27 @@
-
 {{#each people}}
     {{#with person}}
         {{createPerson}}
-        My name is {{name}}
+        My name is {{name}}. I 'm a {{gender}}. I was born in {{birthYear}}
+        <br>
         <span>Hello {{capitalize name 5 'Param A' true null undefined (sayHello 'Tonia' (getAge 1996) year=birthYear fakeAge = (getAge 1996)) sex=gender  }}</span>
     {{/with}}
+    <br>
 {{/each}}
-
+<br><br>
 {{#each users as |user userId|}}
-  {{#each user.book as |book bookId|}}
-    User Id: {{user}}
-    {{!-- Book Id: {{bookId}} Book Name: {{book}} --}}
+  UserId: {{id}}<br>
+  Books: 
+  <br><hr>
+  {{#each user.books as |book bookId|}}
+    Name: {{book.name}} <br>
+    releaseYear: {{book.releaseYear}} <br>
+    Authors: <br>
+     {{#each book.authors as |author|}}
+     {{!-- {{@key}} --}}
+      <b>{{author}}</b>
+      <br>
+     {{/each}}
+    <br>
+    <hr>
   {{/each}}
-{{/each}}
-
+  {{/each}}
