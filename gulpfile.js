@@ -3,7 +3,7 @@ const gulp = require('gulp');
 
 require('require-dir')('tasks');
 
-gulp.task('dist', gulp.parallel('minify-images', 'copy-assets', 'compile-syles', 'compile-scripts:watch', 'scan-ctags', 'bundle-polyfills', 'compile-templates', (callback) => {
+gulp.task('dist', gulp.series('minify-images', 'copy-assets', 'compile-syles', 'compile-scripts', 'compile-components', 'scan-ctags', 'bundle-polyfills', 'compile-templates', (callback) => {
   callback();
 }));
 

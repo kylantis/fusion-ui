@@ -30,10 +30,38 @@ const gulpTransform = function () {
       registerDynamicDataHelpers: true,
     });
 
+    // Precompile template
     const compiled = handlebars.precompile(processor.ast);
+    const templateId = `kclient_${componentName}_template`;
 
-    const output = `window.kclient_${componentName}_template=${compiled}`;
+    const output = `${templateId}=${compiled};`;
 
+    // Render the component
+    // Update global scope
+    const DsProxy = fs.readFileSync(
+      path.join(
+        path.dirname(path.dirname(templatePath)),
+        'proxy.js',
+      ),
+      'utf8',
+    );
+    // eslint-disable-next-line no-eval
+    global.DsProxy = eval(DsProxy);
+    global.Handlebars = handlebars;
+    // eslint-disable-next-line no-eval
+    eval(`global.${output}`);
+    const html = processor.getComponent().render();
+
+    // Cleanup global scope
+    delete global.DsProxy;
+    delete global.Handlebars;
+    delete global[templateId];
+
+    // Write server html
+    fs.writeFileSync(`${processor.getComponentDistPath()}/server.html`, html);
+
+
+    // Store precompiled template
     hbsFile.basename = 'template.min.js';
     // eslint-disable-next-line no-buffer-constructor
     hbsFile.contents = Buffer.from(output);
