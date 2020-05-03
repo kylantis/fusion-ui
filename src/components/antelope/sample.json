@@ -1,20 +1,20 @@
 {
-    "people": [
-        {
+    "people": {
+        "12": {
             "person": {
                 "name": "Anthony",
                 "gender": "male",
                 "birthYear": 1996
             }
         },
-        {
+        "34": {
             "person": {
                 "name": "Agnes",
                 "gender": "female",
                 "birthYear": 2000
             }
         }
-    ],
+    },
     "users": [
         {
             "id": 1234,
@@ -35,6 +35,21 @@
             "id": 5678,
             "books": [
                 {
+                    "name": "Co and Theirs",
+                    "releaseYear": 2005,
+                    "authors": ["Abnel Loka", "Jiji Kuku"]
+                },
+                {
+                    "name": "Live Trail",
+                    "releaseYear": 2007,
+                    "authors": ["Joe Poe", "Isa Delaware"]
+                }
+            ]
+        },
+        {
+            "id": 8265,
+            "books": [
+                {
                     "name": "Girls and Buys",
                     "releaseYear": 1245,
                     "authors": ["Jogn Bol", "Koko Haj"]
@@ -46,5 +61,11 @@
                 }
             ]
         }
-    ]
+    ],
+    "empty_array": [],
+    "zero": 0,
+    "false": false,
+    "null": null,
+    "empty_string": "",
+    "empty_object": {}
 }

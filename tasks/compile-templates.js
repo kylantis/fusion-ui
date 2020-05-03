@@ -49,7 +49,6 @@ const gulpTransform = function () {
     global.DsProxy = eval(DsProxy);
     global.Handlebars = handlebars;
     // eslint-disable-next-line no-eval
-    console.log(output);
     eval(`global.${output}`);
     const html = processor.getComponent().render();
 

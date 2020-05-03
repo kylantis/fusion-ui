@@ -7,9 +7,11 @@ class DsProxy {
     }
 
     getValue(value) {
+        this.lastLookup = value;
+
         switch (true) {
         case value instanceof Array:
-            return this.createArrayProxy({ array: value });
+            return this.createArrayProxy(value);
 
         case value instanceof Object:
             return this.createObjectProxy();
@@ -24,9 +26,24 @@ class DsProxy {
             get: (obj, prop) => {
                 let value;
 
+                if (prop === Symbol.iterator) {
+                    // obj which is an object is the target of an each
+                    // return an iterator function that yields an empty object
+                    // eslint-disable-next-line no-underscore-dangle
+                    const _this = this;
+                    // eslint-disable-next-line func-names
+                    return function* () {
+                        for (let i = 0; i < Object.keys(_this.lastLookup).length; i++) {
+                            yield _this.createObjectProxy();
+                        }
+                    };
+                }
+
+                // console.log(`${JSON.stringify(obj)} : ${prop}`);
+
                 switch (true) {
                 // eslint-disable-next-line no-prototype-builtins
-                case obj.prototype.hasOwnProperty(prop):
+                case !!Object.getPrototypeOf(obj)[prop]:
                     value = obj[prop];
                     break;
 
@@ -38,8 +55,12 @@ class DsProxy {
                     break;
 
                 default:
-                    value = this.component
+                    // eslint-disable-next-line no-case-declarations
+                    const v = this.component
                         .lookupDataStore({ fqPath: prop });
+
+                    value = this.getValue(v);
+
                     break;
                 }
 
@@ -48,7 +69,7 @@ class DsProxy {
         });
     }
 
-    createArrayProxy({ array }) {
+    createArrayProxy(array) {
         return new Proxy(array, {
             get: (obj, prop) => {
                 if (!Number.isNaN(parseInt(prop, 10))) {
@@ -73,16 +94,6 @@ class DsProxy {
                 return obj[prop];
             },
         });
-    }
-
-    getError({ path, code }) {
-        switch (code) {
-        case 404:
-            return `<code>[${path}] not found</code>`;
-
-        default:
-            return '';
-        }
     }
 
     create() {

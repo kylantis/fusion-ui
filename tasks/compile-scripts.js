@@ -52,6 +52,22 @@ gulp.task('compile-scripts:watch', () => watch(['src/**/*.js', '!src/components/
   .pipe(rename(renameConfig))
   .pipe(gulp.dest('./dist')));
 
+
+gulp.task('compile-scripts', () => gulp.src(['src/**/*.js', '!src/components/*/*.js'])
+  .pipe(babel())
+  // .pipe(sourcemaps.init())
+  .pipe(uglify({
+    mangle: false,
+    compress: true,
+  }).on('error', (msg) => {
+    // eslint-disable-next-line no-console
+    console.error(msg);
+  }))
+  // .pipe(sourcemaps.write())
+  .pipe(rename(renameConfig))
+  .pipe(gulp.dest('./dist')));
+
+
 // eslint-disable-next-line func-names
 const gulpTransform = function () {
   return through.obj((vinylFile, _encoding, callback) => {
@@ -69,6 +85,10 @@ const gulpTransform = function () {
     });
   });
 };
+
+gulp.task('compile-components', () => gulp.src('src/components/*/*.js')
+  .pipe(gulpTransform())
+  .pipe(gulp.dest('./dist/components')));
 
 gulp.task('compile-components:watch', () => watch('src/components/*/*.js', { ignoreInitial: true })
   .pipe(gulpTransform())

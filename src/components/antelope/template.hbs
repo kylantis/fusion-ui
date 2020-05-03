@@ -1,5 +1,6 @@
 {{#each people}}
     {{#with person}}
+        Data Variables: {{@../first}}, {{@../last}}, {{@../index}}, {{@../key}}<br>
         {{createPerson}}
         My name is {{name}}. I 'm a {{gender}}. I was born in {{birthYear}}
         <br>
@@ -7,21 +8,15 @@
     {{/with}}
     <br>
 {{/each}}
-<br><br>
-{{#each users as |user userId|}}
-  UserId: {{id}}<br>
+
+{{#each users as |user index|}}
+  <br><br>
+  Data Variables: {{@first}}, {{@last}}, {{@index}}, {{@key}} <br>
+  UserId: {{id}}, {{user.id}} ({{index}}) <br>
   Books: 
   <br><hr>
   {{#each user.books as |book bookId|}}
-    Name: {{book.name}} <br>
-    releaseYear: {{book.releaseYear}} <br>
-    Authors: <br>
-     {{#each book.authors as |author|}}
-     {{!-- {{@key}} --}}
-      <b>{{author}}</b>
-      <br>
-     {{/each}}
-    <br>
-    <hr>
+    {{> books}}
   {{/each}}
   {{/each}}
+    {{> conditionals}}

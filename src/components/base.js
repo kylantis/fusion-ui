@@ -102,14 +102,14 @@ class BaseComponent {
         });
 
         const length = value instanceof Array
-            ? value.length : Object.keys(value);
+            ? value.length : Object.keys(value).length;
 
         switch (dataVariable) {
         case '@first':
             return blockData.index === 0;
 
         case '@last':
-            return blockData.index === length - 1 || this.rendered;
+            return blockData.index === length - 1;
 
         case '@index':
             return blockData.index;
@@ -226,19 +226,21 @@ class BaseComponent {
         });
 
         if (this.parent) {
-            this.parent.appendChild(
-                `<div id="${this.getId()}">${html}</div>`,
-            );
+            const container = document.createElement('div');
+            container.id = this.getId();
+            container.innerHTML = html;
+
+            this.parent.appendChild(container);
         }
 
         return html;
     }
 
-    static baseCssDeps() {
+    baseCssDeps() {
         return ['/assets/css/site.min.css', '/assets/css/reset.min.css'];
     }
 
-    static baseJsDeps() {
+    baseJsDeps() {
         return [
             'https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js',
             `/components/${this.getName()}/template.min.js`,
@@ -257,7 +259,7 @@ class BaseComponent {
         // eslint-disable-next-line consistent-return
         return new Promise((resolve, reject) => {
             const loaded = [];
-            let styles = [...BaseComponent.baseCssDeps(), ...(this.cssDeps ? this.cssDeps() : [])];
+            let styles = [...this.baseCssDeps(), ...(this.cssDeps ? this.cssDeps() : [])];
             // Filter styles that have previously loaded
             styles = styles.filter(style => !BaseComponent.loadedStyles
                 .includes((style.startsWith('/') ? window.location.origin : '') + style));
@@ -298,7 +300,7 @@ class BaseComponent {
     loadJSDependencies() {
         console.log('Loading JS dependencies');
         return BaseComponent.loadJS(
-            [...BaseComponent.baseJsDeps(), ...(this.jsDeps ? this.jsDeps() : [])],
+            [...this.baseJsDeps(), ...(this.jsDeps ? this.jsDeps() : [])],
         );
     }
 
@@ -375,4 +377,8 @@ class BaseComponent {
             ? BaseComponent.syntheticMethodPrefix : ''}${name}`];
     }
 }
+
+BaseComponent.loadedStyles = [];
+BaseComponent.loadedScripts = [];
+
 module.exports = BaseComponent;
