@@ -63,9 +63,12 @@
         }
     ],
     "empty_array": [],
+    "non_empty_array": [""],
     "zero": 0,
     "false": false,
     "null": null,
     "empty_string": "",
-    "empty_object": {}
+    "non_empty_string": "hello",
+    "empty_object": {},
+    "non_empty_object": {"a": "b"}
 }
