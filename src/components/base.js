@@ -9,6 +9,8 @@ class BaseComponent {
         this.id = id;
         this.parent = parent;
 
+        this.runtime = render;
+
         // Add to data store
         BaseComponent.getDataStore()
             .set(this.id, {
@@ -20,6 +22,14 @@ class BaseComponent {
 
         // Polyfill NodeJS global object
         window.global = window;
+        window.assert = (condition) => {
+            if (!condition) {
+                throw new Error('Assertion Error');
+            }
+            return true;
+        };
+
+        this.syntheticContext = {};
 
         // Render, if applicable
         this.rendered = false;
@@ -74,6 +84,82 @@ class BaseComponent {
         return window.dataStore;
     }
 
+    getSyntheticContext({
+        alias,
+        key,
+    }) {
+        return this.syntheticContext[alias][key];
+    }
+
+    setSyntheticContext({
+        alias,
+        value,
+    }) {
+        this.syntheticContext[alias] = {
+            value,
+        };
+
+        const construct = alias.split('$$')[0];
+
+        if (construct === 'each') {
+            // eslint-disable-next-line default-case
+            switch (true) {
+            case value.constructor.name === 'Array':
+                if (this.runtime) {
+                    // Proxy the array, and dynamically update syntheticContext.current
+                    // for each iteration
+
+                    // eslint-disable-next-line no-param-reassign
+                    value = new Proxy(value, {
+                        get: (obj, prop) => {
+                            const v = obj[prop];
+                            if (!Number.isNaN(parseInt(prop, 10))) {
+                                this.syntheticContext[alias].current = v;
+                            }
+                            return v;
+                        },
+                    });
+                } else {
+                    // Note: this is used by TenplateProcessor during sub-path
+                    // traversal, as the proxy above this is designed for use
+                    // during runtime
+                    [this.syntheticContext[alias].current] = value;
+                }
+                break;
+
+            case value.constructor.name === 'Object':
+                if (this.runtime) {
+                    // eslint-disable-next-line no-param-reassign
+                    value = new Proxy(value, {
+                        get: (obj, prop) => {
+                            const v = obj[prop];
+                            if (!Object.getPrototypeOf(obj)[prop]) {
+                                this.syntheticContext[alias].current = v;
+                            }
+                            return v;
+                        },
+                    });
+                } else {
+                    const keys = Object.keys(value);
+                    this.syntheticContext[alias].current = keys.length ? value[keys[0]] : undefined;
+                }
+                break;
+            }
+        } else {
+            // eslint-disable-next-line no-undef
+            assert(construct === 'with');
+
+            // Note that since this synthetic invocation is
+            // for an #if block (or rather #with turned #if block),
+            // the invocation happened from our object proxy,
+            // hence no need to
+
+            this.syntheticContext[alias].current = value;
+        }
+
+        return value;
+    }
+
     doBlockInit({ path, blockId }) {
         const blockData = this.blockData[path] || (this.blockData[path] = {});
 
@@ -96,10 +182,9 @@ class BaseComponent {
         // eslint-disable-next-line no-unused-vars
         const blockData = this.blockData[path];
 
-        // eslint-disable-next-line no-unused-vars
-        const value = this.lookupDataStore({
-            fqPath: path,
-        });
+        const value = this.syntheticContext[path] !== undefined
+            ? this.syntheticContext[path].value
+            : this.getPathValue({ path });
 
         const length = value instanceof Array
             ? value.length : Object.keys(value).length;
@@ -122,7 +207,36 @@ class BaseComponent {
         }
     }
 
-    getDataPath({ fqPath, indexResolver }) {
+    getPathValue({ path }) {
+        let value;
+
+        switch (true) {
+        case this.isSynthetic(path)
+                && path.split('__').length === 1:
+            // eslint-disable-next-line no-eval
+            value = eval(this.createSyntheticInvocation(path));
+            break;
+
+        default:
+            value = this.resolvePath({
+                fqPath: path,
+            });
+            break;
+        }
+
+        return value;
+    }
+
+    createSyntheticInvocation(name) {
+        // Todo: create a caching mechanism
+        // then after fetching the data, dynamically create
+        // a function that returns that data, then return
+        // the function name instead.
+
+        return `this.${name}()`;
+    }
+
+    getExecPath({ fqPath, indexResolver }) {
         if (!indexResolver) {
             // eslint-disable-next-line no-param-reassign
             indexResolver = path => this.blockData[path].index;
@@ -131,6 +245,12 @@ class BaseComponent {
         const segments = fqPath.split('__');
         const parts = [];
 
+        if (!this.isSynthetic(fqPath)) {
+            parts.push('this.getInput()');
+        }
+
+        const len = Number(parts.length);
+
         for (let i = 0; i < segments.length; i++) {
             let part = segments[i];
 
@@ -138,15 +258,21 @@ class BaseComponent {
                 [part] = part.split('_$');
 
                 // This should resolve to either an array or object
-                const path = parts.slice(0, i).concat([part]).join('.');
+                const prefix = parts.slice(0, i + len);
 
-                const value = this.lookupDataStore0({
-                    path,
-                });
+                const path = prefix.concat([part]).join('.');
+
+                // eslint-disable-next-line no-eval
+                const value = eval(path);
+                // console.log(value);
 
                 const index = indexResolver(
-                    segments.slice(0, i).concat([part]).join('__'),
+                    fqPath.split('__', i).concat([
+                        part,
+                    ]).join('__'),
                 );
+
+                // console.log(index);
 
                 switch (true) {
                 case value instanceof Array:
@@ -156,31 +282,67 @@ class BaseComponent {
                     part += `['${Object.keys(value)[index]}']`;
                     break;
                 default:
-                    throw new Error(`Unknown object path: ${path}`);
+                    throw new Error(`Unknown path: ${path}`);
+                }
+            } else if (part.endsWith('_@')) {
+                [part] = part.split('_@');
+
+                if (this.isSynthetic(part)) {
+                    // eslint-disable-next-line no-undef
+                    assert(i === 0);
+                    // Use getSyntheticMethod to take advantage
+                    // of invocation caching
+                    part = this.createSyntheticInvocation(part);
                 }
             }
 
             parts.push(part);
+
+            if (i < segments.length - 1) {
+                const path = parts.join('.');
+                // this must resolve to an object
+                // eslint-disable-next-line no-eval
+                const pathValue = eval(path);
+
+                if ((!pathValue) || (pathValue.constructor.name !== 'Object' && pathValue.constructor.name !== 'Array')) {
+                    throw new Error(`Path: ${path} must be an Array or Object, current value=${pathValue}`);
+                }
+            }
         }
 
-        return parts.join('.');
+        const result = parts.join('.');
+
+        console.log(result);
+
+        return result;
     }
 
-    lookupDataStore({ fqPath, indexResolver }) {
-        // console.log(fqPath);
-        const path = this.getDataPath({ fqPath, indexResolver });
-        // console.log(path);
-
-        return this.lookupDataStore0({ path });
+    resolvePath({ fqPath, indexResolver }) {
+        const path = this.getExecPath({ fqPath, indexResolver });
+        // eslint-disable-next-line no-eval
+        return eval(path);
     }
 
-    lookupDataStore0({ path }) {
-        try {
-            // eslint-disable-next-line no-eval
-            return eval(`this.getInput().${path}`);
-        } catch (e) {
-            throw new Error(`Unknown path: ${path}`);
+    // eslint-disable-next-line no-unused-vars
+    analyzeCondition({ path }) {
+        const value = this.getPathValue({ path });
+
+        const b = !!value;
+
+        if (!b) {
+            return false;
         }
+
+        const type = value.constructor.name;
+
+        // eslint-disable-next-line default-case
+        switch (true) {
+        case type === 'Array' && value.length === 0:
+        case type === 'Object' && Object.keys(value).length === 0:
+            return false;
+        }
+
+        return true;
     }
 
     render() {
@@ -243,6 +405,7 @@ class BaseComponent {
     baseJsDeps() {
         return [
             'https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js',
+            // 'https://cdn.jsdelivr.net/npm/object-hash@2.0.3/dist/object_hash.min.js',
             `/components/${this.getName()}/template.min.js`,
             '/components/proxy.min.js',
         ];
@@ -374,7 +537,7 @@ class BaseComponent {
         autoPrefix = true,
     }) {
         return this[`${autoPrefix
-            ? BaseComponent.syntheticMethodPrefix : ''}${name}`];
+            ? BaseComponent.syntheticMethodPrefix : ''}${name}`].bind(this);
     }
 }
 

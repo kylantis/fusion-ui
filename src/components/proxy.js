@@ -33,7 +33,14 @@ class DsProxy {
                     const _this = this;
                     // eslint-disable-next-line func-names
                     return function* () {
-                        for (let i = 0; i < Object.keys(_this.lastLookup).length; i++) {
+                        const keys = Object.keys(_this.lastLookup);
+                        for (let i = 0; i < keys.length; i++) {
+                            // At least, attempt to do a read on the underlying json
+                            // object, so that if it is a proxy itself, the "get"
+                            // interceptor method will be invoked
+                            // eslint-disable-next-line no-unused-expressions
+                            _this.lastLookup[keys[i]];
+
                             yield _this.createObjectProxy();
                         }
                     };
@@ -47,17 +54,10 @@ class DsProxy {
                     value = obj[prop];
                     break;
 
-                case this.component.isSynthetic(prop):
-                    value = this.component.getSyntheticMethod({
-                        name: prop,
-                        autoPrefix: false,
-                    })();
-                    break;
-
                 default:
                     // eslint-disable-next-line no-case-declarations
                     const v = this.component
-                        .lookupDataStore({ fqPath: prop });
+                        .getPathValue({ path: prop });
 
                     value = this.getValue(v);
 
@@ -101,7 +101,9 @@ class DsProxy {
     }
 
     static create({ component }) {
-        return new DsProxy({ component }).create();
+        const proxy = new DsProxy({ component });
+        proxy.component.proxy = proxy;
+        return proxy.create();
     }
 }
 

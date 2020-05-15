@@ -9,7 +9,7 @@
     <br>
 {{/each}}
 
-{{#each users as |user index|}}
+{{#each (dynamicUsers people) as |user index|}}
   <br><br>
   Data Variables: {{@first}}, {{@last}}, {{@index}}, {{@key}} <br>
   UserId: {{id}}, {{user.id}} ({{index}}) <br>

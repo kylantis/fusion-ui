@@ -50,7 +50,7 @@ const gulpTransform = function () {
     global.Handlebars = handlebars;
     // eslint-disable-next-line no-eval
     eval(`global.${output}`);
-    const html = processor.getComponent().render();
+    const html = processor.component.render();
 
     // Cleanup global scope
     delete global.DsProxy;
