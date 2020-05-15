@@ -1,8 +1,8 @@
-{{#each people}}
-    {{#with person}}
+{{#each people as |p peopleKey|}}
+    {{#with person as |q|}}
         Data Variables: {{@../first}}, {{@../last}}, {{@../index}}, {{@../key}}<br>
         {{createPerson}}
-        My name is {{name}}. I 'm a {{gender}}. I was born in {{birthYear}}
+        My name is {{name}} (or {{p.person.name}}) for {{peopleKey}}. I 'm a {{gender}}. I was born in {{birthYear}}
         <br>
         <span>Hello {{capitalize name 5 'Param A' true null undefined (sayHello 'Tonia' (getAge 1996) year=birthYear fakeAge = (getAge 1996)) sex=gender  }}</span>
     {{/with}}
