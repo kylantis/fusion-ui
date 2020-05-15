@@ -1,7 +1,7 @@
 
-## Imagine UI
+## Project Panther FE
 
-### This is the default theme for Panther.
+This is the UI service that processes the handlebars templates for components.
 
 ## Setup
 To setup this project locally:
