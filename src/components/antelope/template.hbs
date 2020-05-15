@@ -1,4 +1,5 @@
 {{#each people as |p peopleKey|}}
+    <br>
     {{#with person as |q|}}
         Data Variables: {{@../first}}, {{@../last}}, {{@../index}}, {{@../key}}<br>
         {{createPerson}}
@@ -8,6 +9,10 @@
     {{/with}}
     <br>
 {{/each}}
+
+<br>
+Literal Segments <br>
+* {{users.[0].books.[0].name}} by {{users.[0].books.[0].authors.[0]}}
 
 {{#each (dynamicUsers people) as |user index|}}
   <br><br>
