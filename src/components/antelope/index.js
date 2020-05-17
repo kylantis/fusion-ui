@@ -21,17 +21,12 @@ class Antelope extends BaseComponent {
         return name.toUpperCase();
     }
 
-    getComponentId() {
-        return this.id;
-    }
-
     sayHello(name, age) {
         return `Hello ${name}. You are ${age} years old`;
     }
 
     // eslint-disable-next-line no-unused-vars
     dynamicUsers(people) {
-        // console.log(JSON.stringify(people));
         return [
             {
                 id: 1234,
@@ -79,6 +74,14 @@ class Antelope extends BaseComponent {
                 ],
             },
         ];
+    }
+
+    customEach(context, options) {
+        // console.log(this.getId());
+        // console.log(this.getAge(1996));
+
+        // eslint-disable-next-line no-undef
+        return Handlebars.helpers.each(context, options);
     }
 
     /**

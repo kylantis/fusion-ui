@@ -2,6 +2,9 @@
 class BaseComponent {
     static syntheticMethodPrefix = 's$_';
 
+    // eslint-disable-next-line no-useless-escape
+    static customBlockPrefix = 'c$_';
+
     constructor({
         id, input, parent,
         render = true,
@@ -264,15 +267,12 @@ class BaseComponent {
 
                 // eslint-disable-next-line no-eval
                 const value = eval(path);
-                // console.log(value);
 
                 const index = indexResolver(
                     fqPath.split('__', i).concat([
                         part,
                     ]).join('__'),
                 );
-
-                // console.log(index);
 
                 switch (true) {
                 case value instanceof Array:
@@ -311,9 +311,6 @@ class BaseComponent {
         }
 
         const result = parts.join('.');
-
-        console.log(result);
-
         return result;
     }
 
@@ -349,7 +346,7 @@ class BaseComponent {
         // Registers helpers
         const componentHelpers = {};
         for (const helperName of this.getHelpers()) {
-            componentHelpers[helperName] = () => this[helperName].apply(this);
+            componentHelpers[helperName] = this[helperName].bind(this);
         }
 
         const helpers = {

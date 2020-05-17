@@ -4,6 +4,7 @@ const path = require('path');
 const watch = require('gulp-watch');
 const handlebars = require('handlebars');
 const through = require('through2');
+const assert = require('assert');
 const TemplateProcessor = require('../lib/template-preprocessor');
 const TemplateReader = require('../lib/template-reader');
 
@@ -45,12 +46,18 @@ const gulpTransform = function () {
       ),
       'utf8',
     );
+    global.assert = assert;
+    const baseComponent = Object.getPrototypeOf(
+      Object.getPrototypeOf(processor.component),
+    );
+    global[baseComponent.constructor.name] = baseComponent.constructor;
     // eslint-disable-next-line no-eval
     global.DsProxy = eval(DsProxy);
     global.Handlebars = handlebars;
     // eslint-disable-next-line no-eval
     eval(`global.${output}`);
-    const html = processor.component.render();
+    // const html = processor.component.render();
+    const html = '';
 
     // Cleanup global scope
     delete global.DsProxy;

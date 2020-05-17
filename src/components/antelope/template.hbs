@@ -14,6 +14,31 @@
 Literal Segments <br>
 * {{users.[0].books.[0].name}} by {{users.[0].books.[0].authors.[0]}}
 
+<br><br><br>
+Block helpers <br>
+{{#customEach (dynamicUsers people) as |user index|}}
+  <br><br>
+  Data Variables: {{@first}}, {{@last}}, {{@index}}, {{@key}} <br>
+  UserId: {{id}}, {{user.id}} ({{index}}) <br>
+  Books: 
+  <br><hr>
+ {{#each user.books as |book bookId|}}
+    {{!-- {{> books}} --}}
+      Name: {{book.name}} for {{../id}} - ({{bookId}} || {{@../index}}) <br>
+      releaseYear: {{book.releaseYear}} <br>
+      Authors: <br>
+      {{#each book.authors as |author|}}
+         <b>{{author}}</b> or <b>{{this}}</b> - ({{@key}})
+         <br>
+      {{/each}}
+      <br>
+      <hr>
+  {{/each}}
+  {{/customEach}}
+    {{!-- {{> conditionals}} --}}
+
+<br>
+
 {{#each (dynamicUsers people) as |user index|}}
   <br><br>
   Data Variables: {{@first}}, {{@last}}, {{@index}}, {{@key}} <br>
