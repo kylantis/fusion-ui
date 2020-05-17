@@ -4,6 +4,7 @@ class DsProxy {
 
     constructor({ component }) {
         this.component = component;
+        this.handler = this.createObjectProxy();
     }
 
     getValue(value) {
@@ -14,7 +15,7 @@ class DsProxy {
             return this.createArrayProxy(value);
 
         case value instanceof Object:
-            return this.createObjectProxy();
+            return this.handler;
 
         default:
             return value;
@@ -41,12 +42,10 @@ class DsProxy {
                             // eslint-disable-next-line no-unused-expressions
                             _this.lastLookup[keys[i]];
 
-                            yield _this.createObjectProxy();
+                            yield _this.handler;
                         }
                     };
                 }
-
-                // console.log(`${JSON.stringify(obj)} : ${prop}`);
 
                 switch (true) {
                 // eslint-disable-next-line no-prototype-builtins
@@ -55,11 +54,25 @@ class DsProxy {
                     break;
 
                 default:
+
+                    // eslint-disable-next-line no-undef
+                    assert(prop.constructor.name === 'String');
+
+                    // eslint-disable-next-line no-case-declarations
+                    const { customBlockPrefix } = BaseComponent;
+
+                    // eslint-disable-next-line no-case-declarations
+                    const isCustomBlockParam = prop.startsWith(customBlockPrefix);
+                    if (isCustomBlockParam) {
+                        // eslint-disable-next-line no-param-reassign
+                        prop = prop.replace(customBlockPrefix, '');
+                    }
+
                     // eslint-disable-next-line no-case-declarations
                     const v = this.component
                         .getPathValue({ path: prop });
 
-                    value = this.getValue(v);
+                    value = isCustomBlockParam ? v : this.getValue(v);
 
                     break;
                 }
@@ -96,14 +109,10 @@ class DsProxy {
         });
     }
 
-    create() {
-        return this.createObjectProxy();
-    }
-
     static create({ component }) {
         const proxy = new DsProxy({ component });
         proxy.component.proxy = proxy;
-        return proxy.create();
+        return proxy.handler;
     }
 }
 
