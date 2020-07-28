@@ -1,86 +1,73 @@
+/* eslint-disable no-console */
 const gulp = require('gulp');
 const fs = require('fs');
 const path = require('path');
 const watch = require('gulp-watch');
 const handlebars = require('handlebars');
 const through = require('through2');
-const assert = require('assert');
 const TemplateProcessor = require('../lib/template-preprocessor');
 const TemplateReader = require('../lib/template-reader');
+const utils = require('../lib/utils');
 
 // eslint-disable-next-line func-names
 const gulpTransform = function () {
-  return through.obj((vinylFile, _encoding, callback) => {
-    const hbsFile = vinylFile.clone();
+  return through.obj(async (vinylFile, _encoding, callback) => {
+    const file = vinylFile.clone();
 
-    const dir = path.dirname(hbsFile.path);
-    const templatePath = `${dir}/template.hbs`;
+    const componentDir = path.dirname(file.path);
+    const pluginDir = path.dirname(componentDir);
 
-    const componentName = path.relative(path.dirname(dir), dir);
-    const content = fs.readFileSync(templatePath, 'utf8');
+    const componentName = path.relative(pluginDir, componentDir);
+    const pluginName = path.relative(path.dirname(pluginDir), pluginDir);
 
-    // eslint-disable-next-line no-console
-    console.log(`\x1b[32m[${componentName}]\x1b[0m`);
+    const identifier = `${pluginName}/${componentName}`;
+    const assetId = utils.generateRandomString();
+
+    const templateString = fs.readFileSync(`${componentDir}/template.hbs`, 'utf8');
+
+    console.log(`\x1b[32m[${identifier}]\x1b[0m`);
 
     TemplateReader.reset();
 
     const processor = new TemplateProcessor({
-      templatePath,
+      assetId,
+      pluginName,
       componentName,
-      ast: handlebars.parse(content),
+      ast: handlebars.parse(templateString),
       registerDynamicDataHelpers: true,
     });
 
-    // Precompile template
-    const compiled = handlebars.precompile(processor.ast);
-    const templateId = `kclient_${componentName}_template`;
+    // Precompile main ast
+    const main = `global.template-${assetId} = ${handlebars.precompile(processor.ast)}`;
 
-    const output = `${templateId}=${compiled};`;
+    const { component } = processor;
 
-    // Render the component
-    // Update global scope
-    const DsProxy = fs.readFileSync(
-      path.join(
-        path.dirname(path.dirname(templatePath)),
-        'proxy.js',
-      ),
-      'utf8',
-    );
-    global.assert = assert;
-    const baseComponent = Object.getPrototypeOf(
-      Object.getPrototypeOf(processor.component),
-    );
-    global[baseComponent.constructor.name] = baseComponent.constructor;
     // eslint-disable-next-line no-eval
-    global.DsProxy = eval(DsProxy);
-    global.Handlebars = handlebars;
-    // eslint-disable-next-line no-eval
-    eval(`global.${output}`);
-    // const html = processor.component.render();
-    const html = '';
+    eval(`${main}`);
+
+    await component.load();
 
     // Cleanup global scope
-    delete global.DsProxy;
-    delete global.Handlebars;
-    delete global[templateId];
+    component.releaseGlobal();
 
     // Write server html
-    fs.writeFileSync(`${processor.getComponentDistPath()}/server.html`, html);
+    fs.writeFileSync(`${processor.getDistPath()}/server.html`, component.html);
 
-
+    // Rewrite path to use assetId instead
+    file.path = path.join(file.base, file.relative.replace(identifier, assetId));
     // Store precompiled template
-    hbsFile.basename = 'template.min.js';
+    file.basename = 'template.min.js';
     // eslint-disable-next-line no-buffer-constructor
-    hbsFile.contents = Buffer.from(output);
+    file.contents = Buffer.from(main);
 
-    callback(null, hbsFile);
+    callback(null, file);
   });
 };
 
 gulp.task('compile-templates',
   () => gulp.src('src/components/**/template.hbs')
     .pipe(gulpTransform())
-    .pipe(gulp.dest('./dist/components')));
+    .pipe(gulp.dest('./dist/components-assets')));
 
 
 gulp.task('compile-templates-all:watch', () => watch('src/components/**/*.hbs', { ignoreInitial: true })

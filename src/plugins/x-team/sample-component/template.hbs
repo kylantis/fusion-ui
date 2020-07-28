@@ -1,0 +1,53 @@
+{{server-stub com.kylantis.Table}}
+{{style href="site" }}
+{{style href="https://cdn.jsdelivr.net/npm/styles.min.css" }}
+{{script href=""}}
+
+{{#each people as |p peopleKey|}}
+    <br>
+    {{#with person as |q|}}
+        Data Variables: {{@../first}}, {{@../last}}, {{@../index}}, {{@../key}}<br>
+        {{createPerson}}
+        My name is {{name}} (or {{p.person.name}}) for {{peopleKey}}. I 'm a {{gender}}. I was born in {{birthYear}}
+        <br>
+        <span>Hello {{capitalize name 5 'Param A' true null undefined (sayHello 'Tonia' (getAge 1996) year=birthYear fakeAge = (getAge 1996)) sex=gender  }}</span>
+    {{/with}}
+    <br>
+{{/each}}
+
+<br>
+Literal Segments <br>
+* {{users.[0].books.[0].name}} by {{users.[0].books.[0].authors.[0]}}
+
+<br>
+
+  {{#*inline "layout"}}
+
+  {{/inline}}
+
+{{#each (dynamicUsers people) as |user index|}}
+  <br><br>
+  Data Variables: {{@first}}, {{@last}}, {{@index}}, {{@key}} <br>
+  UserId: {{id}}, {{user.id}} ({{index}}) <br>
+  Books: 
+  <br><hr>
+  {{#each user.books as |book bookId|}}
+    {{> books}}
+  {{/each}}
+  {{/each}}
+    {{> conditionals}}
+
+
+<br><br><br><br>
+  {{#> layout}}
+  {{#*inline "nav"}}
+    My Nav
+  {{/inline}}
+  {{#*inline "content"}}
+    My Content
+  {{/inline}}
+  
+  {{#each users as |user|}}
+   Hello {{user.id}} {{./id}}
+  {{/each}}
+{{/layout}}
