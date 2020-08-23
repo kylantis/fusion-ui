@@ -5,13 +5,14 @@ const path = require('path');
 const watch = require('gulp-watch');
 const handlebars = require('handlebars');
 const through = require('through2');
+const log = require('fancy-log');
 const TemplateProcessor = require('../lib/template-preprocessor');
 const TemplateReader = require('../lib/template-reader');
 const utils = require('../lib/utils');
 
 // eslint-disable-next-line func-names
 const gulpTransform = function () {
-  return through.obj(async (vinylFile, _encoding, callback) => {
+  return through.obj((vinylFile, _encoding, callback) => {
     const file = vinylFile.clone();
 
     const componentDir = path.dirname(file.path);
@@ -25,27 +26,34 @@ const gulpTransform = function () {
 
     const templateString = fs.readFileSync(`${componentDir}/template.hbs`, 'utf8');
 
-    console.log(`\x1b[32m[${identifier}]\x1b[0m`);
-
     TemplateReader.reset();
 
     const processor = new TemplateProcessor({
       assetId,
+      logger: log,
       pluginName,
       componentName,
       ast: handlebars.parse(templateString),
-      registerDynamicDataHelpers: true,
     });
 
     // Precompile main ast
-    const main = `global.template-${assetId} = ${handlebars.precompile(processor.ast)}`;
-
-    const { component } = processor;
+    const main = `/* eslint-disable */
+    \nglobal.template_${assetId} = ${handlebars.precompile(processor.ast)}`;
 
     // eslint-disable-next-line no-eval
     eval(`${main}`);
 
-    await component.load();
+    const { component } = processor;
+
+    component.onClient = false;
+    component.resolver = undefined;
+
+    component.getDataStore()
+      .set(component.id, {
+        input: processor.resolver.getSample(),
+      });
+
+    component.load();
 
     // Cleanup global scope
     component.releaseGlobal();
@@ -55,6 +63,7 @@ const gulpTransform = function () {
 
     // Rewrite path to use assetId instead
     file.path = path.join(file.base, file.relative.replace(identifier, assetId));
+
     // Store precompiled template
     file.basename = 'template.min.js';
     // eslint-disable-next-line no-buffer-constructor
@@ -65,13 +74,11 @@ const gulpTransform = function () {
 };
 
 gulp.task('compile-templates',
-  () => gulp.src('src/components/**/template.hbs')
+  () => gulp.src('src/plugins/**/template.hbs')
     .pipe(gulpTransform())
-    .pipe(gulp.dest('./dist/components-assets')));
+    .pipe(gulp.dest('./dist/component-assets')));
 
 
-gulp.task('compile-templates-all:watch', () => watch('src/components/**/*.hbs', { ignoreInitial: true })
+gulp.task('compile-templates:watch', () => watch('src/plugins/**/template.hbs', { ignoreInitial: false })
   .pipe(gulpTransform())
-  .pipe(gulp.dest('./dist/components')));
-
-gulp.task('compile-templates:watch', gulp.parallel('compile-templates', 'compile-templates-all:watch'));
+  .pipe(gulp.dest('./dist/component-assets')));

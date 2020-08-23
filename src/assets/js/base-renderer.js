@@ -1,62 +1,59 @@
+
+/* eslint-disable class-methods-use-this */
 class BaseRenderer {
-    constructor({
-        id, input,
-    } = {}) {
-        this.id = id;
+  constructor({
+    id, input,
+  } = {}) {
+    this.id = id;
 
-        // eslint-disable-next-line default-case
-        switch (input.constructor.name) {
-        case 'Object':
-            this.getDataStore()
-                .set(this.id, {
-                    input,
-                });
-            break;
-        case 'Function':
-            // Note: This is usually the case during compile-time
-            this.resolver = input;
-            break;
-        }
+    BaseRenderer.addPolyfills();
 
-        // Create root proxy
+    // eslint-disable-next-line default-case
+    switch (input.constructor.name) {
+      case 'Object':
+        this.getDataStore()
+          .set(this.id, {
+            input,
+          });
+        break;
+      default:
         // eslint-disable-next-line no-undef
-        RootProxy.create({ component: this });
-
-        this.addPolyfills();
+        assert(input.constructor.name === 'PathResolver');
+        // Note: This is usually the case during compile-time
+        this.resolver = input;
+        break;
     }
 
-    getId() {
-        return this.id;
-    }
+    // Create root proxy
+    // eslint-disable-next-line no-undef
+    RootProxy.create({ component: this });
+  }
 
-    getDataStore() {
-        if (!window.dataStore) {
-            window.dataStore = new Map();
-        }
-        return window.dataStore;
-    }
+  getId() {
+    return this.id;
+  }
 
-    getInput() {
-        return this.getDataStore()
-            .get(this.id).input;
+  getDataStore() {
+    if (!window.dataStore) {
+      window.dataStore = new Map();
     }
+    return window.dataStore;
+  }
 
-    load() {
-        return Promise.resolve();
-    }
+  getInput() {
+    return this.getDataStore()
+      .get(this.id).input;
+  }
 
-    addPolyfills() {
-        // Polyfill NodeJS global object
-        window.global = window;
-        if (!global) {
-            window.assert = (condition) => {
-                if (!condition) {
-                    throw new Error('Assertion Error');
-                }
-                return true;
-            };
-        }
-    }
+  load() {
+  }
+
+  static addPolyfills() {
+    window.assert = (condition, message) => {
+      if (!condition) {
+        throw new Error(`Assertion Error${message ? `: ${message}` : ''}`)
+      }
+    };
+  }
 }
-
 module.exports = BaseRenderer;

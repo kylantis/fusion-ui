@@ -1,7 +1,6 @@
-{{server-stub com.kylantis.Table}}
-{{style href="site" }}
-{{style href="https://cdn.jsdelivr.net/npm/styles.min.css" }}
-{{script href=""}}
+{{server-stub com.kylantis.components.Antelope}}     
+{{!-- {{style href="https://cdn.jsdelivr.net/npm/styles.min.css" }}
+{{script href="https://cdn.jsdelivr.net/npm/script.min.js"}} --}}
 
 {{#each people as |p peopleKey|}}
     <br>
@@ -16,16 +15,16 @@
 {{/each}}
 
 <br>
-Literal Segments <br>
-* {{users.[0].books.[0].name}} by {{users.[0].books.[0].authors.[0]}}
+{{!-- Literal Segments <br>
+* {{users.[0].books.[0].name}} by {{users.[0].books.[0].authors.[0]}} --}}
 
 <br>
 
-  {{#*inline "layout"}}
+  {{!-- {{#*inline "layout"}}
 
-  {{/inline}}
+  {{/inline}} --}}
 
-{{#each (dynamicUsers people) as |user index|}}
+{{!-- {{#each (dynamicUsers people) as |user index|}}
   <br><br>
   Data Variables: {{@first}}, {{@last}}, {{@index}}, {{@key}} <br>
   UserId: {{id}}, {{user.id}} ({{index}}) <br>
@@ -35,10 +34,10 @@ Literal Segments <br>
     {{> books}}
   {{/each}}
   {{/each}}
-    {{> conditionals}}
+    {{> conditionals}} --}}
 
 
-<br><br><br><br>
+{{!-- <br><br><br><br>
   {{#> layout}}
   {{#*inline "nav"}}
     My Nav
@@ -50,4 +49,4 @@ Literal Segments <br>
   {{#each users as |user|}}
    Hello {{user.id}} {{./id}}
   {{/each}}
-{{/layout}}
+{{/layout}} --}}
