@@ -3,16 +3,16 @@
  * compiles all script files, then minify into dist folder
  * @author Tony
  */
-
+const fs = require('fs');
+const babel = require('@babel/core');
 const gulp = require('gulp');
 const uglify = require('gulp-uglify');
-// const sourcemaps = require('gulp-sourcemaps');
-const babel = require('gulp-babel');
+const sourcemaps = require('gulp-sourcemaps');
 const rename = require('gulp-rename');
 const watch = require('gulp-watch');
+const log = require('fancy-log');
+
 const through = require('through2');
-const fs = require('fs');
-const path = require('path');
 
 /**
  *
@@ -38,58 +38,37 @@ const renameConfig = {
   suffix: '.min',
 };
 
-gulp.task('compile-scripts:watch', () => watch(['src/**/*.js', '!src/components/*/*.js'], { ignoreInitial: false })
-  .pipe(babel())
-  // .pipe(sourcemaps.init())
+const babelTransform = through.obj((vinylFile, encoding, callback) => {
+  const file = vinylFile.clone();
+  const filePath = `${file.base}/${file.relative}`;
+  const result = babel.transformSync(fs.readFileSync(filePath, 'utf8'));
+  file.contents = Buffer.from(result.code);
+  callback(null, file);
+});
+
+gulp.task('compile-scripts', () => gulp.src(['src/assets/js/**/*.js'])
+  .pipe(babelTransform)
+  .pipe(sourcemaps.init())
   .pipe(uglify({
     mangle: false,
     compress: true,
   }).on('error', (msg) => {
-    // eslint-disable-next-line no-console
-    console.error(msg);
+    log.error(msg);
   }))
-  // .pipe(sourcemaps.write())
+  .pipe(sourcemaps.write())
   .pipe(rename(renameConfig))
-  .pipe(gulp.dest('./dist')));
+  .pipe(gulp.dest('./dist/assets/js')));
 
 
-gulp.task('compile-scripts', () => gulp.src(['src/**/*.js', '!src/components/*/*.js'])
-  .pipe(babel())
-  // .pipe(sourcemaps.init())
+gulp.task('compile-scripts:watch', () => watch(['src/assets/js/**/*.js'], { ignoreInitial: true })
+  .pipe(babelTransform)
+  .pipe(sourcemaps.init())
   .pipe(uglify({
     mangle: false,
     compress: true,
   }).on('error', (msg) => {
-    // eslint-disable-next-line no-console
-    console.error(msg);
+    log.error(msg);
   }))
-  // .pipe(sourcemaps.write())
+  .pipe(sourcemaps.write())
   .pipe(rename(renameConfig))
-  .pipe(gulp.dest('./dist')));
-
-
-// eslint-disable-next-line func-names
-const gulpTransform = function () {
-  return through.obj((vinylFile, _encoding, callback) => {
-    const file = vinylFile.clone();
-
-    const dir = path.dirname(file.path);
-    const templatePath = `${dir}/template.hbs`;
-
-    const templateContent = fs.readFileSync(templatePath, 'utf8');
-
-    fs.writeFile(templatePath, templateContent, (err) => {
-      if (err) throw err;
-      file.basename = 'index.src.js';
-      callback(null, file);
-    });
-  });
-};
-
-gulp.task('compile-components', () => gulp.src('src/components/*/*.js')
-  .pipe(gulpTransform())
-  .pipe(gulp.dest('./dist/components')));
-
-gulp.task('compile-components:watch', () => watch('src/components/*/*.js', { ignoreInitial: true })
-  .pipe(gulpTransform())
-  .pipe(gulp.dest('./dist/components')));
+  .pipe(gulp.dest('./dist/assets/js')));

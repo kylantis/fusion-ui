@@ -1,0 +1,164 @@
+{{name com.kylantis.components.Antelope}}     
+{{!-- {{style href="https://cdn.jsdelivr.net/npm/styles.min.css" }}
+{{script href="https://cdn.jsdelivr.net/npm/script.min.js"}} --}}
+{{!-- {{component tooltip}}
+{{component button alias="button"}} --}}
+
+{{#each [people] as |p peopleKey|}}
+    <br>
+    {{#with person as |q|}}
+        Data Variables: {{@../first}}, {{@../last}}, {{@../index}}, {{@../key}}<br>
+        {{createPerson}}
+        My name is {{name}} (or {{p.person.name}}) for {{peopleKey}}. I 'm a {{gender}}. I was born in {{birthYear}}
+        <br>
+        <span>Hello {{capitalize name 5 'Param A' true null undefined (sayHello 'Tonia' (getAge 1996) year=birthYear fakeAge = (getAge 1996)) sex=gender  }}</span>
+    {{/with}}
+    <br> 
+{{/each}}
+
+<br>
+Literal Segments <br>
+* {{users.[0].books.[0].name}} by {{users.[0].books.[0].authors.[0]}}
+
+<br>
+
+  {{!-- {{#*inline "layout"}}
+  {{/inline}} --}}
+
+{{#each (dynamicUsers people) as |user index|}}
+  <br><br>
+  Data Variables: {{@first}}, {{@last}}, {{@index}}, {{@key}} <br>
+  UserId: {{id}}, {{user.id}} ({{index}}) <br>
+  This: {{.}}
+  Books: 
+  <br><hr>
+  {{#each user.books as |book bookId|}}
+    {{bookId}} {{book.name}}<br>
+    {{> books}}
+  {{/each}}
+{{/each}}
+
+
+Inverse<br>
+{{#with a as |multix bookId|}}
+  {{b}}
+{{else}}
+  {{people}}
+{{/with}}
+<br><br>
+
+{{#each multi as |multix bookId|}}
+
+MULTI<br><br>
+
+{{./[1].x.[2]}} <br><br>
+
+{{#*inline "myPartial"}}
+  <span>myPartial</span>
+  {{_y}} {{_z}} <br>
+  {{./[0].x.[2]}} <br>
+  {{./[0].x.[7].[5]}} <br>
+  {{_p}} <br>
+
+{{#*inline "myPartial3"}}
+  {{_x}} {{_y}} {{_z}} <br>
+  {{./[0].x.[2]}} <br>
+  {{./[0].x.[7].[5]}} <br>
+{{/inline}}
+
+{{> myPartial3 y="yello" z="sir" x=_p}}
+
+{{/inline}}
+
+
+{{#getLocation x="y" as |location|}}
+
+{{#*inline "myPartial2"}}
+  <span>myPartial2 (inline)</span><br>
+  {{longitude}}, {{location}} {{location.latitude}} {{x}} {{@root}}<br>
+
+  {{#getUserProfile as |user|}}
+
+    <br>{{> myPartial y="hello" z="hi" p=user.fname}}<br>
+
+    {{fname}} {{user.lname}} is currently at {{location.longitude}}, {{../latitude}}<br>
+
+  {{/getUserProfile}}
+
+{{/inline}}
+
+{{../[0]}}<br><br>
+
+{{multix.[0]}}<br><br>
+
+{{../.}}<br><br>
+
+{{multix}}<br><br>
+
+<br><br>
+
+{{> myPartial2 longitude=latitude x="z"}}<br><br>
+
+{{> myPartial2}}
+
+{{/getLocation}}
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+INLINE<br>
+{{> myPartial y="hello" z="hi" p="osheX"}} <br><br>
+
+
+{{> myPartial y="hello" z="hi" p="oshe"}} <br><br>
+
+{{!-- {{this.[0].yello}} <br> --}}
+
+{{!-- {{multix.[0].x.[2]}} <br> --}}
+{{!-- {{multix.[0].x.[2].a}} <br> --}}
+{{!-- {{this.[0]}} <br> --}}
+{{!-- {{.}} <br> --}}
+{{!-- {{p.[0]}} <br> --}}
+
+
+{{!-- {{#each this as |x y|}}
+{{.}} {{this}}
+  {{x}} <br>
+  {{y}} <br>
+  {{z}} <br>
+
+  {{#each this.d as |x|}}
+    {{h}} {{k}}
+    {{@key}}: {{this}}
+  {{/each}}
+
+  {{this.d}}
+
+{{/each}} 
+
+
+  <h5>conditionals</h5>
+  {{> conditionals}} --}}
+
+{{/each}}
+
+    
+
+
+{{!-- <br><br><br><br>
+  {{#> layout}}
+  {{#*inline "nav"}}
+    My Nav
+  {{/inline}}
+  {{#*inline "content"}}
+    My Content
+  {{/inline}}
+  
+  {{#each users as |user|}}
+   Hello {{user.id}} {{./id}}
+  {{/each}}
+{{/layout}} --}}

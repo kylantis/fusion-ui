@@ -1,90 +1,77 @@
+/* eslint-disable no-console */
 const gulp = require('gulp');
 const fs = require('fs');
 const path = require('path');
 const watch = require('gulp-watch');
 const handlebars = require('handlebars');
 const through = require('through2');
-const assert = require('assert');
+const log = require('fancy-log');
 const TemplateProcessor = require('../lib/template-preprocessor');
 const TemplateReader = require('../lib/template-reader');
 
 // eslint-disable-next-line func-names
 const gulpTransform = function () {
   return through.obj((vinylFile, _encoding, callback) => {
-    const hbsFile = vinylFile.clone();
+    const file = vinylFile.clone();
 
-    const dir = path.dirname(hbsFile.path);
-    const templatePath = `${dir}/template.hbs`;
-
+    const dir = path.dirname(file.path);
     const componentName = path.relative(path.dirname(dir), dir);
-    const content = fs.readFileSync(templatePath, 'utf8');
 
-    // eslint-disable-next-line no-console
-    console.log(`\x1b[32m[${componentName}]\x1b[0m`);
+    const templateString = fs.readFileSync(`${dir}/template.hbs`, 'utf8');
 
     TemplateReader.reset();
 
     const processor = new TemplateProcessor({
-      templatePath,
+      assetId: componentName,
+      logger: log,
       componentName,
-      ast: handlebars.parse(content),
-      registerDynamicDataHelpers: true,
+      ast: handlebars.parse(templateString),
     });
 
-    // Precompile template
-    const compiled = handlebars.precompile(processor.ast);
-    const templateId = `kclient_${componentName}_template`;
+    log.info(`\x1b[32m[Processing ${componentName}]\x1b[0m`);
 
-    const output = `${templateId}=${compiled};`;
+    // Precompile main ast
+    const main = `/* eslint-disable */
+    \nglobal['template_${componentName}'] = ${handlebars.precompile(processor.ast)}`;
 
-    // Render the component
-    // Update global scope
-    const DsProxy = fs.readFileSync(
-      path.join(
-        path.dirname(path.dirname(templatePath)),
-        'proxy.js',
-      ),
-      'utf8',
-    );
-    global.assert = assert;
-    const baseComponent = Object.getPrototypeOf(
-      Object.getPrototypeOf(processor.component),
-    );
-    global[baseComponent.constructor.name] = baseComponent.constructor;
     // eslint-disable-next-line no-eval
-    global.DsProxy = eval(DsProxy);
-    global.Handlebars = handlebars;
-    // eslint-disable-next-line no-eval
-    eval(`global.${output}`);
-    // const html = processor.component.render();
-    const html = '';
+    eval(`${main}`);
+
+    const { component } = processor;
+
+    component.onClient = false;
+    component.resolver = undefined;
+
+    component.getDataStore()
+      .set(component.id, {
+        input: processor.resolver.getSample(),
+      });
+
+    component.load();
 
     // Cleanup global scope
-    delete global.DsProxy;
-    delete global.Handlebars;
-    delete global[templateId];
+    component.releaseGlobal();
 
     // Write server html
-    fs.writeFileSync(`${processor.getComponentDistPath()}/server.html`, html);
+    fs.writeFileSync(`${processor.getDistPath()}/server.html`, component.html);
 
+    // file.path = path.join(file.base, file.relative);
 
     // Store precompiled template
-    hbsFile.basename = 'template.min.js';
+    file.basename = 'template.min.js';
     // eslint-disable-next-line no-buffer-constructor
-    hbsFile.contents = Buffer.from(output);
+    file.contents = Buffer.from(main);
 
-    callback(null, hbsFile);
+    callback(null, file);
   });
 };
 
 gulp.task('compile-templates',
-  () => gulp.src('src/components/**/template.hbs')
+  () => gulp.src(['src/components/**/template.hbs'])
     .pipe(gulpTransform())
-    .pipe(gulp.dest('./dist/components')));
+    .pipe(gulp.dest('dist/components')));
 
-
-gulp.task('compile-templates-all:watch', () => watch('src/components/**/*.hbs', { ignoreInitial: true })
-  .pipe(gulpTransform())
-  .pipe(gulp.dest('./dist/components')));
-
-gulp.task('compile-templates:watch', gulp.parallel('compile-templates', 'compile-templates-all:watch'));
+gulp.task('compile-templates:watch',
+  () => watch(['src/components/**/*.hbs', 'src/components/**/*.js'], { ignoreInitial: true })
+    .pipe(gulpTransform())
+    .pipe(gulp.dest('dist/components')));

@@ -1,0 +1,9 @@
+Name: {{book.name}} for {{../id}} - ({{bookId}} || {{@../index}}) <br>
+releaseYear: {{book.releaseYear}} <br>
+Authors: <br>
+{{#each book.authors as |author id|}}
+    <b>{{author}}</b> or <b>{{this}}</b> - ({{@key}} or {{id}})
+    <br>
+{{/each}}
+<br>
+<hr>
