@@ -5,6 +5,7 @@ class BaseRenderer {
     id, input,
   } = {}) {
     this.id = id;
+    this.logger = console;
 
     BaseRenderer.addPolyfills();
 

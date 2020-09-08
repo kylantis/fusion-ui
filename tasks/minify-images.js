@@ -16,7 +16,7 @@ gulp.task('minify-images', () => gulp.src('src/assets/images/**/*.{png,svg,ico,g
   }))
   .pipe(gulp.dest('dist/assets/images/')));
 
-gulp.task('minify-images:watch', () => watch('src/assets/images/**/*.{png,svg,ico,gif,jpg,webp}', { ignoreInitial: false })
+gulp.task('minify-images:watch', () => watch('src/assets/images/**/*.{png,svg,ico,gif,jpg,webp}', { ignoreInitial: true })
   .pipe(imageMin({
     progressive: true,
     interlaced: true,

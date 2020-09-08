@@ -22,7 +22,7 @@ gulp.task('compile-syles', () => gulp.src('src/assets/scss/**/*.scss')
   .pipe(rename(renameConfig))
   .pipe(gulp.dest('dist/assets/css')));
 
-gulp.task('compile-syles:watch', () => watch('src/assets/scss/**/*.scss', { ignoreInitial: false })
+gulp.task('compile-syles:watch', () => watch('src/assets/scss/**/*.scss', { ignoreInitial: true })
   .pipe(sourcemaps.init())
   .pipe(sass(
     {

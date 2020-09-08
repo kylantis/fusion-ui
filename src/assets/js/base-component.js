@@ -7,5 +7,10 @@ class BaseComponent extends WebRenderer {
   } = {}) {
     super({ id, input, parent });
   }
+
+  // eslint-disable-next-line class-methods-use-this
+  toHtml(object) {
+    return JSON.stringify(object);
+  }
 }
 module.exports = BaseComponent;

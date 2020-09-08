@@ -1,3 +1,12 @@
+
+{{!-- {{this_$}} --}}
+{{!-- <h5>this</h5> --}}
+{{!-- {{@root.[0].x.[2]}} <br> --}}
+{{!-- {{this.[0]}} <br> --}}
+{{@root}} <br>
+{{@root.[0]}} <br>
+{{!-- {{this}} --}}
+{{!-- 
 <br>
 <h5>empty_array</h5>
 {{#if empty_array}}
@@ -6,7 +15,7 @@
 <b>FALSE</b>
 {{/if}}
 
-<h5>zero</h5>
+<h5>zero</h5> 
 {{#if zero}}
 <b>TRUE</b>
 {{else}}
@@ -56,13 +65,18 @@ TRUE
 {{/unless}}
 
 <h5>empty_array</h5>
-{{#each empty_array}}
-<b>content!</b>
+{{#each empty_array as |empty_array i|}}
+<b>content - {{this}}</b>
 {{else}}
 <b>no content</b>
 {{/each}}
 
-<h5>empty_object</h5>
-{{#with non_empty_object}}
-<b>TRUE</b>
+<h5>non_empty_object</h5>
+{{#with non_empty_object as |non_empty_object|}}
+<b>TRUE - {{aaa}}, {{bbb}}</b>
 {{/with}}
+
+<h5>non_empty_object</h5>
+{{#with non_empty_object as |abc|}}
+<b>TRUE - {{cc}}, {{bbb}}</b>
+{{/with}} --}}

@@ -4,22 +4,24 @@ const Antelope = require('./index');
 
 /**
  *  Test implementation of the actual component class. All methods defined here
- *  should return mock data instead of real data. Note: all overriding methods should not
- *  accept arguments, and the data returned should have the same type with the
- *  one from the actual class
+ *  should return mock data instead of real data.
+ * Note:
+ * - All overriding methods should not accept arguments, and the data returned
+ *    should have the same type with the one from the actual class
+ * - Do not return empty data, e.g, an empty array, e.t.c
  */
 class AntelopeTest extends Antelope {
   echo() {
     return JSON.stringify({ key: faker.lorem.words() });
   }
 
-  capitalize() {
-    return faker.lorem.words().toUpperCase();
-  }
+  // capitalize() {
+  //   return faker.lorem.words().toUpperCase();
+  // }
 
   // eslint-disable-next-line no-underscore-dangle
   _capitalize() {
-    return faker.lorem.words().toUpperCase();
+    return faker.lorem.words().toLocaleUpperCase();
   }
 
   sayHello() {
@@ -36,8 +38,8 @@ class AntelopeTest extends Antelope {
     return 2020 - this.getRandomArbitrary(1970, 2010);
   }
 
-  createPerson() {
-    return 'Hey!';
-  }
+  // createPerson() {
+  //   return 'Hey!';
+  // }
 }
 module.exports = AntelopeTest;

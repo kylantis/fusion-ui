@@ -8,37 +8,31 @@ const through = require('through2');
 const log = require('fancy-log');
 const TemplateProcessor = require('../lib/template-preprocessor');
 const TemplateReader = require('../lib/template-reader');
-const utils = require('../lib/utils');
 
 // eslint-disable-next-line func-names
 const gulpTransform = function () {
   return through.obj((vinylFile, _encoding, callback) => {
     const file = vinylFile.clone();
 
-    const componentDir = path.dirname(file.path);
-    const pluginDir = path.dirname(componentDir);
+    const dir = path.dirname(file.path);
+    const componentName = path.relative(path.dirname(dir), dir);
 
-    const componentName = path.relative(pluginDir, componentDir);
-    const pluginName = path.relative(path.dirname(pluginDir), pluginDir);
-
-    const identifier = `${pluginName}/${componentName}`;
-    const assetId = utils.generateRandomString();
-
-    const templateString = fs.readFileSync(`${componentDir}/template.hbs`, 'utf8');
+    const templateString = fs.readFileSync(`${dir}/template.hbs`, 'utf8');
 
     TemplateReader.reset();
 
     const processor = new TemplateProcessor({
-      assetId,
+      assetId: componentName,
       logger: log,
-      pluginName,
       componentName,
       ast: handlebars.parse(templateString),
     });
 
+    log.info(`\x1b[32m[Processing ${componentName}]\x1b[0m`);
+
     // Precompile main ast
     const main = `/* eslint-disable */
-    \nglobal.template_${assetId} = ${handlebars.precompile(processor.ast)}`;
+    \nglobal['template_${componentName}'] = ${handlebars.precompile(processor.ast)}`;
 
     // eslint-disable-next-line no-eval
     eval(`${main}`);
@@ -61,8 +55,7 @@ const gulpTransform = function () {
     // Write server html
     fs.writeFileSync(`${processor.getDistPath()}/server.html`, component.html);
 
-    // Rewrite path to use assetId instead
-    file.path = path.join(file.base, file.relative.replace(identifier, assetId));
+    // file.path = path.join(file.base, file.relative);
 
     // Store precompiled template
     file.basename = 'template.min.js';
@@ -74,11 +67,11 @@ const gulpTransform = function () {
 };
 
 gulp.task('compile-templates',
-  () => gulp.src('src/plugins/**/template.hbs')
+  () => gulp.src(['src/components/**/template.hbs'])
     .pipe(gulpTransform())
-    .pipe(gulp.dest('./dist/component-assets')));
+    .pipe(gulp.dest('dist/components')));
 
-
-gulp.task('compile-templates:watch', () => watch('src/plugins/**/template.hbs', { ignoreInitial: false })
-  .pipe(gulpTransform())
-  .pipe(gulp.dest('./dist/component-assets')));
+gulp.task('compile-templates:watch',
+  () => watch(['src/components/**/*.hbs', 'src/components/**/*.js'], { ignoreInitial: true })
+    .pipe(gulpTransform())
+    .pipe(gulp.dest('dist/components')));

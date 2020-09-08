@@ -1,3 +1,4 @@
+/* eslint-disable no-case-declarations */
 
 class RootProxy {
     // eslint-disable-next-line no-useless-escape
@@ -10,6 +11,8 @@ class RootProxy {
     static dataPathPrefix = new RegExp(`^${RootProxy.dataPathRoot}${RootProxy.pathSeparator}`);
 
     static rawDataPrefix = 'r$_';
+
+    static literalPrefix = 'l$_';
 
     static emptyObject = {};
 
@@ -24,10 +27,10 @@ class RootProxy {
       this.lastLookup = value;
 
       switch (true) {
-        case value instanceof Array:
+        case value && value.constructor.name === 'Array':
           return this.createArrayProxy(value);
 
-        case value instanceof Object:
+        case value && value.constructor.name === 'Object':
           return this.handler;
 
         default:
@@ -36,8 +39,16 @@ class RootProxy {
     }
 
     resolve0({ prop }) {
+      const {
+        literalPrefix, emptyString,
+      } = RootProxy;
+
       // eslint-disable-next-line no-undef
       assert(prop.constructor.name === 'String');
+
+      if (prop.startsWith(literalPrefix)) {
+        return prop.replace(literalPrefix, emptyString);
+      }
 
       // eslint-disable-next-line no-case-declarations
       const { rawDataPrefix } = RootProxy;
@@ -53,7 +64,29 @@ class RootProxy {
       const v = this.component
         .getPathValue({ path: prop });
 
-      return isRawReturn ? v : this.getValue(v);
+      return isRawReturn ? this.getRawValueWrapper(v) : this.getValue(v);
+    }
+
+    /**
+     * This wraps a raw value.
+     */
+    getRawValueWrapper(value) {
+      // eslint-disable-next-line no-underscore-dangle
+      const _this = this;
+      switch (true) {
+        case value !== Object(value):
+          return value;
+        default:
+          return new Proxy(value, {
+            get(obj, prop) {
+              if (prop === 'toHTML') {
+                // An alternative is to check if prop === Symbol.toPrimitive
+                return () => _this.component.toHtml(obj);
+              }
+              return obj[prop];
+            },
+          });
+      }
     }
 
     getProxyIterator() {
@@ -79,7 +112,8 @@ class RootProxy {
       const {
         dataPathPrefix, syntheticMethodPrefix,
       } = RootProxy;
-
+      // eslint-disable-next-line no-underscore-dangle
+      const _this = this;
       return new Proxy({}, {
         get: (obj, prop) => {
           if (prop === Symbol.iterator) {
@@ -91,16 +125,21 @@ class RootProxy {
             case !!Object.getPrototypeOf(obj)[prop]:
               return obj[prop];
 
+            case prop === 'toHTML':
+              // An alternative is to check if prop === Symbol.toPrimitive
+              return () => _this.component.toHtml(this.lastLookup);
+
             case prop.startsWith('@root'):
               // eslint-disable-next-line no-case-declarations
               const arr = prop.split('.');
-              arr[0] = 'this.component.getRootGlobals()';
+              arr[0] = '_this.component.getRootGlobals()';
               // eslint-disable-next-line no-eval
               return eval(arr.join('.'));
 
             default:
-              // eslint-disable-next-line no-undef
-              assert(prop.match(dataPathPrefix) || prop.startsWith(syntheticMethodPrefix));
+              if (!(prop.match(dataPathPrefix) || prop.startsWith(syntheticMethodPrefix))) {
+                throw new Error(`Invalid path: ${prop}`);
+              }
               return this.resolve0({ prop: prop.replace(dataPathPrefix, '') });
           }
         },
@@ -108,35 +147,36 @@ class RootProxy {
     }
 
     createArrayProxy(array) {
+      // eslint-disable-next-line no-underscore-dangle
+      const _this = this;
       return new Proxy(array, {
         get: (obj, prop) => {
-          if (!Number.isNaN(parseInt(prop, 10))) {
-            let value = obj[prop];
+          switch (true) {
+            case prop === 'toHTML':
+              // An alternative is to check if prop === Symbol.toPrimitive
+              return () => _this.component.toHtml(obj);
 
-            if (value.constructor.name !== 'Array') {
-              // If the element in this index is not an array,
-              // return an empty object, which will then be
-              // wrapped by the object proxy
+            case prop === Symbol.toPrimitive:
+              return () => _this.component.toHtml(obj);
 
-              // If hbs knows that the element is a primitive, it
-              // will refuse to resolve mustache statements inside
-              // the each block that neither reference {{this}}
-              // nor a block param in the upper context. Both of
-              // which are not attainable in our scenario
+            case !Number.isNaN(parseInt(prop, 10)):
+              // At least access the context, so that our array proxy
+              // created in setSyntheticContext(...) intercepts the value
+              // and updates the synthetic context
+              // eslint-disable-next-line no-unused-expressions
+              obj[prop];
+              return this.createObjectProxy();
 
-              value = {};
-            }
-
-            return this.getValue(value);
+            default:
+              return obj[prop];
           }
-          return obj[prop];
         },
       });
     }
 
     static create({ component }) {
       const proxy = new RootProxy({ component });
-      proxy.component.proxy = proxy.handler;
+      proxy.component.rootProxy = proxy.handler;
       return proxy.handler;
     }
 }

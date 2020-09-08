@@ -80,6 +80,22 @@ class Antelope extends BaseComponent {
 
   createPerson() {
   }
+
+  getLocation() {
+    return {
+      longitude: 1212,
+      latitude: 4545,
+      continent: 'Africa',
+    };
+  }
+
+  getUserProfile() {
+    return {
+      fname: 'Emma',
+      lname: 'Chilo',
+      age: 25,
+    };
+  }
 }
 
 module.exports = Antelope;
