@@ -47,15 +47,15 @@ const babelTransform = through.obj((vinylFile, encoding, callback) => {
 });
 
 gulp.task('compile-scripts', () => gulp.src(['src/assets/js/**/*.js'])
-  .pipe(babelTransform)
-  .pipe(sourcemaps.init())
-  .pipe(uglify({
-    mangle: false,
-    compress: true,
-  }).on('error', (msg) => {
-    log.error(msg);
-  }))
-  .pipe(sourcemaps.write())
+  // .pipe(babelTransform)
+  // .pipe(sourcemaps.init())
+  // .pipe(uglify({
+  //   mangle: false,
+  //   compress: true,
+  // }).on('error', (msg) => {
+  //   log.error(msg);
+  // }))
+  // .pipe(sourcemaps.write())
   .pipe(rename(renameConfig))
   .pipe(gulp.dest('./dist/assets/js')));
 

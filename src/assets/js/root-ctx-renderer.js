@@ -1,3 +1,5 @@
+/* eslint-disable no-case-declarations */
+/* eslint-disable no-restricted-globals */
 /* eslint-disable no-undef */
 /* eslint-disable func-names */
 /* eslint-disable no-console */
@@ -7,24 +9,58 @@
 class RootCtxRenderer extends BaseRenderer {
   static syntheticAliasSeparator = '$$';
 
+  #blockData;
+
+  #syntheticContext;
+
+  #resolve;
+
+  static #token;
+
   constructor({
-    id, input,
+    id, input, loadable,
   } = {}) {
-    super({ id, input });
+    super({ id, input, loadable });
 
     // Initialze block data map
-    this.blockData = {};
+    this.#blockData = {};
 
-    this.syntheticContext = {};
+    this.#syntheticContext = {};
 
     // Todo: make this configurable
     this.strict = false;
+
+    this.promise = new Promise((resolve) => {
+      this.#resolve = resolve;
+    });
+
+    this.futures = [];
   }
 
-  load() {
-    super.load();
+  static setToken(token) {
+    if (RootCtxRenderer.#token) {
+      throw new Error(`Could not set token: ${token}`);
+    }
+    RootCtxRenderer.#token = token;
+  }
+
+  /**
+   * This methods should not be called by developers directly,
+   * but rather using the .doRender(...) method
+   */
+  load({ parent, token }) {
+    if (!this.loadable()) {
+      throw new Error(`${this.getId()} is not loadable`);
+    }
+
+    if (token !== RootCtxRenderer.#token && !this.isRoot()) {
+      throw new Error(`Invalid token: ${token}`);
+    }
 
     const { getMetaHelpers } = RootCtxRenderer;
+    super.load();
+
+    this.logger.info(`Loading component - ${this.getId()}`);
 
     // Remove unused hbs helper(s)
     // eslint-disable-next-line no-undef
@@ -84,7 +120,11 @@ class RootCtxRenderer extends BaseRenderer {
       // strict: true,
     });
 
-    this.renderHtml({ html });
+    document.getElementById(parent).innerHTML = html;
+
+    this.#resolve();
+
+    return this.promise.then(() => Promise.all(this.futures));
   }
 
   getAssetId() {
@@ -180,10 +220,10 @@ class RootCtxRenderer extends BaseRenderer {
 
   getBlockData({ path, dataVariable }) {
     // eslint-disable-next-line no-unused-vars
-    const blockData = this.blockData[path];
+    const blockData = this.#blockData[path];
 
-    const value = this.syntheticContext[path] !== undefined
-      ? this.syntheticContext[path].value
+    const value = this.#syntheticContext[path] !== undefined
+      ? this.#syntheticContext[path].value
       : this.getPathValue({ path });
 
     const length = value instanceof Array
@@ -208,7 +248,7 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   doBlockInit({ path, blockId }) {
-    const blockData = this.blockData[path] || (this.blockData[path] = {});
+    const blockData = this.#blockData[path] || (this.#blockData[path] = {});
 
     if (blockId) {
       // eslint-disable-next-line no-unused-expressions
@@ -220,7 +260,7 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   doBlockUpdate({ path }) {
-    const blockData = this.blockData[path];
+    const blockData = this.#blockData[path];
     // eslint-disable-next-line no-plusplus
     blockData.index++;
   }
@@ -229,7 +269,7 @@ class RootCtxRenderer extends BaseRenderer {
     alias,
     key,
   }) {
-    return this.syntheticContext[alias][key];
+    return this.#syntheticContext[alias][key];
   }
 
   static toObject({ map }) {
@@ -258,7 +298,7 @@ class RootCtxRenderer extends BaseRenderer {
       value = toObject({ map: value });
     }
 
-    this.syntheticContext[alias] = {
+    this.#syntheticContext[alias] = {
       value,
     };
 
@@ -275,7 +315,7 @@ class RootCtxRenderer extends BaseRenderer {
               get: (obj, prop) => {
                 const v = obj[prop];
                 if (!Number.isNaN(parseInt(prop, 10))) {
-                  this.syntheticContext[alias].current = v;
+                  this.#syntheticContext[alias].current = v;
                 }
                 return v;
               },
@@ -284,7 +324,7 @@ class RootCtxRenderer extends BaseRenderer {
             // Note: this is used by TenplateProcessor during sub-path
             // traversal, as the proxy above this is designed for use
             // during runtime
-            [this.syntheticContext[alias].current] = value;
+            [this.#syntheticContext[alias].current] = value;
           }
           break;
 
@@ -295,14 +335,14 @@ class RootCtxRenderer extends BaseRenderer {
               get: (obj, prop) => {
                 const v = obj[prop];
                 if (!Object.getPrototypeOf(obj)[prop]) {
-                  this.syntheticContext[alias].current = v;
+                  this.#syntheticContext[alias].current = v;
                 }
                 return v;
               },
             });
           } else {
             const keys = Object.keys(value);
-            this.syntheticContext[alias].current = keys.length ? value[keys[0]] : undefined;
+            this.#syntheticContext[alias].current = keys.length ? value[keys[0]] : undefined;
           }
           break;
       }
@@ -315,7 +355,7 @@ class RootCtxRenderer extends BaseRenderer {
       // the invocation happened from our object proxy,
       // hence no need to
 
-      this.syntheticContext[alias].current = value;
+      this.#syntheticContext[alias].current = value;
     }
 
     return value;
@@ -342,7 +382,7 @@ class RootCtxRenderer extends BaseRenderer {
     autoPrefix = true,
   }) {
     return this[`${autoPrefix
-      // eslint-disable-next-line no-undef
+    // eslint-disable-next-line no-undef
       ? RootProxy.syntheticMethodPrefix : ''}${name}`].bind(this);
   }
 
@@ -365,7 +405,7 @@ class RootCtxRenderer extends BaseRenderer {
     const { getSegments, toObject } = RootCtxRenderer;
     if (!indexResolver) {
       // eslint-disable-next-line no-param-reassign
-      indexResolver = path => this.blockData[path].index;
+      indexResolver = path => this.#blockData[path].index;
     }
 
     const basePath = 'this.getInput()';
@@ -492,8 +532,9 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   resolvePath0({ path }) {
-    const value = this.resolver && !path.startsWith('this.') ? this.resolver.resolve(path)
-      // eslint-disable-next-line no-eval
+    const value = this.resolver && !path.startsWith('this.')
+      ? this.resolver.resolve(path)
+    // eslint-disable-next-line no-eval
       : eval(path);
     return value;
   }
@@ -509,6 +550,34 @@ class RootCtxRenderer extends BaseRenderer {
     return {
       emptyString,
     };
+  }
+
+  static flattenJson(data) {
+    const result = {};
+    function recurse(cur, prop) {
+      if (Object(cur) !== cur) {
+        result[prop] = cur;
+      } else if (Array.isArray(cur)) {
+        // eslint-disable-next-line no-plusplus
+        for (let i = 0, l = cur.length; i < l; i++) recurse(cur[i], prop ? `${prop}.${i}` : `${i}`);
+        if (l === 0) result[prop] = [];
+      } else {
+        let isEmpty = true;
+        for (const p in cur) {
+          if ({}.hasOwnProperty.call(cur, p)) {
+            isEmpty = false;
+            recurse(cur[p], prop ? `${prop}.${p}` : p);
+          }
+        }
+        if (isEmpty) result[prop] = {};
+      }
+      if (Object(cur) === cur && prop) {
+        // eslint-disable-next-line no-param-reassign
+        cur['@path'] = prop;
+      }
+    }
+    recurse(data, '');
+    return result;
   }
 }
 module.exports = RootCtxRenderer;

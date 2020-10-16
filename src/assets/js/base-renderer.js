@@ -1,60 +1,102 @@
 
 /* eslint-disable class-methods-use-this */
 class BaseRenderer {
-  constructor({
-    id, input,
-  } = {}) {
-    this.id = id;
-    this.logger = console;
+  static #componentIds = [];
 
-    BaseRenderer.addPolyfills();
+ #id;
 
-    // eslint-disable-next-line default-case
-    switch (input.constructor.name) {
-      case 'Object':
-        this.getDataStore()
-          .set(this.id, {
-            input,
-          });
-        break;
-      default:
-        // eslint-disable-next-line no-undef
-        assert(input.constructor.name === 'PathResolver');
-        // Note: This is usually the case during compile-time
-        this.resolver = input;
-        break;
-    }
+ #input;
 
-    // Create root proxy
-    // eslint-disable-next-line no-undef
-    RootProxy.create({ component: this });
-  }
+ #loadable;
 
-  getId() {
-    return this.id;
-  }
+ #isRoot;
 
-  getDataStore() {
-    if (!window.dataStore) {
-      window.dataStore = new Map();
-    }
-    return window.dataStore;
-  }
+ constructor({
+   id,
+   input,
+   loadable = true,
+ } = {}) {
+   if (!global) {
+     BaseRenderer.addPolyfills();
+   }
 
-  getInput() {
-    return this.getDataStore()
-      .get(this.id).input;
-  }
+   if (!id) {
+     // eslint-disable-next-line no-param-reassign
+     id = this.generateComponentId();
+   }
 
-  load() {
-  }
+   // eslint-disable-next-line no-undef
+   assert(id && id.constructor.name === 'String');
+   // eslint-disable-next-line no-undef
+   assert(input && input.constructor.name === 'Object');
 
-  static addPolyfills() {
-    window.assert = (condition, message) => {
-      if (!condition) {
-        throw new Error(`Assertion Error${message ? `: ${message}` : ''}`)
-      }
-    };
-  }
+   // eslint-disable-next-line no-undef
+   assert(
+     !BaseRenderer.#componentIds.includes(id),
+     `Duplicate componentId: ${id}`,
+   );
+
+   this.#id = id;
+   this.logger = console;
+   this.#input = input;
+   this.#loadable = loadable;
+   this.#isRoot = !BaseRenderer.#componentIds.length;
+
+   if (this.#loadable) {
+     BaseRenderer.#componentIds.push(this.#id);
+   }
+
+   // Create root proxy
+   // eslint-disable-next-line no-undef
+   RootProxy.create({ component: this });
+ }
+
+ static getComponentIds() {
+   return BaseRenderer.#componentIds;
+ }
+
+ loadable() {
+   return this.#loadable;
+ }
+
+ isRoot() {
+   return this.#isRoot;
+ }
+
+ getId() {
+   return this.#id;
+ }
+
+ getInput() {
+   return this.resolver ? this.resolver : this.#input;
+ }
+
+ load() {
+ }
+
+ static addPolyfills() {
+   window.global = window;
+   global.assert = (condition, message) => {
+     if (!condition) {
+       throw new Error(`Assertion Error${message ? `: ${message}` : ''}`);
+     }
+   };
+ }
+
+ generateComponentId() {
+   return `${this.constructor.name}-${BaseRenderer.generateRandomString()}`;
+ }
+
+ static generateRandomString() {
+   const length = 8;
+   let result = '';
+   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+   const charactersLength = characters.length;
+   // eslint-disable-next-line no-plusplus
+   for (let i = 0; i < length; i++) {
+     result += characters.charAt(Math.floor(Math.random() * charactersLength));
+   }
+   return result;
+ }
 }
 module.exports = BaseRenderer;

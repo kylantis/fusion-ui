@@ -1,35 +1,20 @@
+/* eslint-disable no-case-declarations */
 
 // eslint-disable-next-line no-undef
 class WebRenderer extends CustomCtxRenderer {
   constructor({
-    id, input, parent,
+    id, input, loadable,
   } = {}) {
-    super({ id, input });
-
-    this.parent = parent;
-    // eslint-disable-next-line no-extra-boolean-cast
-    this.onClient = true;
-
-    if (this.onClient) {
-      window.global = window;
-    }
+    super({ id, input, loadable });
   }
 
-  renderHtml({ html }) {
-    if (this.parent) {
-      const container = document.createElement('div');
-      container.id = `${this.getId()}-container`;
-      container.innerHTML = html;
-
-      this.parent.appendChild(container);
-    }
-    this.html = html;
-  }
-
-  load() {
-    return this.onClient
-      ? this.loadCSSDependencies().then(() => this.loadJSDependencies()).then(() => super.load())
-      : super.load();
+  load({ parent, token }) {
+    // Promise.all([
+    //   this.loadCSSDependencies(),
+    //   this.loadJSDependencies(),
+    // ])
+    return Promise.resolve()
+      .then(() => super.load({ parent, token }));
   }
 
   cssDependencies() {
@@ -42,6 +27,7 @@ class WebRenderer extends CustomCtxRenderer {
 
   loadCSSDependencies(timeout = 5000) {
     const { loadedStyles } = WebRenderer;
+
     // eslint-disable-next-line consistent-return
     return new Promise((resolve, reject) => {
       const loaded = [];
@@ -54,7 +40,7 @@ class WebRenderer extends CustomCtxRenderer {
         return resolve([]);
       }
 
-      console.log(`Loading CSS dependencies: ${styles}`);
+      this.logger.info(`Loading CSS dependencies: ${styles}`);
 
       styles.forEach((url) => {
         const link = document.createElement('link');
@@ -66,7 +52,7 @@ class WebRenderer extends CustomCtxRenderer {
         link.onload = function () {
           loaded.push(this.href);
           loadedStyles.push(this.href);
-          console.log(`Loaded ${this.href}`);
+          this.logger.info(`Loaded ${this.href}`);
           if (loaded.length === styles.length) {
             resolve();
           }
@@ -83,21 +69,13 @@ class WebRenderer extends CustomCtxRenderer {
     });
   }
 
-  loadJSDependencies() {
-    console.log('Loading JS dependencies');
-    const { loadJS } = WebRenderer;
-    return loadJS(
-      [...this.jsDependencies()],
-    );
-  }
-
-  static loadJS(scriptList, timeout = 5000) {
+  loadJSDependencies(timeout = 5000) {
     const { loadedScripts } = WebRenderer;
 
     // eslint-disable-next-line consistent-return
     return new Promise((resolve, reject) => {
       const loaded = [];
-      let scripts = scriptList;
+      let scripts = [...this.jsDependencies()];
       // Objectify string entries
       scripts = scripts.map(script => (script.constructor.name === 'String' ? {
         url: script,
@@ -109,6 +87,8 @@ class WebRenderer extends CustomCtxRenderer {
       if (!scripts.length) {
         return resolve();
       }
+
+      this.logger.info(`Loading ${scripts.length} JS dependencies`);
 
       scripts.forEach((elem) => {
         const script = document.createElement('script');
@@ -125,7 +105,7 @@ class WebRenderer extends CustomCtxRenderer {
             // eslint-disable-next-line no-eval
             eval(elem.onload);
           }
-          console.log(`Loaded ${this.src}`);
+          this.logger.info(`Loaded ${this.src}`);
           if (loaded.length === scripts.length) {
             resolve();
           }

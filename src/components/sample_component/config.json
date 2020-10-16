@@ -1,0 +1,22 @@
+{
+  "superclass": null,
+  "typeNames": {
+    "users_$": "User",
+    "users_$.books_$": "Book",
+    "multi_$_$": "MultiEntry",
+    "f.g.h.i_$": "IEntry",
+    "people_$": "PersonEntity"
+  },
+  "literalTypes": {
+    "f.g.h.i_$.k": "String",
+    "people_$.person.name": "String",
+    "people_$.person.gender": "String",
+    "people_$.person.birthYear": "String",
+    "users_$.books_$.name": "String",
+    "users_$.books_$.authors_$": "String",
+    "users_$.books_$.releaseYear": "String",
+    "users_$.id": "String",
+    "a.b": "String",
+    "multi_$_$.x_$_$": "String"
+  }
+}
