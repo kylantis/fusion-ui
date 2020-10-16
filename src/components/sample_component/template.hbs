@@ -1,18 +1,27 @@
-{{name com.kylantis.components.Antelope}}     
 {{!-- {{style href="https://cdn.jsdelivr.net/npm/styles.min.css" }}
 {{script href="https://cdn.jsdelivr.net/npm/script.min.js"}} --}}
 {{!-- {{component tooltip}}
 {{component button alias="button"}} --}}
 
-{{#each [people] as |p peopleKey|}}
+{{#each f.g.h.i as |p peopleKey|}} 
+  {{k}}
+{{/each}} 
+{{createPerson}}
+{{#each people as |p peopleKey|}}
     <br>
     {{#with person as |q|}}
+        {{!-- {{component another_component another_alias}}
+
+        {{another_alias}}
+
+        {{another_alias.l}} --}}
+
         Data Variables: {{@../first}}, {{@../last}}, {{@../index}}, {{@../key}}<br>
         {{createPerson}}
         My name is {{name}} (or {{p.person.name}}) for {{peopleKey}}. I 'm a {{gender}}. I was born in {{birthYear}}
-        <br>
+        <br> 
         <span>Hello {{capitalize name 5 'Param A' true null undefined (sayHello 'Tonia' (getAge 1996) year=birthYear fakeAge = (getAge 1996)) sex=gender  }}</span>
-    {{/with}}
+    {{/with}} 
     <br> 
 {{/each}}
 
@@ -20,18 +29,21 @@
 Literal Segments <br>
 * {{users.[0].books.[0].name}} by {{users.[0].books.[0].authors.[0]}}
 
+{{createComponent2}}
+
 <br>
 
   {{!-- {{#*inline "layout"}}
   {{/inline}} --}}
 
-{{#each (dynamicUsers people) as |user index|}}
+{{!-- {{#each (dynamicUsers people) as |user index|}} --}}
+{{#each users as |user index|}}
   <br><br>
   Data Variables: {{@first}}, {{@last}}, {{@index}}, {{@key}} <br>
   UserId: {{id}}, {{user.id}} ({{index}}) <br>
   This: {{.}}
   Books: 
-  <br><hr>
+  <br><hr> 
   {{#each user.books as |book bookId|}}
     {{bookId}} {{book.name}}<br>
     {{> books}}

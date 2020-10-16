@@ -10,7 +10,7 @@ const Antelope = require('./index');
  *    should have the same type with the one from the actual class
  * - Do not return empty data, e.g, an empty array, e.t.c
  */
-class AntelopeTest extends Antelope {
+class SampleComponentTest extends Antelope {
   echo() {
     return JSON.stringify({ key: faker.lorem.words() });
   }
@@ -42,4 +42,4 @@ class AntelopeTest extends Antelope {
   //   return 'Hey!';
   // }
 }
-module.exports = AntelopeTest;
+module.exports = SampleComponentTest;

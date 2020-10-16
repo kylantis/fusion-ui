@@ -1,14 +1,39 @@
 /* eslint-disable class-methods-use-this */
 /* eslint-disable no-undef */
 
-class Antelope extends BaseComponent {
+class SampleComponent extends BaseComponent {
   echo(object) {
     return JSON.stringify(object);
   }
 
-  capitalize(name) {
+  capitalize(name, options) {
+    const { hash } = options;
     const c = 'Hello';
     return c.toUpperCase();
+  }
+
+  createComponent2() {
+    const input = {
+      people: [
+        {
+          person: {
+            name: 'aliquam',
+            gender: 'sed',
+            birthYear: 'eum',
+          },
+        },
+      ],
+    };
+
+    // eslint-disable-next-line no-plusplus
+    // for (let i = 0; i < 10000000; i++) {
+    //   const i = 45345634555 * 3435646 * 45345634555;
+    //   this._capitalize(i + '');
+    // }
+
+    return new components.AnotherComponent2({
+      input,
+    });
   }
 
   // eslint-disable-next-line no-underscore-dangle
@@ -79,6 +104,7 @@ class Antelope extends BaseComponent {
   }
 
   createPerson() {
+    return 'createPerson';
   }
 
   getLocation() {
@@ -98,4 +124,4 @@ class Antelope extends BaseComponent {
   }
 }
 
-module.exports = Antelope;
+module.exports = SampleComponent;

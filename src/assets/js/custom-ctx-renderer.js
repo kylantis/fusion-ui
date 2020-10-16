@@ -9,9 +9,9 @@ class CustomCtxRenderer extends RootCtxRenderer {
     static partialNameHash = '__name';
 
     constructor({
-      id, input,
+      id, input, loadable,
     } = {}) {
-      super({ id, input });
+      super({ id, input, loadable });
 
       this.canonicalHash = {};
       this.decorators = {};
@@ -36,12 +36,12 @@ class CustomCtxRenderer extends RootCtxRenderer {
       const { emptyObject, emptyString } = RootProxy;
       const {
         partialIdHash,
-        partialNameHash,
+        // partialNameHash,
       } = CustomCtxRenderer;
 
       let { hash, fn } = options;
 
-      const partialName = hash[partialNameHash];
+      // const partialName = hash[partialNameHash];
 
       if (hash[partialIdHash]) {
         // eslint-disable-next-line no-undef
@@ -55,7 +55,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
         ctx = decorator.data;
       }
 
-      this.logger.info(`Loading partial {{> ${partialName} }}`);
+      // this.logger.info(`Loading partial {{> ${partialName} }}`);
 
       return this.renderBlock({
         data: ctx,
