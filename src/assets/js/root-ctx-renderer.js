@@ -44,10 +44,6 @@ class RootCtxRenderer extends BaseRenderer {
     RootCtxRenderer.#token = token;
   }
 
-  /**
-   * This methods should not be called by developers directly,
-   * but rather using the .doRender(...) method
-   */
   load({ parent, token }) {
     if (!this.loadable()) {
       throw new Error(`${this.getId()} is not loadable`);

@@ -1,14 +1,17 @@
 const restify = require('restify');
 
 const server = restify.createServer({
-  name: 'Imagine UI Server',
-  versions: ['1.0.0'],
+  name: 'Kylantis',
+  versions: ['0.1'],
 });
 
-server.get('/client-stubs/default/*', restify.plugins.serveStatic({
-  directory: './dist',
-  default: 'index.html',
-}));
+// server.use((req, res, next) => {
+//   res.setHeader(
+//     'Content-Security-Policy',
+//     "script-src 'self' https://apis.google.com",
+//   );
+//   return next();
+// });
 
 server.get('/*', restify.plugins.serveStatic({
   directory: './dist',

@@ -38,7 +38,7 @@ class BaseComponent extends WebRenderer {
     return BaseComponent.CHAINED_LOADING_STRATEGY;
   }
 
-  doRender({ data, target }) {
+  render({ data, target }) {
     const {
       CHAINED_LOADING_STRATEGY,
       ASYNC_LOADING_STRATEGY,
