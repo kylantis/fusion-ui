@@ -16,10 +16,6 @@ class BaseRenderer {
    input,
    loadable = true,
  } = {}) {
-   if (!global) {
-     BaseRenderer.addPolyfills();
-   }
-
    if (!id) {
      // eslint-disable-next-line no-param-reassign
      id = this.generateComponentId();
@@ -72,15 +68,6 @@ class BaseRenderer {
  }
 
  load() {
- }
-
- static addPolyfills() {
-   window.global = window;
-   global.assert = (condition, message) => {
-     if (!condition) {
-       throw new Error(`Assertion Error${message ? `: ${message}` : ''}`);
-     }
-   };
  }
 
  generateComponentId() {
