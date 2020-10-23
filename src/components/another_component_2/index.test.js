@@ -1,5 +1,5 @@
 
-const AnotherComponent = require('./index');
+const AnotherComponent2 = require('./index');
 
 /**
  *  Test implementation of the actual component class. All methods defined here
@@ -9,8 +9,8 @@ const AnotherComponent = require('./index');
  *    should have the same type with the one from the actual class
  * - Do not return empty data, e.g, an empty array, e.t.c
  */
-class AnotherComponentTest extends AnotherComponent {
+class AnotherComponent2Test extends AnotherComponent2 {
 
 
 }
-module.exports = AnotherComponentTest;
+module.exports = AnotherComponent2Test;

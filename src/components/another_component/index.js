@@ -182,6 +182,7 @@ class AnotherComponent extends BaseComponent {
         ],
       ],
     };
+    console.info('createPerson');
     return new components.SampleComponent({
       input,
     });
