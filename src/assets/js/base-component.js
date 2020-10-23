@@ -28,17 +28,17 @@ class BaseComponent extends WebRenderer {
     return JSON.stringify(object);
   }
 
-  /**
-   * Irespective of the strategy specified here, all components loading
-   * operations that happen manually within the script file will be
-   * chained to the parent component's promise object
-   */
   // eslint-disable-next-line class-methods-use-this
   loadingStrategy() {
     return BaseComponent.CHAINED_LOADING_STRATEGY;
   }
 
   render({ data, target }) {
+    if (global.isServer || !data) {
+      console.info('Skipping render');
+      return Promise.resolve();
+    }
+
     const {
       CHAINED_LOADING_STRATEGY,
       ASYNC_LOADING_STRATEGY,
@@ -93,6 +93,8 @@ class BaseComponent extends WebRenderer {
       default:
         throw new Error(`Unknown strategy: ${strategy}`);
     }
+
+    return future;
   }
 
   getNodeId() {

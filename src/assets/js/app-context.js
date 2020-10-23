@@ -42,7 +42,7 @@ class AppContext {
       delete self.fetch;
       delete self.importScripts;
 
-      window.global = window;
+      self.global = self;
       global.assert = (condition, message) => {
         if (!condition) {
           throw new Error(`Assertion Error${message ? `: ${message}` : ''}`);

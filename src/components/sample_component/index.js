@@ -13,6 +13,7 @@ class SampleComponent extends BaseComponent {
   }
 
   createComponent2() {
+    console.info('createComponent2');
     const input = {
       people: [
         {
@@ -104,6 +105,7 @@ class SampleComponent extends BaseComponent {
   }
 
   createPerson() {
+    console.info('createPerson');
     return 'createPerson';
   }
 

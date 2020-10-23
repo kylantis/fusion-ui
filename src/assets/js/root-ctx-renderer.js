@@ -9,10 +9,6 @@
 class RootCtxRenderer extends BaseRenderer {
   static syntheticAliasSeparator = '$$';
 
-  #blockData;
-
-  #syntheticContext;
-
   #resolve;
 
   static #token;
@@ -23,9 +19,9 @@ class RootCtxRenderer extends BaseRenderer {
     super({ id, input, loadable });
 
     // Initialze block data map
-    this.#blockData = {};
+    this.blockData = {};
 
-    this.#syntheticContext = {};
+    this.syntheticContext = {};
 
     // Todo: make this configurable
     this.strict = false;
@@ -52,6 +48,8 @@ class RootCtxRenderer extends BaseRenderer {
     if (token !== RootCtxRenderer.#token && !this.isRoot()) {
       throw new Error(`Invalid token: ${token}`);
     }
+
+    console.info(`Loading component - ${this.getId()}`);
 
     const { getMetaHelpers } = RootCtxRenderer;
     super.load();
@@ -97,6 +95,7 @@ class RootCtxRenderer extends BaseRenderer {
       allowedProtoProperties[path] = true;
     }
 
+    console.info(`template_${this.getAssetId()}`);
     const template = global[`template_${this.getAssetId()}`];
 
     const hbsInput = {
@@ -116,11 +115,19 @@ class RootCtxRenderer extends BaseRenderer {
       // strict: true,
     });
 
-    document.getElementById(parent).innerHTML = html;
+    const parentNode = document.getElementById(parent);
+    parentNode.innerHTML = html;
 
     this.#resolve();
 
-    return this.promise.then(() => Promise.all(this.futures));
+    return this.promise
+      .then(() => Promise.all(this.futures))
+      .then(() => {
+        parentNode.querySelectorAll('div [synthetic]')
+          .forEach((node) => {
+            node.remove();
+          });
+      });
   }
 
   getAssetId() {
@@ -216,10 +223,10 @@ class RootCtxRenderer extends BaseRenderer {
 
   getBlockData({ path, dataVariable }) {
     // eslint-disable-next-line no-unused-vars
-    const blockData = this.#blockData[path];
+    const blockData = this.blockData[path];
 
-    const value = this.#syntheticContext[path] !== undefined
-      ? this.#syntheticContext[path].value
+    const value = this.syntheticContext[path] !== undefined
+      ? this.syntheticContext[path].value
       : this.getPathValue({ path });
 
     const length = value instanceof Array
@@ -244,7 +251,7 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   doBlockInit({ path, blockId }) {
-    const blockData = this.#blockData[path] || (this.#blockData[path] = {});
+    const blockData = this.blockData[path] || (this.blockData[path] = {});
 
     if (blockId) {
       // eslint-disable-next-line no-unused-expressions
@@ -256,7 +263,7 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   doBlockUpdate({ path }) {
-    const blockData = this.#blockData[path];
+    const blockData = this.blockData[path];
     // eslint-disable-next-line no-plusplus
     blockData.index++;
   }
@@ -265,7 +272,7 @@ class RootCtxRenderer extends BaseRenderer {
     alias,
     key,
   }) {
-    return this.#syntheticContext[alias][key];
+    return this.syntheticContext[alias][key];
   }
 
   static toObject({ map }) {
@@ -294,7 +301,7 @@ class RootCtxRenderer extends BaseRenderer {
       value = toObject({ map: value });
     }
 
-    this.#syntheticContext[alias] = {
+    this.syntheticContext[alias] = {
       value,
     };
 
@@ -311,7 +318,7 @@ class RootCtxRenderer extends BaseRenderer {
               get: (obj, prop) => {
                 const v = obj[prop];
                 if (!Number.isNaN(parseInt(prop, 10))) {
-                  this.#syntheticContext[alias].current = v;
+                  this.syntheticContext[alias].current = v;
                 }
                 return v;
               },
@@ -320,7 +327,7 @@ class RootCtxRenderer extends BaseRenderer {
             // Note: this is used by TenplateProcessor during sub-path
             // traversal, as the proxy above this is designed for use
             // during runtime
-            [this.#syntheticContext[alias].current] = value;
+            [this.syntheticContext[alias].current] = value;
           }
           break;
 
@@ -331,14 +338,14 @@ class RootCtxRenderer extends BaseRenderer {
               get: (obj, prop) => {
                 const v = obj[prop];
                 if (!Object.getPrototypeOf(obj)[prop]) {
-                  this.#syntheticContext[alias].current = v;
+                  this.syntheticContext[alias].current = v;
                 }
                 return v;
               },
             });
           } else {
             const keys = Object.keys(value);
-            this.#syntheticContext[alias].current = keys.length ? value[keys[0]] : undefined;
+            this.syntheticContext[alias].current = keys.length ? value[keys[0]] : undefined;
           }
           break;
       }
@@ -351,7 +358,7 @@ class RootCtxRenderer extends BaseRenderer {
       // the invocation happened from our object proxy,
       // hence no need to
 
-      this.#syntheticContext[alias].current = value;
+      this.syntheticContext[alias].current = value;
     }
 
     return value;
@@ -401,7 +408,7 @@ class RootCtxRenderer extends BaseRenderer {
     const { getSegments, toObject } = RootCtxRenderer;
     if (!indexResolver) {
       // eslint-disable-next-line no-param-reassign
-      indexResolver = path => this.#blockData[path].index;
+      indexResolver = path => this.blockData[path].index;
     }
 
     const basePath = 'this.getInput()';
