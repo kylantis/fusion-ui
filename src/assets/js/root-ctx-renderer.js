@@ -95,7 +95,6 @@ class RootCtxRenderer extends BaseRenderer {
       allowedProtoProperties[path] = true;
     }
 
-    console.info(`template_${this.getAssetId()}`);
     const template = global[`template_${this.getAssetId()}`];
 
     const hbsInput = {

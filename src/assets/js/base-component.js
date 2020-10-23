@@ -35,7 +35,6 @@ class BaseComponent extends WebRenderer {
 
   render({ data, target }) {
     if (global.isServer || !data) {
-      console.info('Skipping render');
       return Promise.resolve();
     }
 
