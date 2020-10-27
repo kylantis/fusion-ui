@@ -18,9 +18,10 @@ const gulpTransform = function () {
       dir: path.dirname(file.path),
       fromGulp: true,
       Preprocessor,
-    }).then((templateData) => {
+    }).then(({ assetId, templateData }) => {
       // write precompiled template
       file.basename = 'template.min.js';
+      file.path = path.join(path.dirname(path.dirname(file.path)), assetId, file.basename);
       // eslint-disable-next-line no-buffer-constructor
       file.contents = Buffer.from(templateData);
 

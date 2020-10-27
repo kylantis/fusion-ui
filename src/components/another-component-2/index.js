@@ -1,13 +1,31 @@
 /* eslint-disable class-methods-use-this */
 /* eslint-disable no-undef */
 
-class AnotherComponent extends BaseComponent {
+class AnotherComponent2 extends BaseComponent {
   createPerson() {
-    this.getInput().x.y;
+    this.getInput().u.y;
     this.getInput().a.b.c[0].d;
     this.getInput().e[0].f.g;
 
     return 'createPerson';
+  }
+
+  getUserProfile(ctx1, ctx2) {
+    return {
+      fname: 'Anthony',
+      lname: 'Anyanwu',
+    };
+  }
+
+  getUserProfileAsync(ctx1, ctx2) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          fname: 'Anthony',
+          lname: 'Anyanwu',
+        });
+      }, 1500);
+    });
   }
 
   createText() {
@@ -31,4 +49,4 @@ class AnotherComponent extends BaseComponent {
   }
 }
 
-module.exports = AnotherComponent;
+module.exports = AnotherComponent2;

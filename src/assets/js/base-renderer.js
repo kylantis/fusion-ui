@@ -64,7 +64,7 @@ class BaseRenderer {
  }
 
  getInput() {
-   return this.resolver ? this.resolver : this.#input;
+   return this.#input;
  }
 
  load() {

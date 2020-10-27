@@ -1,0 +1,70 @@
+{{!-- {{style href="https://cdn.jsdelivr.net/npm/styles.min.css" }}
+{{script href="https://cdn.jsdelivr.net/npm/script.min.js"}} --}}
+{{!-- {{component tooltip}}
+{{component button alias="button"}} --}}
+
+ANOTHER COMPONENT
+
+{{createPerson}}
+
+{{createText}}
+
+{{myMethod async=true}}
+
+
+Own here
+
+{{#each p as |aa ii|}}
+
+    PElement: {{.}}
+
+{{#with k as |xy1|}}
+
+{{#with x as |xy|}}
+{{b}}
+{{#getUserProfileAsync async = true as |userA|}}A
+{{fname}} {{userA.lname}} {{../../b}}  {{xy1}}
+
+{{#getUserProfile as |user|}}B
+{{fname}} {{user.lname}} {{../fname}} LLC {{../../../z.[0].l}} {{../../.}} ABCD
+
+{{#getUserProfileAsync async = true as |userA|}}C
+{{fname}} {{userA.lname}}
+{{../../../.}}
+
+{{#getUserProfile as |user|}}D
+{{fname}} {{user.lname}} {{../fname}} LLC {{../../z.[0].l}} {{../../.}} ABCD
+
+{{#getUserProfileAsync async = true as |userA|}}E
+{{fname}} {{userA.lname}}
+
+{{#getUserProfile as |user|}}F
+{{fname}} {{user.lname}} {{../fname}} LLC {{../../z.[0].l}} {{../../.}} ABCD
+{{/getUserProfile}}
+
+{{/getUserProfileAsync}}
+
+{{/getUserProfile}}
+
+{{/getUserProfileAsync}}
+
+
+{{/getUserProfile}}
+
+{{/getUserProfileAsync}}
+
+{{/with}}
+
+{{/with}}
+
+{{/each}}
+
+{{!-- {{#each people as |p peopleKey|}}
+ABKDG
+<br>
+{{#with person as |q|}}
+Data Variables: {{@../first}}, {{@../last}}, {{@../index}}, {{@../key}}<br>
+My name is {{name}} (or {{p.person.name}}) for {{peopleKey}}. I 'm a {{gender}}. I was born in {{birthYear}}
+{{/with}}
+<br>
+{{/each}} --}}

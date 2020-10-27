@@ -167,6 +167,10 @@ class CustomCtxRenderer extends RootCtxRenderer {
       return this.#customCtxOffset > 0;
     }
 
+    getCustomCtxOffset() {
+      return this.#customCtxOffset;
+    }
+
     static isPrimitive(value) {
       return value == null || ['String', 'Number', 'Boolean']
         .includes(value.constructor.name);
@@ -220,6 +224,18 @@ class CustomCtxRenderer extends RootCtxRenderer {
         ...root,
         ...rootData,
       };
+    }
+
+    // eslint-disable-next-line class-methods-use-this
+    getLoader() {
+      return `<div class="sk-chase">
+                <div class="sk-chase-dot"></div>
+                <div class="sk-chase-dot"></div>
+                <div class="sk-chase-dot"></div>
+                <div class="sk-chase-dot"></div>
+                <div class="sk-chase-dot"></div>
+                <div class="sk-chase-dot"></div>
+              </div>`;
     }
 }
 
