@@ -33,7 +33,7 @@ class BaseComponent extends WebRenderer {
     return BaseComponent.CHAINED_LOADING_STRATEGY;
   }
 
-  render({ data, target }) {
+  render({ data, target, strategy }) {
     if (global.isServer || !data) {
       return Promise.resolve();
     }
@@ -43,7 +43,6 @@ class BaseComponent extends WebRenderer {
       ASYNC_LOADING_STRATEGY,
     } = BaseComponent;
 
-    const strategy = this.loadingStrategy();
     const future = this.promise
     // eslint-disable-next-line no-shadow
       .then(() => Promise.resolve(data)
@@ -57,31 +56,36 @@ class BaseComponent extends WebRenderer {
           let promise = Promise.resolve();
           const node = document.getElementById(target);
 
+          // Clear loader
+          node.innerHTML = '';
+
           switch (true) {
             case data.constructor.name === 'String':
               promise = promise.then(() => {
-                node.insertAdjacentText('afterend', data);
+                node.innerHTML = data;
               });
+              break;
+
+            case data instanceof Function:
+              // Todo: should we re-assign the promise here?
+              data({ target });
               break;
 
               // eslint-disable-next-line no-undef
             default:
-              // eslint-disable-next-line no-shadow
-              const parent = document.createElement('div');
-              parent.id = data.getNodeId();
-              node.insertAdjacentElement('afterend', parent);
               promise = data.load({
-                parent: parent.id,
+                parent: target,
                 token: BaseComponent.#token,
               });
               break;
           }
           return promise.then(() => {
-            node.remove();
+            // Todo: any cleanup tasks?
           });
         }));
 
-    switch (strategy) {
+    const loadingStrategy = strategy || this.loadingStrategy();
+    switch (loadingStrategy) {
       case CHAINED_LOADING_STRATEGY:
         this.promise = future;
         break;
@@ -90,14 +94,10 @@ class BaseComponent extends WebRenderer {
         break;
 
       default:
-        throw new Error(`Unknown strategy: ${strategy}`);
+        throw new Error(`Unknown strategy: ${loadingStrategy}`);
     }
 
     return future;
-  }
-
-  getNodeId() {
-    return `${this.getId()}-container`;
   }
 }
 module.exports = BaseComponent;

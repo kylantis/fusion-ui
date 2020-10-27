@@ -13,6 +13,8 @@ class RootCtxRenderer extends BaseRenderer {
 
   static #token;
 
+  #mounted;
+
   constructor({
     id, input, loadable,
   } = {}) {
@@ -31,6 +33,11 @@ class RootCtxRenderer extends BaseRenderer {
     });
 
     this.futures = [];
+    this.#mounted = false;
+  }
+
+  isMounted() {
+    return this.#mounted;
   }
 
   static setToken(token) {
@@ -53,8 +60,6 @@ class RootCtxRenderer extends BaseRenderer {
 
     const { getMetaHelpers } = RootCtxRenderer;
     super.load();
-
-    this.logger.info(`Loading component - ${this.getId()}`);
 
     // Remove unused hbs helper(s)
     // eslint-disable-next-line no-undef
@@ -117,16 +122,12 @@ class RootCtxRenderer extends BaseRenderer {
     const parentNode = document.getElementById(parent);
     parentNode.innerHTML = html;
 
+    this.#mounted = true;
+
     this.#resolve();
 
     return this.promise
-      .then(() => Promise.all(this.futures))
-      .then(() => {
-        parentNode.querySelectorAll('div [synthetic]')
-          .forEach((node) => {
-            node.remove();
-          });
-      });
+      .then(() => Promise.all(this.futures));
   }
 
   getAssetId() {
