@@ -225,18 +225,6 @@ class CustomCtxRenderer extends RootCtxRenderer {
         ...rootData,
       };
     }
-
-    // eslint-disable-next-line class-methods-use-this
-    getLoader() {
-      return `<div class="sk-chase">
-                <div class="sk-chase-dot"></div>
-                <div class="sk-chase-dot"></div>
-                <div class="sk-chase-dot"></div>
-                <div class="sk-chase-dot"></div>
-                <div class="sk-chase-dot"></div>
-                <div class="sk-chase-dot"></div>
-              </div>`;
-    }
 }
 
 module.exports = CustomCtxRenderer;

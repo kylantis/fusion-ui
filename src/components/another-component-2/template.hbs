@@ -5,7 +5,9 @@
 
 ANOTHER COMPONENT
 
-{{createPerson}}
+
+
+{{createPerson invokeOnCompile=true}}
 
 {{createText}}
 
@@ -14,32 +16,37 @@ ANOTHER COMPONENT
 
 Own here
 
-{{#each p as |aa ii|}}
+{{#each p as |aa|}}
 
     PElement: {{.}}
 
 {{#with k as |xy1|}}
+{{a}}
 
 {{#with x as |xy|}}
 {{b}}
-{{#getUserProfileAsync async = true as |userA|}}A
-{{fname}} {{userA.lname}} {{../../b}}  {{xy1}}
+{{!-- {{../../../p}} --}}
+{{myAsyncMethod "WowA" ../../../p async=true }}
 
-{{#getUserProfile as |user|}}B
-{{fname}} {{user.lname}} {{../fname}} LLC {{../../../z.[0].l}} {{../../.}} ABCD
+{{#getUserProfileAsync async = true as |userA|}}A
+{{fname}} {{userA.lname}}
+
+{{#getUserProfileAsync async = true  as |user|}}B
+{{myAsyncMethod "WowB" j="k" async = true}}
+{{renderStuff}}
+{{fname}} {{user.lname}} LLC ABCD
 
 {{#getUserProfileAsync async = true as |userA|}}C
 {{fname}} {{userA.lname}}
-{{../../../.}}
 
 {{#getUserProfile as |user|}}D
-{{fname}} {{user.lname}} {{../fname}} LLC {{../../z.[0].l}} {{../../.}} ABCD
+{{fname}} {{user.lname}} {{../fname}} LLC ABCD
 
 {{#getUserProfileAsync async = true as |userA|}}E
 {{fname}} {{userA.lname}}
 
 {{#getUserProfile as |user|}}F
-{{fname}} {{user.lname}} {{../fname}} LLC {{../../z.[0].l}} {{../../.}} ABCD
+{{fname}} {{user.lname}} {{../fname}} LLC ABCD
 {{/getUserProfile}}
 
 {{/getUserProfileAsync}}
@@ -49,7 +56,7 @@ Own here
 {{/getUserProfileAsync}}
 
 
-{{/getUserProfile}}
+{{/getUserProfileAsync}}
 
 {{/getUserProfileAsync}}
 
@@ -59,7 +66,7 @@ Own here
 
 {{/each}}
 
-{{!-- {{#each people as |p peopleKey|}}
+{{#each people as |p peopleKey|}}
 ABKDG
 <br>
 {{#with person as |q|}}
@@ -67,4 +74,4 @@ Data Variables: {{@../first}}, {{@../last}}, {{@../index}}, {{@../key}}<br>
 My name is {{name}} (or {{p.person.name}}) for {{peopleKey}}. I 'm a {{gender}}. I was born in {{birthYear}}
 {{/with}}
 <br>
-{{/each}} --}}
+{{/each}}

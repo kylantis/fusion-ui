@@ -10,6 +10,14 @@ class AnotherComponent2 extends BaseComponent {
     return 'createPerson';
   }
 
+  renderStuff() {
+    return 'stuff';
+  }
+
+  myAsyncMethod(a, b) {
+    console.info('myAsyncMethod', a, b);
+  }
+
   getUserProfile(ctx1, ctx2) {
     return {
       fname: 'Anthony',
@@ -35,13 +43,6 @@ class AnotherComponent2 extends BaseComponent {
   loadingStrategy() {
     return BaseComponent.ASYNC_LOADING_STRATEGY;
   }
-
-  // In server mode, for a component render in js, how do we
-  // resolve this.getInput() which is obviously null at the time
-
-  // Ensure unique class names per component
-
-  // Figure out XHR requests / custom blocks
 
   myMethod(options) {
     const { hash: { ctx } } = options;

@@ -5,7 +5,7 @@
 
 ANOTHER COMPONENT
 
-{{createPerson}}
+{{createPerson invokeOnCompile=true}}
 
 {{createText}}
 
@@ -15,7 +15,7 @@ ANOTHER COMPONENT
 Own here
 
 {{#each people as |p peopleKey|}}
-    ABKDG
+    ABKDG {{h}}
     <br>
     {{#with person as |q|}}
         Data Variables: {{@../first}}, {{@../last}}, {{@../index}}, {{@../key}}<br>

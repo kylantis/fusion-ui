@@ -99,5 +99,22 @@ class BaseComponent extends WebRenderer {
 
     return future;
   }
+
+  // eslint-disable-next-line class-methods-use-this
+  getLoader() {
+    return `<div class="sk-chase">
+                  <div class="sk-chase-dot"></div>
+                  <div class="sk-chase-dot"></div>
+                  <div class="sk-chase-dot"></div>
+                  <div class="sk-chase-dot"></div>
+                  <div class="sk-chase-dot"></div>
+                  <div class="sk-chase-dot"></div>
+                </div>`;
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  getStencil() {
+    return '';
+  }
 }
 module.exports = BaseComponent;
