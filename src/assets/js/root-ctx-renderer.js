@@ -16,9 +16,11 @@ class RootCtxRenderer extends BaseRenderer {
   #mounted;
 
   constructor({
-    id, input, loadable,
+    id, input, loadable, parent,
   } = {}) {
-    super({ id, input, loadable });
+    super({
+      id, input, loadable, parent,
+    });
 
     // Initialze block data map
     this.blockData = {};
@@ -34,6 +36,8 @@ class RootCtxRenderer extends BaseRenderer {
 
     this.futures = [];
     this.#mounted = false;
+
+    this.renderOffset = 0;
   }
 
   isMounted() {
@@ -127,7 +131,15 @@ class RootCtxRenderer extends BaseRenderer {
     this.#resolve();
 
     return this.promise
-      .then(() => Promise.all(this.futures));
+      .then(() => Promise.all(this.futures))
+      .then(() => new Promise((resolve) => {
+        const intervalId = setInterval(() => {
+          if (this.renderOffset === 0) {
+            clearInterval(intervalId);
+            resolve();
+          }
+        }, 100);
+      }));
   }
 
   getAssetId() {
@@ -512,7 +524,7 @@ class RootCtxRenderer extends BaseRenderer {
     return result;
   }
 
-  resolvePath({ fqPath, indexResolver }) {
+  resolvePath({ fqPath, indexResolver, create }) {
     const arr = fqPath.split('%');
     let path = this.getExecPath({
       fqPath: arr[0],
@@ -522,7 +534,7 @@ class RootCtxRenderer extends BaseRenderer {
       path += `%${arr[1]}`;
     }
     try {
-      const value = this.resolvePath0({ path });
+      const value = this.resolvePath0({ path, create });
       return value;
     } catch (e) {
       if (this.strict) {
@@ -534,9 +546,9 @@ class RootCtxRenderer extends BaseRenderer {
     }
   }
 
-  resolvePath0({ path }) {
+  resolvePath0({ path, create }) {
     const value = this.resolver && !path.startsWith('this.')
-      ? this.resolver.resolve(path)
+      ? this.resolver.resolve({ path, create })
     // eslint-disable-next-line no-eval
       : eval(path);
     return value;
@@ -555,32 +567,35 @@ class RootCtxRenderer extends BaseRenderer {
     };
   }
 
-  static flattenJson(data) {
-    const result = {};
-    function recurse(cur, prop) {
-      if (Object(cur) !== cur) {
-        result[prop] = cur;
-      } else if (Array.isArray(cur)) {
-        // eslint-disable-next-line no-plusplus
-        for (let i = 0, l = cur.length; i < l; i++) recurse(cur[i], prop ? `${prop}.${i}` : `${i}`);
-        if (l === 0) result[prop] = [];
-      } else {
-        let isEmpty = true;
-        for (const p in cur) {
-          if ({}.hasOwnProperty.call(cur, p)) {
-            isEmpty = false;
-            recurse(cur[p], prop ? `${prop}.${p}` : p);
-          }
-        }
-        if (isEmpty) result[prop] = {};
-      }
-      if (Object(cur) === cur && prop) {
-        // eslint-disable-next-line no-param-reassign
-        cur['@path'] = prop;
-      }
+  // eslint-disable-next-line class-methods-use-this
+  loadInlineComponent() {
+    // eslint-disable-next-line prefer-rest-params
+    const params = Array.from(arguments);
+    const options = params.pop();
+
+    const { hash } = options;
+    const [componentSpec] = params;
+
+    switch (true) {
+      case componentSpec.constructor.name === 'String':
+        return new global.components[componentSpec]({
+          input: hash,
+          parent: this,
+        });
+
+      default:
+        assert(componentSpec instanceof BaseComponent);
+        return componentSpec.clone({ parent: this });
     }
-    recurse(data, '');
-    return result;
+  }
+
+  clone({ parent }) {
+    const clonedInput = global.clientUtils.clone(this.getInput());
+    return new this.constructor({
+      // eslint-disable-next-line no-eval
+      input: eval(`module.exports=${clonedInput}`),
+      parent,
+    });
   }
 }
 module.exports = RootCtxRenderer;

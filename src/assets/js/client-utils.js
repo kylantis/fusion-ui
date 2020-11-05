@@ -1,0 +1,66 @@
+/* eslint-disable no-underscore-dangle */
+module.exports = {
+  flattenJson: (data) => {
+    const result = {};
+    function recurse(cur, prop) {
+      if (Object(cur) !== cur) {
+        result[prop] = cur;
+      } else if (Array.isArray(cur)) {
+        // eslint-disable-next-line no-plusplus
+        for (let i = 0, l = cur.length; i < l; i++) recurse(cur[i], prop ? `${prop}.${i}` : `${i}`);
+        // eslint-disable-next-line no-undef
+        if (l === 0) result[prop] = [];
+      } else {
+        let isEmpty = true;
+        // eslint-disable-next-line no-restricted-syntax
+        for (const p in cur) {
+          if ({}.hasOwnProperty.call(cur, p)) {
+            isEmpty = false;
+            recurse(cur[p], prop ? `${prop}.${p}` : p);
+          }
+        }
+        if (isEmpty) result[prop] = {};
+      }
+      if (Object(cur) === cur && prop) {
+        // eslint-disable-next-line no-param-reassign
+        cur['@path'] = prop;
+      }
+    }
+    recurse(data, '');
+    return result;
+  },
+
+  randomString: () => {
+    const length = 8;
+    let result = '';
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    const charactersLength = characters.length;
+    // eslint-disable-next-line no-plusplus
+    for (let i = 0; i < length; i++) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
+    return result;
+  },
+
+  clone: (srcObject) => {
+    const replacer = (name, val) => {
+      if (val && val.constructor.name === 'Object' && val['@type']) {
+        const data = JSON.stringify(val['@data'], replacer, 2)
+          // Normalize by replacing double quotes to single quotes, so we can inline
+          // <data> below
+          .replace(/"/g, "'");
+
+        return `%%new components['${val['@type']}']({
+          input: ${data},
+        })%%`
+          .replace(/\n/g, '');
+      }
+
+      return val;
+    };
+    return JSON.stringify(srcObject, replacer, 2)
+      .replace(/("|')%%/g, '')
+      .replace(/%%("|')/g, '')
+      .replace(/\n/g, '');
+  },
+};

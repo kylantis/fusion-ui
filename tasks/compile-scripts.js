@@ -61,14 +61,14 @@ gulp.task('compile-scripts', () => gulp.src(['src/assets/js/**/*.js'])
 
 
 gulp.task('compile-scripts:watch', () => watch(['src/assets/js/**/*.js'], { ignoreInitial: true })
-  .pipe(babelTransform)
-  .pipe(sourcemaps.init())
-  .pipe(uglify({
-    mangle: false,
-    compress: true,
-  }).on('error', (msg) => {
-    log.error(msg);
-  }))
-  .pipe(sourcemaps.write())
+  // .pipe(babelTransform)
+  // .pipe(sourcemaps.init())
+  // .pipe(uglify({
+  //   mangle: false,
+  //   compress: true,
+  // }).on('error', (msg) => {
+  //   log.error(msg);
+  // }))
+  // .pipe(sourcemaps.write())
   .pipe(rename(renameConfig))
   .pipe(gulp.dest('./dist/assets/js')));

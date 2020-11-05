@@ -11,9 +11,11 @@ class CustomCtxRenderer extends RootCtxRenderer {
     #customCtxOffset;
 
     constructor({
-      id, input, loadable,
+      id, input, loadable, parent,
     } = {}) {
-      super({ id, input, loadable });
+      super({
+        id, input, loadable, parent,
+      });
 
       this.canonicalHash = {};
       this.decorators = {};
@@ -206,6 +208,10 @@ class CustomCtxRenderer extends RootCtxRenderer {
               break;
 
             case type === 'Literal' && isPrimitive(value):
+              return value;
+
+            // eslint-disable-next-line no-undef
+            case type === 'Component' && value instanceof BaseComponent:
               return value;
           }
         }

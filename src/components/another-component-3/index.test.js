@@ -9,8 +9,8 @@ const AnotherComponent = require('./index');
  *    should have the same type with the one from the actual class
  * - Do not return empty data, e.g, an empty array, e.t.c
  */
-class AnotherComponent2Test extends AnotherComponent {
+class AnotherComponent3Test extends AnotherComponent {
 
 
 }
-module.exports = AnotherComponent2Test;
+module.exports = AnotherComponent3Test;

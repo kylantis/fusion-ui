@@ -11,14 +11,17 @@ class BaseRenderer {
 
  #isRoot;
 
+ #parent;
+
  constructor({
    id,
    input,
    loadable = true,
+   parent,
  } = {}) {
    if (!id) {
      // eslint-disable-next-line no-param-reassign
-     id = this.generateComponentId();
+     id = this.createId();
    }
 
    // eslint-disable-next-line no-undef
@@ -37,6 +40,7 @@ class BaseRenderer {
    this.#input = input;
    this.#loadable = loadable;
    this.#isRoot = !BaseRenderer.#componentIds.length;
+   this.#parent = parent;
 
    if (this.#loadable) {
      BaseRenderer.#componentIds.push(this.#id);
@@ -67,23 +71,22 @@ class BaseRenderer {
    return this.#input;
  }
 
+ getParent() {
+   return this.#parent;
+ }
+
  load() {
  }
 
- generateComponentId() {
-   return `${this.constructor.name}-${BaseRenderer.generateRandomString()}`;
+ toJSON() {
+   const o = {};
+   o['@type'] = this.constructor.className || this.constructor.name;
+   o['@data'] = this.#input;
+   return o;
  }
 
- static generateRandomString() {
-   const length = 8;
-   let result = '';
-   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-   const charactersLength = characters.length;
-   // eslint-disable-next-line no-plusplus
-   for (let i = 0; i < length; i++) {
-     result += characters.charAt(Math.floor(Math.random() * charactersLength));
-   }
-   return result;
+ createId() {
+   return `${this.constructor.name}-${global.clientUtils.randomString()}`;
  }
 }
 module.exports = BaseRenderer;

@@ -64,7 +64,9 @@ class RootProxy {
       const v = this.component
         .getPathValue({ path: prop });
 
-      return isRawReturn ? this.getRawValueWrapper(v) : this.getValue(v);
+      const ret = isRawReturn ? this.getRawValueWrapper(v) : this.getValue(v);
+
+      return ret;
     }
 
     /**
@@ -75,6 +77,9 @@ class RootProxy {
       const _this = this;
       switch (true) {
         case value !== Object(value):
+          return value;
+        // eslint-disable-next-line no-undef
+        case value instanceof BaseComponent:
           return value;
         default:
           return new Proxy(value, {

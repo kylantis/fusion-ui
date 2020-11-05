@@ -11,13 +11,15 @@ class BaseComponent extends WebRenderer {
   static #token;
 
   constructor({
-    id, input, loadable,
+    id, input, loadable, parent,
   } = {}) {
-    super({ id, input, loadable });
+    super({
+      id, input, loadable, parent,
+    });
 
     if (!BaseComponent.#token) {
       // eslint-disable-next-line no-undef
-      BaseComponent.#token = BaseRenderer.generateRandomString();
+      BaseComponent.#token = global.clientUtils.randomString();
       // eslint-disable-next-line no-undef
       RootCtxRenderer.setToken(BaseComponent.#token);
     }
@@ -33,10 +35,20 @@ class BaseComponent extends WebRenderer {
     return BaseComponent.CHAINED_LOADING_STRATEGY;
   }
 
+  load({ parent }) {
+    return super.load({
+      token: BaseComponent.#token,
+      parent,
+    });
+  }
+
   render({ data, target, strategy }) {
     if (global.isServer || !data) {
       return Promise.resolve();
     }
+
+    // eslint-disable-next-line no-plusplus
+    this.renderOffset++;
 
     const {
       CHAINED_LOADING_STRATEGY,
@@ -67,24 +79,28 @@ class BaseComponent extends WebRenderer {
               break;
 
             case data instanceof Function:
-              // Todo: should we re-assign the promise here?
-              data({ target });
+              promise = promise.then(() => {
+                data({ target });
+              });
               break;
 
               // eslint-disable-next-line no-undef
             default:
+              // eslint-disable-next-line no-undef
+              assert(data instanceof BaseComponent);
               promise = data.load({
                 parent: target,
-                token: BaseComponent.#token,
               });
               break;
           }
           return promise.then(() => {
-            // Todo: any cleanup tasks?
+            // eslint-disable-next-line no-plusplus
+            this.renderOffset--;
           });
         }));
 
     const loadingStrategy = strategy || this.loadingStrategy();
+
     switch (loadingStrategy) {
       case CHAINED_LOADING_STRATEGY:
         this.promise = future;
