@@ -38,6 +38,7 @@ class RootCtxRenderer extends BaseRenderer {
     this.#mounted = false;
 
     this.renderOffset = 0;
+    this.arrayBlocks = {};
   }
 
   isMounted() {
@@ -85,7 +86,7 @@ class RootCtxRenderer extends BaseRenderer {
         const options = params.pop();
 
         return _this[helperName]
-          .bind(_this)({ options, ctx: this });
+          .bind(_this)({ options, ctx: this, params });
       };
     }
 
@@ -113,6 +114,8 @@ class RootCtxRenderer extends BaseRenderer {
 
     this.hbsInput = hbsInput;
 
+    console.info(this.arrayBlocks);
+
     // eslint-disable-next-line no-undef
     const html = Handlebars.template(template)(hbsInput, {
       helpers,
@@ -120,7 +123,7 @@ class RootCtxRenderer extends BaseRenderer {
       allowedProtoProperties: {
         ...allowedProtoProperties,
       },
-      // strict: true,
+      strict: true,
     });
 
     const parentNode = document.getElementById(parent);
@@ -133,6 +136,10 @@ class RootCtxRenderer extends BaseRenderer {
     return this.promise
       .then(() => Promise.all(this.futures))
       .then(() => new Promise((resolve) => {
+        // Even after all promises are resolved, we need to wait
+        // for this component to be fully mounted. This is
+        // especially application if there async custom blocks or
+        // sub-components inside this component
         const intervalId = setInterval(() => {
           if (this.renderOffset === 0) {
             clearInterval(intervalId);
@@ -140,6 +147,70 @@ class RootCtxRenderer extends BaseRenderer {
           }
         }, 100);
       }));
+  }
+
+  forEach({ options, ctx, params }) {
+    const { hash, fn } = options;
+    const path = hash['path'];
+    if (path) {
+      this.arrayBlocks[path] = fn;
+    }
+    return Handlebars.helpers.each(...params, options);
+  }
+
+  static getMetaHelpers() {
+    return [
+      'storeContext', 'loadContext', 'forEach',
+      'startAttributeContext', 'endAttributeContext',
+      'startTextNodeBindContext'
+    ];
+  }
+
+  startAttributeContext() {
+
+  }
+
+  endAttributeContext() {
+    // global.clientUtils.randomString();
+  }
+
+  startTextNodeBindContext() {
+    const id = global.clientUtils.randomString();
+
+    return `tnb-${id}`;
+  }
+
+  static toCanonicalObject(path, obj) {
+    const { toCanonicalObject } = RootCtxRenderer;
+
+    const isArray = Array.isArray(obj);
+    // eslint-disable-next-line no-param-reassign
+    obj['@path'] = path;
+
+    for (const prop in obj) {
+      if ({}.hasOwnProperty.call(obj, prop) && prop !== '@path' && !!obj[prop]) {
+        const p = `${path}${isArray ? '_' : '__'}${prop}`;
+
+        // eslint-disable-next-line default-case
+        switch (true) {
+          case obj[prop].constructor.name === 'Object':
+            toCanonicalObject(p, obj[prop]);
+            break;
+
+          case obj[prop].constructor.name === 'Array':
+            // eslint-disable-next-line no-plusplus
+            for (let i = 0; i < obj[prop].length; i++) {
+              if (obj[prop][i] === Object(obj[prop][i])) {
+                toCanonicalObject(`${p}_${i}`, obj[prop][i]);
+              }
+            }
+            // eslint-disable-next-line no-param-reassign
+            obj[prop]['@path'] = `${p}`;
+
+            break;
+        }
+      }
+    }
   }
 
   getAssetId() {
@@ -554,10 +625,6 @@ class RootCtxRenderer extends BaseRenderer {
     return value;
   }
 
-  static getMetaHelpers() {
-    return ['storeContext', 'loadContext'];
-  }
-
   // eslint-disable-next-line class-methods-use-this
   getRootGlobals() {
     // eslint-disable-next-line no-undef
@@ -577,15 +644,17 @@ class RootCtxRenderer extends BaseRenderer {
     const [componentSpec] = params;
 
     switch (true) {
-      case componentSpec.constructor.name === 'String':
+      case componentSpec && componentSpec.constructor.name === 'String':
         return new global.components[componentSpec]({
           input: hash,
           parent: this,
         });
 
-      default:
-        assert(componentSpec instanceof BaseComponent);
+      case componentSpec && componentSpec instanceof BaseComponent:
         return componentSpec.clone({ parent: this });
+
+      default:
+        throw new Error(`Unknown sub-component in ${this.getId()}`);
     }
   }
 

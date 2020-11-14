@@ -21,9 +21,8 @@
     "people_$.person.name": "String",
     "people_$.person.gender": "String",
     "people_$.person.birthYear": "String",
-    "getUser": "String",
-    "p.soluta": "String",
-    "p.soluta.k.a": "String",
-    "p.soluta.k.x.b": "String"
+    "p.in": "String",
+    "p.in.k.a": "String",
+    "p.in.k.x.b": "String"
   }
 }

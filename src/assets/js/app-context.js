@@ -8,6 +8,8 @@
 class AppContext {
     static lazyLoadComponentTemplates = true;
 
+    static #initialized;
+
     static #loadedScripts = [];
 
     #fetchApi;
@@ -60,7 +62,10 @@ class AppContext {
     async start({
       rootComponent, data, testMode,
     }) {
-      await this.loadGlobalDependencies();
+
+      if (!AppContext.#initialized) {
+        await this.loadGlobalDependencies();
+      }
 
       await this.loadComponentClasses({ rootComponent, testMode });
 
@@ -75,7 +80,13 @@ class AppContext {
       // eslint-disable-next-line no-new
       new self.components[rootComponent]({
         input: data,
-      }).load({ parent: container.id });
+      })
+        .load({ parent: container.id })
+        .then(() => {
+          if (!AppContext.#initialized) {
+            AppContext.#initialized = true;
+          }
+        });
     }
 
     getCanonicalURLPrefix() {
@@ -233,9 +244,9 @@ class AppContext {
     async loadResource({
       url, asJson = false, moduleType, inlineScope,
     }) {
-      return this.#fetchApi(`${
-        this.normalizeURL(url)
-      }`, { method: 'GET' })
+      url = this.normalizeURL(url);
+
+      return this.#fetchApi(`${url}`, { method: 'GET' })
         .then(response => response[asJson ? 'json' : 'text']()
           .then((responseObject) => {
             let result = responseObject;

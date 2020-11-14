@@ -1,0 +1,27 @@
+{
+  "superclass": null,
+  "typeNames": {
+    "f.g.h.i_$": "IElement",
+    "people_$": "PeopleElement",
+    "users_$": "UsersElement",
+    "users_$.books_$": "BooksElement",
+    "multi_$_$": "MultiElement"
+  },
+  "literalTypes": {
+    "f.g.h.i_$.k": "String",
+    "people_$.person.name": "String",
+    "people_$.person.gender": "String",
+    "people_$.person.birthYear": "String",
+    "users_$.books_$.name": "String",
+    "users_$.books_$.authors_$": "String",
+    "users_$.id": "String",
+    "users_$.books_$.releaseYear": "String",
+    "a.b": "String",
+    "multi_$_$.x_$": "String",
+    "multi_$_$.x_$_$": "String",
+    "people_$.person.b": "String",
+    "people_$.person.d": "String",
+    "k": "String",
+    "l": "String"
+  }
+}

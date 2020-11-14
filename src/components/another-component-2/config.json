@@ -33,8 +33,8 @@
     "people_$.person.gender": "String",
     "people_$.person.birthYear": "String",
     "b": "String",
-    "people_$.id.culpa": "String",
-    "people_$.id.culpa.k.a": "String",
-    "people_$.id.culpa.k.x.b": "String"
+    "people_$.id.vel": "String",
+    "people_$.id.vel.k.a": "String",
+    "people_$.id.vel.k.x.b": "String"
   }
 }

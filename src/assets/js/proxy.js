@@ -143,6 +143,11 @@ class RootProxy {
 
             default:
               if (!(prop.match(dataPathPrefix) || prop.startsWith(syntheticMethodPrefix))) {
+
+                if (prop === 'length') {
+                  console.info(_this.lastLookup);
+                }
+
                 throw new Error(`Invalid path: ${prop}`);
               }
               return this.resolve0({ prop: prop.replace(dataPathPrefix, '') });

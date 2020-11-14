@@ -21,7 +21,7 @@ class BaseRenderer {
  } = {}) {
    if (!id) {
      // eslint-disable-next-line no-param-reassign
-     id = this.createId();
+     id = this.#createId();
    }
 
    // eslint-disable-next-line no-undef
@@ -85,7 +85,7 @@ class BaseRenderer {
    return o;
  }
 
- createId() {
+ #createId() {
    return `${this.constructor.name}-${global.clientUtils.randomString()}`;
  }
 }
