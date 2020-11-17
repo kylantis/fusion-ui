@@ -3,8 +3,8 @@
 {{!-- {{component tooltip}}
 {{component button alias="button"}} --}}
 
-{{#each f.g.h.i as |p peopleKey|}} 
-  {{k}}
+{{#each f.g.h.i as |p peopleKey|}}
+  AX {{k}} BY <span></span>
 {{/each}} 
 {{createPerson}}
 {{#each people as |p peopleKey|}}
@@ -18,34 +18,28 @@
         {{createPerson}}
         <div a={{b}} class="hello">My name is {{name}} (or {{p.person.name}}) for {{peopleKey}}. I 'm a {{gender}}. I was born in {{birthYear}}</div>
         <br> 
-        <span c={{d}} id="hi">Hello {{capitalize name 5 'Param A' true null undefined (sayHello 'Tonia' (getAge 1996) year=birthYear fakeAge = (getAge 1996)) sex=gender  }}</span>
+        <span c="{{d}}">Hello {{capitalize name 5 'Param A' true null undefined (sayHello 'Tonia' (getAge 1996) year=birthYear fakeAge = (getAge 1996)) sex=gender  }}</span>
     {{/with}} 
     <br> 
 {{/each}}
 
-<span>Hello</span>
-<span id="A" {{k}}={{l}}>Hello</span>
-<span {{k}}={{l}} id="A" >Hello</span>
-<span {{k}}={{l}}>Hello</span>
+{{#with x as |q|}}
+<span>HelloA</span>
+<span {{k}}="{{l}}" y=true>HelloB</span>{{H}}
+<span {{k}}="{{l}}">HelloC</span>
+<span {{k}}="{{l}}">HelloD</span>
+{{/with}} 
 
 
-<a {{k}}="{{l}}"/>
+<a p="true" {{k}}="{{l}}"/>
 
-
-<a {{k}}={{l}}></a>
 
 <a {{k}}="{{l}}">
 
 
-<a {{k}}={{l}}></a>
-
 <a {{k}}="{{l}}"/>
 
 
-<a {{k}}={{l}}></a>
-
-
-<a {{k}}={{l}} id="N">
 
 
 <br>
@@ -76,7 +70,7 @@ Literal Segments <br>
 
 Inverse<br>
 {{#with a as |multix bookId|}}
-  {{!-- {{b}} --}}
+  {{b}}{{bk}}
 {{else}}
   {{people}}
 {{/with}}

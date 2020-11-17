@@ -5,6 +5,8 @@
 /* eslint-disable no-console */
 /* eslint-disable no-restricted-syntax */
 
+const { assert } = require("quicktype-core");
+
 // eslint-disable-next-line no-undef
 class RootCtxRenderer extends BaseRenderer {
   static syntheticAliasSeparator = '$$';
@@ -39,6 +41,8 @@ class RootCtxRenderer extends BaseRenderer {
 
     this.renderOffset = 0;
     this.arrayBlocks = {};
+
+    this.syntheticNodeId = [];
   }
 
   isMounted() {
@@ -126,6 +130,10 @@ class RootCtxRenderer extends BaseRenderer {
       strict: true,
     });
 
+    // if (this.getParent() === undefined) {
+    //   console.info(html);
+    // }
+
     const parentNode = document.getElementById(parent);
     parentNode.innerHTML = html;
 
@@ -161,23 +169,37 @@ class RootCtxRenderer extends BaseRenderer {
   static getMetaHelpers() {
     return [
       'storeContext', 'loadContext', 'forEach',
-      'startAttributeContext', 'endAttributeContext',
-      'startTextNodeBindContext'
+      'startAttributeBindContext', 'endAttributeBindContext',
+      'startTextNodeBindContext', 'setSyntheticNodeId'
     ];
   }
 
-  startAttributeContext() {
-
+  setSyntheticNodeId() {
+    const id = global.clientUtils.randomString();
+    this.syntheticNodeId.push(id);
+    return id;
   }
 
-  endAttributeContext() {
-    // global.clientUtils.randomString();
+  getSyntheticNodeId() {
+    assert(this.syntheticNodeId.length === 1);
+    return this.syntheticNodeId.pop();
+  }
+
+  startAttributeBindContext() {
+
+    return '';
+  }
+
+  endAttributeBindContext() {
+    const id = global.clientUtils.randomString();
+
+    return `k-ab-${id}`;
   }
 
   startTextNodeBindContext() {
     const id = global.clientUtils.randomString();
 
-    return `tnb-${id}`;
+    return `k-tnb-${id}`;
   }
 
   static toCanonicalObject(path, obj) {
