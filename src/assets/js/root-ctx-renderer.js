@@ -5,6 +5,8 @@
 /* eslint-disable no-console */
 /* eslint-disable no-restricted-syntax */
 
+const { assert } = require("quicktype-core");
+
 // eslint-disable-next-line no-undef
 class RootCtxRenderer extends BaseRenderer {
   static syntheticAliasSeparator = '$$';
@@ -16,9 +18,11 @@ class RootCtxRenderer extends BaseRenderer {
   #mounted;
 
   constructor({
-    id, input, loadable,
+    id, input, loadable, parent,
   } = {}) {
-    super({ id, input, loadable });
+    super({
+      id, input, loadable, parent,
+    });
 
     // Initialze block data map
     this.blockData = {};
@@ -34,6 +38,11 @@ class RootCtxRenderer extends BaseRenderer {
 
     this.futures = [];
     this.#mounted = false;
+
+    this.renderOffset = 0;
+    this.arrayBlocks = {};
+
+    this.syntheticNodeId = [];
   }
 
   isMounted() {
@@ -81,7 +90,7 @@ class RootCtxRenderer extends BaseRenderer {
         const options = params.pop();
 
         return _this[helperName]
-          .bind(_this)({ options, ctx: this });
+          .bind(_this)({ options, ctx: this, params });
       };
     }
 
@@ -109,6 +118,8 @@ class RootCtxRenderer extends BaseRenderer {
 
     this.hbsInput = hbsInput;
 
+    console.info(this.arrayBlocks);
+
     // eslint-disable-next-line no-undef
     const html = Handlebars.template(template)(hbsInput, {
       helpers,
@@ -116,8 +127,12 @@ class RootCtxRenderer extends BaseRenderer {
       allowedProtoProperties: {
         ...allowedProtoProperties,
       },
-      // strict: true,
+      strict: true,
     });
+
+    // if (this.getParent() === undefined) {
+    //   console.info(html);
+    // }
 
     const parentNode = document.getElementById(parent);
     parentNode.innerHTML = html;
@@ -127,7 +142,97 @@ class RootCtxRenderer extends BaseRenderer {
     this.#resolve();
 
     return this.promise
-      .then(() => Promise.all(this.futures));
+      .then(() => Promise.all(this.futures))
+      .then(() => new Promise((resolve) => {
+        // Even after all promises are resolved, we need to wait
+        // for this component to be fully mounted. This is
+        // especially application if there async custom blocks or
+        // sub-components inside this component
+        const intervalId = setInterval(() => {
+          if (this.renderOffset === 0) {
+            clearInterval(intervalId);
+            resolve();
+          }
+        }, 100);
+      }));
+  }
+
+  forEach({ options, ctx, params }) {
+    const { hash, fn } = options;
+    const path = hash['path'];
+    if (path) {
+      this.arrayBlocks[path] = fn;
+    }
+    return Handlebars.helpers.each(...params, options);
+  }
+
+  static getMetaHelpers() {
+    return [
+      'storeContext', 'loadContext', 'forEach',
+      'startAttributeBindContext', 'endAttributeBindContext',
+      'startTextNodeBindContext', 'setSyntheticNodeId'
+    ];
+  }
+
+  setSyntheticNodeId() {
+    const id = global.clientUtils.randomString();
+    this.syntheticNodeId.push(id);
+    return id;
+  }
+
+  getSyntheticNodeId() {
+    assert(this.syntheticNodeId.length === 1);
+    return this.syntheticNodeId.pop();
+  }
+
+  startAttributeBindContext() {
+
+    return '';
+  }
+
+  endAttributeBindContext() {
+    const id = global.clientUtils.randomString();
+
+    return `k-ab-${id}`;
+  }
+
+  startTextNodeBindContext() {
+    const id = global.clientUtils.randomString();
+
+    return `k-tnb-${id}`;
+  }
+
+  static toCanonicalObject(path, obj) {
+    const { toCanonicalObject } = RootCtxRenderer;
+
+    const isArray = Array.isArray(obj);
+    // eslint-disable-next-line no-param-reassign
+    obj['@path'] = path;
+
+    for (const prop in obj) {
+      if ({}.hasOwnProperty.call(obj, prop) && prop !== '@path' && !!obj[prop]) {
+        const p = `${path}${isArray ? '_' : '__'}${prop}`;
+
+        // eslint-disable-next-line default-case
+        switch (true) {
+          case obj[prop].constructor.name === 'Object':
+            toCanonicalObject(p, obj[prop]);
+            break;
+
+          case obj[prop].constructor.name === 'Array':
+            // eslint-disable-next-line no-plusplus
+            for (let i = 0; i < obj[prop].length; i++) {
+              if (obj[prop][i] === Object(obj[prop][i])) {
+                toCanonicalObject(`${p}_${i}`, obj[prop][i]);
+              }
+            }
+            // eslint-disable-next-line no-param-reassign
+            obj[prop]['@path'] = `${p}`;
+
+            break;
+        }
+      }
+    }
   }
 
   getAssetId() {
@@ -512,7 +617,7 @@ class RootCtxRenderer extends BaseRenderer {
     return result;
   }
 
-  resolvePath({ fqPath, indexResolver }) {
+  resolvePath({ fqPath, indexResolver, create }) {
     const arr = fqPath.split('%');
     let path = this.getExecPath({
       fqPath: arr[0],
@@ -522,7 +627,7 @@ class RootCtxRenderer extends BaseRenderer {
       path += `%${arr[1]}`;
     }
     try {
-      const value = this.resolvePath0({ path });
+      const value = this.resolvePath0({ path, create });
       return value;
     } catch (e) {
       if (this.strict) {
@@ -534,16 +639,12 @@ class RootCtxRenderer extends BaseRenderer {
     }
   }
 
-  resolvePath0({ path }) {
+  resolvePath0({ path, create }) {
     const value = this.resolver && !path.startsWith('this.')
-      ? this.resolver.resolve(path)
+      ? this.resolver.resolve({ path, create })
     // eslint-disable-next-line no-eval
       : eval(path);
     return value;
-  }
-
-  static getMetaHelpers() {
-    return ['storeContext', 'loadContext'];
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -555,32 +656,37 @@ class RootCtxRenderer extends BaseRenderer {
     };
   }
 
-  static flattenJson(data) {
-    const result = {};
-    function recurse(cur, prop) {
-      if (Object(cur) !== cur) {
-        result[prop] = cur;
-      } else if (Array.isArray(cur)) {
-        // eslint-disable-next-line no-plusplus
-        for (let i = 0, l = cur.length; i < l; i++) recurse(cur[i], prop ? `${prop}.${i}` : `${i}`);
-        if (l === 0) result[prop] = [];
-      } else {
-        let isEmpty = true;
-        for (const p in cur) {
-          if ({}.hasOwnProperty.call(cur, p)) {
-            isEmpty = false;
-            recurse(cur[p], prop ? `${prop}.${p}` : p);
-          }
-        }
-        if (isEmpty) result[prop] = {};
-      }
-      if (Object(cur) === cur && prop) {
-        // eslint-disable-next-line no-param-reassign
-        cur['@path'] = prop;
-      }
+  // eslint-disable-next-line class-methods-use-this
+  loadInlineComponent() {
+    // eslint-disable-next-line prefer-rest-params
+    const params = Array.from(arguments);
+    const options = params.pop();
+
+    const { hash } = options;
+    const [componentSpec] = params;
+
+    switch (true) {
+      case componentSpec && componentSpec.constructor.name === 'String':
+        return new global.components[componentSpec]({
+          input: hash,
+          parent: this,
+        });
+
+      case componentSpec && componentSpec instanceof BaseComponent:
+        return componentSpec.clone({ parent: this });
+
+      default:
+        throw new Error(`Unknown sub-component in ${this.getId()}`);
     }
-    recurse(data, '');
-    return result;
+  }
+
+  clone({ parent }) {
+    const clonedInput = global.clientUtils.clone(this.getInput());
+    return new this.constructor({
+      // eslint-disable-next-line no-eval
+      input: eval(`module.exports=${clonedInput}`),
+      parent,
+    });
   }
 }
 module.exports = RootCtxRenderer;

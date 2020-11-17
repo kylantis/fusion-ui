@@ -11,9 +11,11 @@ class CustomCtxRenderer extends RootCtxRenderer {
     #customCtxOffset;
 
     constructor({
-      id, input, loadable,
+      id, input, loadable, parent,
     } = {}) {
-      super({ id, input, loadable });
+      super({
+        id, input, loadable, parent,
+      });
 
       this.canonicalHash = {};
       this.decorators = {};
@@ -207,6 +209,10 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
             case type === 'Literal' && isPrimitive(value):
               return value;
+
+            // eslint-disable-next-line no-undef
+            case type === 'Component' && value instanceof BaseComponent:
+              return value;
           }
         }
 
@@ -224,18 +230,6 @@ class CustomCtxRenderer extends RootCtxRenderer {
         ...root,
         ...rootData,
       };
-    }
-
-    // eslint-disable-next-line class-methods-use-this
-    getLoader() {
-      return `<div class="sk-chase">
-                <div class="sk-chase-dot"></div>
-                <div class="sk-chase-dot"></div>
-                <div class="sk-chase-dot"></div>
-                <div class="sk-chase-dot"></div>
-                <div class="sk-chase-dot"></div>
-                <div class="sk-chase-dot"></div>
-              </div>`;
     }
 }
 

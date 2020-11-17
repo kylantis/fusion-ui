@@ -5,9 +5,11 @@ class WebRenderer extends CustomCtxRenderer {
   static #loadedStyles = [];
 
   constructor({
-    id, input, loadable,
+    id, input, loadable, parent,
   } = {}) {
-    super({ id, input, loadable });
+    super({
+      id, input, loadable, parent,
+    });
   }
 
   load({ parent, token }) {

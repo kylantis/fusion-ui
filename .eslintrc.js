@@ -4,8 +4,12 @@ module.exports = {
     es6: true,
   },
   parser: "babel-eslint",
+  plugins: [
+    "classPrivateMethods",
+    "babel"
+  ],
   rules: {
-    'strict': 0,
+    'strict': 1,
   },
   globals: {}
 }

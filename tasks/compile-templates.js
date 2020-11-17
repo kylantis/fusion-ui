@@ -2,6 +2,7 @@
 /* eslint-disable no-console */
 const gulp = require('gulp');
 const path = require('path');
+const fs = require('fs');
 const watch = require('gulp-watch');
 const through = require('through2');
 const log = require('fancy-log');
@@ -14,8 +15,15 @@ const gulpTransform = function () {
     const file = vinylFile.clone();
     log.info(`\x1b[32m[Processing ${file.path}]\x1b[0m`);
 
+    const dir = path.dirname(file.path);
+
+    if (fs.existsSync(path.join(dir, '.skip'))) {
+      // Todo: remove this, and find a proper fix
+      // return callback(null, file);
+    }
+
     processFile({
-      dir: path.dirname(file.path),
+      dir,
       fromGulp: true,
       Preprocessor,
     }).then(({ assetId, templateData }) => {
