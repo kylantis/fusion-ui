@@ -8,8 +8,6 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     static partialNameHash = '__name';
 
-    #customCtxOffset;
-
     constructor({
       id, input, loadable, parent,
     } = {}) {
@@ -18,9 +16,9 @@ class CustomCtxRenderer extends RootCtxRenderer {
       });
 
       this.canonicalHash = {};
-      this.decorators = {};
+      this.customContext = [];
 
-      this.#customCtxOffset = 0;
+      this.decorators = {};
     }
 
     storeContext({ options, ctx }) {
@@ -148,29 +146,24 @@ class CustomCtxRenderer extends RootCtxRenderer {
         ...this.canonicalHash,
         ...hash,
       };
-
-      // eslint-disable-next-line no-plusplus
-      this.#customCtxOffset++;
+      this.customContext.push({
+        hash,
+        data
+      });
 
       const output = fn(
         this.wrapDataWithProxy(data),
         { data: this.canonicalHash },
       );
 
-      // eslint-disable-next-line no-plusplus
-      this.#customCtxOffset--;
-
+      this.customContext.pop();
       this.canonicalHash = prevCanonicalHash;
 
       return output;
     }
 
     inCustomContext() {
-      return this.#customCtxOffset > 0;
-    }
-
-    getCustomCtxOffset() {
-      return this.#customCtxOffset;
+      return this.customContext.length > 0;
     }
 
     static isPrimitive(value) {

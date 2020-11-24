@@ -9,6 +9,7 @@
 {{createPerson}}
 {{#each people as |p peopleKey|}}
     <br>
+    WWE
     {{#with person as |q|}}
         {{!-- {{component another_component another_alias}}
         {{another_alias}}
@@ -18,15 +19,35 @@
         {{createPerson}}
         <div a={{b}} class="hello">My name is {{name}} (or {{p.person.name}}) for {{peopleKey}}. I 'm a {{gender}}. I was born in {{birthYear}}</div>
         <br> 
-        <span c="{{d}}">Hello {{capitalize name 5 'Param A' true null undefined (sayHello 'Tonia' (getAge 1996) year=birthYear fakeAge = (getAge 1996)) sex=gender  }}</span>
+        {{!-- <span c="{{d}}">Hello {{capitalize name 5 'Param A' true null undefined (sayHello 'Tonia' (getAge 1996) year=birthYear fakeAge = (getAge 1996)) sex=gender  }}</span> --}}
     {{/with}} 
     <br> 
 {{/each}}
 
+{{!-- 
+{{#if a as |multix bookId|}}
+  {{b}}{{bk}}
+{{else}}
+  {{c}}
+
+  {{#if c}}
+    {{b}}{{bk}}
+  {{else}}
+    {{people}}
+  {{/if}}
+
+{{/if}} --}}
+
 {{#with x as |q|}}
 <span>HelloA</span>
-<span {{k}}="{{l}}" y=true>HelloB</span>{{H}}
-<span {{k}}="{{l}}">HelloC</span>
+
+{{capitalize name ? p : k 5 'Param A' true null o ? k : e undefined (sayHello 'Tonia' (getAge 1996) year=birthYear fakeAge = (getAge 1996)) sex= (gender? l :i)  }}
+
+{{!-- <span {{k}}="{{hi?lpp:ouuu? 'p' : (
+  p ? (s ? (k): (t)) : (t)
+  )}}" y=true>HelloB</span>{{H}} --}}
+
+<span {{k}} {{l}}="o">HelloC</span>
 <span {{k}}="{{l}}">HelloD</span>
 {{/with}} 
 
