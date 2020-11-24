@@ -5,8 +5,6 @@
 /* eslint-disable no-console */
 /* eslint-disable no-restricted-syntax */
 
-const { assert } = require("quicktype-core");
-
 // eslint-disable-next-line no-undef
 class RootCtxRenderer extends BaseRenderer {
   static syntheticAliasSeparator = '$$';
@@ -118,8 +116,6 @@ class RootCtxRenderer extends BaseRenderer {
 
     this.hbsInput = hbsInput;
 
-    console.info(this.arrayBlocks);
-
     // eslint-disable-next-line no-undef
     const html = Handlebars.template(template)(hbsInput, {
       helpers,
@@ -129,10 +125,6 @@ class RootCtxRenderer extends BaseRenderer {
       },
       strict: true,
     });
-
-    // if (this.getParent() === undefined) {
-    //   console.info(html);
-    // }
 
     const parentNode = document.getElementById(parent);
     parentNode.innerHTML = html;
@@ -159,6 +151,7 @@ class RootCtxRenderer extends BaseRenderer {
 
   forEach({ options, ctx, params }) {
     const { hash, fn } = options;
+    // console.info(options);
     const path = hash['path'];
     if (path) {
       this.arrayBlocks[path] = fn;
@@ -653,7 +646,13 @@ class RootCtxRenderer extends BaseRenderer {
     const { emptyString } = RootProxy;
     return {
       emptyString,
+      // Todo: remove
+      anyString: global.clientUtils.randomString(),
     };
+  }
+
+  ternary(condition, left, right) {
+    return condition ? left : right;
   }
 
   // eslint-disable-next-line class-methods-use-this

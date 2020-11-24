@@ -15,7 +15,15 @@
     "people_$.person.name": "String",
     "people_$.person.gender": "String",
     "people_$.person.birthYear": "String",
-    "people_$.person.d": "String",
+    "x.i": "String",
+    "x.l": "String",
+    "x.gender": "String",
+    "x.birthYear": "String",
+    "x.e": "String",
+    "x.k": "String",
+    "x.o": "String",
+    "x.p": "String",
+    "x.name": "String",
     "users_$.books_$.name": "String",
     "users_$.books_$.authors_$": "String",
     "users_$.id": "String",
@@ -23,9 +31,6 @@
     "a.b": "String",
     "a.bk": "String",
     "multi_$_$.x_$": "String",
-    "multi_$_$.x_$_$": "String",
-    "x.k": "String",
-    "x.l": "String",
-    "x.H": "String"
+    "multi_$_$.x_$_$": "String"
   }
 }

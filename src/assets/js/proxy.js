@@ -141,16 +141,15 @@ class RootProxy {
               // eslint-disable-next-line no-eval
               return eval(arr.join('.'));
 
-            default:
-              if (!(prop.match(dataPathPrefix) || prop.startsWith(syntheticMethodPrefix))) {
-
-                if (prop === 'length') {
-                  console.info(_this.lastLookup);
-                }
-
-                throw new Error(`Invalid path: ${prop}`);
-              }
+            case !!(prop.match(dataPathPrefix) || prop.startsWith(syntheticMethodPrefix)):
               return this.resolve0({ prop: prop.replace(dataPathPrefix, '') });
+
+            case prop === 'getSyntheticNodeId':
+              return this.component.getSyntheticNodeId();
+
+            default:
+                throw new Error(`Invalid path: ${prop}`);
+              
           }
         },
       });
