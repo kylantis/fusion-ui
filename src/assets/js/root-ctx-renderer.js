@@ -15,6 +15,8 @@ class RootCtxRenderer extends BaseRenderer {
 
   #mounted;
 
+  #currentBindContext;
+
   constructor({
     id, input, loadable, parent,
   } = {}) {
@@ -68,7 +70,7 @@ class RootCtxRenderer extends BaseRenderer {
     const { getMetaHelpers } = RootCtxRenderer;
     super.load();
 
-    // Remove unused hbs helper(s)
+    // Todo: Remove unused hbs helper(s)
     // eslint-disable-next-line no-undef
     delete Handlebars.helpers.lookup;
 
@@ -126,6 +128,8 @@ class RootCtxRenderer extends BaseRenderer {
       strict: true,
     });
 
+    // console.info(this.proxyInstance.getDataPathHooks());
+
     const parentNode = document.getElementById(parent);
     parentNode.innerHTML = html;
 
@@ -151,7 +155,6 @@ class RootCtxRenderer extends BaseRenderer {
 
   forEach({ options, ctx, params }) {
     const { hash, fn } = options;
-    // console.info(options);
     const path = hash['path'];
     if (path) {
       this.arrayBlocks[path] = fn;
@@ -163,8 +166,46 @@ class RootCtxRenderer extends BaseRenderer {
     return [
       'storeContext', 'loadContext', 'forEach',
       'startAttributeBindContext', 'endAttributeBindContext',
-      'startTextNodeBindContext', 'setSyntheticNodeId'
+      'startTextNodeBindContext', 'setSyntheticNodeId', 'resolveMustache'
     ];
+  }
+
+  resolveMustache({ options, ctx, params }) {
+    const { hash, fn } = options;
+
+    const key = Object.keys(hash)[0];
+
+    const { path, value } = hash[key];
+
+    this.#addBindContext({ path });
+
+    return value;
+  }
+
+  #addBindContext({ path }) {
+
+    const testMode = true;
+
+    if (!this.#currentBindContext) {
+      return;
+    }
+
+    switch (this.#currentBindContext.type) {
+      case 'textNode':
+
+        this.proxyInstance.getDataPathHooks()[path]
+          .push(this.#currentBindContext);
+
+        if (testMode) {
+          window.setInterval(() => {
+            eval();
+          }, 1000);
+        }
+
+        this.#currentBindContext = undefined;
+
+        break;
+    }
   }
 
   setSyntheticNodeId() {
@@ -191,41 +232,11 @@ class RootCtxRenderer extends BaseRenderer {
 
   startTextNodeBindContext() {
     const id = global.clientUtils.randomString();
-
-    return `k-tnb-${id}`;
-  }
-
-  static toCanonicalObject(path, obj) {
-    const { toCanonicalObject } = RootCtxRenderer;
-
-    const isArray = Array.isArray(obj);
-    // eslint-disable-next-line no-param-reassign
-    obj['@path'] = path;
-
-    for (const prop in obj) {
-      if ({}.hasOwnProperty.call(obj, prop) && prop !== '@path' && !!obj[prop]) {
-        const p = `${path}${isArray ? '_' : '__'}${prop}`;
-
-        // eslint-disable-next-line default-case
-        switch (true) {
-          case obj[prop].constructor.name === 'Object':
-            toCanonicalObject(p, obj[prop]);
-            break;
-
-          case obj[prop].constructor.name === 'Array':
-            // eslint-disable-next-line no-plusplus
-            for (let i = 0; i < obj[prop].length; i++) {
-              if (obj[prop][i] === Object(obj[prop][i])) {
-                toCanonicalObject(`${p}_${i}`, obj[prop][i]);
-              }
-            }
-            // eslint-disable-next-line no-param-reassign
-            obj[prop]['@path'] = `${p}`;
-
-            break;
-        }
-      }
-    }
+    this.#currentBindContext = {
+      type: 'textNode',
+      nodeId: id,
+    };
+    return `${id}`;
   }
 
   getAssetId() {
@@ -236,7 +247,11 @@ class RootCtxRenderer extends BaseRenderer {
     return this.getSyntheticMethod({ name: 'helpers' })();
   }
 
-  getPathValue({ path }) {
+  getLogicGates() {
+    return this.getSyntheticMethod({ name: 'logicGates' })();
+  }
+
+  getPathValue({ path, fromMustache = false }) {
     let value;
 
     switch (true) {
@@ -254,6 +269,7 @@ class RootCtxRenderer extends BaseRenderer {
       default:
         value = this.resolvePath({
           fqPath: path,
+          fromMustache,
         });
         break;
     }
@@ -483,7 +499,7 @@ class RootCtxRenderer extends BaseRenderer {
     autoPrefix = true,
   }) {
     return this[`${autoPrefix
-    // eslint-disable-next-line no-undef
+      // eslint-disable-next-line no-undef
       ? RootProxy.syntheticMethodPrefix : ''}${name}`].bind(this);
   }
 
@@ -502,6 +518,7 @@ class RootCtxRenderer extends BaseRenderer {
   getExecPath({
     fqPath,
     indexResolver,
+    addBasePath = true
   }) {
     const { getSegments, toObject } = RootCtxRenderer;
     if (!indexResolver) {
@@ -509,7 +526,7 @@ class RootCtxRenderer extends BaseRenderer {
       indexResolver = path => this.blockData[path].index;
     }
 
-    const basePath = 'this.getInput()';
+    const basePath = addBasePath ? 'this.getInput()' : '';
 
     if (fqPath === '') {
       return basePath;
@@ -518,7 +535,7 @@ class RootCtxRenderer extends BaseRenderer {
     const segments = fqPath.split('__');
     const parts = [];
 
-    if ((!this.isSynthetic(fqPath)) && !this.resolver) {
+    if ((!this.isSynthetic(fqPath)) && !this.resolver && basePath.length) {
       parts.push(basePath);
     }
 
@@ -610,7 +627,7 @@ class RootCtxRenderer extends BaseRenderer {
     return result;
   }
 
-  resolvePath({ fqPath, indexResolver, create }) {
+  resolvePath({ fqPath, indexResolver, create, fromMustache }) {
     const arr = fqPath.split('%');
     let path = this.getExecPath({
       fqPath: arr[0],
@@ -620,7 +637,7 @@ class RootCtxRenderer extends BaseRenderer {
       path += `%${arr[1]}`;
     }
     try {
-      const value = this.resolvePath0({ path, create });
+      const value = this.resolvePath0({ path, create, fromMustache });
       return value;
     } catch (e) {
       if (this.strict) {
@@ -632,12 +649,19 @@ class RootCtxRenderer extends BaseRenderer {
     }
   }
 
-  resolvePath0({ path, create }) {
+  resolvePath0({ path, create, fromMustache }) {
+
+    const { dataPathRoot, pathSeparator } = RootProxy;
+
     const value = this.resolver && !path.startsWith('this.')
       ? this.resolver.resolve({ path, create })
-    // eslint-disable-next-line no-eval
+      // eslint-disable-next-line no-eval
       : eval(path);
-    return value;
+
+    return fromMustache ? {
+      path: `${dataPathRoot}${pathSeparator}${path.replace(`this.getInput().`, '')}`,
+      value
+    } : value;
   }
 
   // eslint-disable-next-line class-methods-use-this

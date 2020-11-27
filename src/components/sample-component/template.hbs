@@ -40,6 +40,13 @@
 
 {{#with x as |q|}}
 <span>HelloA</span>
+0{{a}}
+1{{b}}
+2{{c}}
+
+3{{a ? b ? c : d : (capitalize e ? f :g) }}
+
+4{{a ? b ? c : d : e ? f :g }}
 
 {{capitalize name ? p : k 5 'Param A' true null o ? k : e undefined (sayHello 'Tonia' (getAge 1996) year=birthYear fakeAge = (getAge 1996)) sex= (gender? l :i)  }}
 
