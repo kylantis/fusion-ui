@@ -31,6 +31,12 @@
     "a.b": "String",
     "a.bk": "String",
     "multi_$_$.x_$": "String",
-    "multi_$_$.x_$_$": "String"
+    "multi_$_$.x_$_$": "String",
+    "x.g": "String",
+    "x.f": "String",
+    "x.d": "String",
+    "x.b": "String",
+    "x.a": "String",
+    "x.c": "String"
   }
 }
