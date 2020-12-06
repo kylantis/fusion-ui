@@ -26,12 +26,12 @@ const gulpTransform = function () {
       dir,
       fromGulp: true,
       Preprocessor,
-    }).then(({ assetId, templateData }) => {
+    }).then(({ assetId, metadata }) => {
       // write precompiled template
-      file.basename = 'template.min.js';
+      file.basename = 'metadata.min.js';
       file.path = path.join(path.dirname(path.dirname(file.path)), assetId, file.basename);
       // eslint-disable-next-line no-buffer-constructor
-      file.contents = Buffer.from(templateData);
+      file.contents = Buffer.from(metadata);
 
       callback(null, file);
     });

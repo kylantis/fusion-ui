@@ -3,6 +3,11 @@
 {{!-- {{component tooltip}}
 {{component button alias="button"}} --}}
 
+{{q.w.e}}
+{{q.w.e.r.t}}
+
+<br><br>
+
 {{#each f.g.h.i as |p peopleKey|}}
   AX {{k}} BY <span></span>
 {{/each}} 
@@ -96,7 +101,7 @@ Literal Segments <br>
 {{/each}}
 
 
-Inverse<br>
+Inverse<br> 
 {{#with a as |multix bookId|}}
   {{b}}{{bk}}
 {{else}}
@@ -108,26 +113,41 @@ Inverse<br>
 
 MULTI<br><br>
 
-{{./[1].x.[2]}} <br><br>
+{{!-- {{./[1].x.[2]}} <br><br> --}}
+{{./[0].x}}
+{{./[0].o}}
+<br>
+{{!-- {{./[0].x.[0].[1].l.s.f}} --}}
+<br><br>
 
 {{#*inline "myPartial"}}
   <span>myPartial</span>
   {{_y}} {{_z}} <br>
-  {{./[0].x.[2]}} <br>
-  {{./[0].x.[7].[5]}} <br>
+    {{./[0].x.[0]}} <br>
+
+    {{./[0].x.[0].[1]}} <br>
+    {{./[0].x.[1].[5]}} <br>
+    {{./[0].x.[1]}} <br>
+    {{./[0].x.[3].[4]}} <br> 
+    {{./[0].x.[2].[2]}} <br> 
+    {{./[0].x.[3]}} <br>
+    {{./[0].x.[4].[5]}} <br>
+
+    {{./[0].x.[0]}} <br>
+
   {{_p}} <br>
 
-{{#*inline "myPartial3"}}
+{{!-- {{#*inline "myPartial3"}}
   {{_x}} {{_y}} {{_z}} <br>
   {{./[0].x.[2]}} <br>
   {{./[0].x.[7].[5]}} <br>
 {{/inline}}
 
-{{> myPartial3 y="yello" z="sir" x=_p}}
+{{> myPartial3 y="yello" z="sir" x=_p}} --}}
 
 {{/inline}}
 
-
+{{!-- 
 {{#getLocation x="y" as |location|}}
 
 {{#*inline "myPartial2"}}
@@ -158,7 +178,7 @@ MULTI<br><br>
 
 {{> myPartial2}}
 
-{{/getLocation}}
+{{/getLocation}} --}}
 
 <br>
 <br>
@@ -171,7 +191,7 @@ INLINE<br>
 {{> myPartial y="hello" z="hi" p="osheX"}} <br><br>
 
 
-{{> myPartial y="hello" z="hi" p="oshe"}} <br><br>
+{{!-- {{> myPartial y="hello" z="hi" p="oshe"}} <br><br> --}}
 
 {{!-- {{this.[0].yello}} <br> --}}
 
@@ -213,4 +233,4 @@ INLINE<br>
   {{#each users as |user|}}
    Hello {{user.id}} {{./id}}
   {{/each}}
-{{/layout}} --}} 
+{{/layout}}  --}}
