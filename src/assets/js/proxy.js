@@ -36,7 +36,7 @@ class RootProxy {
   createImmutableObject() {
     return new Proxy({}, {
       set: function (object, key, value) {
-        return object[key] === undefined ? object[key] = value : false
+        return object[key] === undefined ? object[key] = value : true;
       },
     })
   }
@@ -74,8 +74,6 @@ class RootProxy {
       const condition = getValue(data.condition);
       next = condition ? data.left : data.right;
     }
-
-    console.info('getLogicGateValue', gateId, next.key);
 
     return getValue(next.key);
   }
@@ -292,11 +290,30 @@ class RootProxy {
     return proxy.handler;
   }
 
+  setSchema({ schema }) {
+
+    const ajvSchemas = [];
+
+    for (const id in schema.definitions) {
+      if ({}.hasOwnProperty.call(schema.definitions, id)) {
+        ajvSchemas.push({
+          $id: `#/definitions/${id}`,
+          ...schema.definitions[id]
+        });
+      }
+    }
+
+    this.schema = schema;
+    this.ajv = new Ajv({ schemas: ajvSchemas });
+  }
+
   addDataObserver() {
 
     // Recursively add @path to each object and array, 
     // and also update this.#dataPaths accordingly
-    this.toCanonicalObject('', this.component.getInput());
+    this.toCanonicalObject({ path: '', obj: this.component.getInput() });
+
+    // console.info(JSON.stringify(this.component.getInput()));
 
     // note: toCanonicalObject needs to be called everytime an array append happens
 
@@ -316,94 +333,102 @@ class RootProxy {
   getObserverProxy(object) {
     const { dataPathRoot, logicGatePathRoot, pathSeparator } = RootProxy;
 
-    switch (object.constructor.name) {
-      case 'Object':
-        return new Proxy(object, {
-          set: (obj, prop, newValue) => {
+    return new Proxy(object, {
+      set: (obj, prop, newValue) => {
 
-            const oldValue = obj[prop];
+        const isArray = obj.constructor.name === 'Array';
 
-            obj[prop] = newValue;
+        if (isArray && Number.isNaN(parseInt(prop, 10))) {
+          throw new Error(`Invalid index: ${prop} for array: ${obj['@path']}`);
+        }
 
-            const triggerHooks = path => {
-              const hooks = this.#dataPathHooks[path];
+        const oldValue = obj[prop];
 
-              hooks.forEach(hook => {
+        const triggerHooks = path => {
+          const hooks = this.#dataPathHooks[path];
 
-                let nodeValue = newValue
+          hooks.forEach(hook => {
 
-                if (path.startsWith(`${logicGatePathRoot}${pathSeparator}`)) {
-                  const gateId = path.replace(`${logicGatePathRoot}${pathSeparator}`, '')
-                  nodeValue = this.getLogicGateValue({ gateId });
-                }
+            let nodeValue = newValue
 
-                switch (hook.type) {
-
-                  case 'textNode':
-                    document.getElementById(hook.nodeId).innerHTML = eval(JSON.stringify(nodeValue));
-                    break;
-
-                  case 'gateParticipant':
-                    triggerHooks(`${logicGatePathRoot}${pathSeparator}${hook.gateId}`);
-                    break;
-                }
-              });
+            if (path.startsWith(`${logicGatePathRoot}${pathSeparator}`)) {
+              const gateId = path.replace(`${logicGatePathRoot}${pathSeparator}`, '')
+              nodeValue = this.getLogicGateValue({ gateId });
             }
 
-            const component = this.component;
-            const toExecPath = p => ['component.getInput()', p].join('.');
+            switch (hook.type) {
 
-            const oPath = obj['@path'];
+              case 'textNode':
+                document.getElementById(hook.nodeId).innerHTML = typeof nodeValue == 'string' ? nodeValue : JSON.stringify(nodeValue);
+                break;
 
-            const fqPath = `${dataPathRoot}${pathSeparator}${oPath.length ? `${oPath}.` : ''}${prop}`;
-
-            if (oldValue === Object(oldValue)) {
-              throw new Error(`Path: ${fqPath} is not a literal`);
+              case 'gateParticipant':
+                triggerHooks(`${logicGatePathRoot}${pathSeparator}${hook.gateId}`);
+                break;
             }
+          });
+        }
 
-            triggerHooks(fqPath);
+        const reloadPath = path => {
+          // Because of babel optimizations, I need to call this outside
+          // the eval string to avoid an "undefined" error at runtime
+          const component = this.component;
+          const p = ['component.getInput()', path].join('.')
+          return eval(`${p} = ${p}`)
+        };
 
-            if (oPath.length) {
-              eval(`${toExecPath(oPath)} = ${toExecPath(oPath)}`);
-            }
+        const parent = obj['@path'];
 
-            Object.keys(this.#dataPathHooks)
-              .filter(p => p !== fqPath && p.startsWith(fqPath))
-              .forEach(triggerHooks);
+        const fqPath = `${dataPathRoot}${pathSeparator}${isArray ?
+          `${parent}[${prop}]` :
+          `${parent.length ? `${parent}.` : ''}${prop}`
+          }`;
 
+        // console.info(fqPath);
 
+        triggerHooks(fqPath);
+
+        if (oldValue === Object(oldValue) &&
+          oldValue !== newValue
+        ) {
+
+          const sPath = fqPath
+            .replace(`${dataPathRoot}${pathSeparator}`, '')
+            .replace(/\[[0-9]+\]/g, '_$');
+
+          const $id = this.schema.paths[sPath];
+          const validate = this.ajv.getSchema($id)
+
+          if (!validate(newValue)) {
+            throw new Error(`${fqPath} could not be mutated due to schema mismatch`, result.error);
           }
-        });
 
-      case 'Array':
-        return new Proxy(object, {
-          set: (obj, prop, value) => {
+          this.toCanonicalObject({
+            path: fqPath,
+            obj: newValue
+          });
+        }
 
-            if (Number.isNaN(parseInt(prop, 10))) {
-              throw new Error(`Invalid index: ${prop} for array: ${JSON.stringify(obj['@path'])}`);
-            }
+        obj[prop] = newValue;
 
-            const oPath = obj['@path'];
-            const path = `${oPath}[${prop}]`;
+        if (oldValue === Object(oldValue) &&
+          oldValue !== newValue
+        ) {
+          Object.keys(this.#dataPathHooks)
+            .filter(p => p !== fqPath && p.startsWith(`${fqPath}`))
+            .forEach(p => reloadPath(p.replace(`${dataPathRoot}${pathSeparator}`, '')));
+        }
 
-            console.info(`ARRAY ${path} ${JSON.stringify(value)}`);
+        if (parent.length) {
+          reloadPath(parent);
+        }
 
-
-            obj[prop] = value;
-          },
-
-          deleteProperty: function (obj, prop) {
-            if (!prop in obj) { return false; }
-
-            // PROTOTYPE!!
-
-            return delete obj[prop];
-          }
-        })
-    }
+        return true;
+      }
+    });
   }
 
-  toCanonicalObject(path, obj) {
+  toCanonicalObject({ path, obj }) {
 
     const { dataPathRoot, pathSeparator } = RootProxy;
     const isArray = Array.isArray(obj);
@@ -423,7 +448,7 @@ class RootProxy {
         // eslint-disable-next-line default-case
         switch (true) {
           case obj[prop].constructor.name === 'Object':
-            this.toCanonicalObject(p, obj[prop]);
+            this.toCanonicalObject({ path: p, obj: obj[prop] });
             obj[prop] = this.getObserverProxy(obj[prop]);
             break;
 
@@ -431,7 +456,7 @@ class RootProxy {
             // eslint-disable-next-line no-plusplus
             for (let i = 0; i < obj[prop].length; i++) {
               if (obj[prop][i] === Object(obj[prop][i])) {
-                this.toCanonicalObject(`${p}[${i}]`, obj[prop][i]);
+                this.toCanonicalObject({ path: `${p}[${i}]`, obj: obj[prop][i] });
                 obj[prop][i] = this.getObserverProxy(obj[prop][i]);
               } else {
                 this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}[${i}]`] = [];

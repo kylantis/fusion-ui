@@ -5,7 +5,12 @@
     "people_$": "PeopleElement",
     "users_$": "UsersElement",
     "users_$.books_$": "BooksElement",
-    "multi_$_$": "MultiElement"
+    "multi_$_$": "MultiElement",
+    "multi_$_$.x_$_$": "XElement",
+    "multi_$_$.o_$": "OElement",
+    "multi_$_$.o_$_$": "OElement",
+    "multi_$_$.x_$_$_$": "XElement",
+    "multi_$_$.x_$_$_$_$": "XElement"
   },
   "literalTypes": {
     "k": "String",
@@ -30,13 +35,17 @@
     "users_$.books_$.releaseYear": "String",
     "a.b": "String",
     "a.bk": "String",
-    "multi_$_$.x_$": "String",
-    "multi_$_$.x_$_$": "String",
     "x.g": "String",
     "x.f": "String",
     "x.d": "String",
     "x.b": "String",
     "x.a": "String",
-    "x.c": "String"
+    "x.c": "String",
+    "q.w.e": "String",
+    "q.w.e.r.t": "String",
+    "multi_$_$.o": "String",
+    "multi_$_$.x": "String",
+    "multi_$_$.x_$_$": "String",
+    "multi_$_$.x_$": "String"
   }
 }

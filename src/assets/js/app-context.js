@@ -146,7 +146,7 @@ class AppContext {
     });
   }
 
-  async loadComponentClasses({ rootComponent, testMode }) {
+  async loadComponentClasses({ rootComponent }) {
     const { lazyLoadComponentTemplates } = AppContext;
     const list = await this.loadResource({
       url: '/components/list.json',
@@ -162,7 +162,7 @@ class AppContext {
         return Promise.all([
 
           lazyLoadComponentTemplates ? Promise.resolve() : this.loadResource({
-            url: `/components/${assetId}/template.min.js`,
+            url: `/components/${assetId}/metadata.min.js`,
             moduleType: 'inline',
           }),
 
@@ -225,7 +225,6 @@ class AppContext {
 
   getGlobalScriptURLs() {
     const urls = [
-      { url: '/assets/js/add-polyfills.min.js', moduleType: 'inline' },
       { url: '/assets/js/client-utils.min.js', moduleType: 'inline', namespace: 'clientUtils' },
       '/assets/js/proxy.min.js',
       '/assets/js/base-renderer.min.js',
@@ -234,6 +233,7 @@ class AppContext {
       '/assets/js/web-renderer.min.js',
       '/assets/js/base-component.min.js',
       '/assets/js/root-context.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/ajv/6.12.6/ajv.min.js'
     ];
     if (this.testMode) {
       urls.push({ url: 'https://cdn.jsdelivr.net/npm/faker@5.1.0/dist/faker.min.js', moduleType: 'cjs', namespace: 'faker' });

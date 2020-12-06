@@ -109,7 +109,12 @@ class RootCtxRenderer extends BaseRenderer {
       allowedProtoProperties[path] = true;
     }
 
-    const template = global[`template_${this.getAssetId()}`];
+    const { schema, template } =
+      global[`metadata_${this.getAssetId()}`];
+
+    this.proxyInstance.setSchema({ schema });
+
+    this.template = template;
 
     const hbsInput = {
       ...this.getRootGlobals(),
@@ -119,16 +124,15 @@ class RootCtxRenderer extends BaseRenderer {
     this.hbsInput = hbsInput;
 
     // eslint-disable-next-line no-undef
-    const html = Handlebars.template(template)(hbsInput, {
-      helpers,
-      partials: {},
-      allowedProtoProperties: {
-        ...allowedProtoProperties,
-      },
-      strict: true,
-    });
-
-    // console.info(this.proxyInstance.getDataPathHooks());
+    const html = Handlebars.template(this.template)
+      (hbsInput, {
+        helpers,
+        partials: {},
+        allowedProtoProperties: {
+          ...allowedProtoProperties,
+        },
+        strict: true,
+      });
 
     const parentNode = document.getElementById(parent);
     parentNode.innerHTML = html;
@@ -177,13 +181,14 @@ class RootCtxRenderer extends BaseRenderer {
 
     const { path, value } = hash[key];
 
-    this.#addBindContext({ path });
+    this.#addBindContext({ path, value });
 
-    return value;
+    return JSON.stringify(value);
   }
 
-  #addBindContext({ path }) {
+  #addBindContext({ path, value }) {
 
+    const { dataPathRoot, pathSeparator } = RootProxy;
     const testMode = true;
 
     if (!this.#currentBindContext) {
@@ -193,13 +198,32 @@ class RootCtxRenderer extends BaseRenderer {
     switch (this.#currentBindContext.type) {
       case 'textNode':
 
-        this.proxyInstance.getDataPathHooks()[path]
-          .push(this.#currentBindContext);
+        try {
+          console.info(path);
+          this.proxyInstance.getDataPathHooks()[path]
+            .push(this.#currentBindContext);
+        } catch (e) {
+          console.info(this.proxyInstance.getDataPathHooks());
+          throw e;
+        }
 
         if (testMode) {
-          window.setInterval(() => {
-            eval();
-          }, 1000);
+          if (value !== Object(value) && path.startsWith(`${dataPathRoot}${pathSeparator}`)) {
+
+            window.setInterval(() => {
+              if (!this.#mounted) {
+                return;
+              }
+
+              const _this = this;
+              const p = [
+                '_this.getInput()',
+                path.replace(`${dataPathRoot}${pathSeparator}`, '')
+              ].join('.')
+
+              eval(`${p} = '${faker.lorem.word()}'`);
+            }, 1);
+          }
         }
 
         this.#currentBindContext = undefined;
@@ -602,6 +626,7 @@ class RootCtxRenderer extends BaseRenderer {
             part += `.${Object.keys(value)[index]}`;
             break;
           default:
+            console.info(value);
             throw new Error(`Unknown path: ${path}`);
         }
       } else if (part.endsWith('_@')) {
@@ -650,9 +675,7 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   resolvePath0({ path, create, fromMustache }) {
-
     const { dataPathRoot, pathSeparator } = RootProxy;
-
     const value = this.resolver && !path.startsWith('this.')
       ? this.resolver.resolve({ path, create })
       // eslint-disable-next-line no-eval
