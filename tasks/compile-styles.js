@@ -20,7 +20,7 @@ gulp.task('compile-syles', () => gulp.src('src/assets/scss/**/*.scss')
   ).on('error', sass.logError))
 
   .pipe(rename(renameConfig))
-  .pipe(gulp.dest('dist/assets/css')));
+  .pipe(gulp.dest('dist/assets/styles')));
 
 gulp.task('compile-syles:watch', () => watch('src/assets/scss/**/*.scss', { ignoreInitial: true })
   .pipe(sourcemaps.init())
@@ -32,4 +32,4 @@ gulp.task('compile-syles:watch', () => watch('src/assets/scss/**/*.scss', { igno
   ).on('error', sass.logError))
   .pipe(sourcemaps.write())
   .pipe(rename(renameConfig))
-  .pipe(gulp.dest('dist/assets/css')));
+  .pipe(gulp.dest('dist/assets/styles')));

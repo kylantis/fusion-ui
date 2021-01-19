@@ -13,12 +13,7 @@ class BaseRenderer {
 
  #parent;
 
- constructor({
-   id,
-   input,
-   loadable = true,
-   parent,
- } = {}) {
+ constructor({ id, input, loadable = true, parent, logger } = {}) {
    if (!id) {
      // eslint-disable-next-line no-param-reassign
      id = this.#createId();
@@ -36,7 +31,7 @@ class BaseRenderer {
    );
 
    this.#id = id;
-   this.logger = console;
+   this.logger = logger || console;
    this.#input = input;
    this.#loadable = loadable;
    this.#isRoot = !BaseRenderer.#componentIds.length;

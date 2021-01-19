@@ -5,14 +5,14 @@ class WebRenderer extends CustomCtxRenderer {
   static #loadedStyles = [];
 
   constructor({
-    id, input, loadable, parent,
+    id, input, loadable, parent, logger,
   } = {}) {
     super({
-      id, input, loadable, parent,
+      id, input, loadable, parent, logger,
     });
   }
 
-  load({ parent, token }) {
+  load({ container, token }) {
     let promises = [];
     // eslint-disable-next-line no-restricted-globals
     if (self.appContext) {
@@ -22,7 +22,7 @@ class WebRenderer extends CustomCtxRenderer {
       ];
     }
     return Promise.all(promises)
-      .then(() => super.load({ parent, token }));
+      .then(() => super.load({ container, token }));
   }
 
   cssDependencies() {
@@ -57,10 +57,11 @@ class WebRenderer extends CustomCtxRenderer {
         link.type = 'text/css';
         link.async = false;
         // eslint-disable-next-line func-names
+        const _this = this;
         link.onload = function () {
           loaded.push(this.href);
           WebRenderer.#loadedStyles.push(this.href);
-          this.logger.info(`Loaded ${this.href}`);
+          _this.logger.info(`Loaded ${this.href}`);
           if (loaded.length === styles.length) {
             resolve();
           }

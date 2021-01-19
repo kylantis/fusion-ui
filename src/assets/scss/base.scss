@@ -1,5 +1,10 @@
+@import './loader';
+
+body {
+ background: #fff;       
+}
+
+// Do not mofify, except you know what you are doing
 .mst-w {
-        display: inherit;
-        width: 100%;
-        height: 100%;
+        display: contents;
 }

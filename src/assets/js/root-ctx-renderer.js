@@ -9,6 +9,8 @@
 class RootCtxRenderer extends BaseRenderer {
   static syntheticAliasSeparator = '$$';
 
+  static htmlWrapperCssClassname = 'mst-w';
+
   #resolve;
 
   static #token;
@@ -18,10 +20,10 @@ class RootCtxRenderer extends BaseRenderer {
   #currentBindContext;
 
   constructor({
-    id, input, loadable, parent,
+    id, input, loadable, parent, logger,
   } = {}) {
     super({
-      id, input, loadable, parent,
+      id, input, loadable, parent, logger,
     });
 
     // Initialze block data map
@@ -43,6 +45,10 @@ class RootCtxRenderer extends BaseRenderer {
     this.arrayBlocks = {};
 
     this.syntheticNodeId = [];
+    this.#currentBindContext = [];
+
+    // Todo: support conditional, #if, #each
+    this.blockHooks = {};
   }
 
   isMounted() {
@@ -56,7 +62,7 @@ class RootCtxRenderer extends BaseRenderer {
     RootCtxRenderer.#token = token;
   }
 
-  load({ parent, token }) {
+  load({ container, token }) {
     if (!this.loadable()) {
       throw new Error(`${this.getId()} is not loadable`);
     }
@@ -67,7 +73,7 @@ class RootCtxRenderer extends BaseRenderer {
 
     console.info(`Loading component - ${this.getId()}`);
 
-    const { getMetaHelpers } = RootCtxRenderer;
+    const { htmlWrapperCssClassname, getMetaHelpers } = RootCtxRenderer;
     super.load();
 
     // Todo: Remove unused hbs helper(s)
@@ -112,7 +118,9 @@ class RootCtxRenderer extends BaseRenderer {
     const { schema, template } =
       global[`metadata_${this.getAssetId()}`];
 
-    this.proxyInstance.setSchema({ schema });
+    if (!global.isServer) {
+      this.proxyInstance.setSchema({ schema });
+    }
 
     this.template = template;
 
@@ -123,6 +131,8 @@ class RootCtxRenderer extends BaseRenderer {
 
     this.hbsInput = hbsInput;
 
+    this.preRender();
+
     // eslint-disable-next-line no-undef
     const html = Handlebars.template(this.template)
       (hbsInput, {
@@ -131,11 +141,23 @@ class RootCtxRenderer extends BaseRenderer {
         allowedProtoProperties: {
           ...allowedProtoProperties,
         },
-        strict: true,
+        // strict: true,
       });
 
-    const parentNode = document.getElementById(parent);
-    parentNode.innerHTML = html;
+    this.postRender({
+      html: `<div id='${this.getId()}' class='${htmlWrapperCssClassname}'>${html}</div>`, 
+      container 
+    });
+
+    // trigger block hooks
+    Object.keys(this.blockHooks).forEach(selector => {
+      const hookName = this.blockHooks[selector];
+
+      const hook = this[hookName].bind(this);
+      assert(!!hook, `Block hook ${hookName} was not found`);
+
+      hook(document.querySelector(`#${this.getId()} ${selector}`));
+    });
 
     this.#mounted = true;
 
@@ -150,6 +172,11 @@ class RootCtxRenderer extends BaseRenderer {
         // sub-components inside this component
         const intervalId = setInterval(() => {
           if (this.renderOffset === 0) {
+
+            if (global.isServer) {
+              global.html = document.getElementById(container).outerHTML;
+            }
+
             clearInterval(intervalId);
             resolve();
           }
@@ -157,78 +184,127 @@ class RootCtxRenderer extends BaseRenderer {
       }));
   }
 
-  forEach({ options, ctx, params }) {
-    const { hash, fn } = options;
-    const path = hash['path'];
-    if (path) {
-      this.arrayBlocks[path] = fn;
+  conditional({ options, ctx, params }) {
+
+    const { dataPathRoot, pathSeparator } = RootProxy;
+    const { fn } = options;
+    const nodeId = this.getSyntheticNodeId();
+
+    if (!global.isServer) {
+      const path = this.getExecPath({
+        fqPath: params[0],
+        addBasePath: false,
+      });
+
+      this.proxyInstance.getDataPathHooks()
+
+      [`${dataPathRoot}${pathSeparator}${path}`]
+      ['conditionalBlock'] = {
+        nodeId, fn,
+        parentBlockData: this.getParentBlockData({ path: params[0] }),
+
+      };
     }
-    return Handlebars.helpers.each(...params, options);
+
+    const value = this.getPathValue({ path: params[0] });
+    const conditional = this.analyzeConditionValue({ value });
+
+    if (conditional) {
+      return fn(ctx);
+    }
+  }
+
+  getParentBlockData({ path }) {
+    const blockData = {};
+    Object.keys(this.blockData)
+      .filter(k => path.startsWith(k) && k !== path)
+      .forEach(k => blockData[k] = this.blockData[k]);
+
+    return blockData;
+  }
+
+  forEach({ options, ctx, params }) {
+    const { fn, hash } = options;
+    const nodeId = this.getSyntheticNodeId();
+
+    if (!global.isServer) {
+      const { dataPathRoot, pathSeparator } = RootProxy;
+
+      const path = this.getExecPath({
+        fqPath: params[0],
+        addBasePath: false,
+      });
+
+      this.proxyInstance.getDataPathHooks()
+      [`${dataPathRoot}${pathSeparator}${path}`]
+      ['arrayBlock'] = {
+        nodeId, fn,
+        parentBlockData: this.getParentBlockData({ path: params[0] }),
+      };
+    }
+
+    const value = this.getPathValue({ path: params[0] });
+
+    var ret = "";
+    const hookMethod = hash['hook'];
+
+    for (var i = 0, j = value.length; i < j; i++) {
+      ret = ret + `${fn(this.rootProxy)}`;
+      if (hookMethod) {
+        this.blockHooks[`#${nodeId} > :nth-child(${i + 1})`] = hookMethod;
+      }
+    }
+
+    return ret;
   }
 
   static getMetaHelpers() {
     return [
-      'storeContext', 'loadContext', 'forEach',
+      'storeContext', 'loadContext', 'forEach', 'conditional',
       'startAttributeBindContext', 'endAttributeBindContext',
       'startTextNodeBindContext', 'setSyntheticNodeId', 'resolveMustache'
     ];
   }
 
-  resolveMustache({ options, ctx, params }) {
-    const { hash, fn } = options;
+  resolveMustache({ options }) {
+    const { hash } = options;
 
-    const key = Object.keys(hash)[0];
+    const { path, value } = hash[Object.keys(hash)[0]];
 
-    const { path, value } = hash[key];
-
-    this.#addBindContext({ path, value });
-
-    return JSON.stringify(value);
-  }
-
-  #addBindContext({ path, value }) {
-
-    const { dataPathRoot, pathSeparator } = RootProxy;
-    const testMode = true;
-
-    if (!this.#currentBindContext) {
-      return;
+    if (path && this.#currentBindContext.length) {
+      // Data-bind support exists for this mustache statement
+      this.#bindMustache({ path, value });
     }
 
-    switch (this.#currentBindContext.type) {
-      case 'textNode':
+    return Object(value) !== value ? value : JSON.stringify(value);
+  }
 
-        try {
-          console.info(path);
-          this.proxyInstance.getDataPathHooks()[path]
-            .push(this.#currentBindContext);
-        } catch (e) {
-          console.info(this.proxyInstance.getDataPathHooks());
-          throw e;
-        }
+  #bindMustache({ path, value }) {
 
-        if (testMode) {
-          if (value !== Object(value) && path.startsWith(`${dataPathRoot}${pathSeparator}`)) {
+    const { dataPathRoot, pathSeparator } = RootProxy;
+    const flickeringMode = false;
+    const ctx = this.#currentBindContext.pop();
 
-            window.setInterval(() => {
-              if (!this.#mounted) {
-                return;
-              }
+    assert(ctx.type == 'textNode');
 
-              const _this = this;
-              const p = [
-                '_this.getInput()',
-                path.replace(`${dataPathRoot}${pathSeparator}`, '')
-              ].join('.')
+    this.proxyInstance.getDataPathHooks()[path]
+      .push(ctx);
 
-              eval(`${p} = '${faker.lorem.word()}'`);
-            }, 1);
-          }
-        }
+    if (flickeringMode) {
+      if (value !== Object(value) && path.startsWith(`${dataPathRoot}${pathSeparator}`)) {
+        window.setInterval(() => {
+          if (!this.#mounted) {
+            return;
+          } s
+          const _this = this;
+          const p = [
+            '_this.getInput()',
+            path.replace(`${dataPathRoot}${pathSeparator}`, '')
+          ].join('.')
 
-        this.#currentBindContext = undefined;
-
-        break;
+          eval(`${p} = '${clientUtils.randomString()}'`);
+        }, 1);
+      }
     }
   }
 
@@ -244,22 +320,21 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   startAttributeBindContext() {
-
     return '';
   }
 
   endAttributeBindContext() {
     const id = global.clientUtils.randomString();
-
     return `k-ab-${id}`;
   }
 
   startTextNodeBindContext() {
+    assert(this.#currentBindContext.length === 0);
     const id = global.clientUtils.randomString();
-    this.#currentBindContext = {
+    this.#currentBindContext.push({
       type: 'textNode',
       nodeId: id,
-    };
+    });
     return `${id}`;
   }
 
@@ -273,6 +348,11 @@ class RootCtxRenderer extends BaseRenderer {
 
   getLogicGates() {
     return this.getSyntheticMethod({ name: 'logicGates' })();
+  }
+
+  getMapPaths() {
+    const f = this.getSyntheticMethod({ name: 'mapPaths' });
+    return f ? f() : [];
   }
 
   getPathValue({ path, fromMustache = false }) {
@@ -328,15 +408,10 @@ class RootCtxRenderer extends BaseRenderer {
     return parts.join('.');
   }
 
-  analyzeCondition({ path }) {
-    const value = this.getPathValue({ path });
-
-    const b = !!value;
-
-    if (!b) {
+  analyzeConditionValue({ value }) {
+    if (!value) {
       return false;
     }
-
     const type = value.constructor.name;
 
     // Note: type === 'Map' && value.size === 0 may not be needed
@@ -357,6 +432,16 @@ class RootCtxRenderer extends BaseRenderer {
     }
 
     return true;
+  }
+
+  analyzeCondition({ path }) {
+    return this.analyzeConditionValue({
+      value: this.getPathValue({ path })
+    });
+  }
+
+  static getDataVariables() {
+    return ['@first', '@last', '@index', '@key', '@random'];
   }
 
   getBlockData({ path, dataVariable }) {
@@ -383,6 +468,9 @@ class RootCtxRenderer extends BaseRenderer {
       case '@key':
         return Object.keys(value)[blockData.index];
 
+      case '@random':
+        return blockData.random;
+
       default:
         throw new Error(`Unknown data variable: ${dataVariable}`);
     }
@@ -404,6 +492,7 @@ class RootCtxRenderer extends BaseRenderer {
     const blockData = this.blockData[path];
     // eslint-disable-next-line no-plusplus
     blockData.index++;
+    blockData.random = global.clientUtils.randomString();
   }
 
   getSyntheticContext({
@@ -522,9 +611,10 @@ class RootCtxRenderer extends BaseRenderer {
     name,
     autoPrefix = true,
   }) {
-    return this[`${autoPrefix
+    const f = this[`${autoPrefix
       // eslint-disable-next-line no-undef
-      ? RootProxy.syntheticMethodPrefix : ''}${name}`].bind(this);
+      ? RootProxy.syntheticMethodPrefix : ''}${name}`];
+    return f ? f.bind(this) : null;
   }
 
   static getSegments({ original }) {
@@ -539,27 +629,40 @@ class RootCtxRenderer extends BaseRenderer {
     return segments;
   }
 
+  getDataBasePath() {
+    return 'this.getInput()';
+  }
+
   getExecPath({
     fqPath,
     indexResolver,
     addBasePath = true
   }) {
-    const { getSegments, toObject } = RootCtxRenderer;
+
+    const qq = fqPath.length;
+
+    if (fqPath === '') {
+      return this.getDataBasePath();
+    }
+
+    const { getSegments, toObject, getDataVariables } = RootCtxRenderer;
+    const { pathSeparator, syntheticMethodPrefix } = RootProxy;
+
     if (!indexResolver) {
       // eslint-disable-next-line no-param-reassign
       indexResolver = path => this.blockData[path].index;
     }
 
-    const basePath = addBasePath ? 'this.getInput()' : '';
-
-    if (fqPath === '') {
-      return basePath;
+    if (this.isSynthetic(fqPath)) {
+      addBasePath = false;
     }
 
-    const segments = fqPath.split('__');
+    const basePath = addBasePath ? this.getDataBasePath() : '';
+
+    const segments = fqPath.split(pathSeparator);
     const parts = [];
 
-    if ((!this.isSynthetic(fqPath)) && !this.resolver && basePath.length) {
+    if (!this.resolver && basePath.length) {
       parts.push(basePath);
     }
 
@@ -575,6 +678,7 @@ class RootCtxRenderer extends BaseRenderer {
       const suffix = partSegments.join('');
 
       if (part.endsWith('_$')) {
+
         [part] = part.split(/_\$$/);
         const canonicalPart = part;
 
@@ -586,6 +690,7 @@ class RootCtxRenderer extends BaseRenderer {
         let value;
 
         if (part.endsWith('_$')) {
+
           // For multidimensional arrays, it's common to have a path like
           // ..._$_$
           path = this.getExecPath({
@@ -595,14 +700,16 @@ class RootCtxRenderer extends BaseRenderer {
           });
 
           value = this.resolvePath0({
-            path,
+            path: `${addBasePath ? '' : 'this.getInput().'}${path}`,
           });
 
           const arr = path.split('.');
           part = arr[arr.length - 1];
+
         } else {
+
           value = this.resolvePath0({
-            path,
+            path: `${addBasePath ? '' : 'this.getInput().'}${path}`,
           });
         }
 
@@ -612,12 +719,56 @@ class RootCtxRenderer extends BaseRenderer {
           ]).join('__'),
         );
 
+        const isArray = value instanceof Array;
+        const isMap = value instanceof Object;
+
+        if (isArray || isMap) {
+          const firstChild = isArray ? value[0] : value[Object.keys(value)[0]];
+
+          const dataVariable = segments[i + 1] || '';
+
+          if (
+            i == segments.length - 2 &&
+            firstChild !== Object(firstChild) &&
+            getDataVariables().includes(dataVariable)
+          ) {
+
+            // Since this array/map contain literals as it's children and has one
+            // segment ahead, we expect the next segment to be a dataVariable
+            // Resolve this getExecPath(...) call to a synthetic method that in
+            // turn invokes getBlockData(...)
+
+            const path =
+              [...parts, part]
+                .join(pathSeparator)
+                .replace(
+                  new RegExp(`^${global.clientUtils.escapeRegExp(basePath)
+                    }${pathSeparator}`), ''
+                )
+                .replace(/\[[0-9]+\]/g, '_$')
+
+            const syntheticMethodName = `${syntheticMethodPrefix}${path}_${dataVariable.replace(/^@/g, '')}`;
+
+            if (!this[syntheticMethodName]) {
+              this[syntheticMethodName] = Function(`
+                return this.getBlockData({
+                    path: "${path}",
+                    dataVariable: "${dataVariable}"
+                })
+              `);
+            }
+
+            return syntheticMethodName;
+          }
+        }
 
         switch (true) {
-          case value instanceof Array:
+
+          case isArray:
             part += `[${index}]`;
             break;
-          case value instanceof Object:
+
+          case isMap:
             if (this.resolver) {
               // This may not be the case for synthetic scenario
               assert(value.constructor.name === 'Map');
@@ -626,10 +777,11 @@ class RootCtxRenderer extends BaseRenderer {
             part += `.${Object.keys(value)[index]}`;
             break;
           default:
-            console.info(value);
             throw new Error(`Unknown path: ${path}`);
         }
+
       } else if (part.endsWith('_@')) {
+
         [part] = part.split('_@');
 
         if (this.isSynthetic(part)) {
@@ -648,16 +800,39 @@ class RootCtxRenderer extends BaseRenderer {
       parts.push(part);
     }
 
-    const result = parts.join('.');
-    return result;
+    if (this.isSynthetic(parts[0])) {
+      assert(parts.length == 1);
+      parts[0] = this.createSyntheticInvocation(fqPath);
+    }
+
+    return parts
+      .map((part, index) => {
+        // If the last segment is a data variable, use a square bracket
+        // notation instead of a dot notation to access the property
+        return index == 0 ? part : part.startsWith('@') ? `['${part}']` : `.${part}`;
+      })
+      .join('');
   }
 
   resolvePath({ fqPath, indexResolver, create, fromMustache }) {
+    const { syntheticMethodPrefix } = RootProxy;
+
     const arr = fqPath.split('%');
     let path = this.getExecPath({
       fqPath: arr[0],
       indexResolver,
     });
+
+    // In some case cases, data paths can resolve to a synthetic
+    // method, for example when resolving data variables for literal
+    // arrays/maps
+    if (path.startsWith(syntheticMethodPrefix)) {
+      const value = this[path]();
+      return fromMustache ? {
+        value
+      } : value;
+    }
+
     if (arr[1]) {
       path += `%${arr[1]}`;
     }
@@ -675,16 +850,34 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   resolvePath0({ path, create, fromMustache }) {
-    const { dataPathRoot, pathSeparator } = RootProxy;
+    const { dataPathRoot, pathSeparator, syntheticMethodPrefix } = RootProxy;
+
     const value = this.resolver && !path.startsWith('this.')
       ? this.resolver.resolve({ path, create })
       // eslint-disable-next-line no-eval
       : eval(path);
 
-    return fromMustache ? {
-      path: `${dataPathRoot}${pathSeparator}${path.replace(`this.getInput().`, '')}`,
-      value
-    } : value;
+    if (path.startsWith(`this.${syntheticMethodPrefix}`)) {
+
+      // This is likely a synthetic invocation, i.e.
+      // this.s$AbCdEf().a.b...
+
+      // We only perform indirections to resolveMustache(...) for
+      // data paths
+      assert(!fromMustache);
+
+      return value;
+
+    } else {
+
+      assert(this.resolver || path.startsWith(this.getDataBasePath()));
+
+      // This is a data path
+      return fromMustache ? {
+        path: `${dataPathRoot}${pathSeparator}${path.replace(`${this.getDataBasePath()}.`, '')}`,
+        value
+      } : value;
+    }
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -698,8 +891,36 @@ class RootCtxRenderer extends BaseRenderer {
     };
   }
 
-  ternary(condition, left, right) {
-    return condition ? left : right;
+  loadComponentByName({ name, hash }) {
+
+    const events = new global.components[name]({ input: {} }).events();
+    const handlers = {};
+
+    const input = {};
+    Object.keys(hash)
+      .filter(k => {
+        const evtName = k.replace(/on\-?/g, '')
+        const isEvent = events.includes(evtName);
+        if (isEvent) {
+          handlers[evtName] = hash[k];
+        }
+        return !isEvent;
+      }).forEach(k => {
+        input[k] = hash[k];
+      });
+
+    const component = new global.components[name]({
+      input,
+      parent: this,
+    });
+
+    Object.keys(handlers).forEach(evt => {
+      const handler = this[handlers[evt]];
+      assert(handler instanceof Function);
+      component.on(evt, handler);
+    });
+
+    return component;
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -713,10 +934,7 @@ class RootCtxRenderer extends BaseRenderer {
 
     switch (true) {
       case componentSpec && componentSpec.constructor.name === 'String':
-        return new global.components[componentSpec]({
-          input: hash,
-          parent: this,
-        });
+        return this.loadComponentByName({ name: componentSpec, hash });
 
       case componentSpec && componentSpec instanceof BaseComponent:
         return componentSpec.clone({ parent: this });

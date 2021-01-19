@@ -11,10 +11,10 @@ class BaseComponent extends WebRenderer {
   static #token;
 
   constructor({
-    id, input, loadable, parent,
+    id, input, loadable, parent, logger,
   } = {}) {
     super({
-      id, input, loadable, parent,
+      id, input, loadable, parent, logger,
     });
 
     if (!BaseComponent.#token) {
@@ -23,6 +23,8 @@ class BaseComponent extends WebRenderer {
       // eslint-disable-next-line no-undef
       RootCtxRenderer.setToken(BaseComponent.#token);
     }
+
+    this.handlers = {};
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -35,15 +37,17 @@ class BaseComponent extends WebRenderer {
     return BaseComponent.CHAINED_LOADING_STRATEGY;
   }
 
-  load({ parent }) {
+  load({ container }) {
     return super.load({
       token: BaseComponent.#token,
-      parent,
+      container,
     });
   }
 
   render({ data, target, strategy }) {
-    if (global.isServer || !data) {
+    if (
+      // global.isServer || 
+      !data) {
       return Promise.resolve();
     }
 
@@ -56,7 +60,7 @@ class BaseComponent extends WebRenderer {
     } = BaseComponent;
 
     const future = this.promise
-    // eslint-disable-next-line no-shadow
+      // eslint-disable-next-line no-shadow
       .then(() => Promise.resolve(data)
         // eslint-disable-next-line no-shadow
         .then((data) => {
@@ -84,12 +88,12 @@ class BaseComponent extends WebRenderer {
               });
               break;
 
-              // eslint-disable-next-line no-undef
+            // eslint-disable-next-line no-undef
             default:
               // eslint-disable-next-line no-undef
               assert(data instanceof BaseComponent);
               promise = data.load({
-                parent: target,
+                container: target,
               });
               break;
           }
@@ -116,6 +120,18 @@ class BaseComponent extends WebRenderer {
     return future;
   }
 
+  log(msg, level = 'info') {
+    // Todo: verify level
+    this.logger[level](`[${this.getId()}] ${msg}`);
+  }
+
+  /**
+   * The main goal for this is to allow the component dynamically register fields 
+   * in it's object model. Note: this method is only invoked at compile-time
+   */
+  init() {
+  }
+
   // eslint-disable-next-line class-methods-use-this
   getLoader() {
     return `<div class="sk-chase">
@@ -130,7 +146,54 @@ class BaseComponent extends WebRenderer {
 
   // eslint-disable-next-line class-methods-use-this
   getStencil() {
-    return '';
+    return 'STENCIL';
   }
+
+  behaviours() {
+    return [];
+  }
+
+  events() {
+    return [];
+  }
+
+  ensureKnownEvent(event) {
+    assert(
+      this.events().includes(event),
+      `Unknown event '${event}' for component: ${this.constructor.name}`
+    );
+  }
+
+  on(event, handler) {
+    this.ensureKnownEvent(event);
+    const handlers = this.handlers[event] || (this.handlers[event] = []);
+    handlers.push(handler);
+    return this;
+  }
+
+  dispatch(event, data) {
+    this.ensureKnownEvent(event);
+    const handlers = this.handlers[event];
+    if (handlers && handlers.length) {
+      handlers.forEach(handler => handler(data));
+    }
+    return this;
+  }
+
+  hasSubComponent() {
+    return this.getSyntheticMethod({ name: 'hasSubComponent' })();
+  }
+
+  preRender() {
+  }
+
+  postRender({ container, html }) {
+    // By default, write to innerHTML of container
+    
+    const elem = document.getElementById(container);
+    assert(elem != null, `DOMElement #${container} does not exist`);
+    elem.innerHTML = html;
+  }
+
 }
 module.exports = BaseComponent;
