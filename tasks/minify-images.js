@@ -9,17 +9,23 @@ const imageMin = require('gulp-imagemin');
 const watch = require('gulp-watch');
 
 gulp.task('minify-images', () => gulp.src('src/assets/images/**/*.{png,svg,ico,gif,jpg,webp}')
-  .pipe(imageMin({
-    progressive: true,
-    interlaced: true,
-    svgoPlugins: [{ removeViewBox: false }, { removeUselessStrokeAndFill: false }],
-  }))
+  // Todo: find an alternative, as this is not correctly processing
+  // SVG files
+  
+  // .pipe(imageMin({
+  //   progressive: true,
+  //   interlaced: true,
+  //   svgoPlugins: [{ removeViewBox: false }, { removeUselessStrokeAndFill: false }],
+  // }))
   .pipe(gulp.dest('dist/assets/images/')));
 
-gulp.task('minify-images:watch', () => watch('src/assets/images/**/*.{png,svg,ico,gif,jpg,webp}', { ignoreInitial: true })
-  .pipe(imageMin({
-    progressive: true,
-    interlaced: true,
-    svgoPlugins: [{ removeViewBox: false }, { removeUselessStrokeAndFill: false }],
-  }))
-  .pipe(gulp.dest('dist/assets/images/')));
+  gulp.task('minify-icons', () => gulp.src('src/assets/icons/**/*.{png,svg,ico,gif,jpg,webp}')
+    // Todo: find an alternative, as this is not correctly processing
+  // SVG files
+
+  // .pipe(imageMin({
+  //   progressive: true,
+  //   interlaced: true,
+  //   svgoPlugins: [{ removeViewBox: false }, { removeUselessStrokeAndFill: false }],
+  // }))
+  .pipe(gulp.dest('dist/assets/icons/')));

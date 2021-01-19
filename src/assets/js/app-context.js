@@ -80,15 +80,20 @@ class AppContext {
     document.body.appendChild(container);
 
     // eslint-disable-next-line no-new
-    new self.components[rootComponent]({
+    const component = new self.components[rootComponent]({
       input: data,
-    })
-      .load({ parent: container.id })
+    });
+
+    component.load({ container: container.id })
       .then(() => {
         if (!AppContext.#initialized) {
           AppContext.#initialized = true;
         }
       });
+
+    if (testMode) {
+      self.Component = component;
+    }
   }
 
   getCanonicalURLPrefix() {
@@ -195,7 +200,8 @@ class AppContext {
                   default:
                     return self[module];
                 }
-              }`;
+              };
+              `;
 
             return this.loadResource({
               url: `/components/${assetId}/index.test.js`,
@@ -235,9 +241,6 @@ class AppContext {
       '/assets/js/root-context.min.js',
       'https://cdnjs.cloudflare.com/ajax/libs/ajv/6.12.6/ajv.min.js'
     ];
-    if (this.testMode) {
-      urls.push({ url: 'https://cdn.jsdelivr.net/npm/faker@5.1.0/dist/faker.min.js', moduleType: 'cjs', namespace: 'faker' });
-    }
     return urls;
   }
 

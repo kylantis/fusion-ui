@@ -13,7 +13,7 @@ const Preprocessor = require('../lib/template-preprocessor');
 const gulpTransform = function () {
   return through.obj((vinylFile, _encoding, callback) => {
     const file = vinylFile.clone();
-    log.info(`\x1b[32m[Processing ${file.path}]\x1b[0m`);
+    log.info(`\x1b[32m[Processing started for ${file.path}]\x1b[0m`);
 
     const dir = path.dirname(file.path);
 
@@ -31,7 +31,11 @@ const gulpTransform = function () {
       file.basename = 'metadata.min.js';
       file.path = path.join(path.dirname(path.dirname(file.path)), assetId, file.basename);
       // eslint-disable-next-line no-buffer-constructor
-      file.contents = Buffer.from(metadata);
+      file.contents = Buffer.from(metadata || '');
+
+      if (metadata) {
+        log.info(`\x1b[32m[Processing completed]\x1b[0m`);
+      }
 
       callback(null, file);
     });
@@ -39,10 +43,10 @@ const gulpTransform = function () {
 };
 
 gulp.task('compile-templates',
-  () => gulp.src(['src/components/**/template.hbs'])
+  () => gulp.src(['src/components/**/index.view'])
     .pipe(gulpTransform())
     .pipe(gulp.dest('dist/components')));
 
-gulp.task('compile-templates:watch', () => watch(['src/components/**/*.hbs', 'src/components/**/*.js'], { ignoreInitial: true })
+gulp.task('compile-templates:watch', () => watch(['src/components/**/*.view', 'src/components/**/*.js'], { ignoreInitial: true })
   .pipe(gulpTransform())
   .pipe(gulp.dest('dist/components')));

@@ -9,10 +9,10 @@ class CustomCtxRenderer extends RootCtxRenderer {
     static partialNameHash = '__name';
 
     constructor({
-      id, input, loadable, parent,
+      id, input, loadable, parent, logger,
     } = {}) {
       super({
-        id, input, loadable, parent,
+        id, input, loadable, parent, logger,
       });
 
       this.canonicalHash = {};
@@ -59,7 +59,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
         ctx = decorator.data;
       }
 
-      // this.logger.info(`Loading partial {{> ${partialName} }}`);
+      this.logger.debug(`Loading partial {{> ${partialName} }}`);
 
       return this.renderBlock({
         data: ctx,
@@ -165,6 +165,52 @@ class CustomCtxRenderer extends RootCtxRenderer {
     inCustomContext() {
       return this.customContext.length > 0;
     }
+
+  ternary() {
+    const params = Array.from(arguments);
+
+    const right = params.pop();
+    const left = params.pop();
+    const condition = [...params];
+
+    const AND = 'AND';
+    const OR = 'OR';
+
+    let scope = '';
+
+    const expr = condition.map(part => {
+
+      const variableName = global.clientUtils.randomString();
+
+      switch (true) {
+        case part == null:
+        case part == undefined:
+        case part.constructor.name == 'Number':
+        case part.constructor.name == 'Boolean':
+          scope += `const ${variableName} = ${part};\n`;
+          return `!!${variableName}`;
+        case part.constructor.name == 'String':
+            switch (part) {
+              case AND:
+                return ' && ';
+              case OR:
+                return ' || ';
+              default:
+                scope += `const ${variableName} = "${part}"\n`;
+                return `!!${variableName}`;
+            }
+        break;
+        case part == Object(part):
+          scope += `const ${variableName} = ${JSON.stringify(part)};\n`;
+            return `!!${variableName}`;
+      }
+    });
+
+    const b = eval(`${scope}${expr}`);
+    assert(typeof b == 'boolean');
+    const val = b ? left : right;
+    return val == Object(val) ? JSON.stringify(val) : val;
+  }
 
     static isPrimitive(value) {
       return value == null || ['String', 'Number', 'Boolean']

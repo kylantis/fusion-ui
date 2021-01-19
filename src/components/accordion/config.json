@@ -1,0 +1,24 @@
+{
+  "superclass": null,
+  "arrays": {
+    "items": {
+      "minLength": 5,
+      "singularType": "ItemsElement"
+    }
+  },
+  "literals": {
+    "singleOnly": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "items_$.title": {
+      "type": "String",
+      "defaults": [
+        "Accordion Title"
+      ]
+    },
+    "items_$.text": {
+      "type": "String"
+    }
+  }
+}

@@ -1,3 +1,4 @@
+
 /* eslint-disable no-underscore-dangle */
 module.exports = {
   flattenJson: (data) => {
@@ -28,6 +29,10 @@ module.exports = {
     }
     recurse(data, '');
     return result;
+  },
+
+  escapeRegExp: (text) => {
+    return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
   },
 
   randomString: () => {
@@ -63,4 +68,8 @@ module.exports = {
       .replace(/%%("|')/g, '')
       .replace(/\n/g, '');
   },
+
+  deepClone: (o) => {
+    return JSON.parse(JSON.stringify(o));
+  }
 };

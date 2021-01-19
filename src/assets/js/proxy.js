@@ -58,63 +58,161 @@ class RootProxy {
 
   getLogicGateValue({ gateId }) {
 
-    const component = this.component;
-    const getValue = path => {
-      return eval(
-        ['component.getInput()', path].join('.')
-      )
-    };
+    const { syntheticMethodPrefix } = RootProxy;
+
+    const LOGIC_GATE = 'LogicGate';
+    const PATH_EXPR = 'PathExpression';
+    const STR_LITERAL = 'StringLiteral';
+    const BOOL_LITERAL = 'BooleanLiteral';
+    const NUM_LITERAL = 'NumberLiteral';
+    const AND = 'AND';
+    const OR = 'OR';
 
     const gate = this.#logicGates[gateId];
 
-    let next = 0;
-
-    while (!Number.isNaN(parseInt(next, 10))) {
-      const data = gate.table[next];
-      const condition = getValue(data.condition);
-      next = condition ? data.left : data.right;
+    const evaluateExpr = (expr) => {
+      return Function(expr).bind(this.component)();
     }
 
-    return getValue(next.key);
+    const getConditionExpr = parts => {
+      let scope = ``;
+      const and = ' && ';
+      const or = ' || ';
+
+      const expr = `return ${parts
+          .map(part => {
+
+            let variableName = global.clientUtils.randomString();
+
+            switch (part.type) {
+
+              case PATH_EXPR:
+              case BOOL_LITERAL:
+              case NUM_LITERAL:
+                scope += `const ${variableName} = ${part.original};\n`;
+                return variableName;
+
+              case STR_LITERAL:
+                switch (part.original) {
+                  case AND:
+                    return and;
+                  case OR:
+                    return or;
+                  default:
+                    scope += `const ${variableName} = "${part.original}";\n`;
+                    return variableName;
+                }
+
+              case LOGIC_GATE:
+                return `${analyzeGate(part)}`;
+            }
+          })
+          .map(part => (part != and && part != or) ? `!!${part}` : part)
+          .join('')};`;
+
+      return scope + expr;
+    };
+
+    const analyzeCondition = parts => {
+      const expr = getConditionExpr(parts);
+      const b = evaluateExpr(expr);
+      assert(typeof b === 'boolean');
+      return b;
+    }
+
+    const getValue = (item) => {
+      let expr;
+      switch (item.type) {
+        case NUM_LITERAL:
+        case BOOL_LITERAL:
+        case PATH_EXPR:
+          expr = item.original;
+          break;
+        case STR_LITERAL:
+          expr = `"${item.original}"`;
+      }
+      return evaluateExpr(`return ${expr}`);
+    };
+
+    const analyzeGate = (item) => {
+
+      while (item.type == LOGIC_GATE) {
+        const data = gate.table[item.original];
+        item = analyzeCondition(data.condition) ? data.left : data.right;
+      }
+
+      return getValue(item);
+    }
+
+    return analyzeGate({
+      type: LOGIC_GATE,
+      original: 0,
+    });
   }
 
   resolveLogicPath({ prop }) {
 
     const { dataPathRoot, logicGatePathRoot, pathSeparator } = RootProxy;
 
+    const PATH_EXPR = 'PathExpression';
+
     const gate = this.component.getLogicGates()[prop];
 
-    const toCanonicalPath = p => this.component.getExecPath({
-      fqPath: p.replace(`${dataPathRoot}${pathSeparator}`, ''),
-      addBasePath: false
-    })
+    /**
+     * If this is a PathExpression, convert from a canonical path to
+     * it's executable path
+     */
+    const toExecutablePath = (item) => {
+      const { type, original } = item;
+      if (type == PATH_EXPR) {
+        item.original = this.component.getExecPath({
+          fqPath: original.replace(`${dataPathRoot}${pathSeparator}`, ''),
+        });
+      }
+      return item;
+    }
 
-    gate.participants = gate.participants.map(toCanonicalPath);
+    gate.participants = gate.participants.map((p) => {
+      const { original } = toExecutablePath({
+        type: PATH_EXPR,
+        original: p,
+      });
+      return original;
+    });
 
     for (let i = 0; i < gate.table.length; i++) {
-      const data = gate.table[i];
-      data.condition = toCanonicalPath(data.condition);
 
-      if (Number.isNaN(parseInt(data.left, 10))) {
-        data.left.key = toCanonicalPath(data.left.key);
-        // provisional
-        gate.participants.push(data.left.key);
-      }
+      const item = gate.table[i];
 
-      if (Number.isNaN(parseInt(data.right, 10))) {
-        data.right.key = toCanonicalPath(data.right.key);
-        // provisional
-        gate.participants.push(data.right.key);
-      }
+      const { condition, left, right } = item;
+
+      item.condition = condition.map(toExecutablePath);
+
+      item.left = toExecutablePath(left);
+      item.right = toExecutablePath(right);
     }
+
     const gateId = global.clientUtils.randomString();
 
-    gate.participants.forEach(p => {
-      this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}`].push({
-        type: 'gateParticipant',
-        gateId,
+    gate.participants
+      .map(p => {
+        p = p.replace(
+          `${this.component.getDataBasePath()}.`,
+          `${dataPathRoot}${pathSeparator}`
+        );
+
+        const dataVariable = p.match(/(?<=\[')@\w+(?='\]$)/g);
+        if (dataVariable) {
+          p = p.replace(`['${dataVariable[0]}']`, `.${dataVariable[0]}`);
+        }
+        return p;
+      })
+      .forEach(p => {
+        this.#dataPathHooks[p].push({
+          type: 'gateParticipant',
+          gateId,
+        });
       });
-    });
 
     this.#logicGates[gateId] = gate;
     const path = `${logicGatePathRoot}${pathSeparator}${gateId}`;
@@ -283,9 +381,7 @@ class RootProxy {
     proxy.component.proxyInstance = proxy;
     proxy.component.rootProxy = proxy.handler;
 
-    if (!global.isServer) {
-      proxy.addDataObserver();
-    }
+    proxy.addDataObserver();
 
     return proxy.handler;
   }
@@ -311,14 +407,8 @@ class RootProxy {
 
     // Recursively add @path to each object and array, 
     // and also update this.#dataPaths accordingly
+
     this.toCanonicalObject({ path: '', obj: this.component.getInput() });
-
-    // console.info(JSON.stringify(this.component.getInput()));
-
-    // note: toCanonicalObject needs to be called everytime an array append happens
-
-
-    // integrate JOI for array appends as well
 
 
     // when whole object are removed, via (array or object) operations, also, we need
@@ -365,6 +455,9 @@ class RootProxy {
               case 'gateParticipant':
                 triggerHooks(`${logicGatePathRoot}${pathSeparator}${hook.gateId}`);
                 break;
+
+
+
             }
           });
         }
@@ -383,8 +476,6 @@ class RootProxy {
           `${parent}[${prop}]` :
           `${parent.length ? `${parent}.` : ''}${prop}`
           }`;
-
-        // console.info(fqPath);
 
         triggerHooks(fqPath);
 
@@ -411,6 +502,14 @@ class RootProxy {
 
         obj[prop] = newValue;
 
+        // TODO: 
+        // * Implement hook for arrays. @random
+
+        // * Implement hook for maps
+
+        // * Implement hook for conditionals
+
+        // Reload children, if applicable
         if (oldValue === Object(oldValue) &&
           oldValue !== newValue
         ) {
@@ -419,6 +518,7 @@ class RootProxy {
             .forEach(p => reloadPath(p.replace(`${dataPathRoot}${pathSeparator}`, '')));
         }
 
+        // Reload parent, if applicable
         if (parent.length) {
           reloadPath(parent);
         }
@@ -431,48 +531,78 @@ class RootProxy {
   toCanonicalObject({ path, obj }) {
 
     const { dataPathRoot, pathSeparator } = RootProxy;
+
     const isArray = Array.isArray(obj);
 
     Object.defineProperty(obj, '@path', { value: path, configurable: false, writable: false });
     this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${path}`] = [];
 
-    for (const prop in obj) {
-      if ({}.hasOwnProperty.call(obj, prop) && prop !== '@path') {
+    const canonical = path.replace(/\[[0-9]+\]/g, '_$');
+    const isMap = this.component.getMapPaths().includes(canonical);
 
-        const p = `${path}${isArray ? `[${prop}]` : `${path.length ? '.' : ''}${prop}`}`;
+    const keys = Object.keys(obj);
 
-        if (obj[prop] == null || obj[prop] === undefined) {
-          throw new Error(`No value provided at path: ${p}`);
-        }
+    for (let i = 0; i < keys.length; i++) {
+      const prop = keys[i];
 
-        // eslint-disable-next-line default-case
-        switch (true) {
-          case obj[prop].constructor.name === 'Object':
-            this.toCanonicalObject({ path: p, obj: obj[prop] });
-            obj[prop] = this.getObserverProxy(obj[prop]);
-            break;
+      if (prop === '@path') {
+        continue;
+      }
 
-          case obj[prop].constructor.name === 'Array':
-            // eslint-disable-next-line no-plusplus
-            for (let i = 0; i < obj[prop].length; i++) {
-              if (obj[prop][i] === Object(obj[prop][i])) {
-                this.toCanonicalObject({ path: `${p}[${i}]`, obj: obj[prop][i] });
-                obj[prop][i] = this.getObserverProxy(obj[prop][i]);
-              } else {
-                this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}[${i}]`] = [];
-              }
+      if (isMap && obj[prop] == Object(obj[prop])) {
+        // Inject data variables
+        obj[prop]['@first'] = i == 0;
+        obj[prop]['@last'] = i == keys.length - 1;
+        obj[prop]['@key'] = prop;
+        obj[prop]['@index'] = i;
+        obj[prop]['@random'] = global.clientUtils.randomString();
+      }
+
+      const p = `${path}${isArray ? `[${prop}]` : `${path.length ? '.' : ''}${prop}`}`;
+
+      if (obj[prop] == null || obj[prop] === undefined) {
+        throw new Error(`No value provided at path: ${p}`);
+      }
+
+      // eslint-disable-next-line default-case
+      switch (true) {
+        case obj[prop].constructor.name === 'Object':
+          this.toCanonicalObject({ path: p, obj: obj[prop] });
+          obj[prop] = this.getObserverProxy(obj[prop]);
+          break;
+
+        case obj[prop].constructor.name === 'Array':
+          // eslint-disable-next-line no-plusplus
+          for (let i = 0; i < obj[prop].length; i++) {
+
+            if (obj[prop][i] === Object(obj[prop][i])) {
+
+              const o = obj[prop][i];
+
+              // Inject data variables
+              o['@first'] = i == 0;
+              o['@last'] = i == obj[prop].length - 1;
+              o['@key'] = o['@index'] = i;
+              o['@random'] = global.clientUtils.randomString();
+
+              this.toCanonicalObject({ path: `${p}[${i}]`, obj: o });
+
+              obj[prop][i] = this.getObserverProxy(o);
+
+            } else {
+              this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}[${i}]`] = [];
             }
+          }
 
-            Object.defineProperty(obj[prop], '@path', { value: p, configurable: false, writable: false });
-            this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}`] = [];
+          Object.defineProperty(obj[prop], '@path', { value: p, configurable: false, writable: false });
+          this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}`] = [];
 
-            obj[prop] = this.getObserverProxy(obj[prop]);
-            break;
+          obj[prop] = this.getObserverProxy(obj[prop]);
+          break;
 
-          default:
-            this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}`] = [];
-            break;
-        }
+        default:
+          this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}`] = [];
+          break;
       }
     }
   }
