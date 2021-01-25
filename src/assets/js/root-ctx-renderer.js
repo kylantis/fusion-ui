@@ -639,8 +639,6 @@ class RootCtxRenderer extends BaseRenderer {
     addBasePath = true
   }) {
 
-    const qq = fqPath.length;
-
     if (fqPath === '') {
       return this.getDataBasePath();
     }
@@ -802,7 +800,12 @@ class RootCtxRenderer extends BaseRenderer {
 
     if (this.isSynthetic(parts[0])) {
       assert(parts.length == 1);
-      parts[0] = this.createSyntheticInvocation(fqPath);
+
+      const rawMethodName = fqPath.replace(syntheticMethodPrefix, '');
+
+      parts[0] = this.createSyntheticInvocation(
+        this[rawMethodName] ? rawMethodName : fqPath
+      );
     }
 
     return parts

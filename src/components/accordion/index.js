@@ -10,7 +10,7 @@ class Accordion extends BaseComponent {
     }
 
     S() {
-        
+        return true;
     }
 
     ss() {
