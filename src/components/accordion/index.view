@@ -13,12 +13,17 @@ Todo:
 {{/each}} --}}
 
 
+  {{!-- {{ (S o (S j)) AND (S R Y) AND (A ? B : C) AND F ? I ? W : G : H}} --}}
+
 
 <ul class="slds-accordion">
 
+  {{!-- {{ (S j (S j)) AND (S R Y) AND (A ? B : C) AND F ? I ? W : G : H}} --}}
+
   {{#each items hook = "addClickListener" as |item i|}}
 
-  {{!-- {{X AND (S R Y) AND (A ? B : C) AND F ? I ? W : G : H}} --}}
+  {{!-- {{ (S U) }} --}}
+  {{(S U) AND (S R Y) AND (( (S) AND I ? S : Z) ? B : C) AND F ? I ? W : G : H}}
 
   <li class="slds-accordion__list-item">
     <section class="slds-accordion__section {{@first ? 'slds-is-open' : ''}}">

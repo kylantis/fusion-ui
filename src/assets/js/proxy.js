@@ -104,7 +104,7 @@ class RootProxy {
                 }
 
               case LOGIC_GATE:
-                return `${analyzeGate(part)}`;
+                return `${JSON.stringify(analyzeGate(part))}`;
             }
           })
           .map(part => (part != and && part != or) ? `!!${part}` : part)
@@ -120,16 +120,16 @@ class RootProxy {
       return b;
     }
 
-    const getValue = (item) => {
+    const getValue = ({ type, original }) => {
       let expr;
-      switch (item.type) {
+      switch (type) {
         case NUM_LITERAL:
         case BOOL_LITERAL:
         case PATH_EXPR:
-          expr = item.original;
+          expr = original;
           break;
         case STR_LITERAL:
-          expr = `"${item.original}"`;
+          expr = `"${original}"`;
       }
       return evaluateExpr(`return ${expr}`);
     };
