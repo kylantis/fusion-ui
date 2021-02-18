@@ -1,8 +1,6 @@
 
 ## Project Panther FE
 
-This is the UI service that processes the handlebars templates for components.
-
 ## Setup
 To setup this project locally:
 - Clone the repository:
