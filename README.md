@@ -9,8 +9,7 @@ To setup this project locally:
  `git clone git@github.com:tonyobanon/project_panther_fe.git`
 - Install `nvm` if you don't already have it
 - `nvm use`
-- `npm run build`
-- Run lint `npm run lint`
-- Run gulp `npm run build-watch`
-- The in another terminal, run `npm run dev`
-- Visit `localhost:8080/components/app-shell-view` to view the app shell
+- `npm install`
+- Compile `npm run build`
+- The in another terminal, run `npm start`
+- Visit `localhost:8080/components/<component_name>` to view the app shell
