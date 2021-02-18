@@ -1,1 +1,3 @@
-MENU
+
+{{#each items as |item|}}
+{{/each}}

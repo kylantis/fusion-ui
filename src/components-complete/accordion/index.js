@@ -9,17 +9,6 @@ class Accordion extends BaseComponent {
         this.getInput().singleOnly;
     }
 
-    S() {
-        return true;
-    }
-
-    ss() {
-        return [
-            { a: "hello" }, 
-            { a: "hi" }
-        ]
-    }
-
     /**
      * Collapse an accordion section
      * @param {HTMLElement} li 

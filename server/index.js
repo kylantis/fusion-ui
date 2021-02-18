@@ -18,7 +18,4 @@ server.get('/*', restify.plugins.serveStatic({
   default: 'index.html',
 }));
 
-server.listen(8080, () => {
-  // eslint-disable-next-line no-console
-  console.info('%s listening at %s', server.name, server.url);
-});
+server.listen(8080, () => {});
