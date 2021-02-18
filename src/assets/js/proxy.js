@@ -22,6 +22,18 @@ class RootProxy {
 
   static emptyString = '';
 
+  static hasIndex = /\[[0-9]+\]/g;
+
+  // Todo: Rename from HookName to HookType
+
+  static conditionalBlockHookName = 'conditionalBlock';
+
+  static arrayBlockHookName = 'arrayBlock';
+
+  static textNodeHookName = 'textNode';
+
+  static gateParticipantHookName = 'gateParticipant';
+
   #dataPathHooks;
 
   #logicGates;
@@ -58,13 +70,13 @@ class RootProxy {
 
   getLogicGateValue({ gateId }) {
 
-    const { syntheticMethodPrefix } = RootProxy;
-
     const LOGIC_GATE = 'LogicGate';
     const PATH_EXPR = 'PathExpression';
     const STR_LITERAL = 'StringLiteral';
     const BOOL_LITERAL = 'BooleanLiteral';
     const NUM_LITERAL = 'NumberLiteral';
+    const NULL_LITERAL = 'NullLiteral';
+    const UNDEFINED_LITERAL = 'UndefinedLiteral';
     const AND = 'AND';
     const OR = 'OR';
 
@@ -74,47 +86,51 @@ class RootProxy {
       return Function(expr).bind(this.component)();
     }
 
-    const getConditionExpr = parts => {
+    const getConditionExpr = (parts, invert) => {
+
       let scope = ``;
       const and = ' && ';
       const or = ' || ';
 
       const expr = `return ${parts
-          .map(part => {
+        .map(part => {
 
-            let variableName = global.clientUtils.randomString();
+          let variableName = global.clientUtils.randomString();
 
-            switch (part.type) {
+          switch (part.type) {
 
-              case PATH_EXPR:
-              case BOOL_LITERAL:
-              case NUM_LITERAL:
-                scope += `const ${variableName} = ${part.original};\n`;
-                return variableName;
+            case PATH_EXPR:
+            case BOOL_LITERAL:
+            case NUM_LITERAL:
+            case NULL_LITERAL:
+            case UNDEFINED_LITERAL:
+              scope += `const ${variableName} = ${part.original};\n`;
+              return variableName;
 
-              case STR_LITERAL:
-                switch (part.original) {
-                  case AND:
-                    return and;
-                  case OR:
-                    return or;
-                  default:
-                    scope += `const ${variableName} = "${part.original}";\n`;
-                    return variableName;
-                }
+            case STR_LITERAL:
+              switch (part.original) {
+                case AND:
+                  return and;
+                case OR:
+                  return or;
+                default:
+                  scope += `const ${variableName} = "${part.original}";\n`;
+                  return variableName;
+              }
 
-              case LOGIC_GATE:
-                return `${JSON.stringify(analyzeGate(part))}`;
-            }
-          })
-          .map(part => (part != and && part != or) ? `!!${part}` : part)
-          .join('')};`;
+            case LOGIC_GATE:
+              return `${JSON.stringify(analyzeGate(part))}`;
+          }
+        })
+        .map(part => (part != and && part != or) ? `!!${part}` : part)
+        .map((part, index) => `${invert[index] ? '!' : ''}${part}`)
+        .join('')};`;
 
       return scope + expr;
     };
 
-    const analyzeCondition = parts => {
-      const expr = getConditionExpr(parts);
+    const analyzeCondition = (parts, invert) => {
+      const expr = getConditionExpr(parts, invert);
       const b = evaluateExpr(expr);
       assert(typeof b === 'boolean');
       return b;
@@ -138,21 +154,48 @@ class RootProxy {
 
       while (item.type == LOGIC_GATE) {
         const data = gate.table[item.original];
-        item = analyzeCondition(data.condition) ? data.left : data.right;
+        item = analyzeCondition(data.condition, data.invert) ? data.left : data.right;
       }
 
       return getValue(item);
     }
 
-    return analyzeGate({
+    // Todo: Only replace blockData if a sub expression exists in
+    // the logic gate
+    const blockDataSnapshot = this.component.blockData;
+
+    this.component.blockData = global.clientUtils.deepClone(gate.blockData);
+
+    const value = analyzeGate({
       type: LOGIC_GATE,
       original: 0,
     });
+
+    this.component.blockData = blockDataSnapshot;
+
+    return value;
   }
 
   resolveLogicPath({ prop }) {
 
-    const { dataPathRoot, logicGatePathRoot, pathSeparator } = RootProxy;
+    const {
+      dataPathRoot, logicGatePathRoot,
+      pathSeparator, gateParticipantHookName
+    } = RootProxy;
+
+    const includePath = prop.endsWith('!');
+
+    if (includePath) {
+      // eslint-disable-next-line no-param-reassign
+      prop = prop.replace(/\!$/g, '');
+    }
+
+    const isRawReturn = prop.endsWith('!');
+
+    if (isRawReturn) {
+      // eslint-disable-next-line no-param-reassign
+      prop = prop.replace(/\!$/g, '');
+    }
 
     const PATH_EXPR = 'PathExpression';
 
@@ -209,10 +252,12 @@ class RootProxy {
       })
       .forEach(p => {
         this.#dataPathHooks[p].push({
-          type: 'gateParticipant',
+          type: gateParticipantHookName,
           gateId,
         });
       });
+
+    gate.blockData = global.clientUtils.deepClone(this.component.blockData);
 
     this.#logicGates[gateId] = gate;
     const path = `${logicGatePathRoot}${pathSeparator}${gateId}`;
@@ -221,13 +266,18 @@ class RootProxy {
 
     const value = this.getLogicGateValue({ gateId });
 
-    return {
-      path,
-      value,
-    };
+    if (includePath) {
+      return {
+        path,
+        value: isRawReturn ? this.getRawValueWrapper(value) : this.getValue(value),
+      };
+    } else {
+      return isRawReturn ? this.getRawValueWrapper(value) : this.getValue(value);
+    }
   }
 
   resolveDataPath({ prop, isRawReturn = false }) {
+
     const {
       literalPrefix, emptyString, rawDataPrefix
     } = RootProxy;
@@ -245,21 +295,30 @@ class RootProxy {
       isRawReturn = true;
     }
 
-    const fromMustache = prop.endsWith('!');
+    const includePath = prop.endsWith('!');
 
-    if (fromMustache) {
+    if (includePath) {
       // eslint-disable-next-line no-param-reassign
       prop = prop.replace(/\!$/g, '');
-      isRawReturn = true;
+    }
+
+    isRawReturn = isRawReturn || prop.endsWith('!');
+
+    if (isRawReturn) {
+      // eslint-disable-next-line no-param-reassign
+      prop = prop.replace(/\!$/g, '');
     }
 
     // eslint-disable-next-line no-case-declarations
     const v = this.component
-      .getPathValue({ path: prop, fromMustache });
+      .getPathValue({ path: prop, includePath });
 
-    const ret = isRawReturn ? this.getRawValueWrapper(v) : this.getValue(v);
-
-    return ret;
+    if (includePath) {
+      v.value = isRawReturn ? this.getRawValueWrapper(v.value) : this.getValue(v.value);
+      return v;
+    } else {
+      return isRawReturn ? this.getRawValueWrapper(v) : this.getValue(v);
+    }
   }
 
   /**
@@ -309,6 +368,7 @@ class RootProxy {
     const {
       dataPathPrefix, logicGatePathPrefix, syntheticMethodPrefix,
     } = RootProxy;
+    const { getDataVariables } = RootCtxRenderer;
     // eslint-disable-next-line no-underscore-dangle
     const _this = this;
     return new Proxy({}, {
@@ -341,6 +401,25 @@ class RootProxy {
 
           case prop === 'getSyntheticNodeId':
             return this.component.getSyntheticNodeId();
+
+          case prop === 'length':
+            // The forEach helper has an object target
+            assert(_this.lastLookup.constructor.name == 'Object');
+
+            // If the Map is inside an array, or another map,
+            // it could contain data variables (at the bottom). 
+            // Hence, in that case, we want to slighly reduce the
+            // length returned to the forEach helper, so it does
+            // not iterate up to that point
+
+            const keys = Object.keys(_this.lastLookup);
+            let len = keys.length;
+
+            if (keys.includes(getDataVariables()[0])) {
+              len -= getDataVariables().length;
+            }
+
+            return len;
 
           default:
             throw new Error(`Invalid path: ${prop}`);
@@ -381,7 +460,12 @@ class RootProxy {
     proxy.component.proxyInstance = proxy;
     proxy.component.rootProxy = proxy.handler;
 
-    proxy.addDataObserver();
+    // On compile-time, it would be too early for <resolver>
+    // to be set, so let's use <loadable> instead, since we know
+    // it will be false at compile-time and true on the client-side
+    if (proxy.component.loadable()) {
+      proxy.addDataObserver();
+    }
 
     return proxy.handler;
   }
@@ -401,6 +485,8 @@ class RootProxy {
 
     this.schema = schema;
     this.ajv = new Ajv({ schemas: ajvSchemas });
+
+    // todo: perform schema validation  on input data
   }
 
   addDataObserver() {
@@ -421,7 +507,10 @@ class RootProxy {
   }
 
   getObserverProxy(object) {
-    const { dataPathRoot, logicGatePathRoot, pathSeparator } = RootProxy;
+    const {
+      dataPathRoot, logicGatePathRoot,
+      pathSeparator, textNodeHookName, gateParticipantHookName
+    } = RootProxy;
 
     return new Proxy(object, {
       set: (obj, prop, newValue) => {
@@ -448,11 +537,11 @@ class RootProxy {
 
             switch (hook.type) {
 
-              case 'textNode':
+              case textNodeHookName:
                 document.getElementById(hook.nodeId).innerHTML = typeof nodeValue == 'string' ? nodeValue : JSON.stringify(nodeValue);
                 break;
 
-              case 'gateParticipant':
+              case gateParticipantHookName:
                 triggerHooks(`${logicGatePathRoot}${pathSeparator}${hook.gateId}`);
                 break;
 
@@ -537,8 +626,11 @@ class RootProxy {
     Object.defineProperty(obj, '@path', { value: path, configurable: false, writable: false });
     this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${path}`] = [];
 
-    const canonical = path.replace(/\[[0-9]+\]/g, '_$');
-    const isMap = this.component.getMapPaths().includes(canonical);
+    const isMap = !isArray && obj['@type'] === 'Map';
+
+    if (isMap) {
+      delete obj['@type'];
+    }
 
     const keys = Object.keys(obj);
 
@@ -549,60 +641,61 @@ class RootProxy {
         continue;
       }
 
-      if (isMap && obj[prop] == Object(obj[prop])) {
+      if (isMap && obj[prop] === Object(obj[prop])) {
         // Inject data variables
         obj[prop]['@first'] = i == 0;
         obj[prop]['@last'] = i == keys.length - 1;
-        obj[prop]['@key'] = prop;
+        obj[prop]['@key'] = prop
+          // Remove $_ prefixes for map keys, if applicable
+          .replace(/^\$_/g, '');
         obj[prop]['@index'] = i;
         obj[prop]['@random'] = global.clientUtils.randomString();
       }
 
       const p = `${path}${isArray ? `[${prop}]` : `${path.length ? '.' : ''}${prop}`}`;
 
-      if (obj[prop] == null || obj[prop] === undefined) {
-        throw new Error(`No value provided at path: ${p}`);
-      }
+      if (obj[prop] != null && obj[prop] != undefined) {
 
-      // eslint-disable-next-line default-case
-      switch (true) {
-        case obj[prop].constructor.name === 'Object':
-          this.toCanonicalObject({ path: p, obj: obj[prop] });
-          obj[prop] = this.getObserverProxy(obj[prop]);
-          break;
+        // eslint-disable-next-line default-case
+        switch (true) {
+          case obj[prop].constructor.name === 'Object':
+            this.toCanonicalObject({ path: p, obj: obj[prop] });
+            obj[prop] = this.getObserverProxy(obj[prop]);
+            break;
 
-        case obj[prop].constructor.name === 'Array':
-          // eslint-disable-next-line no-plusplus
-          for (let i = 0; i < obj[prop].length; i++) {
+          case obj[prop].constructor.name === 'Array':
+            // eslint-disable-next-line no-plusplus
+            for (let i = 0; i < obj[prop].length; i++) {
 
-            if (obj[prop][i] === Object(obj[prop][i])) {
+              if (obj[prop][i] === Object(obj[prop][i])) {
 
-              const o = obj[prop][i];
+                const o = obj[prop][i];
 
-              // Inject data variables
-              o['@first'] = i == 0;
-              o['@last'] = i == obj[prop].length - 1;
-              o['@key'] = o['@index'] = i;
-              o['@random'] = global.clientUtils.randomString();
+                // Inject data variables
+                o['@first'] = i == 0;
+                o['@last'] = i == obj[prop].length - 1;
+                o['@key'] = o['@index'] = i;
+                o['@random'] = global.clientUtils.randomString();
 
-              this.toCanonicalObject({ path: `${p}[${i}]`, obj: o });
+                this.toCanonicalObject({ path: `${p}[${i}]`, obj: o });
 
-              obj[prop][i] = this.getObserverProxy(o);
+                obj[prop][i] = this.getObserverProxy(o);
 
-            } else {
-              this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}[${i}]`] = [];
+              } else {
+                this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}[${i}]`] = [];
+              }
             }
-          }
 
-          Object.defineProperty(obj[prop], '@path', { value: p, configurable: false, writable: false });
-          this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}`] = [];
+            Object.defineProperty(obj[prop], '@path', { value: p, configurable: false, writable: false });
+            this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}`] = [];
 
-          obj[prop] = this.getObserverProxy(obj[prop]);
-          break;
+            obj[prop] = this.getObserverProxy(obj[prop]);
+            break;
 
-        default:
-          this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}`] = [];
-          break;
+          default:
+            this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}`] = [];
+            break;
+        }
       }
     }
   }

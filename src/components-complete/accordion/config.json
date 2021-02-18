@@ -1,0 +1,20 @@
+{
+  "superclass": null,
+  "collections": {
+    "items": {
+      "minLength": 5,
+      "singularType": "ItemsElement"
+    }
+  },
+  "literals": {
+    "singleOnly": {
+      "type": "String"
+    },
+    "items_$.title": {
+      "type": "String"
+    },
+    "items_$.text": {
+      "type": "String"
+    }
+  }
+}

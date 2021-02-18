@@ -47,8 +47,8 @@ class RootCtxRenderer extends BaseRenderer {
     this.syntheticNodeId = [];
     this.#currentBindContext = [];
 
-    // Todo: support conditional, #if, #each
     this.blockHooks = {};
+    this.eachContext = [];
   }
 
   isMounted() {
@@ -71,7 +71,7 @@ class RootCtxRenderer extends BaseRenderer {
       throw new Error(`Invalid token: ${token}`);
     }
 
-    console.info(`Loading component - ${this.getId()}`);
+    this.logger.info(`Loading component - ${this.getId()}`);
 
     const { htmlWrapperCssClassname, getMetaHelpers } = RootCtxRenderer;
     super.load();
@@ -102,6 +102,7 @@ class RootCtxRenderer extends BaseRenderer {
 
     const helpers = {
       // eslint-disable-next-line no-undef
+      // Todo: clean up handlebars helpers before adding
       ...Handlebars.helpers,
       ...componentHelpers,
     };
@@ -145,8 +146,8 @@ class RootCtxRenderer extends BaseRenderer {
       });
 
     this.postRender({
-      html: `<div id='${this.getId()}' class='${htmlWrapperCssClassname}'>${html}</div>`, 
-      container 
+      html: `<div id='${this.getId()}' class='${htmlWrapperCssClassname}'>${html}</div>`,
+      container
     });
 
     // trigger block hooks
@@ -186,76 +187,81 @@ class RootCtxRenderer extends BaseRenderer {
 
   conditional({ options, ctx, params }) {
 
-    const { dataPathRoot, pathSeparator } = RootProxy;
-    const { fn } = options;
+    const { conditionalBlockHookName } = RootProxy;
+    const { fn, inverse, hash } = options;
+    let [target, invert] = params;
+
     const nodeId = this.getSyntheticNodeId();
+    const hookMethod = hash['transform'];
 
-    if (!global.isServer) {
-      const path = this.getExecPath({
-        fqPath: params[0],
-        addBasePath: false,
+    const conditional0 = (value) => {
+
+      const b = this.analyzeConditionValue({
+        value
       });
+      if (invert ? !b : b) {
 
-      this.proxyInstance.getDataPathHooks()
-
-      [`${dataPathRoot}${pathSeparator}${path}`]
-      ['conditionalBlock'] = {
-        nodeId, fn,
-        parentBlockData: this.getParentBlockData({ path: params[0] }),
-
-      };
-    }
-
-    const value = this.getPathValue({ path: params[0] });
-    const conditional = this.analyzeConditionValue({ value });
-
-    if (conditional) {
-      return fn(ctx);
-    }
-  }
-
-  getParentBlockData({ path }) {
-    const blockData = {};
-    Object.keys(this.blockData)
-      .filter(k => path.startsWith(k) && k !== path)
-      .forEach(k => blockData[k] = this.blockData[k]);
-
-    return blockData;
-  }
-
-  forEach({ options, ctx, params }) {
-    const { fn, hash } = options;
-    const nodeId = this.getSyntheticNodeId();
-
-    if (!global.isServer) {
-      const { dataPathRoot, pathSeparator } = RootProxy;
-
-      const path = this.getExecPath({
-        fqPath: params[0],
-        addBasePath: false,
-      });
-
-      this.proxyInstance.getDataPathHooks()
-      [`${dataPathRoot}${pathSeparator}${path}`]
-      ['arrayBlock'] = {
-        nodeId, fn,
-        parentBlockData: this.getParentBlockData({ path: params[0] }),
-      };
-    }
-
-    const value = this.getPathValue({ path: params[0] });
-
-    var ret = "";
-    const hookMethod = hash['hook'];
-
-    for (var i = 0, j = value.length; i < j; i++) {
-      ret = ret + `${fn(this.rootProxy)}`;
-      if (hookMethod) {
-        this.blockHooks[`#${nodeId} > :nth-child(${i + 1})`] = hookMethod;
+        if (hookMethod) {
+          this.blockHooks[`#${nodeId}`] = hookMethod;
+        }
+        return fn(ctx);
+      } else if (inverse) {
+        return inverse(ctx);
       }
     }
 
-    return ret;
+    if (target !== Object(target)) {
+      // <target> is a literal
+      return conditional0(target);
+    }
+
+    const { path, value } = target;
+
+    if (!global.isServer && !this.isSynthetic(path)) {
+      this.proxyInstance.getDataPathHooks()[path][conditionalBlockHookName] = {
+        nodeId, fn, inverse, hookMethod,
+        blockData: global.clientUtils.deepClone(this.blockData),
+      };
+    }
+
+    return conditional0(value);
+  }
+
+  forEach({ options, ctx, params }) {
+
+    const { arrayBlockHookName } = RootProxy;
+    const { fn, inverse, hash } = options;
+    const [{ path, value }] = params;
+
+    const nodeId = this.getSyntheticNodeId();
+    const hookMethod = hash['transform'];
+
+    const forEach0 = (value) => {
+
+      if (value && value.length) {
+        let ret = "";
+        const keys = Object.keys(value);
+
+        for (let i = 0; i < value.length; i++) {
+          ret += `${fn(this.rootProxy)}`;
+          if (hookMethod) {
+            this.blockHooks[`#${nodeId} > :nth-child(${i + 1})`] = hookMethod;
+          }
+        }
+        return ret;
+      } else {
+        return inverse(ctx);
+      }
+    }
+
+    if (!global.isServer && !this.isSynthetic(path)) {
+      this.proxyInstance.getDataPathHooks()[path][arrayBlockHookName] = {
+        nodeId, fn, inverse, hookMethod,
+      };
+      this.eachContext.push(path);
+    }
+
+    return forEach0(value);
   }
 
   static getMetaHelpers() {
@@ -266,26 +272,30 @@ class RootCtxRenderer extends BaseRenderer {
     ];
   }
 
+  static getDataVariables() {
+    return ['@first', '@last', '@index', '@key', '@random'];
+  }
+
   resolveMustache({ options }) {
     const { hash } = options;
 
-    const { path, value } = hash[Object.keys(hash)[0]];
+    let { path, value } = hash[Object.keys(hash)[0]];
 
     if (path && this.#currentBindContext.length) {
       // Data-bind support exists for this mustache statement
       this.#bindMustache({ path, value });
     }
 
-    return Object(value) !== value ? value : JSON.stringify(value);
+    return this.toHtml(value);
   }
 
   #bindMustache({ path, value }) {
 
-    const { dataPathRoot, pathSeparator } = RootProxy;
+    const { dataPathRoot, pathSeparator, textNodeHookName } = RootProxy;
     const flickeringMode = false;
     const ctx = this.#currentBindContext.pop();
 
-    assert(ctx.type == 'textNode');
+    assert(ctx.type == textNodeHookName);
 
     this.proxyInstance.getDataPathHooks()[path]
       .push(ctx);
@@ -329,10 +339,11 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   startTextNodeBindContext() {
+    const { textNodeHookName } = RootProxy;
     assert(this.#currentBindContext.length === 0);
     const id = global.clientUtils.randomString();
     this.#currentBindContext.push({
-      type: 'textNode',
+      type: textNodeHookName,
       nodeId: id,
     });
     return `${id}`;
@@ -350,12 +361,7 @@ class RootCtxRenderer extends BaseRenderer {
     return this.getSyntheticMethod({ name: 'logicGates' })();
   }
 
-  getMapPaths() {
-    const f = this.getSyntheticMethod({ name: 'mapPaths' });
-    return f ? f() : [];
-  }
-
-  getPathValue({ path, fromMustache = false }) {
+  getPathValue({ path, includePath = false }) {
     let value;
 
     switch (true) {
@@ -373,7 +379,7 @@ class RootCtxRenderer extends BaseRenderer {
       default:
         value = this.resolvePath({
           fqPath: path,
-          fromMustache,
+          includePath,
         });
         break;
     }
@@ -434,23 +440,24 @@ class RootCtxRenderer extends BaseRenderer {
     return true;
   }
 
-  analyzeCondition({ path }) {
-    return this.analyzeConditionValue({
-      value: this.getPathValue({ path })
-    });
-  }
-
-  static getDataVariables() {
-    return ['@first', '@last', '@index', '@key', '@random'];
-  }
-
   getBlockData({ path, dataVariable }) {
+
+    const { toObject } = RootCtxRenderer;
+
     // eslint-disable-next-line no-unused-vars
     const blockData = this.blockData[path];
 
-    const value = this.syntheticContext[path] !== undefined
+    let value = this.syntheticContext[path] !== undefined
       ? this.syntheticContext[path].value
       : this.getPathValue({ path });
+
+    if (this.resolver) {
+      assert(value instanceof Map || value instanceof Array);
+
+      if (value instanceof Map) {
+        value = toObject({ map: value });
+      }
+    }
 
     const length = value instanceof Array
       ? value.length : Object.keys(value).length;
@@ -466,7 +473,9 @@ class RootCtxRenderer extends BaseRenderer {
         return blockData.index;
 
       case '@key':
-        return Object.keys(value)[blockData.index];
+        return Object.keys(value)[blockData.index]
+          // Remove $_ prefixes for map keys, if applicable
+          .replace(/^\$_/g, '');
 
       case '@random':
         return blockData.random;
@@ -489,10 +498,22 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   doBlockUpdate({ path }) {
+
+    const { arrayBlockHookName } = RootProxy;
     const blockData = this.blockData[path];
     // eslint-disable-next-line no-plusplus
     blockData.index++;
     blockData.random = global.clientUtils.randomString();
+
+    if (this.eachContext.length) {
+
+      this.proxyInstance.getDataPathHooks()
+      [this.eachContext.pop()]
+      [arrayBlockHookName].blockData =
+        global.clientUtils.deepClone(this.blockData);
+
+      assert(!this.eachContext.length);
+    }
   }
 
   getSyntheticContext({
@@ -504,7 +525,7 @@ class RootCtxRenderer extends BaseRenderer {
 
   static toObject({ map }) {
     const { toObject } = RootCtxRenderer;
-    const out = Object.create(null);
+    const out = {};
     map.forEach((value, key) => {
       if (value instanceof Map) {
         out[key] = toObject({ map: value });
@@ -618,7 +639,7 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   static getSegments({ original }) {
-    const hasIndex = /\[[0-9]+\]/g;
+    const { hasIndex } = RootProxy;
 
     const indexes = (original.match(hasIndex) || []);
 
@@ -643,7 +664,7 @@ class RootCtxRenderer extends BaseRenderer {
       return this.getDataBasePath();
     }
 
-    const { getSegments, toObject, getDataVariables } = RootCtxRenderer;
+    const { toCanonicalPath, getSegments, toObject, getDataVariables } = RootCtxRenderer;
     const { pathSeparator, syntheticMethodPrefix } = RootProxy;
 
     if (!indexResolver) {
@@ -670,6 +691,8 @@ class RootCtxRenderer extends BaseRenderer {
     for (let i = 0; i < segments.length; i++) {
       let part = segments[i];
 
+      // This is necessary if we have a part like: x_$[0]
+
       const partSegments = getSegments({ original: part });
       [part] = partSegments;
       partSegments.splice(0, 1);
@@ -689,7 +712,7 @@ class RootCtxRenderer extends BaseRenderer {
 
         if (part.endsWith('_$')) {
 
-          // For multidimensional arrays, it's common to have a path like
+          // For multidimensional collections, it's common to have a path like
           // ..._$_$
           path = this.getExecPath({
             fqPath: path
@@ -701,14 +724,23 @@ class RootCtxRenderer extends BaseRenderer {
             path: `${addBasePath ? '' : 'this.getInput().'}${path}`,
           });
 
-          const arr = path.split('.');
-          part = arr[arr.length - 1];
+          // if path is w.x.$_abc, part should be x.$_abc, not $_abc,
+          // because $_abc should be translated as the index placeholder: _$
+          part = path.split(/\.(?!\$_)/g).pop();
 
         } else {
 
           value = this.resolvePath0({
             path: `${addBasePath ? '' : 'this.getInput().'}${path}`,
           });
+        }
+
+        if (this.resolver) {
+          assert(value instanceof Map || value instanceof Array);
+
+          if (value instanceof Map) {
+            value = toObject({ map: value });
+          }
         }
 
         const index = indexResolver(
@@ -721,6 +753,7 @@ class RootCtxRenderer extends BaseRenderer {
         const isMap = value instanceof Object;
 
         if (isArray || isMap) {
+
           const firstChild = isArray ? value[0] : value[Object.keys(value)[0]];
 
           const dataVariable = segments[i + 1] || '';
@@ -731,19 +764,20 @@ class RootCtxRenderer extends BaseRenderer {
             getDataVariables().includes(dataVariable)
           ) {
 
+            assert(!suffix);
+
             // Since this array/map contain literals as it's children and has one
             // segment ahead, we expect the next segment to be a dataVariable
             // Resolve this getExecPath(...) call to a synthetic method that in
             // turn invokes getBlockData(...)
 
-            const path =
+            const path = toCanonicalPath(
               [...parts, part]
-                .join(pathSeparator)
+                .join('.')
                 .replace(
-                  new RegExp(`^${global.clientUtils.escapeRegExp(basePath)
-                    }${pathSeparator}`), ''
+                  new RegExp(`^${global.clientUtils.escapeRegExp(`${basePath}.`)}`), ''
                 )
-                .replace(/\[[0-9]+\]/g, '_$')
+            );
 
             const syntheticMethodName = `${syntheticMethodPrefix}${path}_${dataVariable.replace(/^@/g, '')}`;
 
@@ -767,13 +801,9 @@ class RootCtxRenderer extends BaseRenderer {
             break;
 
           case isMap:
-            if (this.resolver) {
-              // This may not be the case for synthetic scenario
-              assert(value.constructor.name === 'Map');
-              value = toObject({ map: value });
-            }
             part += `.${Object.keys(value)[index]}`;
             break;
+
           default:
             throw new Error(`Unknown path: ${path}`);
         }
@@ -817,7 +847,28 @@ class RootCtxRenderer extends BaseRenderer {
       .join('');
   }
 
-  resolvePath({ fqPath, indexResolver, create, fromMustache }) {
+  static toCanonicalPath(fqPath) {
+
+    const { hasIndex, emptyString } = RootProxy;
+    const { getSegments } = RootCtxRenderer;
+
+    return fqPath.split('.')
+      .map(p => getSegments({
+        original: p,
+      }).map((segment) => {
+        switch (true) {
+          case !!segment.match(hasIndex):
+          case segment.startsWith('$_'):
+            return '_$';
+          default: return segment;
+        }
+      })
+        .join(emptyString))
+      .join('.')
+      .replace('._$', '_$');
+  }
+
+  resolvePath({ fqPath, indexResolver, create, includePath }) {
     const { syntheticMethodPrefix } = RootProxy;
 
     const arr = fqPath.split('%');
@@ -831,7 +882,10 @@ class RootCtxRenderer extends BaseRenderer {
     // arrays/maps
     if (path.startsWith(syntheticMethodPrefix)) {
       const value = this[path]();
-      return fromMustache ? {
+      return includePath ?
+      // Since this is a synthetic expression, we cannot perform
+      // data-binding, so we need to exclude path
+      {
         value
       } : value;
     }
@@ -840,19 +894,19 @@ class RootCtxRenderer extends BaseRenderer {
       path += `%${arr[1]}`;
     }
     try {
-      const value = this.resolvePath0({ path, create, fromMustache });
+      const value = this.resolvePath0({ path, create, includePath });
       return value;
     } catch (e) {
       if (this.strict) {
         throw e;
       } else {
-        console.error(e);
+        this.logger.error(e);
         return '';
       }
     }
   }
 
-  resolvePath0({ path, create, fromMustache }) {
+  resolvePath0({ path, create, includePath }) {
     const { dataPathRoot, pathSeparator, syntheticMethodPrefix } = RootProxy;
 
     const value = this.resolver && !path.startsWith('this.')
@@ -867,7 +921,7 @@ class RootCtxRenderer extends BaseRenderer {
 
       // We only perform indirections to resolveMustache(...) for
       // data paths
-      assert(!fromMustache);
+      assert(!includePath);
 
       return value;
 
@@ -875,9 +929,28 @@ class RootCtxRenderer extends BaseRenderer {
 
       assert(this.resolver || path.startsWith(this.getDataBasePath()));
 
+      let bindPath = `${dataPathRoot}${pathSeparator}${path.replace(`${this.getDataBasePath()}.`, '')}`;
+
+      const dataVariableSuffixRegex = /\[\'@\w+\'\]$/g;
+      const dataVariableSuffix = bindPath.match(dataVariableSuffixRegex);
+
+      if (dataVariableSuffix) {
+
+        // In getExecPath(...), <dataVariableSuffix> was transformed to use a
+        // square bracket notation, instead of a dot notation. Convert back
+        // to dot notation, which is what is used in <dataPathHooks>
+
+        bindPath = bindPath.replace(
+          dataVariableSuffixRegex,
+          `.${
+            dataVariableSuffix[0].replace('[\'', '').replace('\']', '')
+          }`
+        );
+      }
+
       // This is a data path
-      return fromMustache ? {
-        path: `${dataPathRoot}${pathSeparator}${path.replace(`${this.getDataBasePath()}.`, '')}`,
+      return includePath ? {
+        path: bindPath,
         value
       } : value;
     }

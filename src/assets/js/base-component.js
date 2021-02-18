@@ -28,8 +28,36 @@ class BaseComponent extends WebRenderer {
   }
 
   // eslint-disable-next-line class-methods-use-this
-  toHtml(object) {
-    return JSON.stringify(object);
+  toHtml(value) {
+    const { getDataVariables } = RootCtxRenderer;
+
+    const replacer = (name, val) => {
+      if (val && val.constructor.name === 'Object') {
+        const keys = Object.keys(val);
+
+        // Remove data variables from <keys>
+        if (keys.includes(getDataVariables()[0])) {
+          for (const variable of getDataVariables()) {
+            assert(keys.includes(variable));
+            keys.splice(keys.indexOf(variable), 1);
+          }
+        }
+
+        const o = {};
+
+        keys.forEach(k => {
+          o[k
+            // Remove $_ prefixes for map keys, if applicable
+            .replace(/^\$_/g, '')
+          ] = val[k];
+        });
+
+        return o;
+      }
+      return val;
+    }
+
+    return Object(value) !== value ? value : JSON.stringify(value, replacer, null);
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -76,9 +104,10 @@ class BaseComponent extends WebRenderer {
           node.innerHTML = '';
 
           switch (true) {
-            case data.constructor.name === 'String':
-              promise = promise.then(() => {
-                node.innerHTML = data;
+
+            case data instanceof BaseComponent:
+              promise = data.load({
+                container: target,
               });
               break;
 
@@ -88,12 +117,9 @@ class BaseComponent extends WebRenderer {
               });
               break;
 
-            // eslint-disable-next-line no-undef
             default:
-              // eslint-disable-next-line no-undef
-              assert(data instanceof BaseComponent);
-              promise = data.load({
-                container: target,
+              promise = promise.then(() => {
+                node.innerHTML = this.toHtml(data);
               });
               break;
           }
@@ -189,7 +215,7 @@ class BaseComponent extends WebRenderer {
 
   postRender({ container, html }) {
     // By default, write to innerHTML of container
-    
+
     const elem = document.getElementById(container);
     assert(elem != null, `DOMElement #${container} does not exist`);
     elem.innerHTML = html;

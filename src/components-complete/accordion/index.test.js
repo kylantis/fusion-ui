@@ -1,7 +1,7 @@
 
 const Accordion = require('./index');
 
-class AccordionTest extends Accordion{
+class AccordionTest extends Accordion {
 
 }
 

@@ -49,7 +49,9 @@ module.exports = {
 
   clone: (srcObject) => {
     const replacer = (name, val) => {
-      if (val && val.constructor.name === 'Object' && val['@type']) {
+      const mapType = 'Map';
+      if (val && val.constructor.name === 'Object' && val['@type'] && val['@type'] !== mapType) {
+        // This is a component, see toJSON() in BaseRenderer
         const data = JSON.stringify(val['@data'], replacer, 2)
           // Normalize by replacing double quotes to single quotes, so we can inline
           // <data> below
