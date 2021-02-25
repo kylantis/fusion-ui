@@ -80,6 +80,8 @@ class RootProxy {
         return '>=';
       case 'EQ':
         return '==';
+      case 'NEQ':
+        return '!=';
     }
   }
 
@@ -112,6 +114,18 @@ class RootProxy {
       const and = ' && ';
       const or = ' || ';
 
+      const getBoolExpr = (expr) => {
+        const left = getExpr(expr.left);
+        const right = getExpr(expr.right);
+
+        if (expr.operator != 'INCLUDES') {
+          return `${left} ${boolExpr(expr.operator)} ${right}`
+        } else {
+          // Todo: maintain original, so we can throw a descriptive error
+          return `${left}.includes(${right})`
+        }
+      }
+
       const getExpr = (part) => {
         let variableName = global.clientUtils.randomString();
 
@@ -125,7 +139,7 @@ class RootProxy {
             return variableName;
 
           case BOOL_EXPR:
-            return `(${getExpr(part.left)} ${boolExpr(part.operator)} ${getExpr(part.right)})`;
+            return `(${getBoolExpr(part)})`;
 
           case STR_LITERAL:
             switch (part.original) {

@@ -1,49 +1,24 @@
+{{!--
+Spec: https://lightningdesignsystem.com/components/icons/
+--}}
 
-
-{{title}}
-
-{{size}} xx_small | x_small | small | large
-
-{{!-- For action icons --}}
-{{circular}}
-
-
-string prefix/suffix using ${}
-
-
-{{!-- Doctype and Utility icons have no background color --}}
-{{color}} default_text | light_text | parent | success | warning | error
-
-{{not (k eq b)}}
-
-{{#if (a and b)}}
-{{/if}}
-
-{{#if a and b}}
-{{/if}}
-
-{{#if a eq b}}
-{{/if}}
-
-{{
-    (a and b) or 
-    ((h and i) eq true) or
-    ((s y) eq p) or
-    (c and d) and 
-    (e or f) ? x : y
-}}
+{{ style href="/assets/styles/salesforce-lightning-design-system.min.css" }}
+{{ style href="/assets/styles/base.min.css" }}
 
 {{#if rtl}}
-<div dir="rtl" style="display: contents">
+<div dir="rtl">
 {{/if}}
-<span class="slds-icon_container slds-icon-utility-announcement 
-{{circular ? 'slds-icon_container_circle' : ''}}" title="{{description}}">
-    <svg class="slds-icon slds-{{(color eq 'parent') ? 'current-color' : 'icon-${s a}'}} slds-icon-text-default"
-        aria-hidden="true">
-        <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#announcement"></use>
-    </svg>
-    <span class="slds-assistive-text">{{assistiveText}}</span>
-</span>
-{{#if rtl}}
+    <span class="slds-icon_container slds-icon-{{type}}-{{name}}
+        {{circular and (circular neq 'doctype' ) and (circular neq 'utility' ) 
+        ? ' slds-icon_container_circle' : ''
+        }}" 
+        title="{{description}}">
+        <svg class="slds-icon slds{{not (color eq 'current-color') ? '-icon' : ''}}-{{color}} {{size ? 'slds-icon_${size}' : ''}}"
+            aria-hidden="true">
+            <use xlink:href="/assets/icons/{{type}}-sprite/svg/symbols.svg#{{name}}"></use>
+        </svg>
+        <span class="slds-assistive-text">{{description}}</span>
+    </span>
+ {{#if rtl}}
 </div>
 {{/if}}

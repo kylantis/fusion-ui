@@ -6,10 +6,7 @@ Todo:
 
 {{ style href="/assets/styles/salesforce-lightning-design-system.min.css" }}
 {{ style href="/assets/styles/base.min.css" }}
-{{!-- 
-{{#each items ad as |item|}}
 
-{{/each}} --}}
 
 <div class="slds-dropdown-trigger slds-dropdown-trigger_click slds-is-open">
 

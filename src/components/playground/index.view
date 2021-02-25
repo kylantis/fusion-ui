@@ -1,0 +1,34 @@
+
+{{!-- SAMPLE EXPRESSIONS --}}
+
+{{!-- Logical Expression --}}
+{{not (k eq b)}}
+
+
+{{!-- Conditional --}}
+{{#if (a and b)}}
+{{/if}}
+
+{{#if a and b}}
+{{/if}}
+
+{{#if a eq b}}
+{{/if}}
+
+
+{{!-- Compund Logical Expression --}}
+{{
+    (a and b) or 
+    ((h and i) eq true) or
+    ((s y) eq p) or
+    (c and d) and 
+    (e or f) ? x : y
+}}
+
+Add includes
+
+{{!-- Custom Comparators --}}
+
+
+{{!-- String Templates --}}
+{{(e eq q) ? 'hello' : 'prefix-${s a o ? k : u}-suffix'}}
