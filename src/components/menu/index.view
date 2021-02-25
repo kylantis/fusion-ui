@@ -1,3 +1,46 @@
+{{!--
+Spec: https://lightningdesignsystem.com/components/menus/
+Todo:
 
-{{#each items as |item|}}
-{{/each}}
+--}}
+
+{{ style href="/assets/styles/salesforce-lightning-design-system.min.css" }}
+{{ style href="/assets/styles/base.min.css" }}
+{{!-- 
+{{#each items ad as |item|}}
+
+{{/each}} --}}
+
+<div class="slds-dropdown-trigger slds-dropdown-trigger_click slds-is-open">
+
+  <div class="slds-dropdown slds-dropdown_left slds-dropdown_small">
+    <ul class="slds-dropdown__list" role="menu" aria-label="Show More">
+      <li class="slds-dropdown__header slds-truncate" title="Menu Sub Heading" role="separator">
+        <span>Menu Sub Heading</span>
+      </li>
+      <li class="slds-dropdown__item" role="presentation">
+        <a href="#" role="menuitem" tabindex="0">
+          <span class="slds-truncate" title="Menu Item One">Menu Item One</span>
+        </a>
+      </li>
+      <li class="slds-dropdown__item" role="presentation">
+        <a href="#" role="menuitem" tabindex="-1">
+          <span class="slds-truncate" title="Menu Item Two">Menu Item Two</span>
+        </a>
+      </li>
+      <li class="slds-dropdown__header slds-truncate" title="Menu Sub Heading" role="separator">
+        <span>Menu Sub Heading</span>
+      </li>
+      <li class="slds-dropdown__item" role="presentation">
+        <a href="#" role="menuitem" tabindex="-1">
+          <span class="slds-truncate" title="Menu Item One">Menu Item One</span>
+        </a>
+      </li>
+      <li class="slds-dropdown__item" role="presentation">
+        <a href="#" role="menuitem" tabindex="-1">
+          <span class="slds-truncate" title="Menu Item Two">Menu Item Two</span>
+        </a>
+      </li>
+    </ul>
+  </div>
+</div>

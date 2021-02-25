@@ -1,0 +1,63 @@
+{
+  "superclass": null,
+  "collections": {},
+  "literals": {
+    "title": {
+      "type": "String"
+    },
+    "circular": {
+      "type": "String"
+    },
+    "color": {
+      "type": "String"
+    },
+    "y": {
+      "type": "String"
+    },
+    "x": {
+      "type": "String"
+    },
+    "f": {
+      "type": "String"
+    },
+    "e": {
+      "type": "String"
+    },
+    "d": {
+      "type": "String"
+    },
+    "c": {
+      "type": "String"
+    },
+    "b": {
+      "type": "String"
+    },
+    "a": {
+      "type": "String"
+    },
+    "k": {
+      "type": "String"
+    },
+    "p": {
+      "type": "String"
+    },
+    "i": {
+      "type": "String"
+    },
+    "h": {
+      "type": "String"
+    },
+    "rtl": {
+      "type": "String"
+    },
+    "size": {
+      "type": "String"
+    },
+    "assistiveText": {
+      "type": "String"
+    },
+    "description": {
+      "type": "String"
+    }
+  }
+}

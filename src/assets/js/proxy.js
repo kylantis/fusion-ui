@@ -68,15 +68,35 @@ class RootProxy {
     }
   }
 
+  static getBooleanExpression(operator) {
+    switch (operator) {
+      case 'LT':
+        return '<';
+      case 'LTE':
+        return '<=';
+      case 'GT':
+        return '>';
+      case 'GTE':
+        return '>=';
+      case 'EQ':
+        return '==';
+    }
+  }
+
   getLogicGateValue({ gateId }) {
 
+    const { getBooleanExpression: boolExpr } = RootProxy;
+
+    const MUST_GRP = 'MustacheGroup';
     const LOGIC_GATE = 'LogicGate';
+    const BOOL_EXPR = 'BooleanExpression';
     const PATH_EXPR = 'PathExpression';
     const STR_LITERAL = 'StringLiteral';
     const BOOL_LITERAL = 'BooleanLiteral';
     const NUM_LITERAL = 'NumberLiteral';
     const NULL_LITERAL = 'NullLiteral';
     const UNDEFINED_LITERAL = 'UndefinedLiteral';
+
     const AND = 'AND';
     const OR = 'OR';
 
@@ -92,36 +112,43 @@ class RootProxy {
       const and = ' && ';
       const or = ' || ';
 
+      const getExpr = (part) => {
+        let variableName = global.clientUtils.randomString();
+
+        switch (part.type) {
+          case PATH_EXPR:
+          case BOOL_LITERAL:
+          case NUM_LITERAL:
+          case NULL_LITERAL:
+          case UNDEFINED_LITERAL:
+            scope += `const ${variableName} = ${part.original};\n`;
+            return variableName;
+
+          case BOOL_EXPR:
+            return `(${getExpr(part.left)} ${boolExpr(part.operator)} ${getExpr(part.right)})`;
+
+          case STR_LITERAL:
+            switch (part.original) {
+              case AND:
+                return and;
+              case OR:
+                return or;
+              default:
+                scope += `const ${variableName} = "${part.original}";\n`;
+                return variableName;
+            }
+
+          case MUST_GRP:
+            scope += `const ${variableName} = ${getValue(part)};\n`;
+            return variableName;
+
+          case LOGIC_GATE:
+            return `${JSON.stringify(analyzeGate(part))}`;
+        }
+      }
+
       const expr = `return ${parts
-        .map(part => {
-
-          let variableName = global.clientUtils.randomString();
-
-          switch (part.type) {
-
-            case PATH_EXPR:
-            case BOOL_LITERAL:
-            case NUM_LITERAL:
-            case NULL_LITERAL:
-            case UNDEFINED_LITERAL:
-              scope += `const ${variableName} = ${part.original};\n`;
-              return variableName;
-
-            case STR_LITERAL:
-              switch (part.original) {
-                case AND:
-                  return and;
-                case OR:
-                  return or;
-                default:
-                  scope += `const ${variableName} = "${part.original}";\n`;
-                  return variableName;
-              }
-
-            case LOGIC_GATE:
-              return `${JSON.stringify(analyzeGate(part))}`;
-          }
-        })
+        .map(getExpr)
         .map(part => (part != and && part != or) ? `!!${part}` : part)
         .map((part, index) => `${invert[index] ? '!' : ''}${part}`)
         .join('')};`;
@@ -136,7 +163,7 @@ class RootProxy {
       return b;
     }
 
-    const getValue = ({ type, original }) => {
+    const getValue = ({ type, original, items, evaluate = true }) => {
       let expr;
       switch (type) {
         case NUM_LITERAL:
@@ -146,8 +173,18 @@ class RootProxy {
           break;
         case STR_LITERAL:
           expr = `"${original}"`;
+          break;
+        case MUST_GRP:
+          expr = items.map(item => {
+            return getValue({
+              type: item.type,
+              original: item.original,
+              evaluate: false
+            });
+          }).join(' + ');
+          break;
       }
-      return evaluateExpr(`return ${expr}`);
+      return evaluate ? evaluateExpr(`return ${expr}`) : expr;
     };
 
     const analyzeGate = (item) => {
@@ -197,7 +234,9 @@ class RootProxy {
       prop = prop.replace(/\!$/g, '');
     }
 
+    const MUST_GRP = 'MustacheGroup';
     const PATH_EXPR = 'PathExpression';
+    const BOOL_EXPR = 'BooleanExpression';
 
     const gate = this.component.getLogicGates()[prop];
 
@@ -206,11 +245,21 @@ class RootProxy {
      * it's executable path
      */
     const toExecutablePath = (item) => {
-      const { type, original } = item;
-      if (type == PATH_EXPR) {
-        item.original = this.component.getExecPath({
-          fqPath: original.replace(`${dataPathRoot}${pathSeparator}`, ''),
-        });
+      const { type, original, left, right } = item;
+
+      switch (type) {
+        case PATH_EXPR:
+          item.original = this.component.getExecPath({
+            fqPath: original.replace(`${dataPathRoot}${pathSeparator}`, ''),
+          });
+        break;
+        case BOOL_EXPR:
+          item.left = toExecutablePath(left);
+          item.right = toExecutablePath(right);
+        break;
+        case MUST_GRP:
+          item.items = item.items.map(toExecutablePath);
+        break;
       }
       return item;
     }

@@ -8,7 +8,7 @@
   },
   "literals": {
     "singleOnly": {
-      "type": "String"
+      "type": "Boolean"
     },
     "items_$.title": {
       "type": "String"

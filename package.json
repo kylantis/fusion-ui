@@ -50,7 +50,7 @@
         "hyntax": "^1.1.9",
         "import-fresh": "^3.2.1",
         "jsdom": "^16.4.0",
-        "lodash": "4.17.20",
+        "lodash": "^4.17.21",
         "node-html-parser": "1.2.21",
         "normalize-scss": "7.0.1",
         "quicktype-core": "^6.0.68",

@@ -1,0 +1,49 @@
+
+
+{{title}}
+
+{{size}} xx_small | x_small | small | large
+
+{{!-- For action icons --}}
+{{circular}}
+
+
+string prefix/suffix using ${}
+
+
+{{!-- Doctype and Utility icons have no background color --}}
+{{color}} default_text | light_text | parent | success | warning | error
+
+{{not (k eq b)}}
+
+{{#if (a and b)}}
+{{/if}}
+
+{{#if a and b}}
+{{/if}}
+
+{{#if a eq b}}
+{{/if}}
+
+{{
+    (a and b) or 
+    ((h and i) eq true) or
+    ((s y) eq p) or
+    (c and d) and 
+    (e or f) ? x : y
+}}
+
+{{#if rtl}}
+<div dir="rtl" style="display: contents">
+{{/if}}
+<span class="slds-icon_container slds-icon-utility-announcement 
+{{circular ? 'slds-icon_container_circle' : ''}}" title="{{description}}">
+    <svg class="slds-icon slds-{{(color eq 'parent') ? 'current-color' : 'icon-${s a}'}} slds-icon-text-default"
+        aria-hidden="true">
+        <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#announcement"></use>
+    </svg>
+    <span class="slds-assistive-text">{{assistiveText}}</span>
+</span>
+{{#if rtl}}
+</div>
+{{/if}}
