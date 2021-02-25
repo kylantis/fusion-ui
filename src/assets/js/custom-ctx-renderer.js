@@ -166,6 +166,41 @@ class CustomCtxRenderer extends RootCtxRenderer {
     return this.customContext.length > 0;
   }
 
+  concatenate() {
+    const params = Array.from(arguments);
+    const options = params.pop();
+
+    return params.join('');
+  }
+
+  logical() {
+    const { getBooleanExpression } = RootProxy;
+    const params = Array.from(arguments);
+
+    const [left, right, operator] = params;
+
+    const expr = (value) => {
+      switch (true) {
+        case value == null:
+        case value == undefined:
+        case value.constructor.name == 'Number':
+        case value.constructor.name == 'Boolean':
+          return value;
+        case value.constructor.name == 'String':
+          return `"${value}"`;
+        case value === Object(value):
+          return JSON.stringify(value);
+      }
+    }
+
+    const b = eval(
+      `${expr(left)} ${getBooleanExpression(operator)} ${expr(right)}`
+    );
+    assert(typeof b == 'boolean');
+
+    return b;
+  }
+
   ternary() {
     const params = Array.from(arguments);
 
@@ -185,39 +220,39 @@ class CustomCtxRenderer extends RootCtxRenderer {
     let scope = '';
 
     const expr = condition
-    .map((part) => {
+      .map((part) => {
 
-      const variableName = global.clientUtils.randomString();
+        const variableName = global.clientUtils.randomString();
 
-      switch (true) {
-        case part == null:
-        case part == undefined:
-        case part.constructor.name == 'Number':
-        case part.constructor.name == 'Boolean':
-          scope += `const ${variableName} = ${part};\n`;
-          return `!!${variableName}`;
-        case part.constructor.name == 'String':
-          switch (part) {
-            case AND:
-              return and;
-            case OR:
-              return or;
-            default:
-              scope += `const ${variableName} = "${part}";\n`;
-              return `!!${variableName}`;
-          }
-        case part === Object(part):
-          scope += `const ${variableName} = ${JSON.stringify(part)};\n`;
-          return `!!${variableName}`;
-      }
-    })
-    .map((part, index) => {
-      if (invert[index]) {
-        part = `!${part}`
-      }
-      return part;
-    })
-    .join('');
+        switch (true) {
+          case part == null:
+          case part == undefined:
+          case part.constructor.name == 'Number':
+          case part.constructor.name == 'Boolean':
+            scope += `const ${variableName} = ${part};\n`;
+            return `!!${variableName}`;
+          case part.constructor.name == 'String':
+            switch (part) {
+              case AND:
+                return and;
+              case OR:
+                return or;
+              default:
+                scope += `const ${variableName} = "${part}";\n`;
+                return `!!${variableName}`;
+            }
+          case part === Object(part):
+            scope += `const ${variableName} = ${JSON.stringify(part)};\n`;
+            return `!!${variableName}`;
+        }
+      })
+      .map((part, index) => {
+        if (invert[index]) {
+          part = `!${part}`
+        }
+        return part;
+      })
+      .join('');
 
     const b = eval(`${scope}${expr}`);
     assert(typeof b == 'boolean');
@@ -238,8 +273,8 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
   // eslint-disable-next-line class-methods-use-this
   validateType({
-    path, value, 
-    validTypes = CustomCtxRenderer.getAllValidationTypes(), 
+    path, value,
+    validTypes = CustomCtxRenderer.getAllValidationTypes(),
     strict = false, line,
   }) {
     const { isPrimitive } = CustomCtxRenderer;
