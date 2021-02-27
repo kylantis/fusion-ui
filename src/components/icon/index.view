@@ -5,20 +5,28 @@ Spec: https://lightningdesignsystem.com/components/icons/
 {{ style href="/assets/styles/salesforce-lightning-design-system.min.css" }}
 {{ style href="/assets/styles/base.min.css" }}
 
-{{#if rtl}}
-<div dir="rtl">
-{{/if}}
     <span class="slds-icon_container slds-icon-{{type}}-{{name}}
-        {{circular and (circular neq 'doctype' ) and (circular neq 'utility' ) 
-        ? ' slds-icon_container_circle' : ''
-        }}" 
+        {{!-- 
+            utility and doctype icons do not support a round look, and
+            action icons are circular by default
+         --}}
+        {{circular and (type neq 'doctype') and (type neq 'utility') 
+            and (type neq 'action')
+            ? ' slds-icon_container_circle' : ''
+        }}"
+        {{!-- 
+            Utility and doctype icons do not support background color 
+            Also, only add background color if color is "current-color" inorder to 
+            maintain an even tone with the parent
+        --}}
+        style="{{backgroundColor and (type neq 'doctype' ) and (type neq 'utility' ) 
+                and (color eq "current-color")
+        ? 'background-color: ${backgroundColor};' : ''
+        }}"
         title="{{description}}">
         <svg class="slds-icon slds{{not (color eq 'current-color') ? '-icon' : ''}}-{{color}} {{size ? 'slds-icon_${size}' : ''}}"
             aria-hidden="true">
-            <use xlink:href="/assets/icons/{{type}}-sprite/svg/symbols.svg#{{name}}"></use>
+            <use xlink:href="/assets/icons/{{type}}-sprite/svg/symbols{{rtl ? "-rtl" : ''}}.svg#{{name}}"></use>
         </svg>
         <span class="slds-assistive-text">{{description}}</span>
     </span>
- {{#if rtl}}
-</div>
-{{/if}}
