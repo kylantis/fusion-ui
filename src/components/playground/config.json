@@ -1,0 +1,51 @@
+{
+  "superclass": null,
+  "collections": {},
+  "literals": {
+    "b": {
+      "type": "String"
+    },
+    "k": {
+      "type": "String"
+    },
+    "a": {
+      "type": "String"
+    },
+    "y": {
+      "type": "String"
+    },
+    "x": {
+      "type": "String"
+    },
+    "f": {
+      "type": "String"
+    },
+    "e": {
+      "type": "String"
+    },
+    "d": {
+      "type": "String"
+    },
+    "c": {
+      "type": "String"
+    },
+    "p": {
+      "type": "String"
+    },
+    "i": {
+      "type": "String"
+    },
+    "h": {
+      "type": "String"
+    },
+    "u": {
+      "type": "String"
+    },
+    "o": {
+      "type": "String"
+    },
+    "q": {
+      "type": "String"
+    }
+  }
+}

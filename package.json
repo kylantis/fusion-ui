@@ -18,6 +18,7 @@
         "start": "nodemon server/index.js",
         "build-archive": "gulp dist && node lib/model-factories/build-archive.js",
         "build": "gulp dist",
+        "build-all": "gulp dist-all",
         "build-watch": "npm run build && buildArchive=true gulp watch",
         "templates": "gulp dist-templates",
         "templates-all": "gulp dist-templates && npm run build-archive && buildArchive=true gulp watch-templates",

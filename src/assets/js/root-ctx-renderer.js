@@ -330,6 +330,17 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   startAttributeBindContext() {
+
+    // NOTE: When implmenting this:
+    // During an active AttributeBindContext, if a
+    // muustache statement resolves to either an empty
+    // string or somethng that contains "="", then skip that
+    // the reason we are skipping values with "=" is
+    // because in that case, the key - value pair of the attribute
+    // is encapsulated in the mustache statement - in which case
+    // it's not possible to data-bind 
+
+
     return '';
   }
 
