@@ -56,8 +56,13 @@ class BaseComponent extends WebRenderer {
       }
       return val;
     }
+    const safe_tags = (str) => {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
 
-    return Object(value) !== value ? value : JSON.stringify(value, replacer, null);
+    return safe_tags(
+      Object(value) !== value ? `${value}` : JSON.stringify(value, replacer, null)
+    );
   }
 
   // eslint-disable-next-line class-methods-use-this

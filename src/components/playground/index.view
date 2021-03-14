@@ -6,14 +6,29 @@
 
 
 {{!-- Conditional --}}
-{{#if (a and b)}}
-{{/if}}
+A{{#if (a and b)}}
 
-{{#if a and b}}
-{{/if}}
+{{o}}
+{{g}}
 
-{{#if a eq b}}
-{{/if}}
+{{/if}}Z
+
+A{{#if a and b}}
+
+<div>
+
+{{oo}}
+{{gg}}
+
+{{/if}}Z
+
+A{{#if a neq b}}
+
+</div>
+{{ooo}}
+{{ggg}}
+
+{{/if}}Z
 
 
 {{!-- Compund Logical Expression --}}

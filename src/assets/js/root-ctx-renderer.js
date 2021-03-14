@@ -146,7 +146,9 @@ class RootCtxRenderer extends BaseRenderer {
       });
 
     this.postRender({
-      html: `<div id='${this.getId()}' class='${htmlWrapperCssClassname}'>${html}</div>`,
+      html: `<div id='${this.getId()}' class='${htmlWrapperCssClassname}'>${
+        html
+      }</div>`,
       container
     });
 
@@ -202,6 +204,12 @@ class RootCtxRenderer extends BaseRenderer {
       if (invert ? !b : b) {
 
         if (hookMethod) {
+
+          // Regardless of whether data binding is enabled for the
+          // entire component or not, the contents of this blocks must
+          // contain valid html markup if a hook is specified
+          assert(!!nodeId);
+
           this.blockHooks[`#${nodeId}`] = hookMethod;
         }
         return fn(ctx);
@@ -217,7 +225,10 @@ class RootCtxRenderer extends BaseRenderer {
 
     const { path, value } = target;
 
-    if (!global.isServer && !this.isSynthetic(path)) {
+    if (
+      !global.isServer && !this.isSynthetic(path) &&
+      this.enableDataBinding() && nodeId != undefined
+    ) {
       this.proxyInstance.getDataPathHooks()[path][conditionalBlockHookName] = {
         nodeId, fn, inverse, hookMethod,
         blockData: global.clientUtils.deepClone(this.blockData),
@@ -245,6 +256,12 @@ class RootCtxRenderer extends BaseRenderer {
         for (let i = 0; i < value.length; i++) {
           ret += `${fn(this.rootProxy)}`;
           if (hookMethod) {
+
+            // Regardless of whether data binding is enabled for the
+            // entire component or not, the contents of this blocks must
+            // contain valid html markup if a hook is specified
+            assert(!!nodeId);
+
             this.blockHooks[`#${nodeId} > :nth-child(${i + 1})`] = hookMethod;
           }
         }
@@ -254,7 +271,10 @@ class RootCtxRenderer extends BaseRenderer {
       }
     }
 
-    if (!global.isServer && !this.isSynthetic(path)) {
+    if (
+      !global.isServer && !this.isSynthetic(path) &&
+      this.enableDataBinding() && nodeId != undefined
+    ) {
       this.proxyInstance.getDataPathHooks()[path][arrayBlockHookName] = {
         nodeId, fn, inverse, hookMethod,
       };
@@ -276,12 +296,65 @@ class RootCtxRenderer extends BaseRenderer {
     return ['@first', '@last', '@index', '@key', '@random'];
   }
 
+  setSyntheticNodeId() {
+    const id = global.clientUtils.randomString();
+    this.syntheticNodeId.push(id);
+    return id;
+  }
+
+  getSyntheticNodeId() {
+    return this.syntheticNodeId.pop();
+  }
+
+  startAttributeBindContext() {
+
+    if (!this.enableDataBinding()) {
+      return '';
+    }
+
+    // NOTE: When implmenting this:
+    // During an active AttributeBindContext, if a
+    // muustache statement resolves to either an empty
+    // string or somethng that contains "="", then skip that
+    // the reason we are skipping values with "=" is
+    // because in that case, the key - value pair of the attribute
+    // is encapsulated in the mustache statement - in which case
+    // it's not possible to data-bind 
+
+    // Note: Apart from =, this must only contain words
+
+
+    return '';
+  }
+
+  endAttributeBindContext() {
+    const id = global.clientUtils.randomString();
+    return id;
+  }
+
+  startTextNodeBindContext() {
+
+    const id = global.clientUtils.randomString();
+
+    if (!this.enableDataBinding()) {
+      return id;
+    }
+
+    const { textNodeHookName } = RootProxy;
+    assert(this.#currentBindContext.length === 0);
+    this.#currentBindContext.push({
+      type: textNodeHookName,
+      nodeId: id,
+    });
+    return id;
+  }
+
   resolveMustache({ options }) {
     const { hash } = options;
 
     let { path, value } = hash[Object.keys(hash)[0]];
 
-    if (path && this.#currentBindContext.length) {
+    if (this.enableDataBinding() && path && this.#currentBindContext.length) {
       // Data-bind support exists for this mustache statement
       this.#bindMustache({ path, value });
     }
@@ -318,48 +391,6 @@ class RootCtxRenderer extends BaseRenderer {
     }
   }
 
-  setSyntheticNodeId() {
-    const id = global.clientUtils.randomString();
-    this.syntheticNodeId.push(id);
-    return id;
-  }
-
-  getSyntheticNodeId() {
-    assert(this.syntheticNodeId.length === 1);
-    return this.syntheticNodeId.pop();
-  }
-
-  startAttributeBindContext() {
-
-    // NOTE: When implmenting this:
-    // During an active AttributeBindContext, if a
-    // muustache statement resolves to either an empty
-    // string or somethng that contains "="", then skip that
-    // the reason we are skipping values with "=" is
-    // because in that case, the key - value pair of the attribute
-    // is encapsulated in the mustache statement - in which case
-    // it's not possible to data-bind 
-
-
-    return '';
-  }
-
-  endAttributeBindContext() {
-    const id = global.clientUtils.randomString();
-    return `k-ab-${id}`;
-  }
-
-  startTextNodeBindContext() {
-    const { textNodeHookName } = RootProxy;
-    assert(this.#currentBindContext.length === 0);
-    const id = global.clientUtils.randomString();
-    this.#currentBindContext.push({
-      type: textNodeHookName,
-      nodeId: id,
-    });
-    return `${id}`;
-  }
-
   getAssetId() {
     return this.getSyntheticMethod({ name: 'assetId' })();
   }
@@ -370,6 +401,10 @@ class RootCtxRenderer extends BaseRenderer {
 
   getLogicGates() {
     return this.getSyntheticMethod({ name: 'logicGates' })();
+  }
+
+  enableDataBinding() {
+    return this.getSyntheticMethod({ name: 'enableDataBinding' })();
   }
 
   getPathValue({ path, includePath = false }) {
@@ -894,11 +929,11 @@ class RootCtxRenderer extends BaseRenderer {
     if (path.startsWith(syntheticMethodPrefix)) {
       const value = this[path]();
       return includePath ?
-      // Since this is a synthetic expression, we cannot perform
-      // data-binding, so we need to exclude path
-      {
-        value
-      } : value;
+        // Since this is a synthetic expression, we cannot perform
+        // data-binding, so we need to exclude path
+        {
+          value
+        } : value;
     }
 
     if (arr[1]) {
@@ -953,8 +988,7 @@ class RootCtxRenderer extends BaseRenderer {
 
         bindPath = bindPath.replace(
           dataVariableSuffixRegex,
-          `.${
-            dataVariableSuffix[0].replace('[\'', '').replace('\']', '')
+          `.${dataVariableSuffix[0].replace('[\'', '').replace('\']', '')
           }`
         );
       }
