@@ -21,12 +21,14 @@ class AppContext {
   #serverUrl;
 
   constructor({
-    appId, logger, serverUrl,
+    appId, logger, serverUrl, userGlobals,
   }) {
+
     this.#appId = appId;
     this.#serverUrl = serverUrl;
 
     this.logger = logger;
+    this.userGlobals = userGlobals;
 
     if (self.WorkerGlobalScope && !appId) {
       throw new Error('Empty appId');

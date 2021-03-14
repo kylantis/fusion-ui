@@ -48,6 +48,7 @@ class RootProxy {
   createImmutableObject() {
     return new Proxy({}, {
       set: function (object, key, value) {
+        // Only set - if not set already
         return object[key] === undefined ? object[key] = value : true;
       },
     })
@@ -186,16 +187,14 @@ class RootProxy {
           expr = original;
           break;
         case STR_LITERAL:
-          expr = `"${original}"`;
+          expr = `"${original.replace(/"/g, '\\"')}"`;
           break;
         case MUST_GRP:
-          expr = items.map(item => {
-            return getValue({
+          expr = items.map(item => getValue({
               type: item.type,
               original: item.original,
               evaluate: false
-            });
-          }).join(' + ');
+            })).join(' + ');
           break;
       }
       return evaluate ? evaluateExpr(`return ${expr}`) : expr;
@@ -266,14 +265,14 @@ class RootProxy {
           item.original = this.component.getExecPath({
             fqPath: original.replace(`${dataPathRoot}${pathSeparator}`, ''),
           });
-        break;
+          break;
         case BOOL_EXPR:
           item.left = toExecutablePath(left);
           item.right = toExecutablePath(right);
-        break;
+          break;
         case MUST_GRP:
           item.items = item.items.map(toExecutablePath);
-        break;
+          break;
       }
       return item;
     }
@@ -525,8 +524,10 @@ class RootProxy {
 
     // On compile-time, it would be too early for <resolver>
     // to be set, so let's use <loadable> instead, since we know
-    // it will be false at compile-time and true on the client-side
+    // it will be false at compile-time and true at runtime
     if (proxy.component.loadable()) {
+
+      // Add our observer, to orchestrate data binding operations
       proxy.addDataObserver();
     }
 
@@ -554,29 +555,75 @@ class RootProxy {
 
   addDataObserver() {
 
-    // Recursively add @path to each object and array, 
-    // and also update this.#dataPaths accordingly
+    const { dataPathRoot, pathSeparator, getUserGlobals } = RootProxy;
 
     this.toCanonicalObject({ path: '', obj: this.component.getInput() });
+
+    this.component.setInput(
+      this.getObserverProxy(this.component.getInput())
+    );
+
+    // Add globals to dataPathHooks
+    // Todo: create a strategy for data-binding global variables
+
+    Object.keys(getUserGlobals()).forEach(variable => {
+      this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${variable}`] = [];
+    });
 
 
     // when whole object are removed, via (array or object) operations, also, we need
     // do a bulk remove on this.#dataPaths as well
-
   }
 
   getDataPathHooks() {
     return this.#dataPathHooks;
   }
 
+  static getUserGlobalVariables() {
+    return {
+      'rtl': 'Literal'
+    }
+  }
+
+  static getUserGlobals() {
+    if (self.appContext) {
+      // Client-side
+      return self.appContext.userGlobals;
+    } else {
+      // Server-side - Use defaults
+      return {
+        rtl: false
+      }
+    }
+  }
+
   getObserverProxy(object) {
     const {
-      dataPathRoot, logicGatePathRoot,
-      pathSeparator, textNodeHookName, gateParticipantHookName
+      dataPathRoot, logicGatePathRoot, pathSeparator, textNodeHookName,
+      gateParticipantHookName, getUserGlobals,
     } = RootProxy;
 
     return new Proxy(object, {
+
+      get: (obj, prop) => {
+
+        const globals = getUserGlobals();
+
+        if (Object.keys(globals).includes(prop)) {
+          assert(obj['@path'] == '');
+          return globals[prop];
+        }
+
+        return obj[prop];
+      },
+
       set: (obj, prop, newValue) => {
+
+        const parent = obj['@path'];
+
+        if (obj[prop] == undefined) {
+          throw Error(`${parent ? `[${parent}] ` : ''}Property ${prop} does not exist on ${JSON.stringify(obj)}`);
+        }
 
         const isArray = obj.constructor.name === 'Array';
 
@@ -608,8 +655,6 @@ class RootProxy {
                 triggerHooks(`${logicGatePathRoot}${pathSeparator}${hook.gateId}`);
                 break;
 
-
-
             }
           });
         }
@@ -621,8 +666,6 @@ class RootProxy {
           const p = ['component.getInput()', path].join('.')
           return eval(`${p} = ${p}`)
         };
-
-        const parent = obj['@path'];
 
         const fqPath = `${dataPathRoot}${pathSeparator}${isArray ?
           `${parent}[${prop}]` :
@@ -680,6 +723,10 @@ class RootProxy {
     });
   }
 
+  /**
+    Recursively add @path to each object and array, 
+    and also update this.#dataPaths accordingly
+  */
   toCanonicalObject({ path, obj }) {
 
     const { dataPathRoot, pathSeparator } = RootProxy;
@@ -716,17 +763,16 @@ class RootProxy {
       }
 
       const p = `${path}${isArray ? `[${prop}]` : `${path.length ? '.' : ''}${prop}`}`;
-
-      if (obj[prop] != null && obj[prop] != undefined) {
+      const isEmpty = obj[prop] == null || obj[prop] == undefined;
 
         // eslint-disable-next-line default-case
         switch (true) {
-          case obj[prop].constructor.name === 'Object':
+          case !isEmpty && obj[prop].constructor.name === 'Object':
             this.toCanonicalObject({ path: p, obj: obj[prop] });
             obj[prop] = this.getObserverProxy(obj[prop]);
             break;
 
-          case obj[prop].constructor.name === 'Array':
+          case !isEmpty && obj[prop].constructor.name === 'Array':
             // eslint-disable-next-line no-plusplus
             for (let i = 0; i < obj[prop].length; i++) {
 
@@ -759,7 +805,6 @@ class RootProxy {
             this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}`] = [];
             break;
         }
-      }
     }
   }
 }

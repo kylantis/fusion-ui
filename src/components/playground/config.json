@@ -46,6 +46,21 @@
     },
     "q": {
       "type": "String"
+    },
+    "g": {
+      "type": "String"
+    },
+    "oo": {
+      "type": "String"
+    },
+    "gg": {
+      "type": "String"
+    },
+    "ooo": {
+      "type": "String"
+    },
+    "ggg": {
+      "type": "String"
     }
   }
 }

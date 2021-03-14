@@ -13,6 +13,8 @@ class BaseRenderer {
 
  #parent;
 
+ #initialized;
+
  constructor({ id, input, loadable = true, parent, logger } = {}) {
    if (!id) {
      // eslint-disable-next-line no-param-reassign
@@ -44,6 +46,8 @@ class BaseRenderer {
    // Create root proxy
    // eslint-disable-next-line no-undef
    RootProxy.create({ component: this });
+
+   this.#initialized = true;
  }
 
  static getComponentIds() {
@@ -65,6 +69,13 @@ class BaseRenderer {
  getInput() {
    return this.#input;
  }
+
+ setInput(input) {
+   if (this.#initialized) {
+    throw Error(`[${this.#id}] The root object cannot be modified`);
+   }
+  this.#input = input;
+}
 
  getParent() {
    return this.#parent;
