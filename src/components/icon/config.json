@@ -3,7 +3,8 @@
   "collections": {},
   "literals": {
     "circular": {
-      "type": "Boolean"
+      "type": "Boolean",
+      "defaultValue": false
     },
     "color": {
       "type": "String",
@@ -16,7 +17,7 @@
         "text-error"
       ],
       "defaults": [
-        "current-color"
+        "text-default"
       ]
     },
     "size": {
@@ -1053,11 +1054,12 @@
         "zoomout"
       ],
       "defaults": [
-        "new_custom63",
-        "goal",
-        "user_activation",
-        "new_custom16",
-        "new_custom75"
+        "user",
+        "add",
+        "apps",
+        "classic_interface",
+        "comments",
+        "event"
       ]
     },
     "type": {
@@ -1070,7 +1072,7 @@
         "utility"
       ],
       "defaults": [
-        "action"
+        "utility"
       ]
     },
     "description": {
@@ -1079,14 +1081,7 @@
     "backgroundColor": {
       "type": "String",
       "allowed": "cssColor",
-      "defaults": [
-        "LightSkyBlue",
-        "MediumPurple",
-        "MediumSeaGreen",
-        "MediumSlateBlue",
-        "MediumVioletRed",
-        "RoyalBlue"
-      ]
+      "defaults": []
     },
     "cssColor": {
       "type": "String",

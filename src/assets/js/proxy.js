@@ -22,7 +22,10 @@ class RootProxy {
 
   static emptyString = '';
 
-  static hasIndex = /\[[0-9]+\]/g;
+  static anyIndex =  /\[[0-9]+\]/g
+
+  static tailIndex =  /(\[[0-9]+\])+$/g
+  
 
   // Todo: Rename from HookName to HookType
 
