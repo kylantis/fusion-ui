@@ -146,9 +146,8 @@ class RootCtxRenderer extends BaseRenderer {
       });
 
     this.postRender({
-      html: `<div id='${this.getId()}' class='${htmlWrapperCssClassname}'>${
-        html
-      }</div>`,
+      html: `<div id='${this.getId()}' class='${htmlWrapperCssClassname}'>${html
+        }</div>`,
       container
     });
 
@@ -685,14 +684,21 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   static getSegments({ original }) {
-    const { hasIndex } = RootProxy;
+    const { tailIndex } = RootProxy;
 
-    const indexes = (original.match(hasIndex) || []);
+    const indexes = (original.match(tailIndex) || []).join('');
 
     const segments = [
-      original.replace(indexes.join(''), ''),
-      ...indexes,
+      original.replace(
+        new RegExp(`${global.clientUtils.escapeRegExp(indexes)}$`),
+        ''
+      ),
     ];
+
+    if (indexes.length) {
+      segments.push(indexes)
+    }
+
     return segments;
   }
 
@@ -710,7 +716,7 @@ class RootCtxRenderer extends BaseRenderer {
       return this.getDataBasePath();
     }
 
-    const { toCanonicalPath, getSegments, toObject, getDataVariables } = RootCtxRenderer;
+    const { getSegments, toObject, getDataVariables } = RootCtxRenderer;
     const { pathSeparator, syntheticMethodPrefix } = RootProxy;
 
     if (!indexResolver) {
@@ -718,7 +724,7 @@ class RootCtxRenderer extends BaseRenderer {
       indexResolver = path => this.blockData[path].index;
     }
 
-    if (this.isSynthetic(fqPath)) {
+    if (this.isSynthetic(fqPath) || this.resolver) {
       addBasePath = false;
     }
 
@@ -727,7 +733,7 @@ class RootCtxRenderer extends BaseRenderer {
     const segments = fqPath.split(pathSeparator);
     const parts = [];
 
-    if (!this.resolver && basePath.length) {
+    if (basePath.length) {
       parts.push(basePath);
     }
 
@@ -742,44 +748,38 @@ class RootCtxRenderer extends BaseRenderer {
       const partSegments = getSegments({ original: part });
       [part] = partSegments;
       partSegments.splice(0, 1);
-      const suffix = partSegments.join('');
+      let suffix = '';
+
+      if (partSegments.length) {
+        assert(partSegments.length == 1);
+
+        suffix = partSegments[0];
+      }
 
       if (part.endsWith('_$')) {
 
-        [part] = part.split(/_\$$/);
-        const canonicalPart = part;
+        const [parent] = part.split(/_\$$/);
+
+        // For multidimensional collections, it's common to have a path like
+        // ..._$_$ or..._$[0], hence we need to get exec path as shown here
+        // and then use that to assign <part> and <path>
 
         // This should resolve to either an array or object
-        const prefix = parts.slice(0, i + len);
 
-        let path = prefix.concat([part]).join('.');
+        const path = this.getExecPath({
+          fqPath: parts.slice(0, i + len)
+            .concat([parent])
+            .join(pathSeparator)
+            .replace(`${basePath}${pathSeparator}`, ''),
+          indexResolver,
+          addBasePath,
+        })
 
-        let value;
+        // if path ends with w.x.$_abc, part should be x.$_abc, not $_abc,
+        // because $_abc should be translated as the index placeholder: _$
+        part = path.split(/\.(?!\$_)/g).pop();
 
-        if (part.endsWith('_$')) {
-
-          // For multidimensional collections, it's common to have a path like
-          // ..._$_$
-          path = this.getExecPath({
-            fqPath: path
-              .replace(`${basePath}.`, ''),
-            indexResolver,
-          });
-
-          value = this.resolvePath0({
-            path: `${addBasePath ? '' : 'this.getInput().'}${path}`,
-          });
-
-          // if path is w.x.$_abc, part should be x.$_abc, not $_abc,
-          // because $_abc should be translated as the index placeholder: _$
-          part = path.split(/\.(?!\$_)/g).pop();
-
-        } else {
-
-          value = this.resolvePath0({
-            path: `${addBasePath ? '' : 'this.getInput().'}${path}`,
-          });
-        }
+        let value = this.resolvePath0({ path });
 
         if (this.resolver) {
           assert(value instanceof Map || value instanceof Array);
@@ -789,11 +789,11 @@ class RootCtxRenderer extends BaseRenderer {
           }
         }
 
-        const index = indexResolver(
-          fqPath.split('__', i).concat([
-            canonicalPart,
-          ]).join('__'),
-        );
+        const canonicalPath = fqPath.split('__', i).concat([
+          parent,
+        ]).join('__')
+
+        const index = indexResolver(canonicalPath);
 
         const isArray = value instanceof Array;
         const isMap = value instanceof Object;
@@ -817,24 +817,24 @@ class RootCtxRenderer extends BaseRenderer {
             // Resolve this getExecPath(...) call to a synthetic method that in
             // turn invokes getBlockData(...)
 
-            const path = toCanonicalPath(
-              [...parts, part]
-                .join('.')
-                .replace(
-                  new RegExp(`^${global.clientUtils.escapeRegExp(`${basePath}.`)}`), ''
-                )
-            );
-
-            const syntheticMethodName = `${syntheticMethodPrefix}${path}_${dataVariable.replace(/^@/g, '')}`;
+            const syntheticMethodName = `${syntheticMethodPrefix}${
+              // Method name should be a word
+              canonicalPath.replace(/[\[|\]]/g, '_')
+              }_${dataVariable.replace(/^@/g, '')}`;
 
             if (!this[syntheticMethodName]) {
               this[syntheticMethodName] = Function(`
                 return this.getBlockData({
-                    path: "${path}",
+                    path: "${canonicalPath}",
                     dataVariable: "${dataVariable}"
                 })
               `);
             }
+
+            // In startTextNodeBindContext(), we performed a push to this.#currentBindContext
+            // Since this is transformed to a synthetic method and data-binding will never 
+            // happen via this.#bindMustache, we need to pop
+            this.#currentBindContext.pop();
 
             return syntheticMethodName;
           }
@@ -851,7 +851,7 @@ class RootCtxRenderer extends BaseRenderer {
             break;
 
           default:
-            throw new Error(`Unknown path: ${path}`);
+            throw new Error(`Unknown path: ${path.replace(`${basePath}.`, '')}`);
         }
 
       } else if (part.endsWith('_@')) {
@@ -891,27 +891,6 @@ class RootCtxRenderer extends BaseRenderer {
         return index == 0 ? part : part.startsWith('@') ? `['${part}']` : `.${part}`;
       })
       .join('');
-  }
-
-  static toCanonicalPath(fqPath) {
-
-    const { hasIndex, emptyString } = RootProxy;
-    const { getSegments } = RootCtxRenderer;
-
-    return fqPath.split('.')
-      .map(p => getSegments({
-        original: p,
-      }).map((segment) => {
-        switch (true) {
-          case !!segment.match(hasIndex):
-          case segment.startsWith('$_'):
-            return '_$';
-          default: return segment;
-        }
-      })
-        .join(emptyString))
-      .join('.')
-      .replace('._$', '_$');
   }
 
   resolvePath({ fqPath, indexResolver, create, includePath }) {

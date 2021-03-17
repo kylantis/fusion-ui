@@ -158,7 +158,9 @@ class BaseComponent extends WebRenderer {
 
   /**
    * The main goal for this is to allow the component dynamically register fields 
-   * in it's object model. Note: this method is only invoked at compile-time
+   * in it's object model. Note: this method is only invoked at compile-time.
+   * Also, note that there is no way to define a map structure here. This can only
+   * be done from the template
    */
   init() {
   }

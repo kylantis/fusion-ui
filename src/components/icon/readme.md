@@ -3,7 +3,7 @@
 Icons provide visual context and enhance usability.
 
 #### Spec
-https://lightningdesignsystem.com/components/icons/
+https://www.lightningdesignsystem.com/components/icons/
 
 #### Usage
 - To automatically refresh icon set, run

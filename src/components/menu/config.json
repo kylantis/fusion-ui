@@ -1,5 +1,33 @@
 {
   "superclass": null,
-  "collections": {},
-  "literals": {}
+  "collections": {
+    "abc": {
+      "minLength": 5
+    },
+    "abc_$": {
+      "minLength": 5
+    },
+    "def": {
+      "minLength": 5,
+      "singularType": "DefElement"
+    },
+    "abc_$_$": {
+      "minLength": 5,
+      "singularType": "AbcElement"
+    }
+  },
+  "literals": {
+    "def.$_.p": {
+      "type": "String"
+    },
+    "abc_$_$_$": {
+      "type": "String"
+    },
+    "abc_$": {
+      "type": "String"
+    },
+    "abc_$_$_$.l": {
+      "type": "String"
+    }
+  }
 }
