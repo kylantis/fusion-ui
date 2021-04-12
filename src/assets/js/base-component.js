@@ -11,10 +11,10 @@ class BaseComponent extends WebRenderer {
   static #token;
 
   constructor({
-    id, input, loadable, parent, logger,
+    id, input, loadable, logger,
   } = {}) {
     super({
-      id, input, loadable, parent, logger,
+      id, input, loadable, logger,
     });
 
     if (!BaseComponent.#token) {
@@ -67,10 +67,10 @@ class BaseComponent extends WebRenderer {
 
   // eslint-disable-next-line class-methods-use-this
   loadingStrategy() {
-    return BaseComponent.CHAINED_LOADING_STRATEGY;
+    return BaseComponent.ASYNC_LOADING_STRATEGY;
   }
 
-  load({ container }) {
+  load({ container } = {}) {
     return super.load({
       token: BaseComponent.#token,
       container,
@@ -78,9 +78,7 @@ class BaseComponent extends WebRenderer {
   }
 
   render({ data, target, strategy }) {
-    if (
-      // global.isServer || 
-      !data) {
+    if (!data) {
       return Promise.resolve();
     }
 
@@ -167,19 +165,27 @@ class BaseComponent extends WebRenderer {
 
   // eslint-disable-next-line class-methods-use-this
   getLoader() {
-    return `<div class="sk-chase">
-                  <div class="sk-chase-dot"></div>
-                  <div class="sk-chase-dot"></div>
-                  <div class="sk-chase-dot"></div>
-                  <div class="sk-chase-dot"></div>
-                  <div class="sk-chase-dot"></div>
-                  <div class="sk-chase-dot"></div>
-                </div>`;
+    // return `
+    //     <div style='display: table; width: 100%; height: 100%;'>
+    //       <div style='vertical-align: middle; display: table-cell;'>
+    //         <img width='20px' src='/assets/images/loader.gif' style='display: block; margin-left: auto; margin-right: auto;'>
+    //       </div>
+    //     </div>
+    // `;
+    return '';
   }
 
   // eslint-disable-next-line class-methods-use-this
   getStencil() {
-    return 'STENCIL';
+    return '';
+  }
+
+  validateInput() {
+    return true;
+  }
+
+  getConfigurationProperties() {
+    return []
   }
 
   behaviours() {
@@ -188,6 +194,10 @@ class BaseComponent extends WebRenderer {
 
   events() {
     return [];
+  }
+
+  defaultHandlers() {
+    return {};
   }
 
   ensureKnownEvent(event) {
@@ -199,6 +209,8 @@ class BaseComponent extends WebRenderer {
 
   on(event, handler) {
     this.ensureKnownEvent(event);
+    assert(typeof handler == 'function');
+
     const handlers = this.handlers[event] || (this.handlers[event] = []);
     handlers.push(handler);
     return this;
@@ -206,10 +218,24 @@ class BaseComponent extends WebRenderer {
 
   dispatch(event, data) {
     this.ensureKnownEvent(event);
-    const handlers = this.handlers[event];
+
+    let defaultHandler = this.defaultHandlers()[event]
+
+    if (defaultHandler) {
+
+      if (typeof defaultHandler == 'string') {
+        defaultHandler = this[defaultHandler].bind(this);
+      }
+
+      assert(typeof defaultHandler == 'function');
+    }
+
+    let handlers = this.handlers[event] || (defaultHandler ? [defaultHandler] : null);
+
     if (handlers && handlers.length) {
       handlers.forEach(handler => handler(data));
     }
+
     return this;
   }
 
@@ -220,12 +246,14 @@ class BaseComponent extends WebRenderer {
   preRender() {
   }
 
-  postRender({ container, html }) {
-    // By default, write to innerHTML of container
-
-    const elem = document.getElementById(container);
-    assert(elem != null, `DOMElement #${container} does not exist`);
-    elem.innerHTML = html;
+  isMobile() {
+    return navigator.userAgent.match(/Android/i)
+      || navigator.userAgent.match(/webOS/i)
+      || navigator.userAgent.match(/iPhone/i)
+      || navigator.userAgent.match(/iPad/i)
+      || navigator.userAgent.match(/iPod/i)
+      || navigator.userAgent.match(/BlackBerry/i)
+      || navigator.userAgent.match(/Windows Phone/i)
   }
 
 }

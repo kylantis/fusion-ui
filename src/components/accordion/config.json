@@ -1,0 +1,32 @@
+{
+  "superclass": null,
+  "collections": {
+    "items": {
+      "minLength": 5,
+      "singularType": "ItemsElement"
+    }
+  },
+  "scalars": {
+    "singleOnly": {
+      "type": "Boolean"
+    },
+    "items_$.title": {
+      "type": "String",
+      "defaults": [
+        "Accordion Summary"
+      ]
+    },
+    "items_$.text": {
+      "type": "String",
+      "defaults": [
+        "Accordion Details"
+      ]
+    },
+    "items_$.component": {
+      "type": "componentRef",
+      "defaults": [
+        null
+      ]
+    }
+  }
+}

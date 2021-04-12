@@ -13,6 +13,11 @@ gulp.task('copy-styles', () => gulp.src(['src/assets/styles/*'])
 gulp.task('copy-scripts', () => gulp.src(['src/assets/js/**/*.min.js'])
   .pipe(gulp.dest('dist/assets/js/')));
 
-gulp.task('copy-assets', gulp.series('copy-fonts', 'copy-styles', 'copy-scripts', (callback) => {
+gulp.task('copy-enums', () => gulp.src(['src/components/enums.json'])
+  .pipe(gulp.dest('dist/components/')));
+
+gulp.task(
+  'copy-assets', 
+  gulp.series('copy-fonts', 'copy-styles', 'copy-scripts', 'copy-enums', (callback) => {
   callback();
 }));

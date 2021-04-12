@@ -2,7 +2,9 @@
 {{ style href="/assets/styles/salesforce-lightning-design-system.min.css" }}
 {{ style href="/assets/styles/base.min.css" }}
 
-    <span class="slds-icon_container slds-icon-{{type}}-{{name}}
+    {{#if (role eq "presentation") or (not role) }}
+
+    <span class="slds-icon_container
         {{!-- 
             utility and doctype icons do not support a round look, and
             action icons are circular by default
@@ -11,7 +13,7 @@
             and (type neq 'action')
             ? ' slds-icon_container_circle' : ''
         }}
-        {{(color eq 'current-color') ? ' slds-${color}' : ''}}
+        {{useCurrentColor ? ' slds-current-color' : ''}}
         "
         {{!-- 
             Utility and doctype icons do not support background color
@@ -19,15 +21,41 @@
         {{backgroundColor and (type neq 'doctype' ) and (type neq 'utility' )
         ? 'style="background-color: ${backgroundColor};"' : ''
         }}
-        title="{{description}}">
-        <svg class="slds-icon {{not (color eq 'current-color') ? 'slds-icon-${color}' : ''}} {{size ? 'slds-icon_${size}' : ''}}"
+        title="{{title ? title : name}}">
+        <svg class="slds-icon slds-icon-{{type}}-{{name transform='toIconClassName'}}
+        {{!-- If this is a Utility icon, set color to text-default --}}
+        {{(type eq 'utility') ? 'slds-icon-text-default' : ''}} 
+        {{!-- Size --}}
+        slds-icon_{{size ? size : (type eq 'utility') ? 'x-small' : 'small' }}
+        {{!-- Margin --}}
+        {{marginLeft ? 'slds-m-left_${marginLeft}' : ''}}
+        {{marginRight ? 'slds-m-right_${marginRight}' : ''}}
+        "
             aria-hidden="true"
             {{!-- 
-                Use cssColor, if available - only if color is not specified 
+                Use cssColor, if available - only if useCurrentColor is falsy
             --}}
-            {{not color and cssColor ? 'style="fill: ${cssColor};"' : ''}}
+            {{((not useCurrentColor) and cssColor) ? 'style="fill: ${cssColor};"' : ''}}
             focusable="false">
             <use xlink:href="/assets/icons/{{type}}-sprite/svg/symbols{{rtl ? "-rtl" : ''}}.svg#{{name}}"></use>
         </svg>
-        <span class="slds-assistive-text">{{description}}</span>
+        <span class="slds-assistive-text">{{title ? title : name}}</span>
     </span>
+
+    {{else}}
+
+    {{#if role eq "button" }}
+
+     <button class="slds-button slds-button_icon slds-button_icon-container 
+     slds-button_icon-{{buttonSize ? buttonSize : 'x-small' }}
+     " aria-haspopup="true" title="{{title ? title : name}}" type="button">
+        <svg class="slds-button__icon
+        slds-icon_{{buttonSize ? (buttonSize eq 'medium') ? 'large' : buttonSize : 'x-small' }}" aria-hidden="true" focusable="false">
+            <use xlink:href="/assets/icons/{{type}}-sprite/svg/symbols.svg#{{name}}"></use>
+        </svg>
+        <span class="slds-assistive-text">{{title ? title : name}}</span>
+    </button>
+
+    {{/if}}
+    
+    {{/if}}

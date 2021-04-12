@@ -3,19 +3,20 @@
 // eslint-disable-next-line no-undef
 class WebRenderer extends CustomCtxRenderer {
   static #loadedStyles = [];
+  static #loadedScripts = [];
 
   constructor({
-    id, input, loadable, parent, logger,
+    id, input, loadable, logger,
   } = {}) {
     super({
-      id, input, loadable, parent, logger,
+      id, input, loadable, logger,
     });
   }
 
   load({ container, token }) {
     let promises = [];
     // eslint-disable-next-line no-restricted-globals
-    if (self.appContext) {
+    if (!global.isServer) {
       promises = [
         this.loadCSSDependencies(),
         this.loadJSDependencies(),
@@ -81,16 +82,25 @@ class WebRenderer extends CustomCtxRenderer {
   loadJSDependencies() {
     // eslint-disable-next-line no-restricted-globals
     const { appContext } = self;
-    const dependencies = this.jsDependencies()
-      .map(appContext.toCanonicalDependency);
+    const dependencies = [...this.jsDependencies()]
+      .map(appContext.toCanonicalDependency)
+      .filter(({ url }) => !WebRenderer.#loadedScripts.includes(url))
 
-    return dependencies.reduce(
-      (p, x) => p.then(_ => appContext.loadResource({
-        url: x.url,
-        moduleType: x.moduleType,
-      })),
-      Promise.resolve(),
-    );
+    return dependencies
+      .reduce(
+        (p, x) => p.then(_ => appContext.loadResource({
+          url: x.url,
+          moduleType: x.moduleType,
+        })),
+        Promise.resolve(),
+      )
+      .then(() => {
+        dependencies.forEach(({ url }) => {
+          if (!WebRenderer.#loadedScripts.includes(url)) {
+            WebRenderer.#loadedScripts.push(url);
+          }
+        })
+      });
   }
 }
 

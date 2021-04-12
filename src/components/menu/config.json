@@ -1,33 +1,89 @@
 {
   "superclass": null,
   "collections": {
-    "abc": {
-      "minLength": 5
+    "groups": {
+      "minLength": 2,
+      "singularType": "Group"
     },
-    "abc_$": {
-      "minLength": 5
-    },
-    "def": {
-      "minLength": 5,
-      "singularType": "DefElement"
-    },
-    "abc_$_$": {
-      "minLength": 5,
-      "singularType": "AbcElement"
+    "groups_$.items": {
+      "minLength": 2,
+      "singularType": "Item"
     }
   },
-  "literals": {
-    "def.$_.p": {
+  "scalars": {
+    "groups_$.title": {
+      "type": "String",
+      "defaults": [
+        "Menu Sub Heading"
+      ]
+    },
+    "groups_$.items_$.title": {
+      "type": "String",
+      "defaults": [
+        "Menu Item One",
+        "Menu Item Two"
+      ]
+    },
+    "label": {
       "type": "String"
     },
-    "abc_$_$_$": {
+    "groups_$.role": {
+      "type": "String",
+      "allowed": [
+        "presentation",
+        "checkbox",
+        "radio"
+      ],
+      "defaults": [
+        "presentation"
+      ]
+    },
+    "groups_$.items_$.identifier": {
       "type": "String"
     },
-    "abc_$": {
-      "type": "String"
+    "groups_$.checkIconPosition": {
+      "type": "String",
+      "allowed": "direction",
+      "defaults": [
+        "right"
+      ]
     },
-    "abc_$_$_$.l": {
-      "type": "String"
+    "groups_$.items_$.level": {
+      "type": "String",
+      "allowed": [
+        "error",
+        "success",
+        "warning"
+      ],
+      "defaults": []
+    },
+    "groups_$.required": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "size": {
+      "type": "String",
+      "allowed": "size",
+      "defaults": [
+        "small"
+      ]
+    },
+    "isSubMenu": {
+      "type": "Boolean"
+    },
+    "direction": {
+      "type": "String",
+      "allowed": "direction"
+    },
+    "groups_$.items_$.subMenuDirection": {
+      "type": "String",
+      "allowed": "direction"
+    },
+    "coordinates.Y": {
+      "type": "Number"
+    },
+    "coordinates.X": {
+      "type": "Number"
     }
   }
 }

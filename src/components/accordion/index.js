@@ -51,9 +51,11 @@ class Accordion extends BaseComponent {
 
     /**
      * Block Hook that processes new items added to this accordion
-     * @param {HTMLElement} li 
+     * @param {HTMLElement} node 
      */
-    addClickListener(li) {
+    addClickListener({ node }) {
+
+        const li = node.querySelector(':scope > li');
 
         if (!this.active) {
             // By default, the first item is the active item

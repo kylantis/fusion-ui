@@ -11,11 +11,11 @@ gulp.task('watch-templates', gulp.series('compile-templates:watch', (callback) =
   callback();
 }));
 
-gulp.task('dist-all', gulp.series('copy-assets', 'minify-images', 'minify-icons', 'bundle-polyfills', 'compile-syles', 'compile-scripts', 'compile-templates', (callback) => {
+gulp.task('dist-all', gulp.series('copy-assets', 'minify-images', 'minify-icons', 'minify-component-icons', 'bundle-polyfills', 'compile-syles', 'compile-scripts', 'compile-templates', (callback) => {
   callback();
 }));
 
-gulp.task('dist', gulp.series('compile-syles', 'compile-scripts', 'compile-templates', (callback) => {
+gulp.task('dist', gulp.series('copy-enums', 'compile-syles', 'compile-scripts', 'compile-templates', (callback) => {
   callback();
 }));
 

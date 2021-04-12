@@ -42,11 +42,20 @@ const gulpTransform = function () {
   });
 };
 
-gulp.task('compile-templates',
-  () => gulp.src(['src/components/**/index.view'])
-    .pipe(gulpTransform())
-    .pipe(gulp.dest('dist/components')));
+const componentArgPrefix = '--component=';
+const tailArgument = process.argv[process.argv.length - 1];
 
-gulp.task('compile-templates:watch', () => watch(['src/components/**/*.view', 'src/components/**/*.js'], { ignoreInitial: true })
+const componentName = tailArgument.startsWith(componentArgPrefix) ?
+  tailArgument.replace(componentArgPrefix, '') : null;
+
+gulp.task('compile-templates',
+  () => gulp.src([`src/components/${componentName || '**'}/index.view`])
+    .pipe(gulpTransform())
+    .pipe(gulp.dest(`dist/components${componentName ? `/${componentName}` : ''}`)));
+
+gulp.task('compile-templates:watch', () => watch([
+  `src/components/${componentName || '**'}/*.view`,
+  `src/components/${componentName || '**'}/*.js`
+], { ignoreInitial: true })
   .pipe(gulpTransform())
-  .pipe(gulp.dest('dist/components')));
+  .pipe(gulp.dest(`dist/components${componentName ? `/${componentName}` : ''}`)));
