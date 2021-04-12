@@ -4,3 +4,4 @@ dist/
 src/cdn
 build/
 .vscode*
+src/assets/js/cdn/

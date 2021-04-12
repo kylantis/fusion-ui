@@ -1,36 +1,15 @@
 {
   "superclass": null,
   "collections": {},
-  "literals": {
+  "scalars": {
     "circular": {
       "type": "Boolean",
       "defaultValue": false
     },
-    "color": {
-      "type": "String",
-      "allowed": [
-        "text-default",
-        "text-light",
-        "current-color",
-        "text-success",
-        "text-warning",
-        "text-error"
-      ],
-      "defaults": [
-        "text-default"
-      ]
-    },
     "size": {
       "type": "String",
-      "allowed": [
-        "xx-small",
-        "x-small",
-        "small",
-        "large"
-      ],
-      "defaults": [
-        "small"
-      ]
+      "allowed": "size",
+      "defaults": []
     },
     "name": {
       "type": "String",
@@ -1054,12 +1033,13 @@
         "zoomout"
       ],
       "defaults": [
-        "user",
-        "add",
-        "apps",
-        "classic_interface",
-        "comments",
-        "event"
+        "account",
+        "action_list_component",
+        "actions_and_buttons",
+        "address",
+        "announcement",
+        "connected_apps",
+        "dashboard_ea"
       ]
     },
     "type": {
@@ -1072,11 +1052,8 @@
         "utility"
       ],
       "defaults": [
-        "utility"
+        "standard"
       ]
-    },
-    "description": {
-      "type": "String"
     },
     "backgroundColor": {
       "type": "String",
@@ -1086,8 +1063,44 @@
     "cssColor": {
       "type": "String",
       "allowed": "cssColor",
+      "defaults": []
+    },
+    "marginLeft": {
+      "type": "String",
+      "allowed": "size",
+      "default": null
+    },
+    "marginRight": {
+      "type": "String",
+      "allowed": "size",
+      "default": null
+    },
+    "useCurrentColor": {
+      "type": "Boolean"
+    },
+    "role": {
+      "type": "String",
+      "allowed": [
+        "presentation",
+        "button"
+      ],
       "defaults": [
-        "AliceBlue"
+        "presentation"
+      ]
+    },
+    "title": {
+      "type": "String"
+    },
+    "buttonSize": {
+      "type": "String",
+      "allowed": [
+        "xx-small",
+        "x-small",
+        "small",
+        "medium"
+      ],
+      "defaults": [
+        "small"
       ]
     }
   }

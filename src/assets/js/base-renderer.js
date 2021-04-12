@@ -11,11 +11,9 @@ class BaseRenderer {
 
  #isRoot;
 
- #parent;
-
  #initialized;
 
- constructor({ id, input, loadable = true, parent, logger } = {}) {
+ constructor({ id, input, loadable = true, logger } = {}) {
    if (!id) {
      // eslint-disable-next-line no-param-reassign
      id = this.#createId();
@@ -37,15 +35,18 @@ class BaseRenderer {
    this.#input = input;
    this.#loadable = loadable;
    this.#isRoot = !BaseRenderer.#componentIds.length;
-   this.#parent = parent;
 
    if (this.#loadable) {
      BaseRenderer.#componentIds.push(this.#id);
    }
 
+   if (global.isServer && global.isWatch && this.#loadable) {
+    throw Error();
+   }
+
    // Create root proxy
    // eslint-disable-next-line no-undef
-   RootProxy.create({ component: this });
+   RootProxy.create(this);
 
    this.#initialized = true;
  }
@@ -77,9 +78,9 @@ class BaseRenderer {
   this.#input = input;
 }
 
- getParent() {
-   return this.#parent;
- }
+isInitialized() {
+  return this.#initialized;
+}
 
  load() {
  }

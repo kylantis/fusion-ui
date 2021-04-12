@@ -1,0 +1,135 @@
+{{ style href="/assets/styles/salesforce-lightning-design-system.min.css" }}
+{{ style href="/assets/styles/base.min.css" }}
+
+<div class="slds-context-bar" {{(type eq "tab_bar" ) ? "slds-context-bar_tabs" : "" }}>
+
+  <div class="slds-context-bar__primary">
+
+    <div
+      class="slds-context-bar__item slds-context-bar__dropdown-trigger slds-dropdown-trigger slds-dropdown-trigger_click slds-no-hover">
+      <div class="slds-context-bar__icon-action">
+
+        <button class="slds-button slds-context-bar__button {{useWaffleIcon ? 'slds-icon-waffle_container': ''}}"
+          title="{{appName}}" type="button">
+
+          {{#if useWaffleIcon}}
+          <span class="slds-icon-waffle">
+            <span class="slds-r1"></span>
+            <span class="slds-r2"></span>
+            <span class="slds-r3"></span>
+            <span class="slds-r4"></span>
+            <span class="slds-r5"></span>
+            <span class="slds-r6"></span>
+            <span class="slds-r7"></span>
+            <span class="slds-r8"></span>
+            <span class="slds-r9"></span>
+          </span>
+
+          {{else}}
+
+          {{component Icon alias="icon"}}
+
+          {{#if icon}}
+            {{> icon}}
+          {{/if}}
+
+          {{/if}}
+
+          <span class="slds-assistive-text">Open App Launcher</span>
+        </button>
+
+      </div>
+
+      <span class="slds-context-bar__label-action slds-context-bar__app-name">
+        <span class="slds-truncate" title="{{appName}}">{{appName}}</span>
+      </span>
+    </div>
+
+
+    {{#if (type eq "tab_bar") and switcher }}
+
+    {{#with switcher transform="itemTransform" as |switcher|}}
+
+    {{component alias="content"}}
+    {{component Menu alias="subMenu"}}
+
+    <div
+      class="slds-context-bar__item slds-context-bar__object-switcher slds-context-bar__dropdown-trigger slds-dropdown-trigger"
+      {{!-- As defined in GlobalNavigation.getSwitcherIdentifier() --}}
+      identifier="switcher_identifier">
+
+      <a class="slds-context-bar__label-action">
+        <span class="slds-truncate" title="{{title}}">{{title}}</span>
+      </a>
+
+      {{#if subMenu}}
+
+      <div class="slds-context-bar__icon-action">
+        {{> Icon role="button" type='utility' name='chevrondown' buttonSize="x-small" }}
+      </div>
+
+      {{> subMenu direction='right' size='xx-small' coordinates=null }}
+
+      {{/if}}
+
+    </div>
+
+    <div class="slds-context-bar__item slds-dropdown-trigger slds-dropdown-trigger_click">
+      <div class="slds-context-bar__icon-action">
+        {{> Icon role="button" type='utility' title="Open a New Tab" name='add' buttonSize="x-small" }}
+      </div>
+    </div>
+
+    {{/with}}
+
+    {{/if}}
+
+  </div>
+
+
+  <nav class="slds-context-bar__secondary">
+
+    {{#if type eq "tab_bar" }}
+        <div class="slds-context-bar__vertical-divider"></div>
+    {{/if}}
+
+    <ul class="slds-grid" {{(type eq "tab_bar" ) ? "role='tablist'" : "" }}>
+
+      {{#each tabs transform = "itemTransform" as |tab itemIndex|}}
+
+      {{component Menu alias="subMenu"}}
+      {{component alias="content"}}
+
+
+      {{#if ../useDivider }}
+      <div class="slds-context-bar__item--divider-left"></div>
+      {{/if}}
+
+      {{!-- slds-context-bar__dropdown-trigger slds-dropdown-trigger --}}
+      {{!-- slds-dropdown-trigger_click slds-no-hover --}}
+      <li class="slds-context-bar__item slds-context-bar__dropdown-trigger slds-dropdown-trigger"
+        identifier="{{identifier}}" role="presentation">
+        <a class="slds-context-bar__label-action" title="{{title}}">
+          <span class="slds-assistive-text">{{assistiveText ? assistiveText : title}}</span>
+          <span class="slds-truncate" title="{{title}}">{{title}}</span>
+        </a>
+
+        {{!-- <span class="slds-hint-parent"></span> --}}
+
+        {{#if subMenu}}
+        <div class="slds-context-bar__icon-action slds-p-left_none">
+          <button class="slds-button slds-button_icon slds-button_icon slds-context-bar__button" aria-haspopup="true"
+            title="Open menu item submenu" type="button">
+            {{> Icon type='utility' name='chevrondown' }}
+            <span class="slds-assistive-text">Open menu item submenu</span>
+          </button>
+        </div>
+        {{> subMenu direction='right' size='xx-small' coordinates=null }}
+        {{/if}}
+      </li>
+
+      {{/each}}
+
+    </ul>
+  </nav>
+</div>

@@ -1,5 +1,6 @@
 /* eslint-disable no-case-declarations */
 
+// Make all members (that are applicable) private
 class RootProxy {
   // eslint-disable-next-line no-useless-escape
   static syntheticMethodPrefix = 's$_';
@@ -22,10 +23,23 @@ class RootProxy {
 
   static emptyString = '';
 
-  static anyIndex =  /\[[0-9]+\]/g
+  static pathProperty = '@path';
 
-  static tailIndex =  /(\[[0-9]+\])+$/g
-  
+  static firstProperty = '@first';
+
+  static lastProperty = '@last';
+
+  static keyProperty = '@key';
+
+  static indexProperty = '@index';
+
+  static randomProperty = '@random';
+
+  static typeProperty = '@type';
+
+  static mapType = 'Map';
+
+  static mapKeyPrefix = '$_';
 
   // Todo: Rename from HookName to HookType
 
@@ -41,6 +55,8 @@ class RootProxy {
 
   #logicGates;
 
+  static #privilegedMode = false;
+
   constructor({ component }) {
     this.component = component;
     this.handler = this.createObjectProxy();
@@ -55,6 +71,16 @@ class RootProxy {
         return object[key] === undefined ? object[key] = value : true;
       },
     })
+  }
+
+  static #isPriviledgedMode() {
+    return RootProxy.#privilegedMode;
+  }
+
+  static #runPriviledged(fn) {
+    RootProxy.#privilegedMode = true;
+    fn();
+    RootProxy.#privilegedMode = false;
   }
 
   getValue(value) {
@@ -194,10 +220,10 @@ class RootProxy {
           break;
         case MUST_GRP:
           expr = items.map(item => getValue({
-              type: item.type,
-              original: item.original,
-              evaluate: false
-            })).join(' + ');
+            type: item.type,
+            original: item.original,
+            evaluate: false
+          })).join(' + ');
           break;
       }
       return evaluate ? evaluateExpr(`return ${expr}`) : expr;
@@ -316,10 +342,10 @@ class RootProxy {
         return p;
       })
       .forEach(p => {
-        this.#dataPathHooks[p].push({
-          type: gateParticipantHookName,
-          gateId,
-        });
+          this.#dataPathHooks[p].push({
+            type: gateParticipantHookName,
+            gateId,
+          });
       });
 
     gate.blockData = global.clientUtils.deepClone(this.component.blockData);
@@ -329,15 +355,19 @@ class RootProxy {
 
     this.#dataPathHooks[path] = [];
 
-    const value = this.getLogicGateValue({ gateId });
+    const v = this.getLogicGateValue({ gateId });
+
+    const rawValue = this.getRawValueWrapper(v);
+
+    const value = this.getValue(v);
 
     if (includePath) {
       return {
         path,
-        value: isRawReturn ? this.getRawValueWrapper(value) : this.getValue(value),
+        value: isRawReturn ? rawValue : value,
       };
     } else {
-      return isRawReturn ? this.getRawValueWrapper(value) : this.getValue(value);
+      return isRawReturn ? rawValue : value;
     }
   }
 
@@ -378,11 +408,17 @@ class RootProxy {
     const v = this.component
       .getPathValue({ path: prop, includePath });
 
+    const rawValue = this.getRawValueWrapper(
+      includePath ? v.value : v
+    );
+
+    const value = this.getValue(includePath ? v.value : v);
+
     if (includePath) {
-      v.value = isRawReturn ? this.getRawValueWrapper(v.value) : this.getValue(v.value);
+      v.value = isRawReturn ? rawValue : value;
       return v;
     } else {
-      return isRawReturn ? this.getRawValueWrapper(v) : this.getValue(v);
+      return isRawReturn ? rawValue : value;
     }
   }
 
@@ -401,10 +437,14 @@ class RootProxy {
       default:
         return new Proxy(value, {
           get(obj, prop) {
-            if (prop === 'toHTML' || prop === Symbol.toPrimitive) {
-              return () => _this.component.toHtml(obj);
+
+            switch (true) {
+              case prop === 'toHTML' || prop === Symbol.toPrimitive:
+                return () => _this.component.toHtml(obj);
+
+              default:
+                return obj[prop];
             }
-            return obj[prop];
           },
         });
     }
@@ -471,20 +511,7 @@ class RootProxy {
             // The forEach helper has an object target
             assert(_this.lastLookup.constructor.name == 'Object');
 
-            // If the Map is inside an array, or another map,
-            // it could contain data variables (at the bottom). 
-            // Hence, in that case, we want to slighly reduce the
-            // length returned to the forEach helper, so it does
-            // not iterate up to that point
-
-            const keys = Object.keys(_this.lastLookup);
-            let len = keys.length;
-
-            if (keys.includes(getDataVariables()[0])) {
-              len -= getDataVariables().length;
-            }
-
-            return len;
+            return Object.keys(_this.lastLookup).length;
 
           default:
             throw new Error(`Invalid path: ${prop}`);
@@ -519,9 +546,10 @@ class RootProxy {
     });
   }
 
-  static create({ component }) {
+  static create(component) {
 
     const proxy = new RootProxy({ component });
+
     proxy.component.proxyInstance = proxy;
     proxy.component.rootProxy = proxy.handler;
 
@@ -530,30 +558,256 @@ class RootProxy {
     // it will be false at compile-time and true at runtime
     if (proxy.component.loadable()) {
 
+      if (!component.constructor.schemaDefinitions) {
+        // register input schema
+        proxy.withSchema(proxy.component.getInputSchema());
+      }
+
       // Add our observer, to orchestrate data binding operations
       proxy.addDataObserver();
+
+      if (component.validateInput()) {
+        // perform input validation
+        proxy.validateInput();
+      }
     }
 
     return proxy.handler;
   }
 
-  setSchema({ schema }) {
+  withSchema(schema) {
 
-    const ajvSchemas = [];
+    const {
+      pathProperty, firstProperty, lastProperty,
+      keyProperty, indexProperty, randomProperty
+    } = RootProxy;
 
-    for (const id in schema.definitions) {
-      if ({}.hasOwnProperty.call(schema.definitions, id)) {
-        ajvSchemas.push({
-          $id: `#/definitions/${id}`,
-          ...schema.definitions[id]
-        });
+    const syntheticProperties = [
+      pathProperty, firstProperty, lastProperty,
+      keyProperty, indexProperty, randomProperty,
+    ];
+
+    const { definitions } = schema;
+    const defPrefx = '#/definitions/';
+
+    for (const id in definitions) {
+      if ({}.hasOwnProperty.call(definitions, id)) {
+
+        const definition = definitions[id];
+
+        // Add definition id
+        definition.$id = `${defPrefx}${id}`;
+
+        if (definition.isComponent) {
+          // A component instance will be validated against
+          // this, so simply set additionalProperties to true
+          definition.additionalProperties = true;
+        }
+
+        const addPath = (definition) => {
+          definition.properties[pathProperty] = { type: 'string' }
+          definition.required.push(pathProperty);
+        }
+
+        const addDataVariables = (def) => {
+          const dataVariables = {
+            [firstProperty]: { type: 'boolean' },
+            [lastProperty]: { type: 'boolean' },
+            [keyProperty]: { type: ['string', 'integer'] },
+            [indexProperty]: { type: 'integer' },
+            [randomProperty]: { type: 'string' },
+          }
+          def.properties = {
+            ...def.properties || {},
+            ...dataVariables
+          }
+          def.required = [
+            ...def.required || [],
+            ...Object.keys(dataVariables)
+          ]
+        }
+
+        Object.keys(definition.properties)
+          .filter(k => !syntheticProperties.includes(k))
+          .map(k => definition.properties[k])
+          .map(def => {
+
+            const visit = (def) => {
+
+              assert(!def.type || typeof def.type == 'string')
+
+              let childProperty;
+
+              switch (true) {
+
+                // Object
+                case !!def.$ref:
+                  const refName = def.$ref.replace(defPrefx, '');
+
+                  switch (true) {
+
+                    // Inline enum reference
+                    case definitions[refName].isEnumRef:
+                      def.enum = [
+                        ...self.appContext.enums[
+                        definitions[refName].originalName
+                        ],
+                        null
+                      ];
+
+                      delete def.$ref;
+                      break;
+
+                    // Reference to an external component
+                    case definitions[refName].isComponent:
+                    // Reference to the current component
+                    case refName == this.component.getComponentName():
+
+                      def.type = ['object', 'null']
+                      def.additionalProperties = true;
+
+                      delete def.$ref;
+                      break;
+                  }
+
+                  break;
+
+                // Enum
+                case !!def.enum:
+                  def.enum = [...def.enum, null]
+                  break;
+
+                // Map
+                case !!def.additionalProperties:
+                  childProperty = 'additionalProperties';
+
+                // Array
+                case def.type == 'array':
+                  if (!childProperty) {
+                    childProperty = 'items';
+                  }
+
+                  // Process children first.
+                  // One reason for this is: this will help us determine enums 
+                  // because the $ref property will be replaced by the enum property
+
+                  visit(def[childProperty]);
+
+                  // This corresponds to the condition in toCanonical(...):
+                  // obj[prop] === Object(obj[prop]) or obj[prop][i] === Object(obj[prop])[i]
+                  if (
+                    def[childProperty].$ref ||
+                    def[childProperty].additionalProperties ||
+                    def[childProperty].type == 'array'
+                  ) {
+
+                    if (def[childProperty].$ref) {
+                      addDataVariables(definitions[
+                        def[childProperty].$ref.replace(defPrefx, '')
+                      ])
+                    } else {
+                      addDataVariables(def[childProperty])
+                    }
+                  }
+
+                default:
+                  // Allow null values
+                  def.type = [def.type, 'null']
+                  break;
+              }
+            }
+
+            visit(def)
+
+            return def;
+          })
+
+
+        if (id == this.component.getComponentName()) {
+          // The root definition should contain an empty string in the path property
+          definition.properties[pathProperty] = {
+            enum: ['']
+          }
+          definition.required.push(pathProperty);
+        } else {
+
+          definition.type = [definition.type, "null"]
+          addPath(definition)
+        }
+
+        // Register schema, per path
+        Object.keys(definition.properties)
+          .filter(k => !syntheticProperties.includes(k))
+          .forEach(k => {
+
+            const addSchema = (v) => {
+
+              assert(!!v[pathProperty]);
+              assert(
+                !definitions[v[pathProperty]],
+                `Duplicate schema definitions for: ${v[pathProperty]}`
+              );
+
+              const path = v[pathProperty];
+              delete v[pathProperty];
+
+              definitions[path] = {
+                ...v,
+                $id: `${defPrefx}${path}`
+              };
+
+              switch (true) {
+                case !!v.additionalProperties && typeof v.additionalProperties == 'object':
+                  addSchema(v.additionalProperties)
+                  break;
+
+                case !!v.items:
+                  addSchema(v.items)
+                  break;
+              }
+            }
+
+            addSchema(definition.properties[k])
+          });
+
       }
     }
 
-    this.schema = schema;
-    this.ajv = new Ajv({ schemas: ajvSchemas });
+    // Cleanup definitions
+    for (const id of Object.keys(definitions)) {
+      const definition = definitions[id];
 
-    // todo: perform schema validation  on input data
+      switch (true) {
+
+        case definition.isEnumRef:
+        case definition.isComponent:
+          delete definitions[id]
+          break;
+      }
+    }
+
+    this.component.constructor.schemaDefinitions = definitions;
+
+    this.component.constructor.ajv = new Ajv({
+      schemas: Object.values(definitions), allErrors: true,
+      allowUnionTypes: true,
+    });
+
+  }
+
+  validateInput() {
+    // Perform schema validation on input data
+    const validate = this.component.constructor.ajv.getSchema(`#/definitions/${this.component.getComponentName()
+      }`)
+
+    const input = this.component.getInput();
+
+    if (!validate(input)) {
+
+      throw new Error(`Component: ${this.component.getId()
+        } could not be loaded due to schema mismatch of input data - ${this.component.constructor.ajv.errorsText(validate.errors)
+        }`);
+    }
   }
 
   addDataObserver() {
@@ -589,141 +843,287 @@ class RootProxy {
   }
 
   static getUserGlobals() {
-    if (self.appContext) {
-      // Client-side
-      return self.appContext.userGlobals;
-    } else {
-      // Server-side - Use defaults
-      return {
-        rtl: false
-      }
-    }
+    return self.appContext.userGlobals;
   }
 
   getObserverProxy(object) {
     const {
       dataPathRoot, logicGatePathRoot, pathSeparator, textNodeHookName,
-      gateParticipantHookName, getUserGlobals,
+      gateParticipantHookName, pathProperty, typeProperty, mapType,
+      getUserGlobals, getMapWrapper
     } = RootProxy;
+    const { getDataVariables } = RootCtxRenderer;
 
-    return new Proxy(object, {
+    // Todo: If typeof newValue == "object", the object reference
+    // assigned to obj[prop] will be different than the original
+    // one passed in due to the re-assignment that happen along the way
+    // We need to inform the developer
+    // so that he/she can be aware that in such scenario any change
+    // made to newValue independently even after the assignment will
+    // not affect obj[prop]
 
-      get: (obj, prop) => {
+    const set = (obj, prop, newValue) => {
 
-        const globals = getUserGlobals();
+      if (prop.startsWith('@')) {
 
-        if (Object.keys(globals).includes(prop)) {
-          assert(obj['@path'] == '');
-          return globals[prop];
+        // Meta properties can only be modified in privilegedMode
+        if (this.component.isInitialized() && !RootProxy.#isPriviledgedMode()) {
+          throw Error(`Permission denied to modify ${prop}`);
         }
 
-        return obj[prop];
-      },
+        return obj[prop] = newValue;
+      }
 
-      set: (obj, prop, newValue) => {
+      const parent = obj['@path'];
 
-        const parent = obj['@path'];
+      if (obj[prop] == undefined) {
+        throw Error(`${parent ? `[${parent}] ` : ''}Property ${prop} does not exist`);
+      }
 
-        if (obj[prop] == undefined) {
-          throw Error(`${parent ? `[${parent}] ` : ''}Property ${prop} does not exist on ${JSON.stringify(obj)}`);
+      const isArray = obj.constructor.name === 'Array';
+
+      if (isArray &&
+        Number.isNaN(parseInt(prop, 10)) &&
+        ![...getDataVariables(), pathProperty].includes(prop)
+      ) {
+        throw new Error(`Invalid index: ${prop} for array: ${obj['@path']}`);
+      }
+
+      // What happens when newValue == undefined
+      // Can newValue be null in all scenarios?
+
+      const fqPath = `${dataPathRoot}${pathSeparator}${isArray ?
+        `${parent}[${prop}]` :
+        `${parent.length ? `${parent}.` : ''}${prop}`
+        }`;
+
+      const oldValue = obj[prop];
+
+      if (oldValue instanceof BaseComponent) {
+        throw Error(`Path: ${fqPath} cannot be mutated`);
+      }
+
+
+      if (!this.#dataPathHooks[fqPath]) {
+
+        // Notice that we are doing this check, after we check if
+        // oldValue is a component, not before. This is because if
+        // we do it before, this error will be thrown if <fqPath>
+        // resolved to a component (for components, we do not
+        // add an entry to dataPathHooks), which will not provide
+        // a descriptive error
+
+        throw Error(`Unknown path: ${fqPath}`);
+      }
+
+      const triggerHooks = path => {
+        const hooks = this.#dataPathHooks[path];
+
+        hooks.forEach(hook => {
+
+          let nodeValue = newValue
+
+          if (path.startsWith(`${logicGatePathRoot}${pathSeparator}`)) {
+            const gateId = path.replace(`${logicGatePathRoot}${pathSeparator}`, '')
+            nodeValue = this.getLogicGateValue({ gateId });
+          }
+
+          switch (hook.type) {
+
+            case textNodeHookName:
+              document.getElementById(hook.nodeId).innerHTML = typeof nodeValue == 'string' ? nodeValue : JSON.stringify(nodeValue);
+              break;
+
+            case gateParticipantHookName:
+              triggerHooks(`${logicGatePathRoot}${pathSeparator}${hook.gateId}`);
+              break;
+
+          }
+        });
+      }
+
+      const reloadPath = path => {
+        // Because of babel optimizations, I need to call this outside
+        // the eval string to avoid an "undefined" error at runtime
+        const component = this.component;
+        const p = ['component.getInput()', path].join('.')
+        return eval(`${p} = ${p}`)
+      };
+
+      triggerHooks(fqPath);
+
+      const isNonPrimitive = (() => {
+        const sPath = global.clientUtils.toCanonicalPath(fqPath);
+        const def = this.component.constructor.schemaDefinitions[sPath];
+        return def.type == 'object' || def.type == 'array'
+      })();
+
+      const getValidator = () => {
+        try {
+          return this.component.constructor.ajv.getSchema(
+            global.clientUtils.toCanonicalPath(fqPath)
+          )
+        } catch (e) {
+          throw Error(`Unknown path: ${fqPath}`);
+        }
+      }
+
+
+      if (newValue != null && oldValue !== newValue) {
+
+        const validate = getValidator();
+
+        if (!validate(newValue)) {
+          throw new Error(`${fqPath} could not be mutated due to schema mismatch`);
         }
 
-        const isArray = obj.constructor.name === 'Array';
+        if (typeof newValue == 'object') {
 
-        if (isArray && Number.isNaN(parseInt(prop, 10))) {
-          throw new Error(`Invalid index: ${prop} for array: ${obj['@path']}`);
-        }
+          if (this.isCollectionPath(parent)) {
 
-        const oldValue = obj[prop];
+            // If parent is a collection (array or map),
+            // Add data variables (remember to make them non-enumerable)
 
-        const triggerHooks = path => {
-          const hooks = this.#dataPathHooks[path];
-
-          hooks.forEach(hook => {
-
-            let nodeValue = newValue
-
-            if (path.startsWith(`${logicGatePathRoot}${pathSeparator}`)) {
-              const gateId = path.replace(`${logicGatePathRoot}${pathSeparator}`, '')
-              nodeValue = this.getLogicGateValue({ gateId });
-            }
-
-            switch (hook.type) {
-
-              case textNodeHookName:
-                document.getElementById(hook.nodeId).innerHTML = typeof nodeValue == 'string' ? nodeValue : JSON.stringify(nodeValue);
-                break;
-
-              case gateParticipantHookName:
-                triggerHooks(`${logicGatePathRoot}${pathSeparator}${hook.gateId}`);
-                break;
-
-            }
-          });
-        }
-
-        const reloadPath = path => {
-          // Because of babel optimizations, I need to call this outside
-          // the eval string to avoid an "undefined" error at runtime
-          const component = this.component;
-          const p = ['component.getInput()', path].join('.')
-          return eval(`${p} = ${p}`)
-        };
-
-        const fqPath = `${dataPathRoot}${pathSeparator}${isArray ?
-          `${parent}[${prop}]` :
-          `${parent.length ? `${parent}.` : ''}${prop}`
-          }`;
-
-        triggerHooks(fqPath);
-
-        if (oldValue === Object(oldValue) &&
-          oldValue !== newValue
-        ) {
-
-          const sPath = fqPath
-            .replace(`${dataPathRoot}${pathSeparator}`, '')
-            .replace(/\[[0-9]+\]/g, '_$');
-
-          const $id = this.schema.paths[sPath];
-          const validate = this.ajv.getSchema($id)
-
-          if (!validate(newValue)) {
-            throw new Error(`${fqPath} could not be mutated due to schema mismatch`, result.error);
+            // Note: When we need to modify any data variables
+            // remember to set RootProxy.#privilegedMode to true
           }
 
           this.toCanonicalObject({
             path: fqPath,
             obj: newValue
           });
+
+          newValue = this.getObserverProxy(newValue)
+
+          if (newValue[typeProperty] == mapType) {
+            newValue = getMapWrapper(newValue);
+          }
         }
 
-        obj[prop] = newValue;
-
-        // TODO: 
-        // * Implement hook for arrays. @random
-
-        // * Implement hook for maps
-
-        // * Implement hook for conditionals
-
-        // Reload children, if applicable
-        if (oldValue === Object(oldValue) &&
-          oldValue !== newValue
-        ) {
-          Object.keys(this.#dataPathHooks)
-            .filter(p => p !== fqPath && p.startsWith(`${fqPath}`))
-            .forEach(p => reloadPath(p.replace(`${dataPathRoot}${pathSeparator}`, '')));
-        }
-
-        // Reload parent, if applicable
-        if (parent.length) {
-          reloadPath(parent);
-        }
-
-        return true;
+        // If parent is a collection (array or map), we need to update blockData
       }
+
+      obj[prop] = newValue;
+
+      // TODO: 
+      // * Implement hook for arrays. @random
+
+      // * Implement hook for maps
+
+      // * Implement hook for conditionals
+
+      // Reload children, if applicable
+      if (isNonPrimitive) {
+
+        const childPaths = Object.keys(this.#dataPathHooks)
+          .filter(p => p !== fqPath && p.startsWith(`${fqPath}`));
+
+        if (newValue != null) {
+          childPaths.forEach(p => reloadPath(p.replace(`${dataPathRoot}${pathSeparator}`, '')));
+        } else {
+
+          // Todo: for each child path, get all hook types, and update the dom accordingly
+          // For example: In the case of textNode, we need to set .innerHTML to String "null"
+        }
+      }
+
+      // Reload parent, if applicable
+      if (parent.length) {
+        reloadPath(parent);
+      }
+
+      return true;
+    }
+
+    return new Proxy(object, {
+
+      deleteProperty: (obj, prop) => {
+
+        if (prop.startsWith('@')) {
+
+          // Meta properties can only be modified in privilegedMode
+          if (this.component.isInitialized() && !RootProxy.#isPriviledgedMode()) {
+            throw Error(`Permission denied to modify ${prop}`);
+          }
+
+          return delete obj[prop];
+        }
+
+        return set(obj, prop, undefined)
+      },
+
+      get: (obj, prop) => {
+
+        const globals = getUserGlobals();
+
+        switch (true) {
+
+          case Object.keys(globals).includes(prop):
+            assert(obj['@path'] == '');
+            return globals[prop];
+
+          default:
+            return obj[prop];
+        }
+      },
+
+      set
     });
+  }
+
+  getObjectDefiniton(path) {
+
+    const defPrefx = '#/definitions/';
+    const { schemaDefinitions } = this.component.constructor;
+
+    let def = schemaDefinitions[
+      path.length ?
+        global.clientUtils.toCanonicalPath(path) :
+        this.component.getComponentName()
+    ];
+
+    if (def.$ref) {
+      def = schemaDefinitions[def.$ref.replace(defPrefx, '')];
+    }
+
+    return (def.type == 'object' || def.type.includes('object')) &&
+      !def.additionalProperties ? def : null;
+  }
+
+  isMapPath(path) {
+    return path.length &&
+      !!this.component.constructor.schemaDefinitions[
+        global.clientUtils.toCanonicalPath(path)
+      ].additionalProperties;
+  }
+
+  isArrayPath(path) {
+    const canonicalPath = global.clientUtils.toCanonicalPath(path);
+    return path.length &&
+      !!this.component.constructor.schemaDefinitions[canonicalPath].items
+  }
+
+  isCollectionPath(path) {
+    return this.isMapPath(path) || this.isArrayPath(path);
+  }
+
+  static getDataVariables() {
+    const {
+      firstProperty, lastProperty, keyProperty, indexProperty, randomProperty,
+    } = RootProxy;
+    return [firstProperty, lastProperty, keyProperty, indexProperty, randomProperty];
+  }
+
+  static addDataVariables(obj, first, last, key, index, random) {
+    const {
+      firstProperty, lastProperty, keyProperty, indexProperty, randomProperty,
+    } = RootProxy;
+
+    Object.defineProperty(obj, firstProperty, { value: first, enumerable: false });
+    Object.defineProperty(obj, lastProperty, { value: last, enumerable: false });
+    Object.defineProperty(obj, keyProperty, { value: key, enumerable: false });
+    Object.defineProperty(obj, indexProperty, { value: index, enumerable: false });
+    Object.defineProperty(obj, randomProperty, { value: random, enumerable: false });
   }
 
   /**
@@ -732,84 +1132,179 @@ class RootProxy {
   */
   toCanonicalObject({ path, obj }) {
 
-    const { dataPathRoot, pathSeparator } = RootProxy;
+    const {
+      dataPathRoot, pathSeparator, pathProperty, typeProperty, mapType, mapKeyPrefix,
+      getMapWrapper, addDataVariables, getDataVariables
+    } = RootProxy;
 
     const isArray = Array.isArray(obj);
 
-    Object.defineProperty(obj, '@path', { value: path, configurable: false, writable: false });
+    Object.defineProperty(obj, pathProperty, { value: path, configurable: false, writable: false, enumerable: false });
+
     this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${path}`] = [];
 
-    const isMap = !isArray && obj['@type'] === 'Map';
+    switch (true) {
+      case this.isArrayPath(path):
+        assert(obj.constructor.name == 'Array');
+        break;
 
-    if (isMap) {
-      delete obj['@type'];
+      case this.isMapPath(path):
+        // If this is a map path, add set @type to Map, and trasform the keys
+        // to start with the map key prefix: $_
+
+        for (const k of Object.keys(obj).filter(k => !k.startsWith('@'))) {
+          obj[`${mapKeyPrefix}${k}`] = obj[k];
+          delete obj[k];
+        }
+
+        obj[typeProperty] = mapType;
+
+      default:
+        assert(obj.constructor.name == 'Object');
+
+        const def = this.getObjectDefiniton(path);
+
+        // Add missing properties and default to null
+        const keys = Object.keys(obj);
+        def.required
+          .filter(p => !p.startsWith('@') && !keys.includes(p))
+          .forEach(p => {
+            obj[p] = null;
+          });
     }
 
-    const keys = Object.keys(obj);
+    const isMap = !isArray && obj[typeProperty] === mapType;
+
+    const keys = [
+      ...Object.keys(obj)
+        .filter(k => k != typeProperty && k != pathProperty),
+      // Since our data variables are non-enumerable, we want to eagerly add them here.
+      // If obj has no data variables defined on it, this will have no effect, as it will
+      // be undefined and dataPathHooks will not be updated
+      ...getDataVariables()
+    ];
 
     for (let i = 0; i < keys.length; i++) {
       const prop = keys[i];
 
-      if (prop === '@path') {
-        continue;
-      }
-
       if (isMap && obj[prop] === Object(obj[prop])) {
         // Inject data variables
-        obj[prop]['@first'] = i == 0;
-        obj[prop]['@last'] = i == keys.length - 1;
-        obj[prop]['@key'] = prop
-          // Remove $_ prefixes for map keys, if applicable
-          .replace(/^\$_/g, '');
-        obj[prop]['@index'] = i;
-        obj[prop]['@random'] = global.clientUtils.randomString();
+        addDataVariables(
+          obj[prop],
+          i == 0,
+          i == keys.length - 1,
+          prop
+            // Remove $_ prefixes for map keys, if applicable
+            .replace(/^\$_/g, ''),
+          i,
+          global.clientUtils.randomString()
+        )
       }
 
       const p = `${path}${isArray ? `[${prop}]` : `${path.length ? '.' : ''}${prop}`}`;
       const isEmpty = obj[prop] == null || obj[prop] == undefined;
 
-        // eslint-disable-next-line default-case
-        switch (true) {
-          case !isEmpty && obj[prop].constructor.name === 'Object':
-            this.toCanonicalObject({ path: p, obj: obj[prop] });
-            obj[prop] = this.getObserverProxy(obj[prop]);
-            break;
+      // eslint-disable-next-line default-case
+      switch (true) {
+        case !isEmpty && obj[prop].constructor.name === 'Object':
+          this.toCanonicalObject({ path: p, obj: obj[prop] });
 
-          case !isEmpty && obj[prop].constructor.name === 'Array':
-            // eslint-disable-next-line no-plusplus
-            for (let i = 0; i < obj[prop].length; i++) {
+          obj[prop] = this.getObserverProxy(obj[prop]);
 
-              if (obj[prop][i] === Object(obj[prop][i])) {
+          if (obj[prop][typeProperty] == mapType) {
+            obj[prop] = getMapWrapper(obj[prop]);
+          }
 
-                const o = obj[prop][i];
+          break;
 
-                // Inject data variables
-                o['@first'] = i == 0;
-                o['@last'] = i == obj[prop].length - 1;
-                o['@key'] = o['@index'] = i;
-                o['@random'] = global.clientUtils.randomString();
+        case !isEmpty && obj[prop].constructor.name === 'Array':
+          // eslint-disable-next-line no-plusplus
+          for (let i = 0; i < obj[prop].length; i++) {
 
-                this.toCanonicalObject({ path: `${p}[${i}]`, obj: o });
+            if (obj[prop][i] === Object(obj[prop][i])) {
 
-                obj[prop][i] = this.getObserverProxy(o);
+              const o = obj[prop][i];
 
-              } else {
-                this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}[${i}]`] = [];
+              // Inject data variables
+              addDataVariables(
+                o,
+                i == 0,
+                i == obj[prop].length - 1,
+                i,
+                i,
+                global.clientUtils.randomString()
+              )
+
+              this.toCanonicalObject({ path: `${p}[${i}]`, obj: o });
+              obj[prop][i] = this.getObserverProxy(o);
+
+              if (obj[prop][i][typeProperty] == mapType) {
+                obj[prop][i] = getMapWrapper(obj[prop][i]);
               }
+
+            } else {
+              this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}[${i}]`] = [];
             }
+          }
 
-            Object.defineProperty(obj[prop], '@path', { value: p, configurable: false, writable: false });
-            this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}`] = [];
+          Object.defineProperty(obj[prop], pathProperty, { value: p, configurable: false, writable: false });
+          this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}`] = [];
 
-            obj[prop] = this.getObserverProxy(obj[prop]);
-            break;
+          obj[prop] = this.getObserverProxy(obj[prop]);
+
+          break;
+
+        case obj[prop] !== undefined:
+          this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}`] = [];
+          break;
+      }
+    }
+
+    return obj;
+  }
+
+  static getMapWrapper(obj) {
+    const { typeProperty, mapType, mapKeyPrefix } = RootProxy;
+
+    assert(obj[typeProperty] == mapType)
+
+    // At this point, obj is already wrapped with our observer proxy, so
+    // we need to run in a privileged context, before we delete this meta property
+    RootProxy.#runPriviledged(() => {
+      delete obj[typeProperty];
+    })
+
+    return new Proxy(obj, {
+      get: (obj, prop) => {
+
+        switch (true) {
+
+          case !!Object.getPrototypeOf(obj)[prop]:
+            return obj[prop];
 
           default:
-            this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}`] = [];
-            break;
+            // Props can start with "@" if <obj> is also a collection
+            // child, and the user wants to access data variable(s)
+            return obj[
+              `${prop.startsWith('@') || prop.startsWith(mapKeyPrefix)
+                ? '' : mapKeyPrefix}${prop}`
+            ]
         }
-    }
+      },
+      set: (obj, prop, newValue) => {
+
+        assert(!Object.getPrototypeOf(obj)[prop]);
+
+        // Props can start with "@" if <obj> is also a collection
+        // child, and the user wants to update data variable(s)
+        return obj[
+          `${prop.startsWith('@') || prop.startsWith(mapKeyPrefix)
+            ? '' : mapKeyPrefix}${prop}`
+        ] = newValue;
+      }
+    })
   }
+
 }
 
 module.exports = RootProxy;

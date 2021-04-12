@@ -1,5 +1,8 @@
 
 /* eslint-disable no-underscore-dangle */
+
+const anyIndex = /\[[0-9]+\]/g;
+
 module.exports = {
   flattenJson: (data) => {
     const result = {};
@@ -59,6 +62,7 @@ module.exports = {
 
         return `%%new components['${val['@type']}']({
           input: ${data},
+          loadable: !!global.appContext
         })%%`
           .replace(/\n/g, '');
       }
@@ -73,5 +77,40 @@ module.exports = {
 
   deepClone: (o) => {
     return JSON.parse(JSON.stringify(o));
+  },
+
+  getSegments: ({ original }) => {
+    const tailIndex = /(\[[0-9]+\])+$/g;
+
+    const indexes = (original.match(tailIndex) || []).join('');
+
+    const segments = [
+      original.replace(
+        new RegExp(`${global.clientUtils.escapeRegExp(indexes)}$`),
+        ''
+      ),
+    ];
+
+    if (indexes.length) {
+      indexes.match(anyIndex)
+        .forEach(index => segments.push(index))
+    }
+
+    return segments;
+  },
+
+  toCanonicalPath: (fqPath, separator='.') => {
+    return fqPath.split(separator)
+      .map(p => global.clientUtils.getSegments({
+        original: p,
+      }).map((segment) => {
+        switch (true) {
+          case !!segment.match(anyIndex):
+            return '_$';
+          case segment.startsWith('$_'):
+            return '$_';
+          default: return segment;
+        }
+      }).join('')).join(separator);
   }
 };

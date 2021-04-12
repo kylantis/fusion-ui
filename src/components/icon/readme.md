@@ -8,3 +8,4 @@ https://www.lightningdesignsystem.com/components/icons/
 #### Usage
 - To automatically refresh icon set, run
 `node update-icon-set.js`
+- When specifying sizes, use LARGE and below

@@ -28,12 +28,12 @@ fs.readdirSync(iconsDir)
 
 const config = JSON.parse(fs.readFileSync(configFile));
 
-config.literals.name.allowed = [];
+config.scalars.name.allowed = [];
 
 for (const iconType in icons) {
-    assert(config.literals.type.allowed.includes(iconType));
+    assert(config.scalars.type.allowed.includes(iconType));
     icons[iconType].forEach(iconName => {
-        const arr = config.literals.name.allowed;
+        const arr = config.scalars.name.allowed;
         if (!arr.includes(iconName)) {
             arr.push(iconName);
         }
@@ -43,14 +43,14 @@ for (const iconType in icons) {
 const iconTypes = Object.keys(icons);
 const anyType = iconTypes[utils.getRandomInt(0, iconTypes.length - 1)];
 
-config.literals.type.defaults = [anyType];
+config.scalars.type.defaults = [anyType];
 
-// config.literals.name.defaults = icons[anyType].slice(0, 5);
+// config.scalars.name.defaults = icons[anyType].slice(0, 5);
 
-config.literals.name.defaults = [];
+config.scalars.name.defaults = [];
 for (let i = 0; i < 5; i++) {
     const index = utils.getRandomInt(0, icons[anyType].length - 1);
-    config.literals.name.defaults.push(icons[anyType][index]);
+    config.scalars.name.defaults.push(icons[anyType][index]);
 }
 
 fs.writeFileSync(configFile, JSON.stringify(config, null, 2));

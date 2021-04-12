@@ -9,10 +9,10 @@ class CustomCtxRenderer extends RootCtxRenderer {
   static partialNameHash = '__name';
 
   constructor({
-    id, input, loadable, parent, logger,
+    id, input, loadable, logger,
   } = {}) {
     super({
-      id, input, loadable, parent, logger,
+      id, input, loadable, logger,
     });
 
     this.canonicalHash = {};
@@ -307,7 +307,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
             return value;
 
           // eslint-disable-next-line no-undef
-          case type === 'Component' && value instanceof BaseComponent:
+          case type === 'Component' && (value == null || value instanceof BaseComponent):
             return value;
         }
       }

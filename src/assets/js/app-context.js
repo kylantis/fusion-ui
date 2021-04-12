@@ -30,6 +30,8 @@ class AppContext {
     this.logger = logger;
     this.userGlobals = userGlobals;
 
+    this.components = {};
+
     if (self.WorkerGlobalScope && !appId) {
       throw new Error('Empty appId');
     }
@@ -70,6 +72,8 @@ class AppContext {
     if (!AppContext.#initialized) {
       await this.loadGlobalDependencies();
     }
+
+    await this.loadEnums();
 
     await this.loadComponentClasses({ rootComponent });
 
@@ -121,15 +125,16 @@ class AppContext {
         this.loadResource({
           url: dependency.url,
           moduleType: dependency.moduleType,
+          esm: dependency.esm,
           // We 'll process them in order below
-          process: false
+          process: false,
         }).then(r => ({ ...r, namespace: dependency.namespace }))
       );
     }
 
     return Promise.all(promises).then((responses) => {
       for (const response of responses) {
-        const { contents, moduleType, url, namespace } = response;
+        const { contents, moduleType, url, namespace, esm } = response;
         const f = this.processScript({ contents, moduleType, url });
 
         // eslint-disable-next-line default-case
@@ -140,7 +145,7 @@ class AppContext {
           case f instanceof Object && !!Object.keys(f).length:
             // eslint-disable-next-line no-undef
             assert(namespace);
-            self[namespace] = f;
+            self[namespace] = esm ? f.default : f;
             break;
         }
       }
@@ -150,6 +155,14 @@ class AppContext {
   loadGlobalDependencies() {
     return this.loadDependencies({
       dependencies: this.getGlobalScriptURLs()
+    });
+  }
+
+  loadEnums() {
+    return this.loadResource({
+      url: '/components/enums.json', asJson: true
+    }).then(enums => {
+      self.appContext.enums = enums;
     });
   }
 
@@ -241,7 +254,8 @@ class AppContext {
       '/assets/js/web-renderer.min.js',
       '/assets/js/base-component.min.js',
       '/assets/js/root-context.min.js',
-      'https://cdnjs.cloudflare.com/ajax/libs/ajv/6.12.6/ajv.min.js'
+      // 'https://cdnjs.cloudflare.com/ajax/libs/ajv/7.2.3/ajv7.min.js',
+      { url: '/assets/js/cdn/ajv.min.js', moduleType: 'cjs', namespace: 'Ajv', esm: true },
     ];
     return urls;
   }
@@ -270,6 +284,7 @@ class AppContext {
         const mod = { exports: {} };
         eval(`(function (module, exports) { ${contents}\n//*/\n})(mod, mod.exports);\n//@ sourceURL=${url}`);
         result = mod.exports;
+      break;
 
       case 'inline':
         if (inlineScope) {
@@ -278,6 +293,7 @@ class AppContext {
         // eslint-disable-next-line no-unused-vars
         const module = { exports: {} };
         result = eval(contents);
+      break;
     }
     this.logger.info(`Loaded ${url}`);
     return result;
@@ -289,27 +305,36 @@ class AppContext {
    * - URL should contain only path compnent
    */
   async loadResource({
-    url, asJson = false, moduleType, inlineScope, process = true,
+    url, asJson = false, moduleType, esm, inlineScope, process = true,
   }) {
     url = this.normalizeURL(url);
 
     return this.#fetchApi(`${url}`, { method: 'GET' })
-      .then(response => response[asJson ? 'json' : 'text']()
-        .then((contents) => {
-          let result = contents;
+      .then(res => {
+        if (!res.ok) {
+          throw Error(res.statusText);
+        }
+        return res;
+      })
+      .then(
+        response => response[asJson ? 'json' : 'text']()
+          .then((contents) => {
+            let result = contents;
 
-          if (!asJson) {
-            if (process) {
-              result = this.processScript({ contents, url, inlineScope, moduleType });
-            } else {
-              result = {
-                moduleType,
-                contents,
-                url,
+            if (!asJson) {
+              if (process) {
+                result = this.processScript({ contents, url, inlineScope, moduleType });
+              } else {
+                result = {
+                  moduleType,
+                  contents,
+                  url,
+                  esm,
+                }
               }
             }
-          }
-          return result;
-        }));
+            return result;
+          })
+      );
   }
 }

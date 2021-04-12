@@ -1,0 +1,70 @@
+{
+  "superclass": null,
+  "collections": {
+    "tabs": {
+      "minLength": 5,
+      "singularType": "Tab"
+    }
+  },
+  "scalars": {
+    "tabs_$.isActive": {
+      "type": "Boolean"
+    },
+    "appName": {
+      "type": "String",
+      "defaults": [
+        "App Studio"
+      ]
+    },
+    "useWaffleIcon": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "tabs_$.identifier": {
+      "type": "String"
+    },
+    "tabs_$.title": {
+      "type": "String",
+      "defaults": [
+        "DashboardPage",
+        "UsersPage",
+        "InvoicePage",
+        "SettingsPage",
+        "OrdersPage",
+        "ListingsPage"
+      ]
+    },
+    "tabs_$.assistiveText": {
+      "type": "String"
+    },
+    "tabs_$.content": {
+      "type": "componentRef"
+    },
+    "useDivider": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "type": {
+      "type": "String",
+      "allowed": [
+        "tab_bar",
+        "navigation_bar"
+      ],
+      "defaults": [
+        "tab_bar"
+      ]
+    },
+    "switcher.title": {
+      "type": "String",
+      "defaults": [
+        "Object"
+      ]
+    },
+    "switcher.content": {
+      "type": "componentRef"
+    },
+    "switcher.isActive": {
+      "type": "String"
+    }
+  }
+}

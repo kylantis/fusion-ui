@@ -2,67 +2,67 @@
 {{ style href="/assets/styles/base.min.css" }}
 
 
-{{!-- <div class="slds-dropdown-trigger slds-dropdown-trigger_click slds-is-open"> --}}
+  <div class="slds-dropdown
+  {{size ? "slds-dropdown_${size}" : "slds-dropdown_x-small"}}
+  {{isSubMenu ? "slds-dropdown_submenu" : ''}}
+  {{isSubMenu ? direction ? 'slds-dropdown_submenu-${direction}' : 'slds-dropdown_submenu-right' : 
+    direction ? 'slds-dropdown_${direction}' : ''}}"
+  style="
+  {{coordinates ? "position: absolute; transform: translateX(0%); left: ${coordinates.X}; top: ${coordinates.Y}" : ''}}
+  {{isSubMenu ? "margin-left: 0;" : ''}}
+  ">
 
-  <div class="slds-dropdown slds-dropdown_left slds-dropdown_small">
+    <ul class="slds-dropdown__list" role="menu" {{label ? "aria-label=\"${label}\"" : ""}}>
+ 
+      {{#each groups as |group groupIndex|}}
 
-    <ul class="slds-dropdown__list" role="menu" aria-label="Show More">
+      {{#if title}}
+      <li class="slds-dropdown__header slds-truncate {{(groupIndex gt 0) ? 'slds-has-divider_top-space' : ''}}" title="{{title}}" role="separator">
+        <span>{{title}}</span>
+      </li>
+      {{/if}}
 
-      {{#each def as |i|}}
-        {{p}}
+      {{#each items transform = "itemTransform" as |item itemIndex|}}
+
+      {{component Menu alias="subMenu"}}
+
+      <li 
+      class="slds-dropdown__item {{subMenu ? 'slds-has-submenu' : ''}}" 
+      role="{{not subMenu ? (../role eq 'presentation') ? ../role : 'menuitem${../role}' : 'presentation'}}"
+      identifier="{{identifier}}">
+
+        <a role="menuitem" 
+        tabindex="{{(groupIndex eq 0) and (@index eq 0) ? '0' : '-1'}}"
+        {{level ? "class=\"slds-has-${level}\"" : ""}}
+        {{ subMenu ? "aria-haspop=\"true\"" : "" }}>
+
+          <span class="slds-truncate" title="{{title}}">
+
+            {{component Icon alias="leftIcon"}}
+
+            {{#if leftIcon}}
+              {{> leftIcon marginRight='x-small' useCurrentColor=(level eq 'warning')}}
+            {{/if}}
+            
+            {{title}}
+          </span>
+
+            {{component Icon alias="rightIcon"}}
+          
+            {{#if rightIcon and (not subMenu)}}
+              {{> rightIcon marginLeft='small' useCurrentColor=(level eq 'warning')}}
+            {{/if}}
+        </a>
+            
+            {{#if subMenu and title}}
+              {{> subMenu label=title isSubMenu=true direction=subMenuDirection }}
+            {{/if}}
+
+      </li>
       {{/each}}
 
-
-      {{#each abc as |i j|}}
-
-        {{#each ./[0] as |i j|}}
-          {{l}}
-          {{!-- {{.}} --}}
-
-          {{@first}} {{@last}} {{@index}} {{@key}} {{@random}}
-
-        {{/each}}
-
-
-
       {{/each}}
-
-
-      <li class="slds-dropdown__header slds-truncate" title="Menu Sub Heading" role="separator">
-        <span>Menu Sub Heading</span>
-      </li>
-
-      <li class="slds-dropdown__item" role="presentation">
-        <a href="#" role="menuitem" tabindex="0">
-          <span class="slds-truncate" title="Menu Item One">Menu Item One</span>
-        </a>
-      </li>
-
-      <li class="slds-dropdown__item" role="presentation">
-        <a href="#" role="menuitem" tabindex="-1">
-          <span class="slds-truncate" title="Menu Item Two">Menu Item Two</span>
-        </a>
-      </li>
-
-
-      <li class="slds-dropdown__header slds-truncate" title="Menu Sub Heading" role="separator">
-        <span>Menu Sub Heading</span>
-      </li>
-
-      <li class="slds-dropdown__item" role="presentation">
-        <a href="#" role="menuitem" tabindex="-1">
-          <span class="slds-truncate" title="Menu Item One">Menu Item One</span>
-        </a>
-      </li>
-
-      <li class="slds-dropdown__item" role="presentation">
-        <a href="#" role="menuitem" tabindex="-1">
-          <span class="slds-truncate" title="Menu Item Two">Menu Item Two</span>
-        </a>
-      </li>
 
     </ul>
 
   </div>
-  {{!--
-</div> --}}
