@@ -9,33 +9,31 @@ class AppContext {
   static lazyLoadComponentTemplates = true;
 
   static #initialized;
-
   static #loadedScripts = [];
 
-  #fetchApi;
-
-  #importScriptApi;
-
-  #appId;
-
-  #serverUrl;
-
   constructor({
-    appId, logger, serverUrl, userGlobals,
+    logger, userGlobals,
   }) {
 
-    this.#appId = appId;
-    this.#serverUrl = serverUrl;
-
     this.logger = logger;
-    this.userGlobals = userGlobals;
 
-    this.components = {};
+    // Add user globals
+    this.userGlobals = {};
+    
+    for (const k in userGlobals) {
+      const v = userGlobals[k];
 
-    if (self.WorkerGlobalScope && !appId) {
-      throw new Error('Empty appId');
+      // Transform variables with their default values
+      switch (true) {
+        case k == 'rtl' && v == '{{rtl}}':
+          v = false;
+          break;
+      }
+
+      this.userGlobals[k] = v;
     }
 
+    this.components = {};
     this.setGlobals();
   }
 
@@ -45,11 +43,6 @@ class AppContext {
     if (self.appContext) {
       throw new Error('Duplicate appContext instance');
     }
-    this.#fetchApi = self.fetch.bind(self);
-    this.#importScriptApi = self.importScripts;
-
-    delete self.fetch;
-    delete self.importScripts;
 
     self.global = self;
     global.assert = (condition, message) => {
@@ -67,6 +60,14 @@ class AppContext {
     rootComponent, data, testMode,
   }) {
 
+    if (testMode == '{{testMode}}') {
+      testMode = true;
+    }
+
+    if (data == '{{data}}') {
+      data = false;
+    }
+
     this.testMode = testMode;
 
     if (!AppContext.#initialized) {
@@ -82,7 +83,7 @@ class AppContext {
     }
 
     const container = document.createElement('div');
-    container.id = `${this.#appId || 'app'}-container`;
+    container.id = 'app-container';
     document.body.appendChild(container);
 
     // eslint-disable-next-line no-new
@@ -100,10 +101,6 @@ class AppContext {
     if (testMode) {
       self.Component = component;
     }
-  }
-
-  getCanonicalURLPrefix() {
-    return this.#appId ? `/${this.#appId}` : '';
   }
 
   toCanonicalDependency(dependency) {
@@ -260,22 +257,6 @@ class AppContext {
     return urls;
   }
 
-  normalizeURL(resource) {
-    let url;
-    try {
-      url = new URL(resource).toString();
-      if (url.hostname === this.#serverUrl.hostname) {
-        throw new Error(`Absolute URL: ${resource} not allowed`);
-      }
-    } catch (e) {
-      if (!resource.startsWith('/')) {
-        throw new Error(`Malformed URL: ${resource}`);
-      }
-      url = `${this.getCanonicalURLPrefix()}${resource}`;
-    }
-    return url;
-  }
-
   processScript({ contents, inlineScope, moduleType, url }) {
     let result;
     // eslint-disable-next-line default-case
@@ -307,9 +288,8 @@ class AppContext {
   async loadResource({
     url, asJson = false, moduleType, esm, inlineScope, process = true,
   }) {
-    url = this.normalizeURL(url);
 
-    return this.#fetchApi(`${url}`, { method: 'GET' })
+    return self.fetch(`${url}`, { method: 'GET' })
       .then(res => {
         if (!res.ok) {
           throw Error(res.statusText);

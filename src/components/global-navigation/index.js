@@ -24,8 +24,6 @@ class GlobalNavigation extends BaseComponent {
                 const items = this.getItems();
                 const { hasSubMenu, content, li } = items[identifier];
 
-                console.info();
-
                 if (content) {
                     this.setActiveItem(identifier);
 

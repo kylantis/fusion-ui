@@ -376,7 +376,7 @@ class RootCtxRenderer extends BaseRenderer {
       return '';
     }
 
-    // NOTE: When implmenting this:
+    // NOTE: When implementing this:
     // During an active AttributeBindContext, if a
     // muustache statement resolves to either an empty
     // string or somethng that contains "="", then skip that
