@@ -1,7 +1,7 @@
 {{ style href="/assets/styles/salesforce-lightning-design-system.min.css" }}
 {{ style href="/assets/styles/base.min.css" }}
 
-<div class="slds-context-bar" {{(type eq "tab_bar" ) ? "slds-context-bar_tabs" : "" }}>
+<div class="slds-context-bar slds-context-bar_tabs">
 
   <div class="slds-context-bar__primary">
 
@@ -30,7 +30,7 @@
           {{component Icon alias="icon"}}
 
           {{#if icon}}
-            {{> icon}}
+          {{> icon}}
           {{/if}}
 
           {{/if}}
@@ -45,70 +45,28 @@
       </span>
     </div>
 
-
-    {{#if (type eq "tab_bar") and switcher }}
-
-    {{#with switcher transform="itemTransform" as |switcher|}}
-
-    {{component alias="content"}}
-    {{component Menu alias="subMenu"}}
-
-    <div
-      class="slds-context-bar__item slds-context-bar__object-switcher slds-context-bar__dropdown-trigger slds-dropdown-trigger"
-      {{!-- As defined in GlobalNavigation.getSwitcherIdentifier() --}}
-      identifier="switcher_identifier">
-
-      <a class="slds-context-bar__label-action">
-        <span class="slds-truncate" title="{{title}}">{{title}}</span>
-      </a>
-
-      {{#if subMenu}}
-
-      <div class="slds-context-bar__icon-action">
-        {{> Icon role="button" type='utility' name='chevrondown' buttonSize="x-small" }}
-      </div>
-
-      {{> subMenu direction='right' size='xx-small' coordinates=null }}
-
-      {{/if}}
-
-    </div>
-
-    <div class="slds-context-bar__item slds-dropdown-trigger slds-dropdown-trigger_click">
-      <div class="slds-context-bar__icon-action">
-        {{> Icon role="button" type='utility' title="Open a New Tab" name='add' buttonSize="x-small" }}
-      </div>
-    </div>
-
-    {{/with}}
-
-    {{/if}}
-
   </div>
 
 
   <nav class="slds-context-bar__secondary">
 
-    {{#if type eq "tab_bar" }}
-        <div class="slds-context-bar__vertical-divider"></div>
-    {{/if}}
+    <div class="slds-context-bar__vertical-divider"></div>
 
-    <ul class="slds-grid" {{(type eq "tab_bar" ) ? "role='tablist'" : "" }}>
+    <ul class="slds-grid" role="tablist">
 
-      {{#each tabs transform = "itemTransform" as |tab itemIndex|}}
+      {{#each tabs transform = "tabTransform" as |tab tabIndex|}}
 
       {{component Menu alias="subMenu"}}
       {{component alias="content"}}
-
 
       {{#if ../useDivider }}
       <div class="slds-context-bar__item--divider-left"></div>
       {{/if}}
 
-      {{!-- slds-context-bar__dropdown-trigger slds-dropdown-trigger --}}
-      {{!-- slds-dropdown-trigger_click slds-no-hover --}}
-      <li class="slds-context-bar__item slds-context-bar__dropdown-trigger slds-dropdown-trigger"
+      <li
+        class="slds-context-bar__item slds-context-bar__dropdown-trigger slds-dropdown-trigger slds-dropdown-trigger_click"
         identifier="{{identifier}}" role="presentation">
+
         <a class="slds-context-bar__label-action" title="{{title}}">
           <span class="slds-assistive-text">{{assistiveText ? assistiveText : title}}</span>
           <span class="slds-truncate" title="{{title}}">{{title}}</span>
@@ -117,19 +75,41 @@
         {{!-- <span class="slds-hint-parent"></span> --}}
 
         {{#if subMenu}}
-        <div class="slds-context-bar__icon-action slds-p-left_none">
-          <button class="slds-button slds-button_icon slds-button_icon slds-context-bar__button" aria-haspopup="true"
-            title="Open menu item submenu" type="button">
-            {{> Icon type='utility' name='chevrondown' }}
-            <span class="slds-assistive-text">Open menu item submenu</span>
-          </button>
+        <div class="slds-context-bar__icon-action slds-p-left_none slds-p-right_none trigger-submenu">
+          {{> Icon role="button" type='utility' name='chevrondown' buttonSize="x-small" title="Show submenu"}}
         </div>
-        {{> subMenu direction='right' size='xx-small' coordinates=null }}
+        {{!-- direction="right" --}}
+        {{> subMenu size='xx-small' coordinates=null}}
         {{/if}}
+
+        {{#if closeable}}
+        <div class="slds-context-bar__icon-action slds-col_bump-left slds-p-left_none trigger-close">
+          {{> Icon role="button" type='utility' name='close' buttonSize="x-small" title="Close Tab"}}
+        </div>
+        {{/if}}
+
       </li>
 
       {{/each}}
 
     </ul>
   </nav>
+
 </div>
+
+
+{{!-- Todo: Implement inline transforms --}}
+
+{{!-- We are using transformOrder = 0, so that contentTransform can be executed
+before other transforms on this page --}}
+{{#with . transform = "contentTransform" transformOrder = 0 as |x|}}
+<div class="content" style="width: 100%; height: 100%;"></div>
+{{/with}}
+
+<style>
+    .global-navigation-cd {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+  }
+</style>

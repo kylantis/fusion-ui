@@ -23,7 +23,8 @@ class AppContext {
     for (const k in userGlobals) {
       const v = userGlobals[k];
 
-      // Transform variables with their default values
+      // Transform variables with their default (falsy) values
+      // This is usually done because the server did not provide us with any value
       switch (true) {
         case k == 'rtl' && v == '{{rtl}}':
           v = false;
@@ -84,6 +85,8 @@ class AppContext {
 
     const container = document.createElement('div');
     container.id = 'app-container';
+    container.style.display = 'contents';
+    
     document.body.appendChild(container);
 
     // eslint-disable-next-line no-new
@@ -250,9 +253,7 @@ class AppContext {
       '/assets/js/custom-ctx-renderer.min.js',
       '/assets/js/web-renderer.min.js',
       '/assets/js/base-component.min.js',
-      '/assets/js/root-context.min.js',
-      // 'https://cdnjs.cloudflare.com/ajax/libs/ajv/7.2.3/ajv7.min.js',
-      { url: '/assets/js/cdn/ajv.min.js', moduleType: 'cjs', namespace: 'Ajv', esm: true },
+      '/assets/js/root-context.min.js'
     ];
     return urls;
   }

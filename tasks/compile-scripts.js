@@ -10,7 +10,6 @@ const uglify = require('gulp-uglify');
 const sourcemaps = require('gulp-sourcemaps');
 const rename = require('gulp-rename');
 const watch = require('gulp-watch');
-const log = require('fancy-log');
 
 const through = require('through2');
 
@@ -33,7 +32,7 @@ gulp.task('compile-scripts', () => gulp.src(['src/assets/js/**/*.js', '!src/asse
     mangle: false,
     compress: true,
   }).on('error', (msg) => {
-    log.error(msg);
+    console.error(msg);
   }))
   .pipe(sourcemaps.write())
   .pipe(rename(renameConfig))
@@ -47,7 +46,7 @@ gulp.task('compile-scripts:watch', () => watch(['src/assets/js/**/*.js', '!src/a
     mangle: false,
     compress: true,
   }).on('error', (msg) => {
-    log.error(msg);
+    console.error(msg);
   }))
   .pipe(sourcemaps.write())
   .pipe(rename(renameConfig))

@@ -1,0 +1,32 @@
+{
+  "superclass": null,
+  "collections": {
+    "items": {
+      "minLength": 5,
+      "singularType": "Item"
+    }
+  },
+  "scalars": {
+    "items_$.identifier": {
+      "type": "String"
+    },
+    "items_$.title": {
+      "type": "String",
+      "defaults": [
+        "DashboardPage",
+        "UsersPage",
+        "InvoicePage",
+        "SettingsPage",
+        "OrdersPage",
+        "ListingsPage"
+      ]
+    },
+    "items_$.assistiveText": {
+      "type": "String"
+    },
+    "useDivider": {
+      "type": "Boolean",
+      "defaultValue": false
+    }
+  }
+}

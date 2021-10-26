@@ -54,8 +54,7 @@
         "error",
         "success",
         "warning"
-      ],
-      "defaults": []
+      ]
     },
     "groups_$.required": {
       "type": "Boolean",

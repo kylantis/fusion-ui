@@ -1,0 +1,38 @@
+{
+  "superclass": null,
+  "collections": {
+    "items": {
+      "minLength": 5,
+      "singularType": "ItemsElement"
+    }
+  },
+  "scalars": {
+    "items_$.expanded": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "items_$.assistiveText": {
+      "type": "String"
+    },
+    "items_$.identifier": {
+      "type": "String"
+    },
+    "items_$.lineColor": {
+      "type": "String",
+      "allowed": "cssColor",
+      "defaults": [
+        "PowderBlue",
+        "PaleGreen",
+        "SteelBlue",
+        "MediumVioletRed",
+        "PeachPuff",
+        "Peru",
+        "Plum"
+      ]
+    },
+    "items_$.checkable": {
+      "type": "Boolean",
+      "defaultValue": true
+    }
+  }
+}

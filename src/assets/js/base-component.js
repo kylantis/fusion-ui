@@ -10,8 +10,10 @@ class BaseComponent extends WebRenderer {
 
   static #token;
 
+  #parent;
+
   constructor({
-    id, input, loadable, logger,
+    id, input, loadable, logger, parent
   } = {}) {
     super({
       id, input, loadable, logger,
@@ -24,11 +26,25 @@ class BaseComponent extends WebRenderer {
       RootCtxRenderer.setToken(BaseComponent.#token);
     }
 
+    this.#parent = parent;
     this.handlers = {};
+  }
+
+  getParent() {
+    return this.#parent;
+  }
+
+  escapeString() {
+    return true;
   }
 
   // eslint-disable-next-line class-methods-use-this
   toHtml(value) {
+
+    if (!this.escapeString()) {
+      return value;
+    }
+
     const { getDataVariables } = RootCtxRenderer;
 
     const replacer = (name, val) => {
@@ -159,6 +175,9 @@ class BaseComponent extends WebRenderer {
    * in it's object model. Note: this method is only invoked at compile-time.
    * Also, note that there is no way to define a map structure here. This can only
    * be done from the template
+   * 
+   * Todo: Can we add support for non-scalar attributes here by using a setter
+   * sometimes instead of a getter in the object proxy 
    */
   init() {
   }
@@ -198,6 +217,14 @@ class BaseComponent extends WebRenderer {
 
   defaultHandlers() {
     return {};
+  }
+
+  /**
+   * This indicates that this component requires a container
+   * @returns true | false
+   */
+  requiresContainer() {
+    return true;
   }
 
   ensureKnownEvent(event) {
@@ -246,6 +273,10 @@ class BaseComponent extends WebRenderer {
   preRender() {
   }
 
+  onMount() {
+    
+  }
+
   isMobile() {
     return navigator.userAgent.match(/Android/i)
       || navigator.userAgent.match(/webOS/i)
@@ -254,6 +285,15 @@ class BaseComponent extends WebRenderer {
       || navigator.userAgent.match(/iPod/i)
       || navigator.userAgent.match(/BlackBerry/i)
       || navigator.userAgent.match(/Windows Phone/i)
+  }
+
+  static getWrapperCssClass() {
+    const { htmlWrapperCssClassname } = RootCtxRenderer;
+    return htmlWrapperCssClassname;
+  }
+  
+  hooks() {
+    return {};
   }
 
 }

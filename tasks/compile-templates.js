@@ -7,7 +7,6 @@ const { Worker } = require("worker_threads");
 const gulp = require('gulp');
 const watch = require('gulp-watch');
 const through = require('through2');
-const log = require('fancy-log');
 
 const Preprocessor = require('../lib/template-preprocessor');
 const { processFile } = require('../lib/template-processor');
@@ -16,7 +15,6 @@ const { processFile } = require('../lib/template-processor');
 const gulpTransform = function ({ fromWatch = false } = {}) {
   return through.obj(async (vinylFile, _encoding, callback) => {
     const file = vinylFile.clone();
-    log.info(`\x1b[32m[Processing started for ${file.path}]\x1b[0m`);
 
     const dir = path.dirname(file.path);
 
@@ -29,6 +27,10 @@ const gulpTransform = function ({ fromWatch = false } = {}) {
 
     if (fromWatch) {
 
+      // We use the deasync node library to wait for quicktype to generate the types 
+      // files, but looping on the the event loop thread (which is what we are running in right now) 
+      // in that manner will block it, so we want to run the task on a worker thread instead
+      
       const worker = new Worker("./tasks/lib/process_file_worker.js", { workerData: { num: 1 } });
       worker.postMessage({
         dir,
@@ -37,7 +39,19 @@ const gulpTransform = function ({ fromWatch = false } = {}) {
 
       promise = new Promise((resolve, reject) => {
         worker.on('message', (msg) => {
-          resolve(msg);
+
+          if (msg.logLevel) {
+            const { logLevel, logMessage } = msg;
+            // This is a logging request
+            const fn = console[logLevel];
+            if (!fn) {
+              throw Error(`Unknown log level: ${logLevel}`);
+            } else {
+              fn(...logMessage);
+            }
+          } else {
+            resolve(msg);
+          }
         });
       })
 
@@ -57,10 +71,6 @@ const gulpTransform = function ({ fromWatch = false } = {}) {
       // eslint-disable-next-line no-buffer-constructor
       file.contents = Buffer.from(metadata || '');
 
-      if (metadata) {
-        log.info(`\x1b[32m[Processing completed]\x1b[0m`);
-      }
-
       callback(null, file);
     });
   });
@@ -73,13 +83,13 @@ const componentName = tailArgument.startsWith(componentArgPrefix) ?
   tailArgument.replace(componentArgPrefix, '') : null;
 
 gulp.task('compile-templates',
-  () => gulp.src([`src/components/${componentName || '**'}/index.view`])
+  () => gulp.src([`src/components/${componentName || '*'}/index.view`])
     .pipe(gulpTransform())
     .pipe(gulp.dest(`dist/components${componentName ? `/${componentName}` : ''}`)));
 
 gulp.task('compile-templates:watch', () => watch([
-  `src/components/${componentName || '**'}/*.view`,
-  `src/components/${componentName || '**'}/*.js`
+  `src/components/${componentName || '*'}/*.view`,
+  `src/components/${componentName || '*'}/*.js`
 ], { ignoreInitial: true })
   .pipe(gulpTransform({ fromWatch: true }))
   .pipe(gulp.dest(`dist/components${componentName ? `/${componentName}` : ''}`)));

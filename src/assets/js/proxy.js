@@ -51,6 +51,10 @@ class RootProxy {
 
   static gateParticipantHookName = 'gateParticipant';
 
+  static validateInputSchema = true;
+
+  static globalsBasePath = 'globals';
+
   #dataPathHooks;
 
   #logicGates;
@@ -259,7 +263,7 @@ class RootProxy {
 
     const {
       dataPathRoot, logicGatePathRoot,
-      pathSeparator, gateParticipantHookName
+      pathSeparator, gateParticipantHookName, globalsBasePath
     } = RootProxy;
 
     const includePath = prop.endsWith('!');
@@ -329,12 +333,25 @@ class RootProxy {
     const gateId = global.clientUtils.randomString();
 
     gate.participants
+      .filter(p => 
+        // Exclude synthetic functions
+        this.component.isSynthetic(p.replace('this.', ''))
+      )
       .map(p => {
+
+        // Data Path
         p = p.replace(
           `${this.component.getDataBasePath()}.`,
           `${dataPathRoot}${pathSeparator}`
         );
 
+        // Global Variable
+        p = p.replace(
+          `${this.component.getGlobalsBasePath()}.`,
+          `${dataPathRoot}${pathSeparator}${globalsBasePath}.`
+        );
+
+        // Data Variables
         const dataVariable = p.match(/(?<=\[')@\w+(?='\]$)/g);
         if (dataVariable) {
           p = p.replace(`['${dataVariable[0]}']`, `.${dataVariable[0]}`);
@@ -342,10 +359,10 @@ class RootProxy {
         return p;
       })
       .forEach(p => {
-          this.#dataPathHooks[p].push({
-            type: gateParticipantHookName,
-            gateId,
-          });
+        this.#dataPathHooks[p].push({
+          type: gateParticipantHookName,
+          gateId,
+        });
       });
 
     gate.blockData = global.clientUtils.deepClone(this.component.blockData);
@@ -471,9 +488,8 @@ class RootProxy {
 
   createObjectProxy() {
     const {
-      dataPathPrefix, logicGatePathPrefix, syntheticMethodPrefix,
+      dataPathPrefix, logicGatePathPrefix, syntheticMethodPrefix, globalsBasePath
     } = RootProxy;
-    const { getDataVariables } = RootCtxRenderer;
     // eslint-disable-next-line no-underscore-dangle
     const _this = this;
     return new Proxy({}, {
@@ -491,12 +507,14 @@ class RootProxy {
           case prop === Symbol.toPrimitive:
             return () => _this.component.toHtml(this.lastLookup);
 
-          case prop.startsWith('@root'):
-            // eslint-disable-next-line no-case-declarations
-            const arr = prop.split('.');
-            arr[0] = '_this.component.getRootGlobals()';
+          case prop.startsWith(globalsBasePath):
             // eslint-disable-next-line no-eval
-            return eval(arr.join('.'));
+            return eval(
+              _this.component.getGlobalsExecPath(prop)
+                .replace(
+                  'this.', '_this.component.'
+                )
+            );
 
           case !!(prop.match(dataPathPrefix) || prop.startsWith(syntheticMethodPrefix)):
             return this.resolveDataPath({ prop: prop.replace(dataPathPrefix, '') });
@@ -531,7 +549,7 @@ class RootProxy {
           case prop === Symbol.toPrimitive:
             return () => _this.component.toHtml(obj);
 
-          case !Number.isNaN(parseInt(prop, 10)):
+          case global.clientUtils.isNumber(prop):
             // At least access the context, so that our array proxy
             // created in setSyntheticContext(...) intercepts the value
             // and updates the synthetic context
@@ -548,6 +566,7 @@ class RootProxy {
 
   static create(component) {
 
+    const { validateInputSchema } = RootProxy;
     const proxy = new RootProxy({ component });
 
     proxy.component.proxyInstance = proxy;
@@ -566,7 +585,7 @@ class RootProxy {
       // Add our observer, to orchestrate data binding operations
       proxy.addDataObserver();
 
-      if (component.validateInput()) {
+      if (validateInputSchema && component.validateInput()) {
         // perform input validation
         proxy.validateInput();
       }
@@ -788,11 +807,12 @@ class RootProxy {
 
     this.component.constructor.schemaDefinitions = definitions;
 
-    this.component.constructor.ajv = new Ajv({
-      schemas: Object.values(definitions), allErrors: true,
+    this.component.constructor.ajv = new ajv7.default({
+      schemas: Object.values(definitions),
+      allErrors: true,
       allowUnionTypes: true,
+      inlineRefs: false
     });
-
   }
 
   validateInput() {
@@ -812,7 +832,7 @@ class RootProxy {
 
   addDataObserver() {
 
-    const { dataPathRoot, pathSeparator, getUserGlobals } = RootProxy;
+    const { dataPathRoot, pathSeparator, globalsBasePath } = RootProxy;
 
     this.toCanonicalObject({ path: '', obj: this.component.getInput() });
 
@@ -820,12 +840,13 @@ class RootProxy {
       this.getObserverProxy(this.component.getInput())
     );
 
-    // Add globals to dataPathHooks
-    // Todo: create a strategy for data-binding global variables
-
-    Object.keys(getUserGlobals()).forEach(variable => {
-      this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${variable}`] = [];
-    });
+    // Add globals to dataPathHooks 
+    // Even though this is registered here, global variables are generally never 
+    // expected to change
+    Object.keys(this.getGlobalVariables())
+      .forEach(variable => {
+        this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${globalsBasePath}.${variable}`] = [];
+      });
 
 
     // when whole object are removed, via (array or object) operations, also, we need
@@ -836,21 +857,45 @@ class RootProxy {
     return this.#dataPathHooks;
   }
 
-  static getUserGlobalVariables() {
+  getGlobalVariables() {
     return {
-      'rtl': 'Literal'
+      // User Global Variables
+      ...self.appContext.userGlobals,
+
+      // Component Global Variables
+      ...{
+        componentId: this.component.getId()
+      }
     }
   }
 
-  static getUserGlobals() {
-    return self.appContext.userGlobals;
+  // Note: We cannot have a global variable called 'data', as this will be immediately
+  // overriden by the 'data' object we pass to handlebars
+  static getGlobalVariableNames() {
+    return [
+      // User Global Variables
+      'rtl',
+
+      // Component Global Variables
+      'componentId'
+    ];
+  }
+
+  static createDataChangeEvent({ path, oldValue, newValue }) {
+    return class DataChangeEvent extends CustomEvent {
+      constructor() {
+        super('DataChangeEvent', {
+          detail: { path, oldValue, newValue }
+        });
+      }
+    };
   }
 
   getObserverProxy(object) {
     const {
       dataPathRoot, logicGatePathRoot, pathSeparator, textNodeHookName,
       gateParticipantHookName, pathProperty, typeProperty, mapType,
-      getUserGlobals, getMapWrapper
+      getUserGlobals, getMapWrapper, createDataChangeEvent
     } = RootProxy;
     const { getDataVariables } = RootCtxRenderer;
 
@@ -883,7 +928,7 @@ class RootProxy {
       const isArray = obj.constructor.name === 'Array';
 
       if (isArray &&
-        Number.isNaN(parseInt(prop, 10)) &&
+        !global.clientUtils.isNumber(prop) &&
         ![...getDataVariables(), pathProperty].includes(prop)
       ) {
         throw new Error(`Invalid index: ${prop} for array: ${obj['@path']}`);
@@ -917,6 +962,19 @@ class RootProxy {
       }
 
       const triggerHooks = path => {
+
+        const customHook = this.component.hooks()[path];
+
+        if (customHook && customHook instanceof Function) {
+          const evt = createDataChangeEvent({ path, oldValue, newValue });
+
+          customHook(evt);
+
+          if (evt.defaultPrevented) {
+            return;
+          }
+        }
+
         const hooks = this.#dataPathHooks[path];
 
         hooks.forEach(hook => {
@@ -938,13 +996,15 @@ class RootProxy {
               triggerHooks(`${logicGatePathRoot}${pathSeparator}${hook.gateId}`);
               break;
 
+            // Todo: Add other hook types
+
           }
         });
       }
 
       const reloadPath = path => {
         // Because of babel optimizations, I need to call this outside
-        // the eval string to avoid an "undefined" error at runtime
+        // the eval string to avoid getting an "undefined" error at runtime
         const component = this.component;
         const p = ['component.getInput()', path].join('.')
         return eval(`${p} = ${p}`)
@@ -1036,7 +1096,6 @@ class RootProxy {
     }
 
     return new Proxy(object, {
-
       deleteProperty: (obj, prop) => {
 
         if (prop.startsWith('@')) {
@@ -1051,22 +1110,6 @@ class RootProxy {
 
         return set(obj, prop, undefined)
       },
-
-      get: (obj, prop) => {
-
-        const globals = getUserGlobals();
-
-        switch (true) {
-
-          case Object.keys(globals).includes(prop):
-            assert(obj['@path'] == '');
-            return globals[prop];
-
-          default:
-            return obj[prop];
-        }
-      },
-
       set
     });
   }

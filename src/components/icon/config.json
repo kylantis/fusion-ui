@@ -8,8 +8,7 @@
     },
     "size": {
       "type": "String",
-      "allowed": "size",
-      "defaults": []
+      "allowed": "size"
     },
     "name": {
       "type": "String",
@@ -1057,13 +1056,11 @@
     },
     "backgroundColor": {
       "type": "String",
-      "allowed": "cssColor",
-      "defaults": []
+      "allowed": "cssColor"
     },
     "cssColor": {
       "type": "String",
-      "allowed": "cssColor",
-      "defaults": []
+      "allowed": "cssColor"
     },
     "marginLeft": {
       "type": "String",

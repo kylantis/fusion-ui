@@ -62,7 +62,7 @@ module.exports = {
 
         return `%%new components['${val['@type']}']({
           input: ${data},
-          loadable: !!global.appContext
+          loadable: !!self.appContext
         })%%`
           .replace(/\n/g, '');
       }
@@ -112,5 +112,9 @@ module.exports = {
           default: return segment;
         }
       }).join('')).join(separator);
+  },
+
+  isNumber: (n) => {
+    return !Number.isNaN(parseInt(n, 10))
   }
 };

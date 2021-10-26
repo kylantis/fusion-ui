@@ -1,0 +1,50 @@
+{{ style href="/assets/styles/salesforce-lightning-design-system.min.css" }}
+{{ style href="/assets/styles/base.min.css" }}
+
+<div class="slds-context-bar">
+
+  <nav class="slds-context-bar__secondary">
+
+    <ul class="slds-grid">
+
+      {{#each items transform = "itemTransform" as |item itemIndex|}}
+
+      {{component Menu alias="subMenu"}}
+
+      {{#if ../useDivider }}
+      <div class="slds-context-bar__item--divider-left"></div>
+      {{/if}}
+      
+      <li class="slds-context-bar__item slds-context-bar__dropdown-trigger slds-dropdown-trigger"
+        identifier="{{identifier}}" role="presentation">
+        <a class="slds-context-bar__label-action" title="{{title}}">
+          <span class="slds-assistive-text">{{assistiveText ? assistiveText : title}}</span>
+          <span class="slds-truncate" title="{{title}}">{{title}}</span>
+        </a>
+
+        {{!-- <span class="slds-hint-parent"></span> --}}
+
+        {{#if subMenu}}
+        <div class="slds-context-bar__icon-action slds-p-left_none">
+            {{> Icon type='utility' name='chevrondown' size="xx-small"}}
+            <span class="slds-assistive-text">Open menu item submenu</span>
+        </div>
+        {{> subMenu size='xx-small' coordinates=null }}
+        {{/if}}
+      </li>
+
+      {{/each}}
+
+    </ul>
+  </nav>
+
+
+
+
+
+
+
+
+
+  
+</div>
