@@ -52,7 +52,7 @@ class GlobalNavigation extends BaseComponent {
         // .content div, it is wrapped in a block, and ultimately is rendered
         // within a wrapper div
         const { getWrapperCssClass } = BaseComponent;
-        return `#${this.getId()} > .${getWrapperCssClass()} > .content`;
+        return `#${this.getId()} > div > .${getWrapperCssClass()} > .content`;
     }
 
     getContentContainer() {
@@ -130,7 +130,10 @@ class GlobalNavigation extends BaseComponent {
         const contentDiv = document.createElement('div');
 
         contentDiv.id = this.getContentId(identifier);
-        contentDiv.classList.add('global-navigation-cd');
+
+        contentDiv.style.position = 'absolute';
+        contentDiv.style.width = '100%';
+        contentDiv.style.height = '100%';
 
         contentDiv.style.zIndex = -1;
 

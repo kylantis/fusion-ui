@@ -2,20 +2,17 @@
   "superclass": null,
   "collections": {
     "groups": {
-      "minLength": 2,
+      "minLength": 1,
       "singularType": "Group"
     },
     "groups_$.items": {
-      "minLength": 2,
+      "minLength": 3,
       "singularType": "Item"
     }
   },
   "scalars": {
     "groups_$.title": {
-      "type": "String",
-      "defaults": [
-        "Menu Sub Heading"
-      ]
+      "type": "String"
     },
     "groups_$.items_$.title": {
       "type": "String",
@@ -25,7 +22,8 @@
       ]
     },
     "label": {
-      "type": "String"
+      "type": "String",
+      "defaults": []
     },
     "groups_$.role": {
       "type": "String",
@@ -39,7 +37,8 @@
       ]
     },
     "groups_$.items_$.identifier": {
-      "type": "String"
+      "type": "String",
+      "defaults": []
     },
     "groups_$.checkIconPosition": {
       "type": "String",
@@ -83,6 +82,18 @@
     },
     "coordinates.X": {
       "type": "Number"
+    },
+    "groups_$.items_$.leftIcon": {
+      "type": "Icon",
+      "isNull": true
+    },
+    "groups_$.items_$.rightIcon": {
+      "type": "Icon",
+      "isNull": true
+    },
+    "groups_$.items_$.subMenu": {
+      "type": "Menu",
+      "isNull": true
     }
   }
 }

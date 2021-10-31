@@ -51,7 +51,7 @@ class RootProxy {
 
   static gateParticipantHookName = 'gateParticipant';
 
-  static validateInputSchema = true;
+  static validateInputSchema = false;
 
   static globalsBasePath = 'globals';
 

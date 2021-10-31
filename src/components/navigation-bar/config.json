@@ -8,7 +8,8 @@
   },
   "scalars": {
     "items_$.identifier": {
-      "type": "String"
+      "type": "String",
+      "defaults": []
     },
     "items_$.title": {
       "type": "String",
@@ -22,11 +23,16 @@
       ]
     },
     "items_$.assistiveText": {
-      "type": "String"
+      "type": "String",
+      "defaults": []
     },
     "useDivider": {
       "type": "Boolean",
       "defaultValue": false
+    },
+    "items_$.subMenu": {
+      "type": "Menu",
+      "isNull": false
     }
   }
 }

@@ -1,6 +1,8 @@
 {{ style href="/assets/styles/salesforce-lightning-design-system.min.css" }}
 {{ style href="/assets/styles/base.min.css" }}
 
+<div style="position: relative; min-height: 100% !important; height: auto; overflow: auto;">
+
 <div class="slds-context-bar slds-context-bar_tabs">
 
   <div class="slds-context-bar__primary">
@@ -79,7 +81,8 @@
           {{> Icon role="button" type='utility' name='chevrondown' buttonSize="x-small" title="Show submenu"}}
         </div>
         {{!-- direction="right" --}}
-        {{> subMenu size='xx-small' coordinates=null}}
+        {{!-- size='xx-small' --}}
+        {{> subMenu coordinates=null}}
         {{/if}}
 
         {{#if closeable}}
@@ -103,13 +106,7 @@
 {{!-- We are using transformOrder = 0, so that contentTransform can be executed
 before other transforms on this page --}}
 {{#with . transform = "contentTransform" transformOrder = 0 as |x|}}
-<div class="content" style="width: 100%; height: 100%;"></div>
+<div class="content"></div>
 {{/with}}
 
-<style>
-    .global-navigation-cd {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-  }
-</style>
+</div>
