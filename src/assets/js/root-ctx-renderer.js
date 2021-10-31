@@ -176,7 +176,7 @@ class RootCtxRenderer extends BaseRenderer {
 
       // Even after all promises are resolved, we need to wait
       // for this component to be fully mounted. This is
-      // especially application if there async custom blocks or
+      // especially important if there async custom blocks or
       // sub-components inside this component
       .then(() => Promise.all(this.futures))
 

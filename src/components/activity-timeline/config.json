@@ -12,10 +12,12 @@
       "defaultValue": true
     },
     "items_$.assistiveText": {
-      "type": "String"
+      "type": "String",
+      "defaults": []
     },
     "items_$.identifier": {
-      "type": "String"
+      "type": "String",
+      "defaults": []
     },
     "items_$.lineColor": {
       "type": "String",
@@ -33,6 +35,10 @@
     "items_$.checkable": {
       "type": "Boolean",
       "defaultValue": true
+    },
+    "items_$.icon": {
+      "type": "Icon",
+      "isNull": false
     }
   }
 }

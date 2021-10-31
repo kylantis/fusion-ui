@@ -24,15 +24,16 @@
     "tabs_$.content": {
       "type": "componentRef",
       "defaults": [
-        "Accordion"
+        "ActivityTimeline"
       ]
     },
     "useDivider": {
       "type": "Boolean",
-      "defaultValue": false
+      "defaultValue": true
     },
     "tabs_$.identifier": {
-      "type": "String"
+      "type": "String",
+      "defaults": []
     },
     "tabs_$.title": {
       "type": "String",
@@ -46,11 +47,20 @@
       ]
     },
     "tabs_$.assistiveText": {
-      "type": "String"
+      "type": "String",
+      "defaults": []
     },
     "tabs_$.closeable": {
       "type": "Boolean",
       "defaultValue": true
+    },
+    "icon": {
+      "type": "Icon",
+      "isNull": false
+    },
+    "tabs_$.subMenu": {
+      "type": "Menu",
+      "isNull": false
     }
   }
 }

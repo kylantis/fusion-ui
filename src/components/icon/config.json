@@ -1086,7 +1086,8 @@
       ]
     },
     "title": {
-      "type": "String"
+      "type": "String",
+      "defaults": []
     },
     "buttonSize": {
       "type": "String",
