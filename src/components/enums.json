@@ -157,9 +157,9 @@
         "large",
         "x-large",
         "xx-large"
-      ],
-      "direction": [
+    ],
+    "direction": [
         "left",
         "right"
-      ]
+    ]
 }

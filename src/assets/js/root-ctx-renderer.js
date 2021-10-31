@@ -11,6 +11,8 @@ class RootCtxRenderer extends BaseRenderer {
 
   static htmlWrapperCssClassname = 'mst-w';
 
+  static #defaultHookOrder = 1;
+
   #resolve;
 
   static #token;
@@ -121,7 +123,6 @@ class RootCtxRenderer extends BaseRenderer {
       global[`metadata_${this.getAssetId()}`];
 
     const hbsInput = {
-      ...this.getRootGlobals(),
       data: this.rootProxy,
     };
 
@@ -130,19 +131,27 @@ class RootCtxRenderer extends BaseRenderer {
     this.preRender();
 
     // eslint-disable-next-line no-undef
-    const html = Handlebars.template(template)
-      (hbsInput, {
+    const html = Handlebars.template(template)(
+      this.hbsInput,
+      {
         helpers,
         partials: {},
         allowedProtoProperties: {
           ...allowedProtoProperties,
         },
+        // allowProtoPropertiesByDefault: false,
+        // allowProtoMethodsByDefault: false
         // strict: true,
       });
 
     const createProvisionalContainer = !container;
 
     if (createProvisionalContainer) {
+
+      if (this.requiresContainer()) {
+        throw Error(`Component: ${this.getId()} requires a container`);
+      }
+
       const elem = document.createElement('div');
       elem.style.display = 'none';
       elem.id = container = global.clientUtils.randomString();
@@ -155,12 +164,11 @@ class RootCtxRenderer extends BaseRenderer {
     // We require that the <parentNode> is a live element, present om the DOM
     assert(parentNode != null, `DOMElement #${container} does not exist`);
 
-    parentNode.innerHTML = `
-      <div id='${this.getId()}' class='${htmlWrapperCssClassname}'>
-        ${html}
-      </div>`;
-
-    this.#mounted = true;
+    parentNode.insertAdjacentHTML('beforeend',
+      `<div id='${this.getId()}' class='${htmlWrapperCssClassname}'>
+      ${html}
+    </div>`
+    );
 
     this.#resolve();
 
@@ -176,8 +184,17 @@ class RootCtxRenderer extends BaseRenderer {
 
         const finalize = async () => {
 
+          const hookKeys = Object.keys(this.blockHooks)
+            .sort((e1, e2) => {
+
+              const o1 = this.blockHooks[e1].order;
+              const o2 = this.blockHooks[e2].order;
+
+              return o1 < o2 ? -1 : o2 < o1 ? 1 : 0;
+            });
+
           // Trigger block hooks
-          const hooks = Object.keys(this.blockHooks)
+          const hooks = hookKeys
             .map(selector => {
               const { hookName, blockData } = this.blockHooks[selector];
 
@@ -192,6 +209,11 @@ class RootCtxRenderer extends BaseRenderer {
 
           await Promise.all(hooks);
 
+          // As a general contract, we expect developers to update the futures object 
+          // with any extra promises, including the loading of sub components. hence
+          // we need to await futures again, in case it was updated by any of the hooks
+          await Promise.all(this.futures);
+
           self.appContext.components[this.getId()] = this;
 
           const html = parentNode.innerHTML;
@@ -201,6 +223,10 @@ class RootCtxRenderer extends BaseRenderer {
               document.getElementById(container)
             )
           }
+
+          this.#mounted = true;
+          this.onMount();
+
           return html;
         }
 
@@ -225,11 +251,14 @@ class RootCtxRenderer extends BaseRenderer {
   conditional({ options, ctx, params }) {
 
     const { conditionalBlockHookName } = RootProxy;
+
     const { fn, inverse, hash } = options;
     let [target, invert] = params;
 
     const nodeId = this.getSyntheticNodeId();
+
     const hookName = hash['transform'];
+    const hookOrder = hash['transformOrder'];
 
     const conditional0 = (value) => {
 
@@ -247,8 +276,11 @@ class RootCtxRenderer extends BaseRenderer {
 
           this.blockHooks[`#${nodeId}`] = {
             hookName,
+            order: (hookOrder != undefined && global.clientUtils.isNumber(hookOrder)) ?
+              hookOrder : RootCtxRenderer.#defaultHookOrder,
             blockData: global.clientUtils.deepClone(this.blockData)
           };
+
         }
         return fn(ctx);
       } else if (inverse) {
@@ -285,7 +317,9 @@ class RootCtxRenderer extends BaseRenderer {
     const [{ path, value }] = params;
 
     const nodeId = this.getSyntheticNodeId();
+
     const hookName = hash['transform'];
+    const hookOrder = hash['transformOrder'];
 
     const forEach0 = (value) => {
 
@@ -318,6 +352,8 @@ class RootCtxRenderer extends BaseRenderer {
 
             this.blockHooks[`#${nodeId} > :nth-child(${i + 1})`] = {
               hookName,
+              order: (hookOrder != undefined && global.clientUtils.isNumber(hookOrder)) ?
+                hookOrder : RootCtxRenderer.#defaultHookOrder,
               blockData: global.clientUtils.deepClone(this.blockData)
             };
           }
@@ -376,7 +412,7 @@ class RootCtxRenderer extends BaseRenderer {
       return '';
     }
 
-    // NOTE: When implmenting this:
+    // NOTE: When implementing this:
     // During an active AttributeBindContext, if a
     // muustache statement resolves to either an empty
     // string or somethng that contains "="", then skip that
@@ -439,7 +475,7 @@ class RootCtxRenderer extends BaseRenderer {
     if (flickeringMode) {
       if (value !== Object(value) && path.startsWith(`${dataPathRoot}${pathSeparator}`)) {
         window.setInterval(() => {
-          if (!this.#mounted) {
+          if (!this.isMounted()) {
             return;
           } s
           const _this = this;
@@ -675,7 +711,7 @@ class RootCtxRenderer extends BaseRenderer {
             value = new Proxy(value, {
               get: (obj, prop) => {
                 const v = obj[prop];
-                if (!Number.isNaN(parseInt(prop, 10))) {
+                if (global.clientUtils.isNumber(prop)) {
                   this.syntheticContext[alias].current = v;
                 }
                 return v;
@@ -752,18 +788,39 @@ class RootCtxRenderer extends BaseRenderer {
     return 'this.getInput()';
   }
 
+  getGlobalsBasePath() {
+    return 'this.getRootGlobals()';
+  }
+
+  getGlobalsExecPath(fqPath) {
+    const { globalsBasePath } = RootProxy;
+
+    const arr = fqPath.split('.');
+
+    assert(arr[0] == globalsBasePath);
+    arr[0] = this.getGlobalsBasePath();
+
+    // eslint-disable-next-line no-eval
+    return arr.join('.');
+  }
+
   getExecPath({
     fqPath,
     indexResolver,
     addBasePath = true
   }) {
 
+    const { pathSeparator, syntheticMethodPrefix, globalsBasePath } = RootProxy;
+
     if (fqPath === '') {
       return this.getDataBasePath();
     }
 
+    if (fqPath.startsWith(`${globalsBasePath}.`)) {
+      return this.getGlobalsExecPath(fqPath);
+    }
+
     const { toObject, getDataVariables } = RootCtxRenderer;
-    const { pathSeparator, syntheticMethodPrefix } = RootProxy;
 
     if (!indexResolver) {
       // eslint-disable-next-line no-param-reassign
@@ -1000,7 +1057,10 @@ class RootCtxRenderer extends BaseRenderer {
 
       assert(this.resolver || path.startsWith(this.getDataBasePath()));
 
-      let bindPath = `${dataPathRoot}${pathSeparator}${path.replace(`${this.getDataBasePath()}.`, '')}`;
+      let bindPath = `${dataPathRoot}${pathSeparator}${path.replace(
+        RegExp(`${global.clientUtils.escapeRegExp(this.getDataBasePath())}\\.?`),
+        ''
+      )}`;
 
       const dataVariableSuffixRegex = /\[\'@\w+\'\]$/g;
       const dataVariableSuffix = bindPath.match(dataVariableSuffixRegex);
@@ -1028,12 +1088,8 @@ class RootCtxRenderer extends BaseRenderer {
 
   // eslint-disable-next-line class-methods-use-this
   getRootGlobals() {
-    // eslint-disable-next-line no-undef
-    const { emptyString } = RootProxy;
     return {
-      emptyString,
-      // Todo: remove
-      anyString: global.clientUtils.randomString(),
+      ...this.proxyInstance.getGlobalVariables()
     };
   }
 
@@ -1122,6 +1178,9 @@ class RootCtxRenderer extends BaseRenderer {
         })
 
       case componentSpec && componentSpec instanceof BaseComponent:
+        // Todo: If there is no hash, there is no need to re-create the component, 
+        // because this is done in the first place to
+        // allow us re-build input data
         return this.createComponent({
           hash,
           data: eval(`module.exports=${global.clientUtils.clone(componentSpec.getInput())

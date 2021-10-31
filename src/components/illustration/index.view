@@ -1,0 +1,138 @@
+
+{{ style href="/assets/styles/salesforce-lightning-design-system.min.css" }}
+{{ style href="/assets/styles/base.min.css" }}
+
+{{#*inline "illustration_svg" name}}
+
+    {{#if name eq 'going_camping'}}
+        {{> partials/going_camping }}
+    {{else}}
+
+    {{#if name eq 'maintenance'}}
+    {{> partials/maintenance }}
+    {{else}}
+
+    {{#if name eq 'desert'}}
+    {{> partials/desert }}
+    {{else}}
+
+    {{#if name eq 'open_road'}}
+    {{> partials/open_road }}
+    {{else}}
+
+    {{#if name eq 'no_access'}}
+    {{> partials/no_access }}
+    {{else}}
+
+    {{#if name eq 'no_connection'}}
+    {{> partials/no_connection }}
+    {{else}}
+
+    {{#if name eq 'not_available_in_lightning'}}
+    {{> partials/not_available_in_lightning }}
+    {{else}}
+
+    {{#if name eq 'page_not_available'}}
+    {{> partials/page_not_available }}
+    {{else}}
+
+    {{#if name eq 'walkthrough_not_available'}}
+    {{> partials/walkthrough_not_available }}
+    {{else}}
+
+    {{#if name eq 'fishing_deals'}}
+    {{> partials/fishing_deals }}
+    {{else}}
+
+    {{#if name eq 'lake_mountain'}}
+    {{> partials/lake_mountain }}
+    {{else}}
+
+    {{#if name eq 'no_events'}}
+    {{> partials/no_events }}
+    {{else}}
+
+    {{#if name eq 'no_task'}}
+    {{> partials/no_task }}
+    {{else}}
+
+    {{#if name eq 'setup'}}
+    {{> partials/setup }}
+    {{else}}
+
+    {{#if name eq 'gone_fishing'}}
+    {{> partials/gone_fishing }}
+    {{else}}
+
+    {{#if name eq 'no_access_2'}}
+    {{> partials/no_access_2 }}
+    {{else}}
+
+    {{#if name eq 'no_content'}}
+    {{> partials/no_content }}
+    {{else}}
+
+    {{#if name eq 'no_preview'}}
+    {{> partials/no_preview }}
+    {{else}}
+
+    {{#if name eq 'preview'}}
+    {{> partials/preview }}
+    {{else}}
+
+    {{#if name eq 'research'}}
+    {{> partials/research }}
+    {{else}}
+
+    {{/if}}
+
+    {{/if}}
+
+    {{/if}}
+
+    {{/if}}
+
+    {{/if}}
+
+    {{/if}}
+
+    {{/if}}
+
+    {{/if}}
+
+    {{/if}}
+
+    {{/if}}
+
+    {{/if}}
+
+    {{/if}}
+
+    {{/if}}
+
+    {{/if}}
+
+    {{/if}}
+
+    {{/if}}
+
+    {{/if}}
+
+    {{/if}}
+
+    {{/if}}
+
+    {{/if}}
+
+{{/inline}}
+
+
+<div class="slds-illustration slds-illustration_{{size}}" 
+     style="{{verticallyAlign ? 'position: relative; left: 50%; top: 50%; transform: translate(-50%, -50%);' : ''}}">
+
+    {{> illustration_svg name}}
+
+    <div class="slds-text-longform">
+        <h3 class="slds-text-heading_medium">{{summary}}</h3>
+    </div>
+</div>

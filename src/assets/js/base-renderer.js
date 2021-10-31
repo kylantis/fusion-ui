@@ -7,7 +7,7 @@ class BaseRenderer {
 
  #input;
 
- #loadable;
+ isLoadable;
 
  #isRoot;
 
@@ -32,17 +32,18 @@ class BaseRenderer {
 
    this.#id = id;
    this.logger = logger || console;
-   this.#input = input;
-   this.#loadable = loadable;
+   this.isLoadable = loadable;
    this.#isRoot = !BaseRenderer.#componentIds.length;
 
-   if (this.#loadable) {
+   if (this.isLoadable) {
      BaseRenderer.#componentIds.push(this.#id);
    }
 
-   if (global.isServer && global.isWatch && this.#loadable) {
+   if (global.isServer && global.isWatch && this.isLoadable) {
     throw Error();
    }
+
+   this.setInput(input);
 
    // Create root proxy
    // eslint-disable-next-line no-undef
@@ -56,7 +57,7 @@ class BaseRenderer {
  }
 
  loadable() {
-   return this.#loadable;
+   return this.isLoadable;
  }
 
  isRoot() {
@@ -88,7 +89,7 @@ isInitialized() {
  toJSON() {
    const o = {};
    o['@type'] = this.constructor.className || this.constructor.name;
-   o['@data'] = this.#input;
+   o['@data'] = this.getInput();
    return o;
  }
 

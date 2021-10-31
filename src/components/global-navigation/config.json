@@ -8,17 +8,28 @@
   },
   "scalars": {
     "tabs_$.isActive": {
-      "type": "Boolean"
-    },
-    "appName": {
-      "type": "String",
-      "defaults": [
-        "App Studio"
-      ]
+      "type": "Boolean",
+      "defaultValue": false
     },
     "useWaffleIcon": {
       "type": "Boolean",
       "defaultValue": true
+    },
+    "appName": {
+      "type": "String",
+      "defaults": [
+        "Kylantis Studio"
+      ]
+    },
+    "tabs_$.content": {
+      "type": "componentRef",
+      "defaults": [
+        "Accordion"
+      ]
+    },
+    "useDivider": {
+      "type": "Boolean",
+      "defaultValue": false
     },
     "tabs_$.identifier": {
       "type": "String"
@@ -37,34 +48,9 @@
     "tabs_$.assistiveText": {
       "type": "String"
     },
-    "tabs_$.content": {
-      "type": "componentRef"
-    },
-    "useDivider": {
+    "tabs_$.closeable": {
       "type": "Boolean",
-      "defaultValue": false
-    },
-    "type": {
-      "type": "String",
-      "allowed": [
-        "tab_bar",
-        "navigation_bar"
-      ],
-      "defaults": [
-        "tab_bar"
-      ]
-    },
-    "switcher.title": {
-      "type": "String",
-      "defaults": [
-        "Object"
-      ]
-    },
-    "switcher.content": {
-      "type": "componentRef"
-    },
-    "switcher.isActive": {
-      "type": "String"
+      "defaultValue": true
     }
   }
 }

@@ -3,94 +3,34 @@ class GlobalNavigation extends BaseComponent {
 
     init() {
         this.getInput().tabs[0].isActive;
-        this.getInput().switcher.isActive;
     }
 
-    getSwitcherIdentifier() {
-        return 'switcher_identifier';
+    preRender() {
     }
 
+    onMount() {
+        // Display content container
+        const contentContainer = this.getContentContainer();
+        contentContainer.style.visibility = 'visible';
+    }
+    
     events() {
         return [
             ...super.events(),
-            'tabActive', 'tabInactive', 'tabItemClick'
+            'tabActive', 'tabInactive', 'tabItemClick', 'tabClose'
         ]
     }
 
     defaultHandlers() {
         return {
             tabItemClick: (identifier) => {
-
-                const items = this.getItems();
-                const { hasSubMenu, content, li } = items[identifier];
-
-                console.info();
-
-                if (content) {
-                    this.setActiveItem(identifier);
-
-                    if (hasSubMenu && !this.isMobile()) {
-                        // If on mobile, we can't close the visible sub menu, because
-                        // the user may want to access the submenu - and they need to click
-                        // to access it. On desktop, we can close because the user can just 
-                        // hover to re-open the submenu
-
-                        this.closeVisibleSubMenu();
-                    }
-                }
-            }
+                this.setActiveItem(identifier);
+            },
+            tabClose: (identifier) => { },
+            tabActive: (identifier) => {
+                this.closeOpenSubMenu();
+            },
         };
-    }
-
-    closeVisibleSubMenu() {
-        if (this.lastItemFocused) {
-
-            const items = this.getItems();
-            const item = items[this.lastItemFocused];
-
-            const { li } = item;
-
-            if (this.isMobile()) {
-                const { parentNode } = li;
-                parentNode.innerHTML = parentNode.innerHTML;
-
-                item.li = parentNode.querySelector('.slds-context-bar__item');
-                this.addClickListener(item.li);
-
-            } else {
-                li.classList.add('slds-dropdown-trigger_click');
-
-                li.addEventListener('mouseleave', function () {
-
-                    const identifier = this.getAttribute('identifier');
-                    items[identifier].li.classList.remove('slds-dropdown-trigger_click');
-                }, {
-                    once: true
-                });
-            }
-        }
-    }
-
-    /**
-     * Note: This sets item.isActive to false, but makes no change
-     * to the content in view. The user would need to update that
-     * manually, by calling setContent(...)
-     */
-    clearSelection() {
-
-        const activeClassName = 'slds-is-active';
-
-        if (this.lastItemFocused) {
-
-            this.closeVisibleSubMenu();
-
-            const items = this.getItems();
-            const item = items[this.lastItemFocused];
-            const { li } = item;
-
-            li.classList.remove(activeClassName);
-            item.isActive = false;
-        }
     }
 
     getItems() {
@@ -107,8 +47,33 @@ class GlobalNavigation extends BaseComponent {
         }
     }
 
-    setContent(identifier) {
+    getContentNodeSelector() {
+        // Note: due to the transform 'captureContentCoordinates' used by the
+        // .content div, it is wrapped in a block, and ultimately is rendered
+        // within a wrapper div
+        const { getWrapperCssClass } = BaseComponent;
+        return `#${this.getId()} > .${getWrapperCssClass()} > .content`;
+    }
 
+    getContentContainer() {
+        return document.querySelector(this.getContentNodeSelector());
+    }
+
+    contentTransform({ node }) {
+        const contentContainer = node.querySelector(':scope > .content');
+
+        // Temporarily make the content container hidden, so the user does not see as
+        // tab contents are being stacked on top of one another in tabTransform(...) 
+
+        contentContainer.style.visibility = 'hidden';
+    }
+
+    hideContent(identifier) {
+        this.getContentDiv(identifier).style.zIndex = -1;
+    }
+
+    showContent(identifier) {
+        this.getContentDiv(identifier).style.zIndex = 1;
     }
 
     setActiveItem(identifier, force = true) {
@@ -134,23 +99,56 @@ class GlobalNavigation extends BaseComponent {
             const activeItem = items[active];
 
             activeItem.li.classList.remove(activeClassName)
-            activeItem.isActive = false;
 
+            this.hideContent(active);
+
+            activeItem.isActive = false;
             this.dispatch('tabInactive', active)
         }
 
         // Indicate that this tab is active
         item.li.classList.add(activeClassName);
 
-        if (item.content) {
-            this.setContent(identifier);
-        }
+        this.showContent(identifier);
 
         item.isActive = true;
         this.dispatch('tabActive', identifier)
     }
 
-    itemTransform({ node, blockData }) {
+    getContentDiv(identifier) {
+        const contentContainer = this.getContentContainer();
+        return contentContainer.querySelector(
+            `:scope > #${this.getContentId(identifier)}`
+        );
+    }
+
+    getContentId(identifier) {
+        return `${this.getId()}-content-${identifier}`;
+    }
+
+    createTabContentContainer(identifier) {
+        const contentDiv = document.createElement('div');
+
+        contentDiv.id = this.getContentId(identifier);
+        contentDiv.classList.add('global-navigation-cd');
+
+        contentDiv.style.zIndex = -1;
+
+        this.getContentContainer().appendChild(contentDiv);
+        return contentDiv.id;
+    }
+
+    getDefaultTabContent() {
+        return new components.Illustration({
+            input: {
+                verticallyAlign: true,
+                summary: 'No Content',
+                name: 'no_content'
+            }
+        })
+    }
+
+    tabTransform({ node, blockData }) {
 
         const li = node.querySelector(':scope > .slds-context-bar__item');
 
@@ -158,9 +156,7 @@ class GlobalNavigation extends BaseComponent {
 
         const { index = -1, length } = blockData[`tabs`] || {};
 
-        const { isActive, subMenu, content } = index >= 0 ?
-            this.getInput()['tabs'][index] :
-            this.getInput()['switcher'];
+        const { isActive, subMenu, content } = this.getInput()['tabs'][index]
 
         const items = this.getItems();
 
@@ -173,17 +169,28 @@ class GlobalNavigation extends BaseComponent {
 
         items[identifier] = { li, hasSubMenu: !!subMenu, content, subMenu };
 
+        if (!content) {
+            // Todo: Use a default to indicate no content
+            content = this.getDefaultTabContent();
+        }
+
+        // Load content. 
+        // Note: we need to add the promise to this component's <futures> object, so
+        // that it becomes part of this component's loading sequence
+        this.futures.push(
+            content
+            .load({ container: this.createTabContentContainer(identifier) })
+        )
+
         if (isActive) {
             this.setActiveItem(identifier, false);
         }
 
         if (
-            // If index < 0, i.e -1, then this is the switcher bar item, else
-            // this is one of the tab bar items
-            index > 0 &&
-            index == length - 1 && !this.getActive()) {
-
-            // This is the last tab, but we do not yet have any active tab
+            // This is the last tab, 
+            index == length - 1 &&
+            // but we do not yet have any active tab
+            !this.getActive()) {
             // Look for the first tab that has content, and make that the 
             // active one
             for (const identifier of [...Object.keys(items)]) {
@@ -194,49 +201,92 @@ class GlobalNavigation extends BaseComponent {
             }
         }
 
-        if (!this.isMobile()) {
-            li.addEventListener('mouseenter', function (evt) {
-                const identifier = this.getAttribute('identifier');
-                _this.lastItemFocused = identifier;
-
-                // Todo: use .slds-has-focus
-            }, false);
-        }
-
-        this.addClickListener(li);
+        this.addListeners(li);
     }
 
-    addClickListener(li) {
+    addListeners(li) {
         const _this = this;
-        const items = this.getItems();
 
+        // When a tab is clicked, dispatch 'tabItemClick' event
         li.addEventListener('click', function (evt) {
-
             const identifier = this.getAttribute('identifier');
-            const item = items[identifier];
-
-            // If this item has a submenu, this handler will be triggered
-            // when item(s) on the submenu are clicked
-            if (item.hasSubMenu && _this.isSubMenuRelatedEvent(item, evt)) {
+            if (_this.isSecondaryEvent(evt)) {
                 return;
             }
-
-            _this.lastItemFocused = identifier;
-
-            // Trigger the click event
             _this.dispatch('tabItemClick', identifier)
         }, false);
+
+
+        // If the 'trigger-submenu' button is clicked, toggleSubMenuVisibility
+        li.querySelector('.trigger-submenu')
+            .addEventListener('click', function (evt) {
+                const identifier = this.parentNode.getAttribute('identifier');
+                _this.toggleSubMenuVisibility(identifier);
+            });
+
+        // If the 'trigger-close' button is clicked, dispatch 'tabClose' event
+        li.querySelector('.trigger-close')
+            .addEventListener('click', function (evt) {
+                const identifier = this.parentNode.parentNode.getAttribute('identifier');
+                _this.dispatch('tabClose', identifier)
+            });
     }
 
-    isSubMenuRelatedEvent(item, event) {
-        const { subMenu } = item;
+    isSubMenuOpen(identifier) {
+        const items = this.getItems();
+
+        const { classList } = items[identifier].li;
+        const cssClassName = 'slds-is-open';
+
+        return classList.contains(cssClassName);
+    }
+
+    closeOpenSubMenu() {
+        if (this.visibleSubMenu) {
+            // Close the submenu that's open first
+            this.toggleSubMenuVisibility(this.visibleSubMenu);
+        }
+    }
+
+    toggleSubMenuVisibility(identifier) {
+
+        const items = this.getItems();
+
+        const { classList } = items[identifier].li;
+        const cssClassName = 'slds-is-open';
+
+        if (classList.contains(cssClassName)) {
+            classList.remove(cssClassName);
+            this.visibleSubMenu = null;
+        } else {
+            this.closeOpenSubMenu();
+
+            classList.add(cssClassName);
+            this.visibleSubMenu = identifier;
+        }
+    }
+
+    /**
+     * When a user clicks on a submenu item, or the submenu trigger button or 
+     * close button, all of these are secondary events
+     * 
+     * @param item 
+     * @param {Event} event 
+     * @returns 
+     */
+    isSecondaryEvent(event) {
         const { path } = event;
 
         for (const elem of path) {
             const { classList } = elem;
 
             switch (true) {
-                case classList.contains(subMenu.itemClassName()):
+                // A submenu item was clicked
+                case classList.contains(global.components.Menu.itemClassName()):
+                // The 'trigger-submenu' button was clicked
+                case classList.contains('trigger-submenu'):
+                // The 'trigger-close' button was clicked
+                case classList.contains('trigger-close'):
                     return true;
                 case classList.contains('slds-context-bar__item'):
                     return false;
@@ -245,6 +295,32 @@ class GlobalNavigation extends BaseComponent {
             }
         }
         return false;
+    }
+
+    detachTab(identifier) {
+
+    }
+
+    closeSubMenu(identifier) {
+        const items = this.getItems();
+        const item = items[identifier];
+
+        const { li } = item;
+        const { parentNode } = li;
+
+        parentNode.innerHTML = parentNode.innerHTML;
+
+        item.li = parentNode.querySelector('.slds-context-bar__item');
+
+        // Re-attach the click listener to li
+        this.addListeners(item.li);
+
+        if (item.li.children.length > 2) {
+            // This item contains a submenu
+            // We need to bring back the old submenu because we lost the event listeners
+            // when we re-assigned innerHTML
+            item.li.children.item(2).replaceWith(li.children.item(2));
+        }
     }
 
 }

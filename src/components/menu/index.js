@@ -11,7 +11,7 @@ class Menu extends BaseComponent {
         this.getInput().groups[0].required
     }
 
-    itemClassName() {
+    static itemClassName() {
         return 'slds-dropdown__item';
     }
 
