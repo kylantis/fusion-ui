@@ -15,7 +15,7 @@
     },
     "scripts": {
         "start": "nodemon server/index.js",
-        "build": "gulp dist --component=chat && node lib/model-factories/build-archive.js",
+        "build": "gulp dist --component=activity-timeline && node lib/model-factories/build-archive.js",
         "build-watch": "npm run build && buildArchive=true gulp watch",
         "build-all": "gulp dist-all && node lib/model-factories/build-archive.js",
         "lint": "eslint --ext js --fix src/ tasks/",

@@ -1,6 +1,23 @@
 {{ style href="/assets/styles/salesforce-lightning-design-system.min.css" }}
 {{ style href="/assets/styles/base.min.css" }}
 
+{{!-- 
+This inline partial is used to render a sentence. A sentence contains an array of
+parts, and each part is either plain text or a link 
+--}}
+{{#*inline "render_sentence" sentence}}
+
+  {{#each parts as |part partIndex|}}
+    {{#if link}}
+        <a href="{{link}}">{{text}}</a>
+    {{else}}
+        {{text}}
+    {{/if}}
+  {{/each}}
+
+{{/inline}}
+
+
 <ul class="slds-timeline">
 
   {{#each items transform = "itemTransform" as |item itemIndex|}}
