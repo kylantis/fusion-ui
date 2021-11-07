@@ -74,7 +74,7 @@ class RootCtxRenderer extends BaseRenderer {
       throw new Error(`Invalid token: ${token}`);
     }
 
-    this.logger.info(`Loading component - ${this.getId()}`);
+    this.logger.info(`Loading component, id=${this.getId()}, assetId=${this.getAssetId()}`);
 
     const { htmlWrapperCssClassname, getMetaHelpers } = RootCtxRenderer;
     super.load();
@@ -660,6 +660,31 @@ class RootCtxRenderer extends BaseRenderer {
 
       assert(!this.eachContext.length);
     }
+  }
+
+  doBlockNext({ path }) {
+    if (!this.isSynthetic(path)) {
+
+      const isMap = this.isMapPath(path);
+
+      if (isMap) {
+        // If this is a map, reset proxyInstance.lastLookup, so
+        // that .length can work properly on next iteration
+        const value = this.getPathValue({ path });
+
+        assert(Object.keys(value)[0].match(/^\$_/g));
+      
+        this.proxyInstance.setLastLookup(value);
+      }
+    }
+  }
+
+  isMapPath(canonicalPath) {
+    const { pathSeparator } = RootProxy;
+
+    return this.proxyInstance.isMapPath(
+      canonicalPath.split(pathSeparator).join('.')
+    );
   }
 
   getSyntheticContext({

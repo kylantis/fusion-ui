@@ -4,10 +4,10 @@
   "collections": {
     "items": {
       "minLength": 5,
-      "singularType": "ItemsElement"
+      "singularType": "Item"
     },
-    "parts": {
-      "minLength": 4,
+    "items_$.summary.parts": {
+      "minLength": 5,
       "singularType": "Part"
     }
   },
@@ -45,21 +45,34 @@
       "type": "Icon",
       "isNull": false
     },
-    "parts_$.link": {
+    "items_$.summary.parts_$.link": {
       "type": "String",
       "defaults": [
         "http://www.google.com"
       ]
     },
-    "parts_$.text": {
+    "items_$.summary.parts_$.text": {
       "type": "String",
       "defaults": [
-        "You", "created a task with", "Charlie Gomez",
-        "logged a call with", "Adam Chan", "emailed",
-        "Lea Chan", "created an event with", "Aida Lee",
-        "and 5 others"
+        "You",
+        "the scheduled meeting",
+        "created a task with",
+        "Charlie Gomez",
+        "logged a call with",
+        "Adam Chan",
+        "share the presentation",
+        "emailed",
+        "John Doe",
+        "created an event with",
+        "Aida Lee",
+        "and 5 others",
+        "invites you to a hurdle",
+        "brainstorming session today"
       ]
     }
   },
+  "nullifyRandomly": [
+    "items_$.summary.parts_$.link"
+  ],
   "sharedTypeNames": {}
 }

@@ -11,9 +11,9 @@ class RootProxy {
 
   static pathSeparator = '__';
 
-  static dataPathPrefix = new RegExp(`^${RootProxy.dataPathRoot}${RootProxy.pathSeparator}`);
+  static dataPathPrefix = RegExp(`^${RootProxy.dataPathRoot}${RootProxy.pathSeparator}`);
 
-  static logicGatePathPrefix = new RegExp(`^${RootProxy.logicGatePathRoot}${RootProxy.pathSeparator}`);
+  static logicGatePathPrefix = RegExp(`^${RootProxy.logicGatePathRoot}${RootProxy.pathSeparator}`);
 
   static rawDataPrefix = 'r$_';
 
@@ -333,7 +333,7 @@ class RootProxy {
     const gateId = global.clientUtils.randomString();
 
     gate.participants
-      .filter(p => 
+      .filter(p =>
         // Exclude synthetic functions
         this.component.isSynthetic(p.replace('this.', ''))
       )
@@ -486,9 +486,14 @@ class RootProxy {
     };
   }
 
+  setLastLookup(value) {
+    this.lastLookup = value;
+  }
+
   createObjectProxy() {
     const {
-      dataPathPrefix, logicGatePathPrefix, syntheticMethodPrefix, globalsBasePath
+      dataPathRoot, dataPathPrefix, logicGatePathPrefix,
+      syntheticMethodPrefix, globalsBasePath
     } = RootProxy;
     // eslint-disable-next-line no-underscore-dangle
     const _this = this;
@@ -516,6 +521,9 @@ class RootProxy {
                 )
             );
 
+          case prop == dataPathRoot:
+            return _this.createObjectProxy()
+
           case !!(prop.match(dataPathPrefix) || prop.startsWith(syntheticMethodPrefix)):
             return this.resolveDataPath({ prop: prop.replace(dataPathPrefix, '') });
 
@@ -533,7 +541,6 @@ class RootProxy {
 
           default:
             throw new Error(`Invalid path: ${prop}`);
-
         }
       },
     });
@@ -621,7 +628,7 @@ class RootProxy {
         if (definition.$ref) {
           definition = definitions[definition.$ref.replace(defPrefx, emptyString)];
         }
-        
+
 
         // Add definition id
         definition.$id = `${defPrefx}${id}`;
@@ -1205,6 +1212,9 @@ class RootProxy {
         break;
 
       case this.isMapPath(path):
+
+        assert(obj.constructor.name == 'Object');
+
         // If this is a map path, add set @type to Map, and trasform the keys
         // to start with the map key prefix: $_
 
@@ -1213,8 +1223,11 @@ class RootProxy {
           delete obj[k];
         }
 
+        // Note: this meta property is only used temporarily and it will be pruned
+        // later by getMapWrapper(...)
         obj[typeProperty] = mapType;
 
+        break;
       default:
         assert(obj.constructor.name == 'Object');
 
@@ -1227,6 +1240,7 @@ class RootProxy {
           .forEach(p => {
             obj[p] = null;
           });
+        break;
     }
 
     const isMap = !isArray && obj[typeProperty] === mapType;
