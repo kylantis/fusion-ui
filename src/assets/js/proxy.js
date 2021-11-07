@@ -598,7 +598,7 @@ class RootProxy {
 
     const {
       pathProperty, firstProperty, lastProperty,
-      keyProperty, indexProperty, randomProperty
+      keyProperty, indexProperty, randomProperty, emptyString
     } = RootProxy;
 
     const syntheticProperties = [
@@ -609,10 +609,19 @@ class RootProxy {
     const { definitions } = schema;
     const defPrefx = '#/definitions/';
 
-    for (const id in definitions) {
+    for (let id in definitions) {
       if ({}.hasOwnProperty.call(definitions, id)) {
 
-        const definition = definitions[id];
+        let definition = definitions[id];
+
+        if (definition.shared) {
+          continue;
+        }
+
+        if (definition.$ref) {
+          definition = definitions[definition.$ref.replace(defPrefx, emptyString)];
+        }
+        
 
         // Add definition id
         definition.$id = `${defPrefx}${id}`;
@@ -1124,6 +1133,10 @@ class RootProxy {
         global.clientUtils.toCanonicalPath(path) :
         this.component.getComponentName()
     ];
+
+    if (def.$ref) {
+      def = schemaDefinitions[def.$ref.replace(defPrefx, '')];
+    }
 
     if (def.$ref) {
       def = schemaDefinitions[def.$ref.replace(defPrefx, '')];

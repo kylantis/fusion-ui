@@ -1,9 +1,14 @@
 {
   "superclass": null,
+  "enableTypeMerging": true,
   "collections": {
     "items": {
       "minLength": 5,
       "singularType": "ItemsElement"
+    },
+    "parts": {
+      "minLength": 4,
+      "singularType": "Part"
     }
   },
   "scalars": {
@@ -39,6 +44,22 @@
     "items_$.icon": {
       "type": "Icon",
       "isNull": false
+    },
+    "parts_$.link": {
+      "type": "String",
+      "defaults": [
+        "http://www.google.com"
+      ]
+    },
+    "parts_$.text": {
+      "type": "String",
+      "defaults": [
+        "You", "created a task with", "Charlie Gomez",
+        "logged a call with", "Adam Chan", "emailed",
+        "Lea Chan", "created an event with", "Aida Lee",
+        "and 5 others"
+      ]
     }
-  }
+  },
+  "sharedTypeNames": {}
 }
