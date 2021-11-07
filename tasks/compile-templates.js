@@ -64,12 +64,14 @@ const gulpTransform = function ({ fromWatch = false } = {}) {
       });
     }
 
-    return promise.then(({ assetId, metadata }) => {
+    return promise.then(({ assetId, metadata, error }) => {
       // write precompiled template
       file.basename = 'metadata.min.js';
       file.path = path.join(path.dirname(path.dirname(file.path)), assetId, file.basename);
       // eslint-disable-next-line no-buffer-constructor
       file.contents = Buffer.from(metadata || '');
+
+      // Note: If error is true, an error ocurred
 
       callback(null, file);
     });

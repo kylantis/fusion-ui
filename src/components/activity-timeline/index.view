@@ -7,7 +7,7 @@ parts, and each part is either plain text or a link
 --}}
 {{#*inline "render_sentence" sentence}}
 
-  {{#each parts as |part partIndex|}}
+  {{#each sentence.parts as |part partIndex|}}
     {{#if link}}
         <a href="{{link}}">{{text}}</a>
     {{else}}
@@ -97,8 +97,7 @@ parts, and each part is either plain text or a link
             </div>
           </div>
           <p class="slds-m-horizontal_xx-small">
-            <a href="#">You</a> created a task with
-            <a href="#">Charlie Gomez</a>
+            {{> render_sentence sentence=summary }}
           </p>
           <article
             class="slds-box slds-timeline__item_details slds-theme_shade slds-m-top_x-small slds-m-horizontal_xx-small slds-p-around_medium"
