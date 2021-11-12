@@ -1030,6 +1030,8 @@ class RootCtxRenderer extends BaseRenderer {
       indexResolver,
     });
 
+    // console.info(`---> ${arr[0]}: ${path}`);
+
     // In some case cases, data paths can resolve to a synthetic
     // method, for example when resolving data variables for literal
     // arrays/maps
