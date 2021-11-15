@@ -86,7 +86,7 @@ module.exports = {
 
     const segments = [
       original.replace(
-        new RegExp(`${global.clientUtils.escapeRegExp(indexes)}$`),
+        RegExp(`${global.clientUtils.escapeRegExp(indexes)}$`),
         ''
       ),
     ];
@@ -116,5 +116,20 @@ module.exports = {
 
   isNumber: (n) => {
     return !Number.isNaN(parseInt(n, 10))
-  }
+  },
+
+  findDuplicatesInArray: (arr) => {
+    const sorted_arr = arr.slice().sort(); // You can define the comparing function here.
+    // JS by default uses a crappy string compare.
+    // (we use slice to clone the array so the
+    // original array won't be modified)
+    const results = [];
+    for (let i = 0; i < sorted_arr.length - 1; i++) {
+      if (sorted_arr[i + 1] == sorted_arr[i]) {
+        results.push(sorted_arr[i]);
+      }
+    }
+    return results;
+  },
+
 };
