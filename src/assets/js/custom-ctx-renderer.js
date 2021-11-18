@@ -312,7 +312,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
         }
       }
 
-      throw new Error(`${path} must resolve to a non-empty value with one of the types: ${validTypes}${line ? ` on line ${line}` : ''}.`);
+      throw Error(`${path} must resolve to a non-empty value with one of the types: ${validTypes}${line ? ` on line ${line}` : ''}.`);
     }
     return value;
   }

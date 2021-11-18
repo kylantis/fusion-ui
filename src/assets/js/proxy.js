@@ -540,7 +540,7 @@ class RootProxy {
             return Object.keys(_this.lastLookup).length;
 
           default:
-            throw new Error(`Invalid path: ${prop}`);
+            throw Error(`Invalid path: ${prop}`);
         }
       },
     });
@@ -621,14 +621,9 @@ class RootProxy {
 
         let definition = definitions[id];
 
-        if (definition.shared) {
-          continue;
-        }
-
         if (definition.$ref) {
           definition = definitions[definition.$ref.replace(defPrefx, emptyString)];
         }
-
 
         // Add definition id
         definition.$id = `${defPrefx}${id}`;
@@ -637,11 +632,6 @@ class RootProxy {
           // A component instance will be validated against
           // this, so simply set additionalProperties to true
           definition.additionalProperties = true;
-        }
-
-        const addPath = (definition) => {
-          definition.properties[pathProperty] = { type: 'string' }
-          definition.required.push(pathProperty);
         }
 
         const addDataVariables = (def) => {
@@ -763,12 +753,12 @@ class RootProxy {
           definition.properties[pathProperty] = {
             enum: ['']
           }
-          definition.required.push(pathProperty);
         } else {
 
           definition.type = [definition.type, "null"]
-          addPath(definition)
+          definition.properties[pathProperty] = { type: 'string' }
         }
+        definition.required.push(pathProperty);
 
         // Register schema, per path
         Object.keys(definition.properties)
@@ -777,19 +767,31 @@ class RootProxy {
 
             const addSchema = (v) => {
 
-              assert(!!v[pathProperty]);
-              assert(
-                !definitions[v[pathProperty]],
-                `Duplicate schema definitions for: ${v[pathProperty]}`
-              );
-
               const path = v[pathProperty];
+              assert(path && path.length);
+
               delete v[pathProperty];
 
-              definitions[path] = {
-                ...v,
-                $id: `${defPrefx}${path}`
-              };
+              path.forEach((p, index) => {
+                if (!definitions[p]) {
+
+                  definitions[p] = {
+                    ...v,
+                    $id: `${defPrefx}${p}`
+                  };
+
+                  if (
+                    v.$ref &&
+                    definitions[v.$ref.replace(defPrefx, '')].shared
+                  ) {
+                    // If the object this definition references is shared, indicate
+                    definitions[p].referencesShared = true;
+                  }
+
+                } else {
+                  assert(definitions[p].shared || definitions[p].referencesShared);
+                }
+              });
 
               switch (true) {
                 case !!v.additionalProperties && typeof v.additionalProperties == 'object':
@@ -840,7 +842,7 @@ class RootProxy {
 
     if (!validate(input)) {
 
-      throw new Error(`Component: ${this.component.getId()
+      throw Error(`Component: ${this.component.getId()
         } could not be loaded due to schema mismatch of input data - ${this.component.constructor.ajv.errorsText(validate.errors)
         }`);
     }
@@ -947,7 +949,7 @@ class RootProxy {
         !global.clientUtils.isNumber(prop) &&
         ![...getDataVariables(), pathProperty].includes(prop)
       ) {
-        throw new Error(`Invalid index: ${prop} for array: ${obj['@path']}`);
+        throw Error(`Invalid index: ${prop} for array: ${obj['@path']}`);
       }
 
       // What happens when newValue == undefined
@@ -1050,7 +1052,7 @@ class RootProxy {
         const validate = getValidator();
 
         if (!validate(newValue)) {
-          throw new Error(`${fqPath} could not be mutated due to schema mismatch`);
+          throw Error(`${fqPath} could not be mutated due to schema mismatch`);
         }
 
         if (typeof newValue == 'object') {

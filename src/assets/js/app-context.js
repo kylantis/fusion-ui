@@ -42,13 +42,13 @@ class AppContext {
   // Todo: Should apps be able to create workers?
   setGlobals() {
     if (self.appContext) {
-      throw new Error('Duplicate appContext instance');
+      throw Error('Duplicate appContext instance');
     }
 
     self.global = self;
     global.assert = (condition, message) => {
       if (!condition) {
-        throw new Error(`Assertion Error${message ? `: ${message}` : ''}`);
+        throw Error(`Assertion Error${message ? `: ${message}` : ''}`);
       }
     };
 

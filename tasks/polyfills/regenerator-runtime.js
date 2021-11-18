@@ -224,7 +224,7 @@ var runtime = (function (exports) {
   
       return function invoke(method, arg) {
         if (state === GenStateExecuting) {
-          throw new Error("Generator is already running");
+          throw Error("Generator is already running");
         }
   
         if (state === GenStateCompleted) {
@@ -592,7 +592,7 @@ var runtime = (function (exports) {
               }
   
             } else {
-              throw new Error("try statement without catch or finally");
+              throw Error("try statement without catch or finally");
             }
           }
         }
@@ -677,7 +677,7 @@ var runtime = (function (exports) {
   
         // The context.catch method must only be called with a location
         // argument that corresponds to a known catch block.
-        throw new Error("illegal catch attempt");
+        throw Error("illegal catch attempt");
       },
   
       delegateYield: function(iterable, resultName, nextLoc) {

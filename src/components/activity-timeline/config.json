@@ -8,6 +8,17 @@
     },
     "items_$.summary.parts": {
       "minLength": 5,
+      "singularType": {
+        "$ref": "Sentence.parts"
+      }
+    },
+    "items_$.description.parts": {
+      "minLength": 1,
+      "singularType": {
+        "$ref": "Sentence.parts"
+      }
+    },
+    "Sentence.parts": {
       "singularType": "Part"
     }
   },
@@ -46,13 +57,17 @@
       "isNull": false
     },
     "items_$.summary.parts_$.link": {
-      "type": "String",
+      "type": {
+        "$ref": "Sentence.parts_$.link"
+      },
       "defaults": [
         "http://www.google.com"
       ]
     },
     "items_$.summary.parts_$.text": {
-      "type": "String",
+      "type": {
+        "$ref": "Sentence.parts_$.text"
+      },
       "defaults": [
         "You",
         "the scheduled meeting",
@@ -69,10 +84,35 @@
         "invites you to a hurdle",
         "brainstorming session today"
       ]
+    },
+    "items_$.description.parts_$.link": {
+      "type": {
+        "$ref": "Sentence.parts_$.link"
+      },
+      "defaults": [
+        null
+      ]
+    },
+    "items_$.description.parts_$.text": {
+      "type": {
+        "$ref": "Sentence.parts_$.text"
+      },
+      "defaults": [
+        "Need to finalize proposals and brand details before the meeting",
+        "Create the deployments assets prior to production validation and release"
+      ]
+    },
+    "Sentence.parts_$.link": {
+      "type": "String"
+    },
+    "Sentence.parts_$.text": {
+      "type": "String"
     }
   },
   "nullifyRandomly": [
     "items_$.summary.parts_$.link"
   ],
-  "sharedTypeNames": {}
+  "sharedTypeNames": {
+    "SharedType0": "Sentence"
+  }
 }
