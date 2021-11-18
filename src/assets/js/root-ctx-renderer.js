@@ -59,7 +59,7 @@ class RootCtxRenderer extends BaseRenderer {
 
   static setToken(token) {
     if (RootCtxRenderer.#token) {
-      throw new Error(`Could not set token: ${token}`);
+      throw Error(`Could not set token: ${token}`);
     }
     RootCtxRenderer.#token = token;
   }
@@ -67,11 +67,11 @@ class RootCtxRenderer extends BaseRenderer {
   load({ container, token } = {}) {
 
     if (!this.loadable() || this.isMounted()) {
-      throw new Error(`${this.getId()} is not loadable`);
+      throw Error(`${this.getId()} is not loadable`);
     }
 
     if (token !== RootCtxRenderer.#token && !this.isRoot()) {
-      throw new Error(`Invalid token: ${token}`);
+      throw Error(`Invalid token: ${token}`);
     }
 
     this.logger.info(`Loading component, id=${this.getId()}, assetId=${this.getAssetId()}`);
@@ -547,7 +547,7 @@ class RootCtxRenderer extends BaseRenderer {
       if (!isNaN(segment)) {
         // this is an array index
         if (!parts[parts.length - 1]) {
-          throw new Error(`Unknown index: ${segment} for path: ${original}`);
+          throw Error(`Unknown index: ${segment} for path: ${original}`);
         }
         parts[parts.length - 1] += `[${segment}]`;
         segment = null;
@@ -627,7 +627,7 @@ class RootCtxRenderer extends BaseRenderer {
         return blockData.random;
 
       default:
-        throw new Error(`Unknown data variable: ${dataVariable}`);
+        throw Error(`Unknown data variable: ${dataVariable}`);
     }
   }
 
@@ -979,7 +979,7 @@ class RootCtxRenderer extends BaseRenderer {
             break;
 
           default:
-            throw new Error(`Unknown path: ${path.replace(`${basePath}.`, '')}`);
+            throw Error(`Unknown path: ${path.replace(`${basePath}.`, '')}`);
         }
 
       } else if (part.endsWith('_@')) {
@@ -1029,8 +1029,6 @@ class RootCtxRenderer extends BaseRenderer {
       fqPath: arr[0],
       indexResolver,
     });
-
-    // console.info(`---> ${arr[0]}: ${path}`);
 
     // In some case cases, data paths can resolve to a synthetic
     // method, for example when resolving data variables for literal
@@ -1216,7 +1214,7 @@ class RootCtxRenderer extends BaseRenderer {
         })
 
       default:
-        throw new Error(`Unknown sub-component in ${this.getId()}`);
+        throw Error(`Unknown sub-component in ${this.getId()}`);
     }
   }
 

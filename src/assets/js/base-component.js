@@ -159,7 +159,7 @@ class BaseComponent extends WebRenderer {
         break;
 
       default:
-        throw new Error(`Unknown strategy: ${loadingStrategy}`);
+        throw Error(`Unknown strategy: ${loadingStrategy}`);
     }
 
     return future;
