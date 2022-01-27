@@ -1,5 +1,5 @@
 
-class Accordion extends BaseComponent {
+class Accordion extends AbstractComponent {
 
     /**
      * At compile-time, dynanically register extra params we want to add to the data model,

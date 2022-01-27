@@ -1,0 +1,77 @@
+{
+  "interfaces": [],
+  "collections": {
+    "items": {
+      "minLength": 1,
+      "singularType": "Item"
+    }
+  },
+  "useArrayLengthProperty": true,
+  "scalars": {
+    "title": {
+      "type": "String",
+      "defaults": [
+        "Checkbox Group Label"
+      ]
+    },
+    "errorMessage": {
+      "type": "String",
+      "defaults": [
+        "This field is required"
+      ]
+    },
+    "required": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "disabled": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "items_$.name": {
+      "type": "String",
+      "defaults": []
+    },
+    "items_$.label": {
+      "type": "String",
+      "defaults": [
+        "Checkbox Label"
+      ]
+    },
+    "items_$.checked": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "items_$.required": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "items_$.error": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "items_$.disabled": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "formElement": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "viewMode": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "component": {
+      "type": "String",
+      "defaults": []
+    }
+  },
+  "nullifyRandomly": [
+    "items_$.checked",
+    "items_$.required",
+    "items_$.error",
+    "items_$.disabled"
+  ],
+  "escapeDynamicHtml": false
+}

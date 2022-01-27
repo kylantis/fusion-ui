@@ -1,5 +1,9 @@
 {
-  "superclass": null,
+  "interfaces": [],
+  "enableTypeMerging": false,
   "collections": {},
-  "scalars": {}
+  "scalars": {},
+  "nullifyRandomly": [],
+  "useArrayLengthProperty": false,
+  "escapeDynamicHtml": false
 }

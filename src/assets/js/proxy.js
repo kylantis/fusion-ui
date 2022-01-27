@@ -182,7 +182,7 @@ class RootProxy {
               case OR:
                 return or;
               default:
-                scope += `const ${variableName} = "${part.original}";\n`;
+                scope += `const ${variableName} = \`${part.original}\`;\n`;
                 return variableName;
             }
 
@@ -220,7 +220,7 @@ class RootProxy {
           expr = original;
           break;
         case STR_LITERAL:
-          expr = `"${original.replace(/"/g, '\\"')}"`;
+          expr = `\`${original.replace(/"/g, '\\"')}\``;
           break;
         case MUST_GRP:
           expr = items.map(item => getValue({
@@ -390,9 +390,7 @@ class RootProxy {
 
   resolveDataPath({ prop, isRawReturn = false }) {
 
-    const {
-      literalPrefix, emptyString, rawDataPrefix
-    } = RootProxy;
+    const { literalPrefix, emptyString, rawDataPrefix } = RootProxy;
 
     // eslint-disable-next-line no-undef
     assert(prop.constructor.name === 'String');
@@ -475,9 +473,13 @@ class RootProxy {
       const keys = Object.keys(_this.lastLookup);
       // eslint-disable-next-line no-plusplus
       for (let i = 0; i < keys.length; i++) {
+
         // At least, attempt to do a read on the underlying json
         // object, so that if it is a proxy itself, the "get"
-        // interceptor method will be invoked
+        // interceptor method will be invoked. The main reason
+        // we do this is because of synthetic contexts, as this
+        // needed to set the "current" value. See setSyntheticContext(...)
+
         // eslint-disable-next-line no-unused-expressions
         _this.lastLookup[keys[i]];
 
@@ -490,20 +492,37 @@ class RootProxy {
     this.lastLookup = value;
   }
 
+  /**
+   * This is used by CustomCtxRenderer#wrapDataWithProxy to determine if a path
+   * should be resolved by the rootProxy
+   * @param {String} path 
+   * @returns 
+   */
+  static isRootPath(path) {
+    // eslint-disable-next-line no-undef
+    const {
+      dataPathPrefix, syntheticMethodPrefix, logicGatePathPrefix, rawDataPrefix
+    } = RootProxy;
+    return !!(path.match(dataPathPrefix) ||
+      path.startsWith(syntheticMethodPrefix) ||
+      path.startsWith(`${rawDataPrefix}${syntheticMethodPrefix}`) ||
+      path.match(logicGatePathPrefix));
+  }
+
   createObjectProxy() {
     const {
       dataPathRoot, dataPathPrefix, logicGatePathPrefix,
-      syntheticMethodPrefix, globalsBasePath
+      syntheticMethodPrefix, rawDataPrefix, isRootPath
     } = RootProxy;
     // eslint-disable-next-line no-underscore-dangle
     const _this = this;
     return new Proxy({}, {
       get: (obj, prop) => {
-        if (prop === Symbol.iterator) {
-          return this.getProxyIterator();
-        }
 
         switch (true) {
+          case prop === Symbol.iterator:
+            return this.getProxyIterator();
+
           // eslint-disable-next-line no-prototype-builtins
           case !!Object.getPrototypeOf(obj)[prop]:
             return obj[prop];
@@ -512,23 +531,16 @@ class RootProxy {
           case prop === Symbol.toPrimitive:
             return () => _this.component.toHtml(this.lastLookup);
 
-          case prop.startsWith(globalsBasePath):
-            // eslint-disable-next-line no-eval
-            return eval(
-              _this.component.getGlobalsExecPath(prop)
-                .replace(
-                  'this.', '_this.component.'
-                )
-            );
+          case prop === 'toJSON':
+            return () => this.lastLookup;
 
           case prop == dataPathRoot:
             return _this.createObjectProxy()
 
-          case !!(prop.match(dataPathPrefix) || prop.startsWith(syntheticMethodPrefix)):
-            return this.resolveDataPath({ prop: prop.replace(dataPathPrefix, '') });
-
-          case !!prop.match(logicGatePathPrefix):
-            return this.resolveLogicPath({ prop: prop.replace(logicGatePathPrefix, '') });
+          case isRootPath(prop):
+            return prop.match(logicGatePathPrefix) ?
+              this.resolveLogicPath({ prop: prop.replace(logicGatePathPrefix, '') }) :
+              this.resolveDataPath({ prop: prop.replace(dataPathPrefix, '') });
 
           case prop === 'getSyntheticNodeId':
             return this.component.getSyntheticNodeId();
@@ -539,10 +551,32 @@ class RootProxy {
 
             return Object.keys(_this.lastLookup).length;
 
+          case global.clientUtils.isNumber(prop):
+
+            // At least access the context, so that our array proxy
+            // created in setSyntheticContext(...) intercepts the value
+            // and updates the synthetic context
+            // eslint-disable-next-line no-unused-expressions
+            _this.lastLookup[
+              Object.keys(_this.lastLookup)[prop]
+            ];
+
+            return this.createObjectProxy();
+
           default:
             throw Error(`Invalid path: ${prop}`);
         }
       },
+      // Todo: remove these functions if not used
+      ownKeys() {
+        return Reflect.ownKeys(_this.lastLookup);
+      },
+      getOwnPropertyDescriptor() {
+        return {
+          enumerable: true,
+          configurable: true,
+        }
+      }
     });
   }
 
@@ -552,17 +586,19 @@ class RootProxy {
     return new Proxy(array, {
       get: (obj, prop) => {
         switch (true) {
-          case prop === 'toHTML':
-          case prop === Symbol.toPrimitive:
-            return () => _this.component.toHtml(obj);
-
           case global.clientUtils.isNumber(prop):
+
             // At least access the context, so that our array proxy
             // created in setSyntheticContext(...) intercepts the value
             // and updates the synthetic context
             // eslint-disable-next-line no-unused-expressions
             obj[prop];
+
             return this.createObjectProxy();
+
+          case prop === 'toHTML':
+          case prop === Symbol.toPrimitive:
+            return () => _this.component.toHtml(obj);
 
           default:
             return obj[prop];
@@ -863,7 +899,7 @@ class RootProxy {
     // expected to change
     Object.keys(this.getGlobalVariables())
       .forEach(variable => {
-        this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${globalsBasePath}.${variable}`] = [];
+        this.#dataPathHooks[[dataPathRoot, globalsBasePath, variable].join(pathSeparator)] = [];
       });
 
 
@@ -1273,6 +1309,10 @@ class RootProxy {
         )
       }
 
+      if (isArray) {
+        assert(global.clientUtils.isNumber(prop));
+      }
+
       const p = `${path}${isArray ? `[${prop}]` : `${path.length ? '.' : ''}${prop}`}`;
       const isEmpty = obj[prop] == null || obj[prop] == undefined;
 
@@ -1321,6 +1361,7 @@ class RootProxy {
 
           Object.defineProperty(obj[prop], pathProperty, { value: p, configurable: false, writable: false });
           this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}`] = [];
+          this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}.length`] = [];
 
           obj[prop] = this.getObserverProxy(obj[prop]);
 

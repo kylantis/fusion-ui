@@ -34,15 +34,11 @@ class BaseComponent extends WebRenderer {
     return this.#parent;
   }
 
-  escapeString() {
-    return true;
-  }
-
   // eslint-disable-next-line class-methods-use-this
   toHtml(value) {
 
-    if (!this.escapeString()) {
-      return value;
+    if (value instanceof Promise) {
+      return '';
     }
 
     const { getDataVariables } = RootCtxRenderer;
@@ -72,13 +68,8 @@ class BaseComponent extends WebRenderer {
       }
       return val;
     }
-    const safe_tags = (str) => {
-      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
 
-    return safe_tags(
-      Object(value) !== value ? `${value}` : JSON.stringify(value, replacer, null)
-    );
+    return Object(value) !== value ? `${value}` : JSON.stringify(value, replacer, null);
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -93,9 +84,28 @@ class BaseComponent extends WebRenderer {
     });
   }
 
-  render({ data, target, strategy }) {
-    if (!data) {
+  render({ data, target, strategy, options }) {
+    if (data === undefined) {
       return Promise.resolve();
+    }
+
+    if (!target) {
+      // The MustacheExpression was not wrapped in a html wrapper
+      // likely because the mustache expression was within a html
+      // attribute context
+      const { loc } = options;
+      assert(!!loc);
+
+      switch (true) {
+        case data instanceof BaseComponent:
+          throw Error(`Component: ${data.getId()} cannot be rendered in this template location: ${global.clientUtils.getLine({ loc })}`);
+
+        case data instanceof Function:
+          data = data();
+
+        default:
+          return data;
+      }
     }
 
     // eslint-disable-next-line no-plusplus
@@ -111,7 +121,7 @@ class BaseComponent extends WebRenderer {
       .then(() => Promise.resolve(data)
         // eslint-disable-next-line no-shadow
         .then((data) => {
-          if (!data) {
+          if (data === undefined) {
             // eslint-disable-next-line no-param-reassign
             data = '';
           }
@@ -138,7 +148,7 @@ class BaseComponent extends WebRenderer {
 
             default:
               promise = promise.then(() => {
-                node.innerHTML = this.toHtml(data);
+                node.innerHTML = String(data);
               });
               break;
           }
@@ -180,23 +190,6 @@ class BaseComponent extends WebRenderer {
    * sometimes instead of a getter in the object proxy 
    */
   init() {
-  }
-
-  // eslint-disable-next-line class-methods-use-this
-  getLoader() {
-    // return `
-    //     <div style='display: table; width: 100%; height: 100%;'>
-    //       <div style='vertical-align: middle; display: table-cell;'>
-    //         <img width='20px' src='/assets/images/loader.gif' style='display: block; margin-left: auto; margin-right: auto;'>
-    //       </div>
-    //     </div>
-    // `;
-    return '';
-  }
-
-  // eslint-disable-next-line class-methods-use-this
-  getStencil() {
-    return '';
   }
 
   validateInput() {
@@ -270,21 +263,7 @@ class BaseComponent extends WebRenderer {
     return this.getSyntheticMethod({ name: 'hasSubComponent' })();
   }
 
-  preRender() {
-  }
-
   onMount() {
-    
-  }
-
-  isMobile() {
-    return navigator.userAgent.match(/Android/i)
-      || navigator.userAgent.match(/webOS/i)
-      || navigator.userAgent.match(/iPhone/i)
-      || navigator.userAgent.match(/iPad/i)
-      || navigator.userAgent.match(/iPod/i)
-      || navigator.userAgent.match(/BlackBerry/i)
-      || navigator.userAgent.match(/Windows Phone/i)
   }
 
   static getWrapperCssClass() {
@@ -294,6 +273,17 @@ class BaseComponent extends WebRenderer {
   
   hooks() {
     return {};
+  }
+
+  destroy() {
+
+    // Todo: Prune resources
+    // ....
+    delete this.getInput();
+
+    // Detach DOM
+    const node = document.getElementById(this.getId());
+    node.parentElement.removeChild(node)
   }
 
 }

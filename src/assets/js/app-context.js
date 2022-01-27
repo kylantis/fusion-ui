@@ -253,7 +253,7 @@ class AppContext {
       '/assets/js/custom-ctx-renderer.min.js',
       '/assets/js/web-renderer.min.js',
       '/assets/js/base-component.min.js',
-      '/assets/js/root-context.min.js'
+      '/assets/js/abstract-component.min.js',
     ];
     return urls;
   }

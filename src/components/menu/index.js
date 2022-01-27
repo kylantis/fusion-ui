@@ -1,4 +1,4 @@
-class Menu extends BaseComponent {
+class Menu extends AbstractComponent {
 
     init() {
         // If group role is 'radio' or 'checkbox', this specifies the

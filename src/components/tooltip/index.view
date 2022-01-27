@@ -1,0 +1,12 @@
+<div class="slds-popover slds-popover_tooltip" role="tooltip">
+    <div class="slds-popover__body">
+    {{#each parts as |i j|}}
+        {{component alias="component"}}
+        {{#if component}}
+            {{> component}}
+        {{else}}
+            {{text}}
+        {{/if}}
+    {{/each}}
+    </div>
+</div>

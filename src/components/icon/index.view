@@ -1,7 +1,7 @@
+<br> <br> <br> <br> <br> <br> <br> <br> <br> <br>  
 
-{{ style href="/assets/styles/salesforce-lightning-design-system.min.css" }}
-{{ style href="/assets/styles/base.min.css" }}
-
+<div style="margin-left: 350px;">
+   
     {{#if (role eq "presentation") or (not role) }}
 
     <span class="slds-icon_container
@@ -59,3 +59,6 @@
     {{/if}}
     
     {{/if}}
+
+
+</div>

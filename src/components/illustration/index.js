@@ -1,7 +1,5 @@
 
-class Illustration extends BaseComponent {
+class Illustration extends AbstractComponent {
 
-
-    
 }
 module.exports = Illustration;
