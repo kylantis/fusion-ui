@@ -1,5 +1,5 @@
 {
-  "superclass": null,
+  "interfaces": [],
   "enableTypeMerging": true,
   "collections": {
     "items": {
@@ -114,5 +114,6 @@
   ],
   "sharedTypeNames": {
     "SharedType0": "Sentence"
-  }
+  },
+  "escapeDynamicHtml": false
 }

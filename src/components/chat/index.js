@@ -1,5 +1,5 @@
 
-class Chat extends BaseComponent {
+class Chat extends AbstractComponent {
 
 
     

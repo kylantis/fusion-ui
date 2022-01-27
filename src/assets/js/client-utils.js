@@ -132,4 +132,8 @@ module.exports = {
     return results;
   },
 
+  getLine: (stmt) => {
+    const { loc: { start } = {} } = stmt;
+    return start ? `${start.line}:${start.column}` : '';
+  }
 };

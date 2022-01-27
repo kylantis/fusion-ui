@@ -1,5 +1,5 @@
 
-class Tab extends BaseComponent {
+class Tab extends AbstractComponent {
 
 
     

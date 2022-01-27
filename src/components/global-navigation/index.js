@@ -1,11 +1,8 @@
 
-class GlobalNavigation extends BaseComponent {
+class GlobalNavigation extends AbstractComponent {
 
     init() {
         this.getInput().tabs[0].isActive;
-    }
-
-    preRender() {
     }
 
     onMount() {
@@ -48,9 +45,6 @@ class GlobalNavigation extends BaseComponent {
     }
 
     getContentNodeSelector() {
-        // Note: due to the transform 'captureContentCoordinates' used by the
-        // .content div, it is wrapped in a block, and ultimately is rendered
-        // within a wrapper div
         const { getWrapperCssClass } = BaseComponent;
         return `#${this.getId()} > div > .${getWrapperCssClass()} > .content`;
     }

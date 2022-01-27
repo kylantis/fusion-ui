@@ -45,7 +45,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     let { hash, fn } = options;
 
-    // const partialName = hash[partialNameHash];
+   //  const partialName = hash[partialNameHash];
 
     if (hash[partialIdHash]) {
       // eslint-disable-next-line no-undef
@@ -56,10 +56,10 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
       fn = decorator.fn;
       // eslint-disable-next-line no-param-reassign
-      ctx = decorator.data;
+      // ctx = decorator.data; VERIFY AND REMOVE THIS LINE
     }
 
-    this.logger.debug(`Loading partial {{> ${partialName} }}`);
+    // this.logger.debug(`Loading partial {{> ${partialName} }}`);
 
     return this.renderBlock({
       data: ctx,
@@ -71,7 +71,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
   }
 
   wrapDataWithProxy(data) {
-    const { isProxyPath } = CustomCtxRenderer;
+    const { isRootPath, syntheticMethodPrefix } = RootProxy;
     switch (true) {
       case data !== Object(data):
         return data;
@@ -99,29 +99,23 @@ class CustomCtxRenderer extends RootCtxRenderer {
                   }
                 };
 
-              case prop === Symbol.toPrimitive:
-                return () => _this.toHtml(obj);
-
               case !!Object.getPrototypeOf(obj)[prop]:
                 return obj[prop];
 
               case prop === 'toHTML':
-                // An alternative is to check if prop === Symbol.toPrimitive
+              case prop === Symbol.toPrimitive:
                 return () => _this.toHtml(obj);
-
+              case prop.startsWith(syntheticMethodPrefix):
+                // We need handlebars to invoke the helper itself, so that the params
+                // (including the options object) are passed in during invocation 
+                return undefined;
               default:
-                const value = isProxyPath(prop) ? this.rootProxy[prop] : obj[prop];
+                const value = isRootPath(prop) ? this.rootProxy[prop] : obj[prop];
                 return this.wrapDataWithProxy(value);
             }
           },
         });
     }
-  }
-
-  static isProxyPath(path) {
-    // eslint-disable-next-line no-undef
-    const { dataPathPrefix, syntheticMethodPrefix } = RootProxy;
-    return dataPathPrefix.test(path) || path.startsWith(syntheticMethodPrefix);
   }
 
   renderBlock({ data, options }) {
@@ -201,6 +195,16 @@ class CustomCtxRenderer extends RootCtxRenderer {
     return b;
   }
 
+  noOpHelper() {
+    // eslint-disable-next-line prefer-rest-params
+    const params = Array.from(arguments);
+    const options = params.pop();
+
+    const { hash } = options;
+
+    return hash;
+  }
+
   ternary() {
     const params = Array.from(arguments);
 
@@ -259,7 +263,9 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     const val = b ? left : right;
 
-    return val === Object(val) ? JSON.stringify(val) : val;
+    const result = val === Object(val) ? JSON.stringify(val) : val;
+
+    return result;
   }
 
   static isPrimitive(value) {
@@ -315,17 +321,6 @@ class CustomCtxRenderer extends RootCtxRenderer {
       throw Error(`${path} must resolve to a non-empty value with one of the types: ${validTypes}${line ? ` on line ${line}` : ''}.`);
     }
     return value;
-  }
-
-  // Todo: remove if not used
-  getRootData() {
-    const root = this.hbsInput;
-    const rootData = root.data;
-    delete root.data;
-    return {
-      ...root,
-      ...rootData,
-    };
   }
 }
 

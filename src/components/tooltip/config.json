@@ -1,0 +1,44 @@
+{
+  "interfaces": [],
+  "collections": {
+    "parts": {
+      "minLength": 1,
+      "singularType": "Part"
+    }
+  },
+  "scalars": {
+    "parts_$.component": {
+      "type": "componentRef",
+      "defaults": [
+        null
+      ]
+    },
+    "parts_$.text": {
+      "type": "String",
+      "defaults": [
+        "Hello from Kylantis"
+      ]
+    },
+    "animate": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "targetElement": {
+      "type": "String",
+      "default": null
+    },
+    "position": {
+      "type": "String",
+      "allowed": [
+        "left",
+        "top",
+        "right",
+        "bottom"
+      ],
+      "defaults": [
+        "top"
+      ]
+    }
+  },
+  "escapeDynamicHtml": false
+}

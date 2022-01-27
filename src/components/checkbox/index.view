@@ -1,0 +1,148 @@
+
+{{#*inline "render_required_label"}}
+  <abbr class="slds-required" title="required">*</abbr>
+{{/inline}}
+
+
+{{#*inline "render_error_message"}}
+<div class="slds-form-element__help" id="{{@root.componentId}}_err">
+      {{errorMessage}}
+</div>
+{{/inline}}
+
+
+{{#*inline "render_input_element" id item}}
+    <input type="checkbox" name="{{item.name}}" id="{{id}}_input" value="{{id}}_input"
+      {{item.checked ? "checked=\"\"" : "" }}
+      {{(disabled or item.disabled) ? "disabled=\"\"" : "" }} 
+      {{(item.error and errorMessage) ? "aria-describedby=\"${@root.componentId}_err\"" : "" }}
+    >
+{{/inline}}
+
+
+{{#*inline "render_title"}}
+  {{component Icon alias="titleIcon"}}
+  {{#if title}}
+      {{title}}
+  {{/if}}
+{{/inline}}
+
+
+{{#*inline "render_standalone" item}}
+
+  <div class="slds-form-element 
+  {{(item.error or errorMessage) ? "slds-has-error" : ""}}
+  {{(formElement and viewMode) ? "slds-form-element_readonly" : ""}}"
+  {{rtl ? " dir='rtl'" : ""}}
+  >
+
+  {{#if formElement}}
+
+  <label class="slds-form-element__label" for="{{@root.componentId}}_input">
+
+    {{#unless viewMode}}
+      {{!-- If in view mode, there's no reason to indicate that the field is required --}}
+      {{#if required or item.required}}
+        {{> render_required_label}}
+      {{/if}}
+    {{/unless}}
+
+    {{> render_title}}
+  </label>
+
+  <div class="slds-form-element__control">
+
+    {{#if viewMode}}
+      {{> Icon type='utility' name=(item.checked ? 'check' : 'steps') size="x-small"}}
+    {{else}}
+
+    <span class="slds-checkbox slds-checkbox_standalone">
+      {{> render_input_element item id=@root.componentId}}
+      <span class="slds-checkbox_faux"></span>
+    </span>
+
+    {{/if}}
+
+  </div>
+
+  {{else}}
+
+  <div class="slds-form-element__control">
+    <div class="slds-checkbox">
+     {{#if required or item.required}}
+      {{> render_required_label}}
+     {{/if}}
+
+      {{> render_input_element item id=@root.componentId}}
+      
+      <label class="slds-checkbox__label" for="{{@root.componentId}}_input">
+        <span class="slds-checkbox_faux"></span>
+        <span class="slds-form-element__label">
+          {{> render_title}}
+        </span>
+      </label>
+    </div>
+  </div>
+
+  {{/if}}
+
+  {{#if errorMessage}}
+    {{> render_error_message}}
+  {{/if}}
+
+</div>
+
+{{/inline}}
+
+
+{{#*inline "render_group"}}
+
+<fieldset class="slds-form-element" {{rtl ? " dir='rtl'" : ""}}>
+
+  {{#if title}}
+  <legend class="slds-form-element__legend slds-form-element__label">
+    {{#if required}}
+      {{> render_required_label}}
+    {{/if}}
+    {{title}}
+  </legend>
+  {{/if}}
+
+  <div class="slds-form-element__control">
+    
+    {{#each items transform = "itemTransform" as |item itemIndex|}}
+    <div class="mst-w {{error ? 'slds-has-error' : ''}}">
+      
+      <div class="slds-checkbox">
+        {{#if required}}
+          {{> render_required_label}}
+        {{/if}}
+
+        {{> render_input_element item id=("${@root.componentId}-${@random}")}}
+          
+        <label class="slds-checkbox__label" for="{{@root.componentId}}-{{@random}}_input">
+          <span class="slds-checkbox_faux"></span>
+          <span class="slds-form-element__label">{{label}}</span>
+        </label>
+      </div>
+    </div>
+    {{/each}}
+  </div>
+
+  {{#if errorMessage}}
+  <div class="slds-has-error">
+    {{> render_error_message}}
+  </div>
+  {{/if}}
+
+</fieldset>
+{{/inline}}
+
+
+{{#if items.length gt 1}}
+  {{> render_group}}
+{{else}}
+  {{#if items.length eq 1}}
+    {{> render_standalone item = items.[0]}}
+  {{/if}}
+{{/if}} 

@@ -1,5 +1,5 @@
 
-class ActivityTimeline extends BaseComponent {
+class ActivityTimeline extends AbstractComponent {
 
     init() { }
 
@@ -9,13 +9,6 @@ class ActivityTimeline extends BaseComponent {
         // const items = this.items || (this.items = []);
 
 
-    }
-
-    /**
-     * This is needed to be able to inline the sylesheets below
-     */
-    escapeString() {
-        return false;
     }
 
     /**

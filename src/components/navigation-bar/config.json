@@ -1,5 +1,5 @@
 {
-  "superclass": null,
+  "interfaces": [],
   "collections": {
     "items": {
       "minLength": 5,
@@ -34,5 +34,6 @@
       "type": "Menu",
       "isNull": false
     }
-  }
+  },
+  "escapeDynamicHtml": false
 }

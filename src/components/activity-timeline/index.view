@@ -1,5 +1,5 @@
-{{ style href="/assets/styles/salesforce-lightning-design-system.min.css" }}
-{{ style href="/assets/styles/base.min.css" }}
+
+
 
 {{!-- 
 This inline partial is used to render a sentence. A sentence contains an array of
@@ -136,10 +136,6 @@ parts, and each part is either plain text or a link
 
 
 <br><br><br><br><br><br><br>
-
-
-
-
 <ul class="slds-timeline">
   <li>
     <div class="slds-timeline__item_expandable slds-timeline__item_task slds-is-open">
