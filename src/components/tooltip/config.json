@@ -19,10 +19,6 @@
         "Hello from Kylantis"
       ]
     },
-    "animate": {
-      "type": "Boolean",
-      "defaultValue": true
-    },
     "targetElement": {
       "type": "String",
       "default": null

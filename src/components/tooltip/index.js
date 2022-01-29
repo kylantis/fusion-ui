@@ -2,7 +2,6 @@
 class Tooltip extends AbstractComponent {
 
     init() {
-        this.getInput().animate;
         this.getInput().targetElement;
         this.getInput().position;
     }
@@ -33,27 +32,6 @@ class Tooltip extends AbstractComponent {
         }
 
         const container = document.querySelector(targetElement);
-       
-        container.addEventListener("onlostpointercapture", function () {
-            console.info(this);
-        })
-
-         // // Watch for changes to the element and update the tooltip position
-
-        // const mutationObserver = new MutationObserver(function (mutations) {
-        //     mutations.forEach(function (mutation) {
-        //         console.info(mutation);
-        //     });
-        // });
-
-        // mutationObserver.observe(container, {
-        //     attributes: true,
-        //     characterData: true,
-        //     childList: true,
-        //     subtree: true,
-        //     attributeOldValue: true,
-        //     characterDataOldValue: true
-        // });
     }
 
     setPosition() {
@@ -206,24 +184,24 @@ class Tooltip extends AbstractComponent {
     show() {
         const node = this.getNode()
 
-        if (this.getInput().animate) {
-            node.style.visibility = 'unset';
-            node.classList.remove(this.getHideToggleClass());
-            node.classList.add(this.getShowToggleClass());
-        } else {
-            node.style.visibility = 'visible';
-        }
+        // if (animate) {
+        node.style.visibility = 'unset';
+        node.classList.remove(this.getHideToggleClass());
+        node.classList.add(this.getShowToggleClass());
+        // } else {
+        node.style.visibility = 'visible';
+        // }
     }
 
     hide() {
         const node = this.getNode();
 
-        if (this.getInput().animate) {
-            node.classList.remove(this.getShowToggleClass());
-            node.classList.add(this.getHideToggleClass());
-        } else {
-            node.style.visibility = 'hidden';
-        }
+        // if (animate) {
+        node.classList.remove(this.getShowToggleClass());
+        node.classList.add(this.getHideToggleClass());
+        // } else {
+        node.style.visibility = 'hidden';
+        // }
     }
 
     static getBoundingClientRectOffset(container) {

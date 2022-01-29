@@ -39,5 +39,11 @@ class AbstractComponent extends BaseComponent {
             || navigator.userAgent.match(/BlackBerry/i)
             || navigator.userAgent.match(/Windows Phone/i)
     }
+
+    requiredComponents() {
+        const tooltipClass = 'Tooltip';
+        return this.getComponentName() != tooltipClass ? [tooltipClass] : []
+    }
+
 }
 module.exports = AbstractComponent;

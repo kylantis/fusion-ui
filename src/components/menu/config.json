@@ -73,10 +73,6 @@
       "type": "String",
       "allowed": "direction"
     },
-    "groups_$.items_$.subMenuDirection": {
-      "type": "String",
-      "allowed": "direction"
-    },
     "coordinates.Y": {
       "type": "Number"
     },

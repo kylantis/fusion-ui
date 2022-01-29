@@ -208,6 +208,15 @@ class BaseComponent extends WebRenderer {
     return [];
   }
 
+  /**
+   * Normally, we can detect the component dependency hierarchy from the template itself
+   * But some component may load components from their classes not templates
+   * 
+   */
+  requiredComponents() {
+    return [];
+  }
+
   defaultHandlers() {
     return {};
   }

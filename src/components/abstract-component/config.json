@@ -2,12 +2,7 @@
   "interfaces": [],
   "enableTypeMerging": false,
   "collections": {},
-  "scalars": {
-    "icon": {
-      "type": "Icon",
-      "isNull": false
-    }
-  },
+  "scalars": {},
   "nullifyRandomly": [],
   "useArrayLengthProperty": false,
   "escapeDynamicHtml": false

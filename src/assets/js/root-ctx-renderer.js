@@ -1270,7 +1270,12 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   getComponentName() {
-    return this.getSyntheticMethod({ name: 'getComponentName' })();
+    try {
+      return this.getSyntheticMethod({ name: 'getComponentName' })();
+    } catch (e) {
+      // We are in compile-time, use a fallback
+      return Reflect.getPrototypeOf(this.constructor).name;
+    }
   }
 
   getInputSchema() {
