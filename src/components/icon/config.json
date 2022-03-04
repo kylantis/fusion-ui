@@ -1102,23 +1102,6 @@
       "defaults": [
         "small"
       ]
-    },
-    "helperTextVisibility": {
-      "type": "String",
-      "allowed": [
-        "always_on",
-        "hover",
-        "click"
-      ],
-      "defaults": [
-        "hover"
-      ]
-    },
-    "helperText": {
-      "type": "String",
-      "defaults": [
-        "Icon Helper Text"
-      ]
     }
   },
   "escapeDynamicHtml": false

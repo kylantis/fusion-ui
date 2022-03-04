@@ -1,5 +1,4 @@
 {
-  "interfaces": [],
   "collections": {
     "parts": {
       "minLength": 1,
@@ -19,25 +18,13 @@
         "Hello from Kylantis"
       ]
     },
-    "animate": {
-      "type": "Boolean",
-      "defaultValue": true
-    },
     "targetElement": {
       "type": "String",
       "default": null
     },
     "position": {
       "type": "String",
-      "allowed": [
-        "left",
-        "top",
-        "right",
-        "bottom"
-      ],
-      "defaults": [
-        "top"
-      ]
+      "defaults": []
     }
   },
   "escapeDynamicHtml": false

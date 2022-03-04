@@ -1,5 +1,5 @@
 
-class Illustration extends AbstractComponent {
+class illustration extends components.AbstractComponent {
 
 }
-module.exports = Illustration;
+module.exports = illustration;

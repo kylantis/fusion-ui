@@ -2,14 +2,11 @@
 /* eslint-disable no-eval */
 /* eslint-disable no-restricted-globals */
 /* eslint-disable no-param-reassign */
-/* eslint-disable class-methods-use-this */
-
-// eslint-disable-next-line no-unused-vars
 class AppContext {
-  static lazyLoadComponentTemplates = true;
+  static lazyLoadComponentTemplates = false;
 
   static #initialized;
-  static #loadedScripts = [];
+  static #loadedResources = {};
 
   constructor({
     logger, userGlobals,
@@ -19,7 +16,7 @@ class AppContext {
 
     // Add user globals
     this.userGlobals = {};
-    
+
     for (const k in userGlobals) {
       const v = userGlobals[k];
 
@@ -72,7 +69,7 @@ class AppContext {
     this.testMode = testMode;
 
     if (!AppContext.#initialized) {
-      await this.loadGlobalDependencies();
+      await this.loadDependencies();
     }
 
     await this.loadEnums();
@@ -86,7 +83,7 @@ class AppContext {
     const container = document.createElement('div');
     container.id = 'app-container';
     container.style.display = 'contents';
-    
+
     document.body.appendChild(container);
 
     // eslint-disable-next-line no-new
@@ -94,72 +91,36 @@ class AppContext {
       input: data,
     });
 
-    component.load({ container: container.id })
+    if (testMode) {
+      self.Component = component;
+    }
+
+    return component.load({ container: container.id })
       .then(() => {
         if (!AppContext.#initialized) {
           AppContext.#initialized = true;
         }
       });
-
-    if (testMode) {
-      self.Component = component;
-    }
   }
 
-  toCanonicalDependency(dependency) {
-    if (dependency.constructor.name === 'String') {
-      dependency = { url: dependency, moduleType: 'cjs' };
-    }
-    return dependency;
+  getDependencies() {
+    return [
+      { url: '/assets/js/client-utils.min.js', namespace: 'clientUtils' },
+      '/assets/js/proxy.min.js',
+      '/assets/js/base-renderer.min.js',
+      '/assets/js/root-ctx-renderer.min.js',
+      '/assets/js/custom-ctx-renderer.min.js',
+      '/assets/js/web-renderer.min.js',
+      '/assets/js/base-component.min.js',
+    ];
   }
 
-  loadDependencies({
-    dependencies
-  }) {
-
-    const promises = [];
-
-    for (const dependency of dependencies) {
-      dependency = this.toCanonicalDependency(dependency);
-      promises.push(
-        this.loadResource({
-          url: dependency.url,
-          moduleType: dependency.moduleType,
-          esm: dependency.esm,
-          // We 'll process them in order below
-          process: false,
-        }).then(r => ({ ...r, namespace: dependency.namespace }))
-      );
-    }
-
-    return Promise.all(promises).then((responses) => {
-      for (const response of responses) {
-        const { contents, moduleType, url, namespace, esm } = response;
-        const f = this.processScript({ contents, moduleType, url });
-
-        // eslint-disable-next-line default-case
-        switch (true) {
-          case f instanceof Function:
-            self[f.name] = f;
-            break;
-          case f instanceof Object && !!Object.keys(f).length:
-            // eslint-disable-next-line no-undef
-            assert(namespace);
-            self[namespace] = esm ? f.default : f;
-            break;
-        }
-      }
-    });
-  }
-
-  loadGlobalDependencies() {
-    return this.loadDependencies({
-      dependencies: this.getGlobalScriptURLs()
-    });
+  loadDependencies() {
+    return this.fetchAll(this.getDependencies());
   }
 
   loadEnums() {
-    return this.loadResource({
+    return this.fetch({
       url: '/components/enums.json', asJson: true
     }).then(enums => {
       self.appContext.enums = enums;
@@ -167,8 +128,10 @@ class AppContext {
   }
 
   async loadComponentClasses({ rootComponent }) {
+
     const { lazyLoadComponentTemplates } = AppContext;
-    const list = await this.loadResource({
+
+    const list = await this.fetch({
       url: '/components/list.json',
       asJson: true,
     });
@@ -176,146 +139,193 @@ class AppContext {
     let rootAssetId;
     self.components = {};
 
+    const loadComponentClass = (name, assetId, tpl, componentSrc, testComponentSrc) => {
+
+      const componentClass = this.processScript({
+        contents: componentSrc,
+      });
+
+      self.components[name] = componentClass;
+
+      if (testComponentSrc) {
+        // If we are in test mode, load component test classes, to override the main ones
+        const inlineScope = ` const require = (module) => {
+
+        switch(module) {
+          case './index':
+            return self.components['${name}'];
+          default:
+            throw Error('Cannot load module: ${module}');
+        }
+      };
+      `;
+
+        const componentTestClass = this.processScript({
+          contents: testComponentSrc, inlineScope,
+        });
+
+        // When serializing, toJSON(...) should use the actual className, not the test class
+        componentTestClass.className = name;
+
+        self.components[name] = componentTestClass;
+      }
+
+      if (name === rootComponent) {
+        rootAssetId = assetId;
+      }
+    }
+
     return Promise.all(
       Object.keys(list).map((name) => {
         const assetId = list[name];
         return Promise.all([
+          name,
+          assetId,
+          lazyLoadComponentTemplates ? Promise.resolve() : this.fetch(`/components/${assetId}/metadata.min.js`),
 
-          lazyLoadComponentTemplates ? Promise.resolve() : this.loadResource({
-            url: `/components/${assetId}/metadata.min.js`,
-            moduleType: 'inline',
-          }),
-
-          this.loadResource({
+          this.fetch({
             url: `/components/${assetId}/index.js`,
-            moduleType: 'cjs',
+            process: false,
           }),
-        ])
-          // eslint-disable-next-line no-unused-vars
-          .then(([tpl, ComponentClass]) => {
-            // eslint-disable-next-line no-eval
-            self.components[name] = ComponentClass;
-            this.logger.info(`Loaded component class: ${name}`);
-          })
-          .then(() => {
-            if (!this.testMode) {
-              return null;
-            }
 
-            if (name === rootComponent) {
-              rootAssetId = assetId;
-            }
+          this.testMode ? this.fetch({
+            url: `/components/${assetId}/index.test.js`,
+            process: false,
+          }) : null,
+        ]);
+      }))
+      .then(async (components) => {
 
-            const inlineScope = `
-              const require = (module) => {
-
-                switch(module) {
-                  case './index':
-                    return self.components['${name}'];
-                  default:
-                    return self[module];
-                }
-              };
-              `;
-
-            return this.loadResource({
-              url: `/components/${assetId}/index.test.js`,
-              moduleType: 'inline',
-              inlineScope,
-            }).then((ComponentClass) => {
-              // When serializing, toJSON(...) should use the actual className, not the test class
-              ComponentClass.className = name;
-              self.components[name] = ComponentClass;
-              this.logger.info(`Loaded test class for component: ${name}`);
-            });
-          });
-      }),
-    ).then(() => {
-      if (!this.testMode) {
-        return null;
-      }
-
-      return this.loadResource({
-        url: `/components/${rootAssetId}/sample.js`,
-        moduleType: 'inline',
-      }).then((o) => {
-        self.SampleData = o;
-      });
-    });
-  }
-
-  getGlobalScriptURLs() {
-    const urls = [
-      { url: '/assets/js/client-utils.min.js', moduleType: 'inline', namespace: 'clientUtils' },
-      '/assets/js/proxy.min.js',
-      '/assets/js/base-renderer.min.js',
-      '/assets/js/root-ctx-renderer.min.js',
-      '/assets/js/custom-ctx-renderer.min.js',
-      '/assets/js/web-renderer.min.js',
-      '/assets/js/base-component.min.js',
-      '/assets/js/abstract-component.min.js',
-    ];
-    return urls;
-  }
-
-  processScript({ contents, inlineScope, moduleType, url }) {
-    let result;
-    // eslint-disable-next-line default-case
-    switch (moduleType) {
-      case 'cjs':
-        const mod = { exports: {} };
-        eval(`(function (module, exports) { ${contents}\n//*/\n})(mod, mod.exports);\n//@ sourceURL=${url}`);
-        result = mod.exports;
-      break;
-
-      case 'inline':
-        if (inlineScope) {
-          contents = `${inlineScope}${contents}`;
+        for (const [name, assetId, tpl, componentSrc, testComponentSrc] of components) {
+          loadComponentClass(name, assetId, tpl, componentSrc, testComponentSrc);
         }
-        // eslint-disable-next-line no-unused-vars
-        const module = { exports: {} };
-        result = eval(contents);
-      break;
+
+        assert(!!rootAssetId, `Uknown root component: ${rootComponent}`);
+
+        if (!this.testMode) {
+          return;
+        }
+
+        self.SampleData = await this.fetch(`/components/${rootAssetId}/sample.js`);
+      });
+  }
+
+  processScript({ contents, inlineScope, namespace }) {
+
+    if (inlineScope) {
+      contents = `${inlineScope}${contents}`;
     }
-    this.logger.info(`Loaded ${url}`);
+
+    const exports = {};
+    // eslint-disable-next-line no-unused-vars
+    const module = { exports };
+
+    const result = eval(contents);
+
+    // eslint-disable-next-line default-case
+    switch (true) {
+      case result instanceof Function:
+        namespace = namespace || result.name;
+
+      case result instanceof Object && !!namespace:
+        eval(`self.${namespace} = result;`);
+        break;
+    }
+
     return result;
   }
 
-  /**
-   * Note:
-   * - This should load be used to fetch .js, .json files
-   * - URL should contain only path compnent
-   */
-  async loadResource({
-    url, asJson = false, moduleType, esm, inlineScope, process = true,
-  }) {
+  async fetch(req) {
+    const [res] = await this.fetchAll([req]);
+    return res;
+  }
 
-    return self.fetch(`${url}`, { method: 'GET' })
-      .then(res => {
-        if (!res.ok) {
-          throw Error(res.statusText);
+  async fetchAll(reqArray) {
+
+    const fetchFn = async ({ url, asJson }) => {
+      const resourceType = asJson ? 'json' : 'text';
+
+      const loadedResources = AppContext.#loadedResources;
+      const cached = loadedResources[url] || (loadedResources[url] = {})
+
+      if (!cached[resourceType]) {
+        const data = await self.fetch(
+          `${url}`, { method: 'GET' }
+        );
+
+        if (data.ok) {
+          // this.logger.info(`Loaded ${url} [REMOTE]`);
+
+          cached[resourceType] = {
+            contents: await data[resourceType](),
+          };
+        } else {
+          throw Error(data.statusText);
         }
-        return res;
-      })
-      .then(
-        response => response[asJson ? 'json' : 'text']()
-          .then((contents) => {
-            let result = contents;
+      } else {
+        // this.logger.info(`Loaded ${url} [CACHED]`);
+        cached[resourceType].cached = true;
+      }
 
-            if (!asJson) {
-              if (process) {
-                result = this.processScript({ contents, url, inlineScope, moduleType });
-              } else {
-                result = {
-                  moduleType,
-                  contents,
-                  url,
-                  esm,
-                }
-              }
-            }
-            return result;
-          })
-      );
+      return cached[resourceType];
+    }
+
+    const processFn = ({ response, url, asJson, namespace, inlineScope, process }) => {
+
+      const {
+        contents, cached, inlineScope: scope, namespace: ns
+      } = response;
+
+      let result = contents;
+
+      if (!asJson && process) {
+
+        if (cached &&
+          // The namespace and inlineScope needs to match for us to know that 
+          // res.module what the developer intended to load
+          scope === inlineScope &&
+          ns === namespace
+        ) {
+
+          // this.logger.info(`Processed ${url} [CACHED]`);
+          result = response.module;
+        } else {
+
+          result = this.processScript({ contents, inlineScope, namespace });
+          // this.logger.info(`Processed ${url} [REMOTE]`);
+
+          response.module = result;
+
+          response.inlineScope = inlineScope;
+          response.namespace = namespace;
+        }
+      }
+
+      return result;
+    }
+
+    return Promise.all(
+      reqArray
+        .map((req) => {
+          if (typeof req === 'string') {
+            req = { url: req };
+          }
+          return req;
+        })
+        .map(async ({ url, asJson, namespace, inlineScope, process = true }) => ({
+          response: await fetchFn({ url, asJson }),
+          url, asJson, namespace, inlineScope, process,
+        }))
+    ).then(responses => {
+      const result = [];
+
+      for (const { response, url, asJson, namespace, inlineScope, process } of responses) {
+        result.push(
+          processFn({ response, url, asJson, namespace, inlineScope, process })
+        );
+      }
+
+      return result;
+    });
   }
 }

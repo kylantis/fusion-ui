@@ -1,5 +1,5 @@
 
-class GlobalNavigation extends AbstractComponent {
+class GlobalNavigation extends components.AbstractComponent {
 
     init() {
         this.getInput().tabs[0].isActive;

@@ -1,6 +1,4 @@
 
-
-
 <div style="position: relative; min-height: 100% !important; height: auto; overflow: auto;">
 
 <div class="slds-context-bar slds-context-bar_tabs">
@@ -106,7 +104,7 @@
 {{!-- We are using transformOrder = 0, so that contentTransform can be executed
 before other transforms on this page --}}
 {{#with . transform = "contentTransform" transformOrder = 0 as |x|}}
-<div class="content"></div>
+<div class="content" style="padding-top: 1em;"></div>
 {{/with}}
 
 </div>

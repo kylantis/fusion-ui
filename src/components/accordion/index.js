@@ -1,12 +1,12 @@
 
-class Accordion extends AbstractComponent {
+class Accordion extends components.AbstractComponent {
 
     /**
      * At compile-time, dynanically register extra params we want to add to the data model,
      * Then later, update config.json to indicate specify the primitive type(s)
      */
     init() {
-        this.getInput().singleOnly;
+        this.getInput().expandSingle;
     }
 
     /**
@@ -72,7 +72,7 @@ class Accordion extends AbstractComponent {
 
                 } else {
 
-                    if (this.getInput().singleOnly && this.active.length) {
+                    if (this.getInput().expandSingle && this.active.length) {
                         // Close the one that's currently active
                         this.closeItem(this.active[0]);
                     }

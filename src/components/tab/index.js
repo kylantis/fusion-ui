@@ -1,5 +1,5 @@
 
-class Tab extends AbstractComponent {
+class Tab extends components.AbstractComponent {
 
 
     

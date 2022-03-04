@@ -49,8 +49,6 @@ class WebRenderer extends CustomCtxRenderer {
         return resolve([]);
       }
 
-      this.logger.info(`Loading CSS dependencies: ${styles}`);
-
       styles.forEach((url) => {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
@@ -62,7 +60,7 @@ class WebRenderer extends CustomCtxRenderer {
         link.onload = function () {
           loaded.push(this.href);
           WebRenderer.#loadedStyles.push(this.href);
-          _this.logger.info(`Loaded ${this.href}`);
+          // _this.logger.info(`Loaded ${this.href}`);
           if (loaded.length === styles.length) {
             resolve();
           }
@@ -82,18 +80,17 @@ class WebRenderer extends CustomCtxRenderer {
   loadJSDependencies() {
     // eslint-disable-next-line no-restricted-globals
     const { appContext } = self;
-    const dependencies = [...this.jsDependencies()]
-      .map(appContext.toCanonicalDependency)
-      .filter(({ url }) => !WebRenderer.#loadedScripts.includes(url))
+    const dependencies =
+      [...this.jsDependencies()]
+        .map((dep) => {
+          if (dep.constructor.name === 'String') {
+            dep = { url: dep };
+          }
+          return dep;
+        })
+        .filter(({ url }) => !WebRenderer.#loadedScripts.includes(url))
 
-    return dependencies
-      .reduce(
-        (p, x) => p.then(_ => appContext.loadResource({
-          url: x.url,
-          moduleType: x.moduleType,
-        })),
-        Promise.resolve(),
-      )
+    return appContext.fetchAll(dependencies)
       .then(() => {
         dependencies.forEach(({ url }) => {
           if (!WebRenderer.#loadedScripts.includes(url)) {

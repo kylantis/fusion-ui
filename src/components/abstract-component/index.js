@@ -1,7 +1,9 @@
-/**
- * Add component overrides here, as all component classes extend this class
- */
 class AbstractComponent extends BaseComponent {
+
+    init() {
+        this.getInput().a.b
+        this.getInput().a.c
+    }
 
     jsDependencies() {
         return [
@@ -13,16 +15,20 @@ class AbstractComponent extends BaseComponent {
     cssDependencies() {
         return [
             ...super.cssDependencies(),
+            '/assets/styles/base.min.css',
             '/assets/styles/salesforce-lightning-design-system.min.css',
             ... this.isMobile() ? ['/assets/styles/salesforce-lightning-design-system_touch.min.css'] : [],
-            '/assets/styles/base.min.css',
             // Todo: Add extra css files to be used across all components
         ];
     }
 
+    static isAbstract() {
+        return true;
+    }
+
     getLoader() {
         return `
-            <div style='display: table; width: 100%; height: 100%;'>
+            <div style='position: absolute; display: table; width: 100%; height: 100%;'>
               <div style='vertical-align: middle; display: table-cell;'>
                 <img width='20px' src='/assets/images/loader.gif' style='display: block; margin-left: auto; margin-right: auto;'>
               </div>
@@ -40,4 +46,5 @@ class AbstractComponent extends BaseComponent {
             || navigator.userAgent.match(/Windows Phone/i)
     }
 }
+
 module.exports = AbstractComponent;

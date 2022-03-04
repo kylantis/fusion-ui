@@ -50,7 +50,7 @@ module.exports = {
     return result;
   },
 
-  clone: (srcObject) => {
+  stringifyComponentData: (srcObject) => {
     const replacer = (name, val) => {
       const mapType = 'Map';
       if (val && val.constructor.name === 'Object' && val['@type'] && val['@type'] !== mapType) {

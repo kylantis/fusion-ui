@@ -15,7 +15,7 @@ gulp.task('bundle-polyfills', () => {
   if (!alwaysGeneratePolyfillBundle) {
     const polyfillBundle = path.join(path.dirname(fs.realpathSync(__filename)), '../dist/assets/js/polyfills/index.min.js');
     if (fs.existsSync(polyfillBundle)) {
-      log.info('Skipping generation of polyfill bundle');
+      // log.info('Skipping generation of polyfill bundle');
       return Promise.resolve();
     }
   }

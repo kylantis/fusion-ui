@@ -1,5 +1,4 @@
 {
-  "interfaces": [],
   "collections": {
     "tabs": {
       "minLength": 5,
@@ -7,10 +6,6 @@
     }
   },
   "scalars": {
-    "tabs_$.isActive": {
-      "type": "Boolean",
-      "defaultValue": false
-    },
     "useWaffleIcon": {
       "type": "Boolean",
       "defaultValue": true
@@ -61,6 +56,10 @@
     "tabs_$.subMenu": {
       "type": "Menu",
       "isNull": false
+    },
+    "tabs_$.isActive": {
+      "type": "String",
+      "defaults": []
     }
   },
   "escapeDynamicHtml": false
