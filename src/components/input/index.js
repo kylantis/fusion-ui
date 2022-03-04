@@ -1,5 +1,5 @@
 
-class Input extends AbstractComponent {
+class Input extends components.AbstractComponent {
 
 
     

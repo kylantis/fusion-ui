@@ -1,7 +1,7 @@
 
-const ConcreteAbstractComponent = require('./index');
+const AbstractComponent = require('./index');
 
-class ConcreteAbstractComponentTest extends ConcreteAbstractComponent {
+class AbstractComponentTest extends AbstractComponent {
 }
 
-module.exports = ConcreteAbstractComponentTest;
+module.exports = AbstractComponentTest;

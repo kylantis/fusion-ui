@@ -1,5 +1,5 @@
 
-class Checkbox extends AbstractComponent {
+class Checkbox extends components.AbstractComponent {
 
     async itemTransform({ node, blockData }) {
 

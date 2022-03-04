@@ -1,4 +1,5 @@
-class Icon extends AbstractComponent {
+
+class Icon extends components.AbstractComponent {
 
     toIconClassName(name) {
         return name.replaceAll('_', '-');

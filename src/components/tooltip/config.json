@@ -1,5 +1,4 @@
 {
-  "interfaces": [],
   "collections": {
     "parts": {
       "minLength": 1,
@@ -25,15 +24,7 @@
     },
     "position": {
       "type": "String",
-      "allowed": [
-        "left",
-        "top",
-        "right",
-        "bottom"
-      ],
-      "defaults": [
-        "top"
-      ]
+      "defaults": []
     }
   },
   "escapeDynamicHtml": false

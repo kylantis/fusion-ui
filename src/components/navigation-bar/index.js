@@ -1,5 +1,5 @@
 
-class NavigationBar extends AbstractComponent {
+class NavigationBar extends components.AbstractComponent {
 
     init() {
     }

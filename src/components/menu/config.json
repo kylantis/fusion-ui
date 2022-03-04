@@ -1,5 +1,4 @@
 {
-  "interfaces": [],
   "collections": {
     "groups": {
       "minLength": 1,
@@ -40,13 +39,6 @@
       "type": "String",
       "defaults": []
     },
-    "groups_$.checkIconPosition": {
-      "type": "String",
-      "allowed": "direction",
-      "defaults": [
-        "right"
-      ]
-    },
     "groups_$.items_$.level": {
       "type": "String",
       "allowed": [
@@ -54,10 +46,6 @@
         "success",
         "warning"
       ]
-    },
-    "groups_$.required": {
-      "type": "Boolean",
-      "defaultValue": false
     },
     "size": {
       "type": "String",
@@ -90,6 +78,18 @@
     "groups_$.items_$.subMenu": {
       "type": "Menu",
       "isNull": true
+    },
+    "groups_$.items_$.subMenuDirection": {
+      "type": "String",
+      "defaults": []
+    },
+    "groups_$.checkIconPosition": {
+      "type": "String",
+      "defaults": []
+    },
+    "groups_$.required": {
+      "type": "String",
+      "defaults": []
     }
   },
   "escapeDynamicHtml": false

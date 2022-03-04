@@ -1,5 +1,5 @@
 
-class ActivityTimeline extends AbstractComponent {
+class ActivityTimeline extends components.AbstractComponent {
 
     init() { }
 

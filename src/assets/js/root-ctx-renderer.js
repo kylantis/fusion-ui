@@ -76,7 +76,7 @@ class RootCtxRenderer extends BaseRenderer {
       throw Error(`Invalid token: ${token}`);
     }
 
-    this.logger.info(`Loading component, id=${this.getId()}, assetId=${this.getAssetId()}`);
+    // this.logger.info(`Loading component, id=${this.getId()}, assetId=${this.getAssetId()}`);
 
     const { htmlWrapperCssClassname, getMetaHelpers } = RootCtxRenderer;
     super.load();
@@ -205,7 +205,7 @@ class RootCtxRenderer extends BaseRenderer {
           const html = parentNode.innerHTML;
 
           this.#mounted = true;
-          await this.onMount(parentNode.lastChild);
+          this.invokeLifeCycleMethod('onMount', parentNode.lastChild);
 
           return html;
         }
@@ -226,6 +226,36 @@ class RootCtxRenderer extends BaseRenderer {
         }
 
       });
+  }
+
+  invokeLifeCycleMethod(name, ...args) {
+    this.recursivelyInvokeMethod(name, ...args);
+  }
+
+  recursivelyInvokeMethod(names, ...args) {
+    const result = [];
+
+    let component = this;
+
+    while ((component = Reflect.getPrototypeOf(component))
+      // eslint-disable-next-line no-undef
+      && component.constructor.name !== BaseComponent.name
+    ) {
+
+      if (typeof names === 'string') {
+        names = [names];
+      }
+
+      names.forEach(name => {
+        assert(name !== 'constructor');
+
+        if (Reflect.ownKeys(component).includes(name)) {
+          result.push(component[name].bind(this)(...args));
+        }
+      });
+    }
+
+    return result;
   }
 
   conditional({ options, ctx, params }) {
@@ -298,7 +328,7 @@ class RootCtxRenderer extends BaseRenderer {
     } = RootCtxRenderer;
 
     const { fn, inverse, hash } = options;
-    const [{ path, value }] = params;
+    const [{ path, value, canonicalPath }] = params;
 
     const nodeId = this.getSyntheticNodeId();
 
@@ -315,10 +345,7 @@ class RootCtxRenderer extends BaseRenderer {
 
         const blockKey = isSynthetic ?
           `${syntheticBlockKeyPrefix}${path.replace(syntheticMethodPrefix, '')}` :
-          global.clientUtils.toCanonicalPath(
-            path.replace(`${dataPathRoot}${pathSeparator}`, '').replaceAll('.', pathSeparator),
-            pathSeparator
-          );
+          canonicalPath;
 
         this.blockData[blockKey].length = value.length;
 
@@ -809,11 +836,9 @@ class RootCtxRenderer extends BaseRenderer {
 
   getSyntheticMethod({
     name,
-    autoPrefix = true,
   }) {
-    const f = this[`${autoPrefix
-      // eslint-disable-next-line no-undef
-      ? RootProxy.syntheticMethodPrefix : ''}${name}`];
+    // eslint-disable-next-line no-undef
+    const f = this[`${RootProxy.syntheticMethodPrefix}${name}`];
     return f ? f.bind(this) : null;
   }
 
@@ -967,6 +992,16 @@ class RootCtxRenderer extends BaseRenderer {
                     dataVariable: "${dataVariable}"
                 })
               `);
+
+              // Since we are resolving to a synthetic method name (because this is a
+              // literal collection), there is a rare possibility that the developer
+              // never accesses {{.}} inside the #each block, thereby causing the PathResolver
+              // to throw a "redundant path" error for <canonicalPath>. Hence, we need to 
+              // at least access index 0 at compile-time
+
+              if (this.resolver) {
+                this.resolver.resolve({ path: `${path}[0]` })
+              }
             }
 
             // In startTextNodeBindContext(), we performed a push to this.#currentBindContext
@@ -974,7 +1009,7 @@ class RootCtxRenderer extends BaseRenderer {
             // happen via this.#bindMustache, we need to pop
             this.#currentBindContext.pop();
 
-            return syntheticMethodName;
+            return `this.${syntheticMethodName}()`;
           }
         }
 
@@ -1058,7 +1093,9 @@ class RootCtxRenderer extends BaseRenderer {
       path += `%${arr[1]}`;
     }
     try {
-      const value = this.resolvePath0({ path, create, includePath });
+      const value = this.resolvePath0({
+        path, create, includePath, canonicalPath: arr[0],
+      });
       return value;
     } catch (e) {
       if (this.strict) {
@@ -1089,7 +1126,7 @@ class RootCtxRenderer extends BaseRenderer {
     )}`
   }
 
-  resolvePath0({ path, create, includePath }) {
+  resolvePath0({ path, create, includePath, canonicalPath }) {
 
     const { syntheticMethodPrefix } = RootProxy;
     const { getDataBasePath, getGlobalsBasePath } = RootCtxRenderer;
@@ -1138,7 +1175,8 @@ class RootCtxRenderer extends BaseRenderer {
       // This is a data path
       return includePath ? {
         path: bindPath,
-        value
+        value,
+        canonicalPath,
       } : value;
     }
   }
@@ -1240,7 +1278,7 @@ class RootCtxRenderer extends BaseRenderer {
         // allow us re-build input data
         return this.createComponent({
           hash,
-          data: eval(`module.exports=${global.clientUtils.clone(componentSpec.getInput())
+          data: eval(`module.exports=${global.clientUtils.stringifyComponentData(componentSpec.getInput())
             }`),
           componentClass: componentSpec.constructor,
         })
@@ -1273,8 +1311,8 @@ class RootCtxRenderer extends BaseRenderer {
     try {
       return this.getSyntheticMethod({ name: 'getComponentName' })();
     } catch (e) {
-      // We are in compile-time, use a fallback
-      return Reflect.getPrototypeOf(this.constructor).name;
+      // We are in compile-time
+      return global.preprocessor.className;
     }
   }
 

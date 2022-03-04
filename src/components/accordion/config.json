@@ -1,15 +1,11 @@
 {
-  "interfaces": [],
   "collections": {
     "items": {
       "minLength": 5,
-      "singularType": "ItemsElement"
+      "singularType": "Item"
     }
   },
   "scalars": {
-    "singleOnly": {
-      "type": "Boolean"
-    },
     "items_$.title": {
       "type": "String",
       "defaults": [
@@ -28,13 +24,9 @@
         null
       ]
     },
-    "s$_items_first": {
-      "type": "String",
-      "defaults": []
-    },
-    "s$_items_random": {
-      "type": "String",
-      "defaults": []
+    "expandSingle": {
+      "type": "Boolean",
+      "defaultValue": true
     }
   },
   "escapeDynamicHtml": false

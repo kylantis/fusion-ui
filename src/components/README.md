@@ -12,7 +12,9 @@ When creating components, there are some architectural guidelines you need to ne
 
 - Test your components on the server: You may be tempted to focus more on the browser rendering of our components when testing, and this ignore the server rendered version - but this is strongly discouraged. Ideally, you want to ensure that your DOM manipulation code (specifically query selectors) works exactly the same way irrespective of where it is rendered.
 
-- Make your helpers async: When using template helpers that perform long-running tasks (relatively speaking), it's best to make these functions async, so that they don't drastically increase the initial rendering time of your component
+- Make your helper invocations async: When using template helpers that perform long-running tasks (relatively speaking), it's best to make these invocations async, so that they don't drastically increase the initial rendering time of your component. For mustache statements and custom blocks, add the hash async=true
+
+- Subclass existing components where necessary: Even though each component has it's own template file that is not shared, components can extend a component class inorder to inherit methods and events
 
 - Learn by looking at the built-in components: This framework comes pre-loaded with an exhaustive list of components that you can use out of the box and also learn from.
 

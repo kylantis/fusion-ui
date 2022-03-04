@@ -1,8 +1,16 @@
 {
-  "interfaces": [],
   "enableTypeMerging": false,
   "collections": {},
-  "scalars": {},
+  "scalars": {
+    "a.b": {
+      "type": "String",
+      "defaults": []
+    },
+    "a.c": {
+      "type": "String",
+      "defaults": []
+    }
+  },
   "nullifyRandomly": [],
   "useArrayLengthProperty": false,
   "escapeDynamicHtml": false

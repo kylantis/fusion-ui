@@ -8,22 +8,25 @@ const watch = require('gulp-watch');
 const through = require('through2');
 
 const { processFile } = require('../lib/template-processor');
+const { getAllComponentNames } = require('../lib/utils');
+
 
 // eslint-disable-next-line func-names
-const gulpTransform = function () {
+const gulpTransform = function ({ fromWatch, componentList } = {}) {
   return through.obj(async (vinylFile, _encoding, callback) => {
     const file = vinylFile.clone();
 
     const dir = path.dirname(file.path);
 
     if (fs.existsSync(path.join(dir, '.skip'))) {
-      // Todo: remove this, and find a proper fix
-      // return callback(null, file);
+      return callback(null, file);
     }
 
-    const { assetId, metadata, error } = await processFile({
+    const { assetId, metadata, error = null } = await processFile({
       dir,
       fromGulp: true,
+      fromWatch,
+      componentList,
     });
 
     // write precompiled template
@@ -32,9 +35,7 @@ const gulpTransform = function () {
     // eslint-disable-next-line no-buffer-constructor
     file.contents = Buffer.from(metadata || '');
 
-    // Note: If error is true, an error ocurred
-
-    callback(null, file);
+    callback(fromWatch ? null : error, file);
   });
 };
 
@@ -44,14 +45,25 @@ const tailArgument = process.argv[process.argv.length - 1];
 const componentName = tailArgument.startsWith(componentArgPrefix) ?
   tailArgument.replace(componentArgPrefix, '') : null;
 
-gulp.task('compile-templates',
-  () => gulp.src([`src/components/${componentName || '*'}/index.view`])
-    .pipe(gulpTransform())
-    .pipe(gulp.dest(`dist/components${componentName ? `/${componentName}` : ''}`)));
+const componentList = componentName ? [componentName] : getAllComponentNames();
 
-gulp.task('compile-templates:watch', () => watch([
+gulp.task('compile-components', gulp.series(componentList
+  .map(name => {
+    const taskName = `compile-component-${name}`;
+
+    gulp.task(taskName, () => gulp.src([`src/components/${name}/index.view`])
+      .pipe(
+        gulpTransform({ componentList })
+      )
+      .pipe(gulp.dest(`dist/components/${name}`))
+    )
+    return taskName;
+  })));
+
+
+gulp.task('compile-components:watch', () => watch([
   `src/components/${componentName || '*'}/*.view`,
   `src/components/${componentName || '*'}/*.js`
 ], { ignoreInitial: true })
-  .pipe(gulpTransform())
+  .pipe(gulpTransform({ fromWatch: true }))
   .pipe(gulp.dest(`dist/components${componentName ? `/${componentName}` : ''}`)));

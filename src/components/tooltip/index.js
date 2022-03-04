@@ -1,5 +1,5 @@
 
-class Tooltip extends AbstractComponent {
+class Tooltip extends components.AbstractComponent {
 
     init() {
         this.getInput().targetElement;

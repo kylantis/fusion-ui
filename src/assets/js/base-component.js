@@ -2,6 +2,8 @@
 /* eslint-disable no-restricted-globals */
 /* eslint-disable no-case-declarations */
 
+const { is } = require("jsdom/lib/jsdom/living/generated/Element");
+
 // eslint-disable-next-line no-undef
 class BaseComponent extends WebRenderer {
   static CHAINED_LOADING_STRATEGY = 'chained';
@@ -28,10 +30,6 @@ class BaseComponent extends WebRenderer {
 
     this.#parent = parent;
     this.handlers = {};
-  }
-
-  getParent() {
-    return this.#parent;
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -208,15 +206,6 @@ class BaseComponent extends WebRenderer {
     return [];
   }
 
-  /**
-   * Normally, we can detect the component dependency hierarchy from the template itself
-   * But some component may load components from their classes not templates
-   * 
-   */
-  requiredComponents() {
-    return [];
-  }
-
   defaultHandlers() {
     return {};
   }
@@ -279,7 +268,7 @@ class BaseComponent extends WebRenderer {
     const { htmlWrapperCssClassname } = RootCtxRenderer;
     return htmlWrapperCssClassname;
   }
-  
+
   hooks() {
     return {};
   }
