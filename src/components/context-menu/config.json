@@ -1,0 +1,27 @@
+{
+  "enableTypeMerging": false,
+  "collections": {},
+  "scalars": {
+    "menu": {
+      "type": "Menu",
+      "isNull": false
+    },
+    "clickType": {
+      "type": "String",
+      "defaults": []
+    },
+    "useTargetPosition": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "hideOnClick": {
+      "type": "Boolean",
+      "defaultValue": false
+    }
+  },
+  "sample": {
+    "nullifyRandomly": []
+  },
+  "useArrayLengthProperty": false,
+  "escapeDynamicHtml": false
+}

@@ -76,6 +76,10 @@ class RootCtxRenderer extends BaseRenderer {
       throw Error(`Invalid token: ${token}`);
     }
 
+    if (this.isMounted()) {
+      throw Error(`${this.getId()} is already loaded`);
+    }
+
     // this.logger.info(`Loading component, id=${this.getId()}, assetId=${this.getAssetId()}`);
 
     const { htmlWrapperCssClassname, getMetaHelpers } = RootCtxRenderer;
@@ -150,11 +154,13 @@ class RootCtxRenderer extends BaseRenderer {
     // We require that the <parentNode> is a live element, present om the DOM
     assert(parentNode != null, `DOMElement #${container} does not exist`);
 
-    parentNode.insertAdjacentHTML('beforeend',
-      `<div id='${this.getId()}' class='${htmlWrapperCssClassname}'>
-      ${html}
-    </div>`
-    );
+    const node = document.createElement('div');
+   
+    node.id = this.getElementId();
+    node.classList.add(htmlWrapperCssClassname);
+    node.innerHTML = html;
+
+    parentNode.appendChild(node);
 
     this.#resolve();
 
@@ -179,6 +185,8 @@ class RootCtxRenderer extends BaseRenderer {
               return o1 < o2 ? -1 : o2 < o1 ? 1 : 0;
             });
 
+          await this.invokeLifeCycleMethod('onMount', parentNode.lastChild);
+          
           // Trigger block hooks
           const hooks = hookKeys
             .map(selector => {
@@ -189,7 +197,10 @@ class RootCtxRenderer extends BaseRenderer {
 
               return hook({
                 node: document.querySelector(`#${this.getId()} ${selector}`),
-                blockData
+                blockData,
+                // This indicatea that this hook is triggered just before this component
+                // is fully mounted, as opposed to on data update
+                initial: true,
               });
             });
 
@@ -205,7 +216,6 @@ class RootCtxRenderer extends BaseRenderer {
           const html = parentNode.innerHTML;
 
           this.#mounted = true;
-          this.invokeLifeCycleMethod('onMount', parentNode.lastChild);
 
           return html;
         }
@@ -228,8 +238,12 @@ class RootCtxRenderer extends BaseRenderer {
       });
   }
 
-  invokeLifeCycleMethod(name, ...args) {
-    this.recursivelyInvokeMethod(name, ...args);
+  getElementId() {
+    return this.getId();
+  }
+
+  async invokeLifeCycleMethod(name, ...args) {
+    await Promise.all(this.recursivelyInvokeMethod(name, ...args));
   }
 
   recursivelyInvokeMethod(names, ...args) {
@@ -1269,7 +1283,7 @@ class RootCtxRenderer extends BaseRenderer {
 
         return this.createComponent({
           hash,
-          componentClass: global.components[componentSpec],
+          componentClass: components[componentSpec],
         })
 
       case componentSpec && componentSpec instanceof BaseComponent:

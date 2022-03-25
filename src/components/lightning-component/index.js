@@ -1,8 +1,6 @@
-class AbstractComponent extends BaseComponent {
+class LightningComponent extends BaseComponent {
 
-    init() {
-        this.getInput().a.b
-        this.getInput().a.c
+    initCompile() {
     }
 
     jsDependencies() {
@@ -47,4 +45,4 @@ class AbstractComponent extends BaseComponent {
     }
 }
 
-module.exports = AbstractComponent;
+module.exports = LightningComponent;

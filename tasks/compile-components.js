@@ -12,7 +12,7 @@ const { getAllComponentNames } = require('../lib/utils');
 
 
 // eslint-disable-next-line func-names
-const gulpTransform = function ({ fromWatch, componentList } = {}) {
+const gulpTransform = ({ fromWatch, componentList, beforeHook } = {}) => {
   return through.obj(async (vinylFile, _encoding, callback) => {
     const file = vinylFile.clone();
 
@@ -20,6 +20,10 @@ const gulpTransform = function ({ fromWatch, componentList } = {}) {
 
     if (fs.existsSync(path.join(dir, '.skip'))) {
       return callback(null, file);
+    }
+
+    if (beforeHook) {
+      await beforeHook();
     }
 
     const { assetId, metadata, error = null } = await processFile({
@@ -31,7 +35,7 @@ const gulpTransform = function ({ fromWatch, componentList } = {}) {
 
     // write precompiled template
     file.basename = 'metadata.min.js';
-    file.path = path.join(path.dirname(path.dirname(file.path)), assetId, file.basename);
+    file.path = path.join(path.dirname(dir), assetId, file.basename);
     // eslint-disable-next-line no-buffer-constructor
     file.contents = Buffer.from(metadata || '');
 
@@ -48,12 +52,26 @@ const componentName = tailArgument.startsWith(componentArgPrefix) ?
 const componentList = componentName ? [componentName] : getAllComponentNames();
 
 gulp.task('compile-components', gulp.series(componentList
-  .map(name => {
+  .map((name, i) => {
+    let beforeHook;
+
+    if (!componentName && i == 0) {
+      beforeHook = () => {
+        // We are compiling all components, prune the list.json file before the first coponent
+        // is compiled, iorder to clear the component cache
+
+        const file = path.join(process.env.PWD, 'dist', 'components', 'list.json');
+        if (fs.existsSync(file)) {
+          fs.rmSync(file);
+        }
+      }
+    }
+
     const taskName = `compile-component-${name}`;
 
     gulp.task(taskName, () => gulp.src([`src/components/${name}/index.view`])
       .pipe(
-        gulpTransform({ componentList })
+        gulpTransform({ componentList, beforeHook })
       )
       .pipe(gulp.dest(`dist/components/${name}`))
     )

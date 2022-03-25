@@ -10,19 +10,33 @@
     }
   },
   "scalars": {
-    "groups_$.title": {
-      "type": "String"
-    },
-    "groups_$.items_$.title": {
-      "type": "String",
-      "defaults": [
-        "Menu Item One",
-        "Menu Item Two"
-      ]
-    },
     "label": {
       "type": "String",
       "defaults": []
+    },
+    "size": {
+      "type": "String",
+      "allowed": "size",
+      "defaults": [
+        "small"
+      ]
+    },
+    "isSubMenu": {
+      "type": "Boolean"
+    },
+    "x": {
+      "type": "String",
+      "allowed": "direction"
+    },
+    "y": {
+      "type": "String",
+      "allowed": [
+        "top",
+        "bottom"
+      ]
+    },
+    "groups_$.title": {
+      "type": "String"
     },
     "groups_$.role": {
       "type": "String",
@@ -35,9 +49,24 @@
         "presentation"
       ]
     },
+    "groups_$.checkIconPosition": {
+      "type": "String",
+      "allowed": "direction"
+    },
+    "groups_$.required": {
+      "type": "String",
+      "defaults": []
+    },
     "groups_$.items_$.identifier": {
       "type": "String",
       "defaults": []
+    },
+    "groups_$.items_$.title": {
+      "type": "String",
+      "defaults": [
+        "Menu Item One",
+        "Menu Item Two"
+      ]
     },
     "groups_$.items_$.level": {
       "type": "String",
@@ -47,29 +76,9 @@
         "warning"
       ]
     },
-    "size": {
-      "type": "String",
-      "allowed": "size",
-      "defaults": [
-        "small"
-      ]
-    },
-    "isSubMenu": {
-      "type": "Boolean"
-    },
-    "direction": {
-      "type": "String",
-      "allowed": "direction"
-    },
-    "coordinates.Y": {
-      "type": "Number"
-    },
-    "coordinates.X": {
-      "type": "Number"
-    },
     "groups_$.items_$.leftIcon": {
       "type": "Icon",
-      "isNull": true
+      "isNull": false
     },
     "groups_$.items_$.rightIcon": {
       "type": "Icon",
@@ -79,18 +88,28 @@
       "type": "Menu",
       "isNull": true
     },
-    "groups_$.items_$.subMenuDirection": {
+    "groups_$.items_$.subMenuX": {
       "type": "String",
-      "defaults": []
+      "allowed": "direction",
+      "defaults": [
+        "right"
+      ]
     },
-    "groups_$.checkIconPosition": {
+    "groups_$.items_$.subMenuY": {
       "type": "String",
-      "defaults": []
-    },
-    "groups_$.required": {
-      "type": "String",
-      "defaults": []
+      "allowed": [
+        "top",
+        "bottom"
+      ],
+      "defaults": [
+        "bottom"
+      ]
     }
+  },
+  "sample": {
+    "nullifyRandomly": [
+      "groups_$.items_$.leftIcon"
+    ]
   },
   "escapeDynamicHtml": false
 }

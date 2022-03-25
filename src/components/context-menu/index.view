@@ -1,0 +1,8 @@
+{{!-- 
+    Note: "menu" is never rendered on the DOM, hence data-binding is not available
+    for it. If you need to update an item on this menu at a later time, you need to
+    replace the entire menu, i.e. 
+    this.getInput().menu = ... (on the client-side) or
+    contextMenu.setMenu(...) (on the server-side)
+--}}
+{{component Menu alias="menu"}}

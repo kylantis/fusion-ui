@@ -1,7 +1,7 @@
 
-class NavigationBar extends components.AbstractComponent {
+class NavigationBar extends components.LightningComponent {
 
-    init() {
+    initCompile() {
     }
 
     events() {
@@ -71,7 +71,7 @@ class NavigationBar extends components.AbstractComponent {
             const { classList } = elem;
 
             switch (true) {
-                case classList.contains(global.components.Menu.itemClassName()):
+                case classList.contains(components.Menu.itemClassName()):
                     return true;
                 case classList.contains('slds-context-bar__item'):
                     return false;

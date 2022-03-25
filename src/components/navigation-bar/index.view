@@ -29,7 +29,7 @@
             {{> Icon type='utility' name='chevrondown' size="xx-small"}}
             <span class="slds-assistive-text">Open menu item submenu</span>
         </div>
-        {{> subMenu size='xx-small' coordinates=null }}
+        {{> subMenu size='xx-small' }}
         {{/if}}
       </li>
 

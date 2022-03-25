@@ -1,5 +1,5 @@
 
-class Checkbox extends components.AbstractComponent {
+class Checkbox extends components.LightningComponent {
 
     async itemTransform({ node, blockData }) {
 
@@ -21,10 +21,15 @@ class Checkbox extends components.AbstractComponent {
 
                     const marginLeft = this.isMobile() ? '0.967em' : '1em';
 
-                    const selector = `#${this.getId()} .slds-form-element__control > .${mstW} > .${mstW}:nth-child(${i + 1}) .${mstW} label .slds-checkbox_faux`;
-                    document.querySelector(selector).style.marginLeft = marginLeft
+                    this.node
+                        .querySelector(`:scope .slds-form-element__control > .${mstW} > .${mstW}:nth-child(${i + 1}) .${mstW} label .slds-checkbox_faux`)
+                        .style.marginLeft = marginLeft;
                 })
         }
+    }
+
+    onMount(node) {
+        this.node = node;
     }
 
     getUsers() {

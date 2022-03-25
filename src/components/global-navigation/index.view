@@ -80,7 +80,7 @@
         </div>
         {{!-- direction="right" --}}
         {{!-- size='xx-small' --}}
-        {{> subMenu coordinates=null}}
+        {{> subMenu }}
         {{/if}}
 
         {{#if closeable}}

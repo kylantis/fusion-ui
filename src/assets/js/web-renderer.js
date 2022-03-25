@@ -13,17 +13,16 @@ class WebRenderer extends CustomCtxRenderer {
     });
   }
 
-  load({ container, token }) {
-    let promises = [];
+  load(opts) {
+    let deps = [];
     // eslint-disable-next-line no-restricted-globals
     if (!global.isServer) {
-      promises = [
+      deps = [
         this.loadCSSDependencies(),
         this.loadJSDependencies(),
       ];
     }
-    return Promise.all(promises)
-      .then(() => super.load({ container, token }));
+    return Promise.all(deps).then(() => super.load(opts));
   }
 
   cssDependencies() {

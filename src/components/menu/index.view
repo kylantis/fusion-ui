@@ -1,11 +1,11 @@
   <div class="slds-dropdown
   {{size ? "slds-dropdown_${size}" : "slds-dropdown_x-small"}}
   {{isSubMenu ? "slds-dropdown_submenu" : ''}}
-  {{isSubMenu ? direction ? 'slds-dropdown_submenu-${direction}' : 'slds-dropdown_submenu-right' : 
-    direction ? 'slds-dropdown_${direction}' : ''}}"
+  {{isSubMenu ? x ? 'slds-dropdown_submenu-${x}' : 'slds-dropdown_submenu-right' : 
+    x ? 'slds-dropdown_${x}' : ''}}"
   style="
-  {{coordinates ? "position: absolute; transform: translateX(0%); left: ${coordinates.X}; top: ${coordinates.Y}" : ''}}
-  {{isSubMenu ? "margin-left: 0;" : ''}}
+  {{isSubMenu ? (x eq 'left') ? "margin-right: 0;" : "margin-left: 0;" : ''}}
+  {{isSubMenu ? (y eq 'top') ? "top: unset; bottom: -5;" : "top: 0; bottom: unset;" : ''}}
   ">
 
     <ul class="slds-dropdown__list" role="menu" {{label ? "aria-label=\"${label}\"" : ""}}>
@@ -30,7 +30,8 @@
         <a role="menuitem" 
         tabindex="{{(groupIndex eq 0) and (@index eq 0) ? '0' : '-1'}}"
         {{level ? "class=\"slds-has-${level}\"" : ""}}
-        {{ subMenu ? "aria-haspop=\"true\"" : "" }}>
+        {{ subMenu ? "aria-haspop=\"true\"" : "" }}
+        >
 
           <span class="slds-truncate" title="{{title}}">
 
@@ -51,7 +52,7 @@
         </a>
             
             {{#if subMenu and title}}
-              {{> subMenu label=title isSubMenu=true direction=subMenuDirection }}
+              {{> subMenu label=title isSubMenu=true x=subMenuX y=subMenuY }}
             {{/if}}
 
       </li>

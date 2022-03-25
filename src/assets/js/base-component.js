@@ -2,8 +2,6 @@
 /* eslint-disable no-restricted-globals */
 /* eslint-disable no-case-declarations */
 
-const { is } = require("jsdom/lib/jsdom/living/generated/Element");
-
 // eslint-disable-next-line no-undef
 class BaseComponent extends WebRenderer {
   static CHAINED_LOADING_STRATEGY = 'chained';
@@ -75,10 +73,10 @@ class BaseComponent extends WebRenderer {
     return BaseComponent.ASYNC_LOADING_STRATEGY;
   }
 
-  load({ container } = {}) {
+  load(opts = {}) {
     return super.load({
       token: BaseComponent.#token,
-      container,
+      ...opts,
     });
   }
 
@@ -181,13 +179,13 @@ class BaseComponent extends WebRenderer {
   /**
    * The main goal for this is to allow the component dynamically register fields 
    * in it's object model. Note: this method is only invoked at compile-time.
-   * Also, note that there is no way to define a map structure here. This can only
+   * Also, note that there is no way to define a map/component structure here. This can only
    * be done from the template
    * 
    * Todo: Can we add support for non-scalar attributes here by using a setter
    * sometimes instead of a getter in the object proxy 
    */
-  init() {
+  initCompile() {
   }
 
   validateInput() {
@@ -199,11 +197,56 @@ class BaseComponent extends WebRenderer {
   }
 
   behaviours() {
-    return [];
+    return ['destroy'];
   }
 
   events() {
     return [];
+  }
+
+  hooks() {
+    return {};
+  }
+
+  getBehaviours() {
+    let behaviours = [];
+
+    this.recursivelyInvokeMethod('behaviours').forEach(arr => {
+      assert(arr.constructor.name == 'Array');
+      behaviours = behaviours.concat(arr);
+    });
+
+    return behaviours;
+  }
+
+  getEvents() {
+    let events = [];
+
+    this.recursivelyInvokeMethod('events').forEach(arr => {
+      assert(arr.constructor.name == 'Array');
+      events = events.concat(arr);
+    });
+
+    return events;
+  }
+
+  getHooks() {
+    const hooks = {};
+
+    this.recursivelyInvokeMethod('hooks').forEach(r => {
+      Object.entries(r)
+      .forEach(([key, value]) => {
+        assert(value instanceof Function);
+
+        if (!hooks[key]) {
+          hooks[key] = [];
+        }
+
+        hooks[key].push(value);
+      });
+    })
+
+    return hooks;
   }
 
   defaultHandlers() {
@@ -269,10 +312,6 @@ class BaseComponent extends WebRenderer {
     return htmlWrapperCssClassname;
   }
 
-  hooks() {
-    return {};
-  }
-
   destroy() {
 
     // Todo: Prune resources
@@ -283,6 +322,22 @@ class BaseComponent extends WebRenderer {
     const node = document.getElementById(this.getId());
     node.parentElement.removeChild(node)
   }
+
+  static cloneComponent(component, inputVistor = (i) => i) {
+    const input = inputVistor(
+        eval(`module.exports=${global.clientUtils.stringifyComponentData(
+            component.getInput(),
+        )}`)
+    )
+
+    const o = new components.Menu({ input });
+
+    Object.entries(component.handlers).forEach(([k, v]) => {
+        o.handlers[k] = v;
+    });
+
+    return o;
+}
 
 }
 module.exports = BaseComponent;

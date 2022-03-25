@@ -1,7 +1,7 @@
 
-class Menu extends components.AbstractComponent {
+class Menu extends components.LightningComponent {
 
-    init() {
+    initCompile() {
         // If group role is 'radio' or 'checkbox', this specifies the
         // direction that the check icon should be placed
         this.getInput().groups[0].checkIconPosition
@@ -103,20 +103,21 @@ class Menu extends components.AbstractComponent {
         }
     }
 
-    async createIcon({ type, name, level, direction, container }) {
+   createIcon({ type, name, level, x, container }) {
         const input = {
             type,
             name,
             useCurrentColor: level && level == 'warning',
+            size: 'xx-small',
         };
 
-        if (direction == 'left') {
+        if (x === 'left') {
             input.marginRight = 'x-small';
         } else {
             input.marginLeft = 'small';
         }
 
-        return await new components.Icon({
+        return new components.Icon({
             input
         }).load({ container })
     }
@@ -127,7 +128,7 @@ class Menu extends components.AbstractComponent {
      */
     async itemTransform({ node, blockData }) {
 
-        const { htmlWrapperCssClassname } = RootCtxRenderer
+        const { htmlWrapperCssClassname: mstW } = RootCtxRenderer
         const { pathSeparator } = RootProxy;
 
         const _this = this;
@@ -140,17 +141,14 @@ class Menu extends components.AbstractComponent {
         const group = this.getInput()['groups'][groupIndex];
         let {
             selected: initiallySelected, level,
-            subMenu, subMenuDirection
+            subMenu, subMenuX
         } = group.items[itemIndex];
 
         let { role, checkIconPosition = 'left', required } = group;
 
         if (subMenu) {
             role = 'presentation';
-
-            if (!subMenuDirection) {
-                subMenuDirection = 'right'
-            }
+            subMenuX = subMenuX || 'right';
         }
 
         const items = this.getItems();
@@ -164,8 +162,8 @@ class Menu extends components.AbstractComponent {
 
         const item = {
             group: { role, checkIconPosition, required },
-            leftIconContainer: li.querySelector(`a span .${htmlWrapperCssClassname}`),
-            rightIconContainer: li.querySelector(`a > .${htmlWrapperCssClassname}`),
+            leftIconContainer: li.querySelector(`:scope > a > span > .${mstW}`),
+            rightIconContainer: li.querySelector(`:scope > a > .${mstW}`),
             hasSubMenu: !!subMenu
         }
 
@@ -175,11 +173,11 @@ class Menu extends components.AbstractComponent {
         // then re-insert in the container if the item is unselected at a later time
 
         if (item.leftIconContainer) {
-            item.leftIcon = item.leftIconContainer.querySelector(`div.${htmlWrapperCssClassname}`)
+            item.leftIcon = item.leftIconContainer.querySelector(`:scope > div.${mstW}`)
         }
 
         if (item.rightIconContainer) {
-            item.rightIcon = item.rightIconContainer.querySelector(`div.${htmlWrapperCssClassname}`)
+            item.rightIcon = item.rightIconContainer.querySelector(`:scope > div.${mstW}`)
         }
 
         items[identifier] = item;
@@ -187,7 +185,7 @@ class Menu extends components.AbstractComponent {
         const createContainerDiv = () => {
             const elem = document.createElement('div');
             elem.id = global.clientUtils.randomString();
-            elem.className = htmlWrapperCssClassname;
+            elem.className = mstW;
 
             return elem;
         }
@@ -195,7 +193,7 @@ class Menu extends components.AbstractComponent {
         if (role != 'presentation') {
 
             // Based on the checkIconPosition specified, select the appropriate icon container
-            let checkIconContainer = checkIconPosition == 'left' ? item.leftIconContainer : item.rightIconContainer
+            let checkIconContainer = checkIconPosition === 'left' ? item.leftIconContainer : item.rightIconContainer
 
             if (!checkIconContainer) {
                 // This item does not have an icon, manually create an icon container
@@ -205,10 +203,10 @@ class Menu extends components.AbstractComponent {
 
                 checkIconContainer = createContainerDiv();
 
-                if (checkIconPosition == 'left') {
-                    li.querySelector('a span').prepend(checkIconContainer);
+                if (checkIconPosition === 'left') {
+                    li.querySelector(':scope > a > span').prepend(checkIconContainer);
                 } else {
-                    li.querySelector('a').append(checkIconContainer);
+                    li.querySelector(':scope > a').append(checkIconContainer);
                 }
             }
 
@@ -218,7 +216,7 @@ class Menu extends components.AbstractComponent {
                 type: 'utility',
                 name: 'check',
                 level,
-                direction: checkIconPosition
+                x: checkIconPosition
             })
 
             if (initiallySelected) {
@@ -229,34 +227,32 @@ class Menu extends components.AbstractComponent {
             // Add the caret icon (either to the left or right), 
             // replacing whatever icon exists
 
-            const caretContainer = subMenuDirection == 'left' ? item.leftIconContainer : item.rightIconContainer
+            let caretContainer = subMenuX === 'left' ? item.leftIconContainer : item.rightIconContainer
 
             if (!caretContainer) {
                 caretContainer = createContainerDiv();
 
-                if (subMenuDirection == 'left') {
-                    li.querySelector('a span').prepend(caretContainer);
+                if (subMenuX === 'left') {
+                    li.querySelector(':scope > a > span').prepend(caretContainer);
                 } else {
-                    li.querySelector('a').append(caretContainer);
+                    li.querySelector(':scope > a').append(caretContainer);
                 }
             }
 
             this.createIcon({
                 type: 'utility',
-                name: `chevron${subMenuDirection}`,
+                name: `chevron${subMenuX}`,
                 level,
-                direction: subMenuDirection,
+                x: subMenuX,
                 container: caretContainer.id
-            })
-
+            });
 
             // Move the sub-menu directly into <li>
-            const subMenuElement = li.querySelector('.slds-dropdown');
 
+            const subMenuElement = li.querySelector(`:scope > :nth-child(2) > .${mstW} > .${mstW} > .slds-dropdown`);
             li.removeChild(
                 li.querySelector(':scope > :nth-child(2)')
             )
-
             li.append(subMenuElement);
         }
 
@@ -273,7 +269,7 @@ class Menu extends components.AbstractComponent {
             }
 
             if (item.hasSubMenu) {
-                li.querySelector('a').setAttribute('aria-expanded', true);
+                li.querySelector(':scope > a').setAttribute('aria-expanded', true);
             }
         });
 
@@ -283,7 +279,7 @@ class Menu extends components.AbstractComponent {
             const item = items[identifier];
 
             if (item.hasSubMenu) {
-                li.querySelector('a').setAttribute('aria-expanded', true);
+                li.querySelector(':scope > a').setAttribute('aria-expanded', true);
             }
         });
 
@@ -293,7 +289,7 @@ class Menu extends components.AbstractComponent {
             const item = items[identifier];
 
             if (item.hasSubMenu) {
-                li.querySelector('a').removeAttribute('aria-expanded');
+                li.querySelector(':scope > a').removeAttribute('aria-expanded');
             }
         });
 
