@@ -25,8 +25,8 @@
       ]
     },
     "expandSingle": {
-      "type": "Boolean",
-      "defaultValue": true
+      "type": "String",
+      "defaults": []
     }
   },
   "escapeDynamicHtml": false

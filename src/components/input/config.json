@@ -2,7 +2,9 @@
   "enableTypeMerging": false,
   "collections": {},
   "scalars": {},
-  "nullifyRandomly": [],
+  "sample": {
+    "nullifyRandomly": []
+  },
   "useArrayLengthProperty": false,
   "escapeDynamicHtml": false
 }

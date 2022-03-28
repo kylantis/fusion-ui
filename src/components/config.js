@@ -6,8 +6,8 @@ module.exports = {
     * will be loaded first, in the order defined.
     */
     loadOrder: [
-        // All components extend AbstractComponent, hence this must be first
-        "abstract-component",
+        "lightning-component",
+        "overlay-component",
     ],
     /**
      * In some cases, during component imports, we may need to load an arbitrary scalar

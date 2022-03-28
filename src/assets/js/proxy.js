@@ -59,6 +59,8 @@ class RootProxy {
 
   #logicGates;
 
+  static #dataReferences = [];
+
   static #privilegedMode = false;
 
   constructor({ component }) {
@@ -727,7 +729,11 @@ class RootProxy {
                       def.type = ['object', 'null']
                       def.additionalProperties = true;
 
-                      delete def.$ref;
+                      def.component = {
+                        className: refName,
+                      },
+
+                        delete def.$ref;
                       break;
                   }
 
@@ -861,12 +867,21 @@ class RootProxy {
 
     this.component.constructor.schemaDefinitions = definitions;
 
-    this.component.constructor.ajv = new ajv7.default({
+    const ajv = new ajv7.default({
       schemas: Object.values(definitions),
       allErrors: true,
       allowUnionTypes: true,
-      inlineRefs: false
+      inlineRefs: false,
     });
+
+    // Add custom validator for component instances
+    ajv.addKeyword({
+      keyword: 'component',
+      validate: ({ className }, data) => !data || data instanceof components[className],
+      errors: true,
+    });
+
+    this.component.constructor.ajv = ajv;
   }
 
   validateInput() {
@@ -888,11 +903,23 @@ class RootProxy {
 
     const { dataPathRoot, pathSeparator, globalsBasePath } = RootProxy;
 
+    if (RootProxy.#dataReferences.includes(this.component.getInput())) {
+      // The reason we have to throw this error is because the input in question
+      // has previously been transformed such that data variables are created as 
+      // immutable, and this operation will attempt re-set those prop, hence resulting
+      // in an error.
+      // It is understandable that the developer may want to re-use input data
+      // without giving much thought to it, so in the error message - add a useful hint
+      throw Error('Input data already processed. You need to clone the data first before using it on a new component instance');
+    }
+
     this.toCanonicalObject({ path: '', obj: this.component.getInput() });
 
     this.component.setInput(
       this.getObserverProxy(this.component.getInput())
     );
+
+    RootProxy.#dataReferences.push(this.component.getInput());
 
     // Add globals to dataPathHooks 
     // Even though this is registered here, global variables are generally never 
@@ -935,21 +962,11 @@ class RootProxy {
     ];
   }
 
-  static createDataChangeEvent({ path, oldValue, newValue }) {
-    return class DataChangeEvent extends CustomEvent {
-      constructor() {
-        super('DataChangeEvent', {
-          detail: { path, oldValue, newValue }
-        });
-      }
-    };
-  }
-
   getObserverProxy(object) {
     const {
       dataPathRoot, logicGatePathRoot, pathSeparator, textNodeHookName,
       gateParticipantHookName, pathProperty, typeProperty, mapType,
-      getUserGlobals, getMapWrapper, createDataChangeEvent
+      getMapWrapper,
     } = RootProxy;
     const { getDataVariables } = RootCtxRenderer;
 
@@ -975,7 +992,7 @@ class RootProxy {
 
       const parent = obj['@path'];
 
-      if (obj[prop] == undefined) {
+      if (obj[prop] === undefined) {
         throw Error(`${parent ? `[${parent}] ` : ''}Property ${prop} does not exist`);
       }
 
@@ -988,7 +1005,7 @@ class RootProxy {
         throw Error(`Invalid index: ${prop} for array: ${obj['@path']}`);
       }
 
-      // What happens when newValue == undefined
+      // What happens when newValue === undefined
       // Can newValue be null in all scenarios?
 
       const fqPath = `${dataPathRoot}${pathSeparator}${isArray ?
@@ -996,12 +1013,14 @@ class RootProxy {
         `${parent.length ? `${parent}.` : ''}${prop}`
         }`;
 
+      const sPath = global.clientUtils.toCanonicalPath(fqPath)
+        .replace(`${dataPathRoot}${pathSeparator}`, '');
+
       const oldValue = obj[prop];
 
       if (oldValue instanceof BaseComponent) {
         throw Error(`Path: ${fqPath} cannot be mutated`);
       }
-
 
       if (!this.#dataPathHooks[fqPath]) {
 
@@ -1015,28 +1034,40 @@ class RootProxy {
         throw Error(`Unknown path: ${fqPath}`);
       }
 
-      const triggerHooks = path => {
+      const triggerHooks = () => {
 
-        const customHook = this.component.hooks()[path];
+        const componentHooks = this.component.getHooks();
+        let customHooks = componentHooks[fqPath];
 
-        if (customHook && customHook instanceof Function) {
-          const evt = createDataChangeEvent({ path, oldValue, newValue });
+        if (!customHooks) {
+          // Attempt using canonical path instead
+          customHooks = componentHooks[sPath];
+        }
 
-          customHook(evt);
+        if (customHooks) {
+          if (customHooks instanceof Function) {
+            customHooks = [customHooks];
+          }
+
+          const evt = { path: fqPath, oldValue, newValue, parentObject: obj };
+          
+          customHooks.forEach(fn => {
+            fn(evt);
+          });
 
           if (evt.defaultPrevented) {
             return;
           }
         }
 
-        const hooks = this.#dataPathHooks[path];
+        const hooks = this.#dataPathHooks[fqPath];
 
         hooks.forEach(hook => {
 
           let nodeValue = newValue
 
-          if (path.startsWith(`${logicGatePathRoot}${pathSeparator}`)) {
-            const gateId = path.replace(`${logicGatePathRoot}${pathSeparator}`, '')
+          if (fqPath.startsWith(`${logicGatePathRoot}${pathSeparator}`)) {
+            const gateId = fqPath.replace(`${logicGatePathRoot}${pathSeparator}`, '')
             nodeValue = this.getLogicGateValue({ gateId });
           }
 
@@ -1064,24 +1095,20 @@ class RootProxy {
         return eval(`${p} = ${p}`)
       };
 
-      triggerHooks(fqPath);
+      triggerHooks();
 
       const isNonPrimitive = (() => {
-        const sPath = global.clientUtils.toCanonicalPath(fqPath);
         const def = this.component.constructor.schemaDefinitions[sPath];
         return def.type == 'object' || def.type == 'array'
       })();
 
       const getValidator = () => {
         try {
-          return this.component.constructor.ajv.getSchema(
-            global.clientUtils.toCanonicalPath(fqPath)
-          )
+          return this.component.constructor.ajv.getSchema(`#/definitions/${sPath}`)
         } catch (e) {
           throw Error(`Unknown path: ${fqPath}`);
         }
       }
-
 
       if (newValue != null && oldValue !== newValue) {
 
@@ -1250,7 +1277,6 @@ class RootProxy {
         break;
 
       case this.isMapPath(path):
-
         assert(obj.constructor.name == 'Object');
 
         // If this is a map path, add set @type to Map, and trasform the keys
@@ -1266,13 +1292,22 @@ class RootProxy {
         obj[typeProperty] = mapType;
 
         break;
+
       default:
         assert(obj.constructor.name == 'Object');
 
         const def = this.getObjectDefiniton(path);
 
-        // Add missing properties and default to null
         const keys = Object.keys(obj);
+
+        // Ensure that all keys are valid properties defined in the schema
+        keys.forEach(k => {
+          if (!def.required.includes(k)) {
+            throw Error(`[${path}] Unknown property: ${k}`);
+          }
+        });
+
+        // Add missing properties and default to null
         def.required
           .filter(p => !p.startsWith('@') && !keys.includes(p))
           .forEach(p => {
@@ -1314,7 +1349,7 @@ class RootProxy {
       }
 
       const p = `${path}${isArray ? `[${prop}]` : `${path.length ? '.' : ''}${prop}`}`;
-      const isEmpty = obj[prop] == null || obj[prop] == undefined;
+      const isEmpty = obj[prop] == null || obj[prop] === undefined;
 
       // eslint-disable-next-line default-case
       switch (true) {

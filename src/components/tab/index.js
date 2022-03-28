@@ -1,5 +1,5 @@
 
-class Tab extends components.AbstractComponent {
+class Tab extends components.LightningComponent {
 
 
     

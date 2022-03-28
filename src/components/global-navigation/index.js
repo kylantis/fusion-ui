@@ -1,16 +1,15 @@
 
-class GlobalNavigation extends components.AbstractComponent {
+class GlobalNavigation extends components.LightningComponent {
 
-    init() {
+    initCompile() {
         this.getInput().tabs[0].isActive;
     }
 
-    onMount() {
-        // Display content container
-        const contentContainer = this.getContentContainer();
-        contentContainer.style.visibility = 'visible';
+    onMount(node) {
+        this.node = node;
+        this.getContentContainer().style.visibility = 'visible';
     }
-    
+
     events() {
         return [
             ...super.events(),
@@ -44,13 +43,11 @@ class GlobalNavigation extends components.AbstractComponent {
         }
     }
 
-    getContentNodeSelector() {
-        const { getWrapperCssClass } = BaseComponent;
-        return `#${this.getId()} > div > .${getWrapperCssClass()} > .content`;
-    }
-
     getContentContainer() {
-        return document.querySelector(this.getContentNodeSelector());
+        const { getWrapperCssClass } = BaseComponent;
+        return document.querySelector(
+            `#${this.getElementId()} > div > .${getWrapperCssClass()} > .content`
+        );
     }
 
     contentTransform({ node }) {
@@ -176,7 +173,7 @@ class GlobalNavigation extends components.AbstractComponent {
         // that it becomes part of this component's loading sequence
         this.futures.push(
             content
-            .load({ container: this.createTabContentContainer(identifier) })
+                .load({ container: this.createTabContentContainer(identifier) })
         )
 
         if (isActive) {
@@ -279,7 +276,7 @@ class GlobalNavigation extends components.AbstractComponent {
 
             switch (true) {
                 // A submenu item was clicked
-                case classList.contains(global.components.Menu.itemClassName()):
+                case classList.contains(components.Menu.itemClassName()):
                 // The 'trigger-submenu' button was clicked
                 case classList.contains('trigger-submenu'):
                 // The 'trigger-close' button was clicked

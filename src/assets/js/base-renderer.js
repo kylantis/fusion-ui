@@ -35,11 +35,12 @@ class BaseRenderer {
    this.isLoadable = loadable;
    this.#isRoot = !BaseRenderer.#componentIds.length;
 
-   if (this.isLoadable) {
+   if (this.loadable()) {
      BaseRenderer.#componentIds.push(this.#id);
    }
 
-   if (global.isServer && global.isWatch && this.isLoadable) {
+   if (global.isServer && global.isWatch && this.loadable()) {
+     // Todo: What's this for? Can't remember
     throw Error();
    }
 
@@ -57,6 +58,19 @@ class BaseRenderer {
  }
 
  loadable() {
+   const { isComponentLoadable } = global;
+
+   if (isComponentLoadable === false) {
+
+     // There are some scenarios where we load components without
+     // actually calling the constructor manually, hence we are unable
+     // to set loadable: false. For example: in getSerializedComponent(...),
+     // sampleData is loaded using require, and this will cause any 
+     // components inside it to be initialized as well.
+    
+     return false;
+   }
+
    return this.isLoadable;
  }
 
@@ -86,6 +100,11 @@ isInitialized() {
  load() {
  }
 
+ /**
+  * This is used to serialize this component instance. It is useful when we need
+  * to clone components.
+  * @see global.clientUtils.stringifyComponentData
+  */
  toJSON() {
    const o = {};
    o['@type'] = this.constructor.className || this.constructor.name;

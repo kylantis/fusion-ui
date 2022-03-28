@@ -20,11 +20,9 @@
     },
     "targetElement": {
       "type": "String",
-      "default": null
-    },
-    "position": {
-      "type": "String",
-      "defaults": []
+      "defaults": [
+        null
+      ]
     }
   },
   "escapeDynamicHtml": false

@@ -1,11 +1,11 @@
 
-class Accordion extends components.AbstractComponent {
+class Accordion extends components.LightningComponent {
 
     /**
      * At compile-time, dynanically register extra params we want to add to the data model,
      * Then later, update config.json to indicate specify the primitive type(s)
      */
-    init() {
+    initCompile() {
         this.getInput().expandSingle;
     }
 

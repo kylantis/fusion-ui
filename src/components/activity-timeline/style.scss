@@ -1,0 +1,13 @@
+.slds-timeline {
+    // Avoid interference from scrollbar
+    padding-right: 8px;
+}
+
+.lightning-context-menu {
+    opacity: 0;
+    transition: opacity 0.1s ease-in;
+
+    &.visible {
+        opacity: 1;
+    }
+}

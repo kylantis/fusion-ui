@@ -1,5 +1,13 @@
-
 ## Overview
+
+- initCompile()
+- component lifecycle
+
+
+## Guidelines
+- If your component wants to load other components before it is fully mounted itself, either await component.load(...) or this.futures.push(component.load(...)). Don't just do a blanket component.load(...) because this will cause problems when your component is rendered on the server side. The server will wait for the top-level component to be loaded, after which browser globals will be cleared from Node and html written.
+
+## Tip
 When creating components, there are some architectural guidelines you need to need to keep in mind, in order to create high-quality components
 
 - Use Shared Enums where possible: Enums are a set of pre-determined values, a concept that exist in many programming languages. Enums can be defined individually for each field, but if you see that there are fields that share the same value set across components, you should create a shared enum, and have the components reference that instead.
@@ -14,7 +22,7 @@ When creating components, there are some architectural guidelines you need to ne
 
 - Make your helper invocations async: When using template helpers that perform long-running tasks (relatively speaking), it's best to make these invocations async, so that they don't drastically increase the initial rendering time of your component. For mustache statements and custom blocks, add the hash async=true
 
-- Subclass existing components where necessary: Even though each component has it's own template file that is not shared, components can extend a component class inorder to inherit methods and events
+- Subclass existing components where necessary: Even though each component has it's own template file that is not shared, components can extend a component class
 
 - Learn by looking at the built-in components: This framework comes pre-loaded with an exhaustive list of components that you can use out of the box and also learn from.
 

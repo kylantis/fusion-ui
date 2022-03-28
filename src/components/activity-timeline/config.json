@@ -106,11 +106,17 @@
     },
     "Sentence.parts_$.text": {
       "type": "String"
+    },
+    "contextActions": {
+      "type": "Menu",
+      "isNull": false
     }
   },
-  "nullifyRandomly": [
-    "items_$.summary.parts_$.link"
-  ],
+  "sample": {
+    "nullifyRandomly": [
+      "items_$.summary.parts_$.link"
+    ]
+  },
   "sharedTypeNames": {
     "SharedType0": "Sentence"
   },

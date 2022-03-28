@@ -42,8 +42,11 @@ class AppContext {
       throw Error('Duplicate appContext instance');
     }
 
+    // This is needed for loading component metadata.min.js files
+    // because they reference global, i.e. global['metadata_abstract_component']
     self.global = self;
-    global.assert = (condition, message) => {
+
+    self.assert = (condition, message) => {
       if (!condition) {
         throw Error(`Assertion Error${message ? `: ${message}` : ''}`);
       }
@@ -77,7 +80,9 @@ class AppContext {
     await this.loadComponentClasses({ rootComponent });
 
     if (testMode) {
-      data = self.SampleData;
+      data = self.Samples[
+        self.clientUtils.getRandomInt(0, self.Samples.length - 1)
+      ];
     }
 
     const container = document.createElement('div');
@@ -88,7 +93,7 @@ class AppContext {
 
     // eslint-disable-next-line no-new
     const component = new self.components[rootComponent]({
-      input: data,
+      input: data, testMode,
     });
 
     if (testMode) {
@@ -206,7 +211,7 @@ class AppContext {
           return;
         }
 
-        self.SampleData = await this.fetch(`/components/${rootAssetId}/sample.js`);
+        self.Samples = await this.fetch(`/components/${rootAssetId}/samples.js`);
       });
   }
 

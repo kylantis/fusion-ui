@@ -1,5 +1,10 @@
+{{style url="/components/activity_timeline/style.min.css"}}
 
-
+  {{!-- 
+    For data-binding considerations for this attribute, see the template file 
+    of the context-menu component for more information
+  --}}
+{{component Menu alias="contextActions"}}
 
 {{!-- 
 This inline partial is used to render a sentence. A sentence contains an array of
@@ -25,7 +30,7 @@ parts, and each part is either plain text or a link
 
   <li>
     {{!-- Use a helper function to get the stylesheet declarations for this block, if any --}}
-    {{getItemStyleRules identifier lineColor}}
+    {{getItemStyle identifier lineColor}}
 
     <div
       class="slds-timeline__item_expandable {{lineColor ? 'slds-timeline__item_lc_${identifier}' : '' }} {{expanded ? 'slds-is-open': ''}}">

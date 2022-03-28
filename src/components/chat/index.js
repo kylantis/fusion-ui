@@ -1,5 +1,5 @@
 
-class Chat extends components.AbstractComponent {
+class Chat extends components.LightningComponent {
 
 
     

@@ -176,7 +176,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
     const expr = (value) => {
       switch (true) {
         case value == null:
-        case value == undefined:
+        case value === undefined:
         case value.constructor.name == 'Number':
         case value.constructor.name == 'Boolean':
           return value;
@@ -230,7 +230,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
         switch (true) {
           case part == null:
-          case part == undefined:
+          case part === undefined:
           case part.constructor.name == 'Number':
           case part.constructor.name == 'Boolean':
             scope += `const ${variableName} = ${part};\n`;

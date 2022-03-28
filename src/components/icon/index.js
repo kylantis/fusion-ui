@@ -1,5 +1,5 @@
 
-class Icon extends components.AbstractComponent {
+class Icon extends components.LightningComponent {
 
     toIconClassName(name) {
         return name.replaceAll('_', '-');

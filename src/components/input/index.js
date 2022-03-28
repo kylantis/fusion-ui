@@ -1,5 +1,5 @@
 
-class Input extends components.AbstractComponent {
+class Input extends components.LightningComponent {
 
 
     

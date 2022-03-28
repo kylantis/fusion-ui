@@ -66,11 +66,13 @@
       "defaults": []
     }
   },
-  "nullifyRandomly": [
-    "items_$.checked",
-    "items_$.required",
-    "items_$.error",
-    "items_$.disabled"
-  ],
+  "sample": {
+    "nullifyRandomly": [
+      "items_$.checked",
+      "items_$.required",
+      "items_$.error",
+      "items_$.disabled"
+    ]
+  },
   "escapeDynamicHtml": false
 }
