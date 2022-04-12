@@ -5,13 +5,13 @@
       "minLength": 5,
       "singularType": "Item"
     },
-    "items_$.summary.parts": {
+    "items.$_.summary.parts": {
       "minLength": 5,
       "singularType": {
         "$ref": "Sentence.parts"
       }
     },
-    "items_$.description.parts": {
+    "items.$_.description.parts": {
       "minLength": 1,
       "singularType": {
         "$ref": "Sentence.parts"
@@ -22,19 +22,19 @@
     }
   },
   "scalars": {
-    "items_$.expanded": {
+    "items.$_.expanded": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "items.$_.expandable": {
       "type": "Boolean",
       "defaultValue": true
     },
-    "items_$.assistiveText": {
+    "items.$_.assistiveText": {
       "type": "String",
       "defaults": []
     },
-    "items_$.identifier": {
-      "type": "String",
-      "defaults": []
-    },
-    "items_$.lineColor": {
+    "items.$_.lineColor": {
       "type": "String",
       "allowed": "cssColor",
       "defaults": [
@@ -47,15 +47,15 @@
         "Plum"
       ]
     },
-    "items_$.checkable": {
+    "items.$_.checkable": {
       "type": "Boolean",
       "defaultValue": true
     },
-    "items_$.icon": {
+    "items.$_.icon": {
       "type": "Icon",
       "isNull": false
     },
-    "items_$.summary.parts_$.link": {
+    "items.$_.summary.parts_$.link": {
       "type": {
         "$ref": "Sentence.parts_$.link"
       },
@@ -63,7 +63,7 @@
         "http://www.google.com"
       ]
     },
-    "items_$.summary.parts_$.text": {
+    "items.$_.summary.parts_$.text": {
       "type": {
         "$ref": "Sentence.parts_$.text"
       },
@@ -84,7 +84,7 @@
         "brainstorming session today"
       ]
     },
-    "items_$.description.parts_$.link": {
+    "items.$_.description.parts_$.link": {
       "type": {
         "$ref": "Sentence.parts_$.link"
       },
@@ -92,7 +92,7 @@
         null
       ]
     },
-    "items_$.description.parts_$.text": {
+    "items.$_.description.parts_$.text": {
       "type": {
         "$ref": "Sentence.parts_$.text"
       },
@@ -114,7 +114,7 @@
   },
   "sample": {
     "nullifyRandomly": [
-      "items_$.summary.parts_$.link"
+      "items.$_.summary.parts_$.link"
     ]
   },
   "sharedTypeNames": {

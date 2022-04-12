@@ -8,18 +8,34 @@ class OverlayComponent extends components.LightningComponent {
         return true;
     }
 
+    static getOverlayConfig() {
+        return global.OverlayConfig || (global.OverlayConfig = {});
+    }
+
+    async onMount() {
+        const { getOverlayConfig } = OverlayComponent;
+
+        const { container, topOffset, containerScrollable } = getOverlayConfig();
+
+        if (topOffset) {
+            this.topOffset = topOffset;
+        }
+
+        if (container) {
+            this.container = container;
+        }
+
+        if (containerScrollable !== undefined) {
+            this.containerScrollable = containerScrollable;
+        }
+    }
+
     getPadding() {
         return 0;
     }
 
     isPointerBased() {
         return false;
-    }
-
-    getSupportedPositions() {
-        return this.supportedPositions ? [...this.supportedPositions] : (this.isPointerBased() ?
-            ["bottom-right", "bottom-left", "top-right", "top-left"] :
-            ["top", "right", "bottom", "left"])
     }
 
     async getRequiredArea() {
@@ -129,13 +145,13 @@ class OverlayComponent extends components.LightningComponent {
 
     async getPosition(containerRect) {
 
-        const { isPositionAvailable, isVisibleInViewPort } = OverlayComponent;
+        const { isPositionAvailable } = OverlayComponent;
 
         const avaiablePositions = this.getSupportedPositions();
 
         if (this.isPointerBased()) {
             for (const p of [...avaiablePositions]) {
-                const inView = isVisibleInViewPort(containerRect, p, await this.getRequiredArea(p));
+                const inView = this.isVisibleInViewPort(containerRect, p, await this.getRequiredArea(p));
 
                 if (!inView) {
                     avaiablePositions.splice(avaiablePositions.indexOf(p), 1);
@@ -161,22 +177,29 @@ class OverlayComponent extends components.LightningComponent {
             await this.getRenderingArea(position)
         );
 
+        if (this.topOffset) {
+            cssPosition.top -= this.topOffset;
+        }
+
+        if (this.containerScrollable) {
+            cssPosition.top += document.getElementById(this.container).scrollTop;
+        }
+
         return {
             position,
             ...cssPosition,
         };
     }
 
-    static isVisibleInViewPort(rect, position, area) {
-        const { isVisibleInVerticalViewPort } = OverlayComponent;
-
+    isVisibleInViewPort(rect, position, area) {
+        
         // We are focused on the vertical view port because scrolling
         // almost always happen vertical only
 
-        return isVisibleInVerticalViewPort(rect, position, area);
+        return this.isVisibleInVerticalViewPort(rect, position, area);
     }
 
-    static isVisibleInVerticalViewPort(rect, position, area) {
+    isVisibleInVerticalViewPort(rect, position, area) {
 
         const { top, bottom } = rect;
         const { vertical } = area;
@@ -193,17 +216,12 @@ class OverlayComponent extends components.LightningComponent {
         let hasSpaceRelativeToTopScroll;
         let hasSpaceRelativeToBottomScroll;
 
-        switch (position) {
-            case 'top-left':
-            case 'top-right':
-                hasSpaceRelativeToTopScroll = top - vertical >= 0;
-                hasSpaceRelativeToBottomScroll = (bottom + vertical + bodyDistanceToBottom) <= verticalBottomScrollHeight;
-                break;
-            case 'bottom-left':
-            case 'bottom-right':
-                hasSpaceRelativeToTopScroll = (top + vertical) <= verticalTopScrollHeight;
-                hasSpaceRelativeToBottomScroll = ((bottom - vertical) + bodyDistanceToBottom) >= 0;
-                break;
+        if (position.startsWith('top')) {
+            hasSpaceRelativeToTopScroll = top - (vertical + (this.topOffset || 0)) >= 0;
+            hasSpaceRelativeToBottomScroll = (bottom + vertical + bodyDistanceToBottom) <= verticalBottomScrollHeight;
+        } else {
+            hasSpaceRelativeToTopScroll = (top + vertical) <= verticalTopScrollHeight;
+            hasSpaceRelativeToBottomScroll = ((bottom - vertical) + bodyDistanceToBottom) >= 0;
         }
 
         return hasSpaceRelativeToTopScroll && hasSpaceRelativeToBottomScroll;
@@ -237,7 +255,7 @@ class OverlayComponent extends components.LightningComponent {
 
                 case 'top-left':
                 case 'top-right':
-                    hasVeticalSpace = (top > vertical);
+                    hasVeticalSpace = top > vertical;
 
                 case 'bottom-left':
                 case 'bottom-right':
@@ -245,7 +263,7 @@ class OverlayComponent extends components.LightningComponent {
                         hasVeticalSpace = (bottom > vertical);
                     }
                     hasHorizontalSpace = (position.endsWith('left') ? left : right) > horizontal;
-                break;
+                    break;
 
                 case 'left':
                     hasHorizontalSpace = left > horizontal;

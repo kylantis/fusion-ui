@@ -1,6 +1,10 @@
 {
   "enableTypeMerging": false,
-  "collections": {},
+  "collections": {
+    "positions": {
+      "minLength": 0
+    }
+  },
   "scalars": {
     "menu": {
       "type": "Menu",
@@ -14,9 +18,14 @@
       "type": "Boolean",
       "defaultValue": false
     },
-    "hideOnClick": {
+    "hideOnItemClick": {
       "type": "Boolean",
       "defaultValue": false
+    },
+    "positions_$": {
+      "type": "String",
+      "allowed": "overlayPosition",
+      "defaults": []
     }
   },
   "sample": {

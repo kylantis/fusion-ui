@@ -1,14 +1,83 @@
 
 class GlobalNavigation extends components.LightningComponent {
 
+    static contentTopPadding = 15;
+
     initCompile() {
         this.getInput().tabs[0].isActive;
+        this.getInput().hideOnItemClick;
     }
 
-    onMount(node) {
-        this.node = node;
-        this.getContentContainer().style.visibility = 'visible';
+    destroy() {
+        document.body.removeEventListener('click', this.bodyClickListener);
+        delete this.bodyClickListener;
+
+        super.destroy();
     }
+
+    // TODO: Add hooks for menu and content
+    hooks() {
+        return {}
+    }
+
+    onMount() {
+        this.getContentContainer().style.visibility = 'visible';
+
+        document.querySelectorAll(
+            `#${this.getElementId()} .slds-dropdown li.slds-dropdown__item`
+        )
+            .forEach(node => {
+                node.addEventListener("click", (evt) => {
+                    this.selectedMenuItemArea = true;
+
+                    setTimeout(() => {
+                        this.selectedMenuItemArea = null;
+                    }, 200);
+                });
+            })
+
+        document.body.addEventListener('click', this.getBodyClickListener());
+    }
+
+    getBodyClickListener() {
+        return this.bodyClickListener || (
+            this.bodyClickListener = ({ target, path }) => {
+
+                let { hideOnItemClick } = this.getInput();
+
+                if (hideOnItemClick == null) {
+                    hideOnItemClick = true;
+                }
+
+                if (target.matches(`#${this.getElementId()} li .trigger-submenu button`)) {
+                    // Clicks on submenu trigger buttons are handled in addListeners()
+                    return;
+                }
+
+                if (target.matches(`#${this.getElementId()} li .trigger-close button`)) {
+                    // Clicks on tab close buttons are handled in addListeners()
+                    return;
+                }
+
+                for (const node of path) {
+
+                    if (!(node instanceof Element)) {
+                        break;
+                    }
+                    if (node.matches(`#${this.getElementId()} .slds-dropdown li.slds-dropdown__item`)) {
+                        break;
+                    }
+                    if (node.matches(`#${this.getElementId()} li.slds-context-bar__item`)) {
+                        // Clicks on tabs are handled in addListeners()
+                        return;
+                    }
+                }
+
+                if (!this.selectedMenuItemArea || hideOnItemClick) {
+                    this.closeOpenSubMenu();
+                }
+            });
+    };
 
     events() {
         return [
@@ -19,14 +88,55 @@ class GlobalNavigation extends components.LightningComponent {
 
     defaultHandlers() {
         return {
-            tabItemClick: (identifier) => {
-                this.setActiveItem(identifier);
+            tabItemClick: async (identifier) => {
+                await this.setActiveItem(identifier);
             },
             tabClose: (identifier) => { },
             tabActive: (identifier) => {
-                this.closeOpenSubMenu();
+                const { expandOnHover } = this.getInput();
+
+                // Once a tab becomes active we want to ensure that all submenus are closed.
+                // If <expandOnHover> is enabled we want to temporarily ensure that when the tab is
+                // hovered, the submenus are not made visible
+
+                if (expandOnHover) {
+                    const { li } = this.getItems()[identifier];
+
+                    // Note: if <li> was opened programmatically, slds-dropdown-trigger_click and slds-is-open
+                    // would already be added to its classList
+
+                    if (!li.classList.contains('slds-dropdown-trigger_click')) {
+                        li.classList.add('slds-dropdown-trigger_click')
+                    }
+
+                    if (li.classList.contains('slds-is-open')) {
+                        li.classList.remove('slds-is-open')
+                    }
+
+                    this.visibleSubMenuHover = null;
+
+                    li.querySelector('.trigger-submenu').style.visibility = 'visible';
+
+                } else {
+                    this.closeOpenSubMenu();
+                }
+            },
+            tabInactive: (identifier) => {
+                const { expandOnHover } = this.getInput();
+
+                if (expandOnHover) {
+                    const { li } = this.getItems()[identifier];
+                    // Revert the changes made in defaultHandlers.tabActive
+
+                    li.classList.remove('slds-dropdown-trigger_click')
+                    li.querySelector('.trigger-submenu').style.visibility = 'hidden';
+                }
             },
         };
+    }
+
+    behaviours() {
+        return ['closeOpenSubMenu'];
     }
 
     getItems() {
@@ -57,6 +167,7 @@ class GlobalNavigation extends components.LightningComponent {
         // tab contents are being stacked on top of one another in tabTransform(...) 
 
         contentContainer.style.visibility = 'hidden';
+        contentContainer.style.height = '100%';
     }
 
     hideContent(identifier) {
@@ -67,7 +178,42 @@ class GlobalNavigation extends components.LightningComponent {
         this.getContentDiv(identifier).style.zIndex = 1;
     }
 
-    setActiveItem(identifier, force = true) {
+    beforeContentLoaded(container) {
+
+        // If the content contains any overlay components, we need to configure them accordingly
+        const overlayConfig = components.OverlayComponent.getOverlayConfig();
+
+        // Use <container> as their new parent, this is especially important as <container>
+        // has a separate scrollview, and if the overlay component remains on the body, this will
+        // cause it's position to remain static when <container> is being scrolled
+        overlayConfig.container = container;
+
+        // The positions of overlay components are calculated relative to the document body. So we 
+        // need to indicate that the above container has it's own scrollview, inorder to ensure
+        // the correct positioning of overlay components
+        overlayConfig.containerScrollable = true;
+
+        // Indicate that computed css top position for overlay components should be offseted the
+        // distance between the container and the top of the document body
+        const { height } = this.node.querySelector(':scope > div > .slds-context-bar_tabs').getBoundingClientRect();
+
+        overlayConfig.topOffset = height;
+    }
+
+    afterContentLoaded() {
+        const overlayConfig = components.OverlayComponent.getOverlayConfig();
+        // Prune the configs used in beforeContentLoaded(...)
+        delete overlayConfig.container;
+        delete overlayConfig.containerScrollable;
+        delete overlayConfig.topOffset;
+    }
+
+    async setActiveItem(identifier, force = true) {
+
+        // If another tab is actively being loaded, do nothing
+        if (this.loading) {
+            return;
+        }
 
         const items = this.getItems();
         const active = this.getActive();
@@ -97,13 +243,53 @@ class GlobalNavigation extends components.LightningComponent {
             this.dispatch('tabInactive', active)
         }
 
+        if (!item.isLoaded) {
+            this.createTabContentContainer(identifier);
+        }
+
         // Indicate that this tab is active
         item.li.classList.add(activeClassName);
 
         this.showContent(identifier);
 
+        // Note: tab contents are loaded lazily by default
+        // If tab context is not yet loaded, load it.
+        if (!item.isLoaded) {
+            this.loading = true;
+            showLoader();
+
+            let { content } = item;
+
+            if (!content) {
+                content = this.getDefaultTabContent();
+            }
+
+            const container = this.getContentId(identifier);
+
+            this.beforeContentLoaded(container);
+
+            // Load content
+
+            // Note: The reason we are giving this slight delay, is so to give the browser some
+            // time to paint the above css updates before attempting to start loading the content
+            await new Promise((resolve) => {
+                setTimeout(resolve, 50)
+            })
+                .then(() => content
+                    .load({ container })
+                )
+                .then(() => {
+                    this.afterContentLoaded(container);
+
+                    item.isLoaded = true;
+
+                    hideLoader();
+                    this.loading = false;
+                });
+        }
+
         item.isActive = true;
-        this.dispatch('tabActive', identifier)
+        this.dispatch('tabActive', identifier);
     }
 
     getContentDiv(identifier) {
@@ -117,7 +303,19 @@ class GlobalNavigation extends components.LightningComponent {
         return `${this.getId()}-content-${identifier}`;
     }
 
+    getDefaultTabContent() {
+        return new components.Illustration({
+            input: {
+                verticallyAlign: true,
+                description: 'Page not available',
+                size: 'small',
+                name: 'page_not_available'
+            }
+        })
+    }
+
     createTabContentContainer(identifier) {
+        const { contentTopPadding } = GlobalNavigation;
         const contentDiv = document.createElement('div');
 
         contentDiv.id = this.getContentId(identifier);
@@ -125,6 +323,8 @@ class GlobalNavigation extends components.LightningComponent {
         contentDiv.style.position = 'absolute';
         contentDiv.style.width = '100%';
         contentDiv.style.height = '100%';
+        contentDiv.style.overflow = 'scroll';
+        contentDiv.style.paddingTop = `${contentTopPadding}px`;
 
         contentDiv.style.zIndex = -1;
 
@@ -132,25 +332,12 @@ class GlobalNavigation extends components.LightningComponent {
         return contentDiv.id;
     }
 
-    getDefaultTabContent() {
-        return new components.Illustration({
-            input: {
-                verticallyAlign: true,
-                summary: 'No Content',
-                name: 'no_content'
-            }
-        })
-    }
-
-    tabTransform({ node, blockData }) {
-
+    async tabTransform({ node, blockData }) {
         const li = node.querySelector(':scope > .slds-context-bar__item');
-
-        const _this = this;
 
         const { index = -1, length } = blockData[`tabs`] || {};
 
-        const { isActive, subMenu, content } = this.getInput()['tabs'][index]
+        let { isActive, subMenu, content } = this.getInput()['tabs'][index]
 
         const items = this.getItems();
 
@@ -163,21 +350,11 @@ class GlobalNavigation extends components.LightningComponent {
 
         items[identifier] = { li, hasSubMenu: !!subMenu, content, subMenu };
 
-        if (!content) {
-            // Todo: Use a default to indicate no content
-            content = this.getDefaultTabContent();
-        }
-
-        // Load content. 
-        // Note: we need to add the promise to this component's <futures> object, so
-        // that it becomes part of this component's loading sequence
-        this.futures.push(
-            content
-                .load({ container: this.createTabContentContainer(identifier) })
-        )
-
-        if (isActive) {
-            this.setActiveItem(identifier, false);
+        if (isActive && !this.getActive()) {
+            // Set this item active, only if no tab is currently active. This means
+            // that if in the input data, more than one tab is specified as active,
+            // only the first one will be made active.
+            await this.setActiveItem(identifier, false);
         }
 
         if (
@@ -189,7 +366,7 @@ class GlobalNavigation extends components.LightningComponent {
             // active one
             for (const identifier of [...Object.keys(items)]) {
                 if (items[identifier].content) {
-                    this.setActiveItem(identifier);
+                    await this.setActiveItem(identifier);
                     break;
                 }
             }
@@ -200,6 +377,7 @@ class GlobalNavigation extends components.LightningComponent {
 
     addListeners(li) {
         const _this = this;
+        const items = this.getItems();
 
         // When a tab is clicked, dispatch 'tabItemClick' event
         li.addEventListener('click', function (evt) {
@@ -210,53 +388,139 @@ class GlobalNavigation extends components.LightningComponent {
             _this.dispatch('tabItemClick', identifier)
         }, false);
 
+        // If the 'trigger-close' button is clicked, dispatch 'tabClose' event
+        li.querySelector('.trigger-close button')
+            .addEventListener('click', (evt) => {
+                let identifier;
+                for (const node of evt.path) {
+                    if (node.matches(`li.slds-context-bar__item`)) {
+                        identifier = node.getAttribute('identifier');
+                        break;
+                    }
+                }
+                assert(!!identifier);
+
+                this.dispatch('tabClose', identifier)
+            });
 
         // If the 'trigger-submenu' button is clicked, toggleSubMenuVisibility
-        li.querySelector('.trigger-submenu')
-            .addEventListener('click', function (evt) {
-                const identifier = this.parentNode.getAttribute('identifier');
-                _this.toggleSubMenuVisibility(identifier);
-            });
+        li.querySelector('.trigger-submenu button').addEventListener('click', (evt) => {
+            let identifier;
+            for (const node of evt.path) {
+                if (node.matches(`li.slds-context-bar__item`)) {
+                    identifier = node.getAttribute('identifier');
+                    break;
+                }
+            }
+            assert(!!identifier);
 
-        // If the 'trigger-close' button is clicked, dispatch 'tabClose' event
-        li.querySelector('.trigger-close')
-            .addEventListener('click', function (evt) {
-                const identifier = this.parentNode.parentNode.getAttribute('identifier');
-                _this.dispatch('tabClose', identifier)
-            });
-    }
+            this.toggleSubMenuVisibility(identifier);
+        });
 
-    isSubMenuOpen(identifier) {
-        const items = this.getItems();
+        li.addEventListener('mouseenter', function (evt) {
+            const { expandOnHover } = _this.getInput();
+            const identifier = this.getAttribute('identifier');
 
-        const { classList } = items[identifier].li;
-        const cssClassName = 'slds-is-open';
+            if (!expandOnHover ||
+                // When an item is active, the trigger-submenu button is used to toggle
+                // submenu visibility
+                items[identifier].isActive
+            ) {
+                return;
+            }
+            _this.visibleSubMenuHover = identifier;
+        });
+        li.addEventListener('mouseleave', function (evt) {
+            const { expandOnHover } = _this.getInput();
+            const identifier = this.getAttribute('identifier');
 
-        return classList.contains(cssClassName);
+            if (!expandOnHover ||
+                // When an item is active, the trigger-submenu button is used to toggle
+                // submenu visibility
+                items[identifier].isActive
+            ) {
+                return;
+            }
+
+            _this.visibleSubMenuHover = null;
+        });
     }
 
     closeOpenSubMenu() {
+        if (this.visibleSubMenuHover) {
+            this.toggleSubMenuVisibility(this.visibleSubMenuHover);
+        }
         if (this.visibleSubMenu) {
-            // Close the submenu that's open first
             this.toggleSubMenuVisibility(this.visibleSubMenu);
         }
     }
 
     toggleSubMenuVisibility(identifier) {
 
+        const { expandOnHover } = this.getInput();
         const items = this.getItems();
 
-        const { classList } = items[identifier].li;
-        const cssClassName = 'slds-is-open';
+        const { li, isActive } = items[identifier];
 
-        if (classList.contains(cssClassName)) {
-            classList.remove(cssClassName);
-            this.visibleSubMenu = null;
+        if (expandOnHover && !isActive) {
+
+            if (
+                li.matches('li:hover') ||
+                // This submenu was likely opened programmatically
+                li.matches('.slds-is-open')
+            ) {
+
+                // Close submenu
+
+                if (li.classList.contains('slds-is-open')) {
+                    // This submenu was likely opened programmatically
+                    li.classList.remove(
+                        'slds-dropdown-trigger_click',
+                        'slds-is-open'
+                    );
+
+                    this.visibleSubMenuHover = null;
+                } else {
+                    li.classList.add('slds-dropdown-trigger_click');
+                    setTimeout(() => {
+                        li.classList.remove('slds-dropdown-trigger_click');
+                    }, 50);
+                }
+
+            } else {
+                this.closeOpenSubMenu();
+
+                // Open submenu
+
+                // This function likely was called directly through the dev console
+                li.classList.add(
+                    'slds-dropdown-trigger_click',
+                    'slds-is-open'
+                );
+
+                // We need to indicate that this submenu is open, so that when the user clicks on
+                // the document body, it will be closed automatically
+                this.visibleSubMenuHover = identifier;
+            }
+
         } else {
-            this.closeOpenSubMenu();
+            const { classList } = li;
 
-            classList.add(cssClassName);
-            this.visibleSubMenu = identifier;
+            const cssClassName = 'slds-is-open';
+
+            if (classList.contains(cssClassName)) {
+                // Close submenu
+
+                classList.remove(cssClassName);
+                this.visibleSubMenu = null;
+            } else {
+                this.closeOpenSubMenu();
+
+                // Open submenu
+
+                classList.add(cssClassName);
+                this.visibleSubMenu = identifier;
+            }
         }
     }
 

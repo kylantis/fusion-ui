@@ -161,5 +161,15 @@
     "direction": [
         "left",
         "right"
+    ],
+    "overlayPosition": [
+        "bottom-right",
+        "bottom-left",
+        "top-right",
+        "top-left",
+        "top",
+        "right",
+        "bottom",
+        "left"
     ]
 }

@@ -1,4 +1,3 @@
-
 class ActivityTimeline extends components.LightningComponent {
 
     initCompile() {
@@ -24,11 +23,26 @@ class ActivityTimeline extends components.LightningComponent {
                     this.registerContextMenuTargetNodes()
                 }
             },
-            ['items_$.lineColor']: (evt) => {
-                const { newValue: lineColor, parentObject: { identifier } } = evt;
+            ['items.$_.lineColor']: (evt) => {
+                const { newValue: lineColor, parentObject: { ["@key"]: identifier } } = evt;
 
                 this.node.querySelector(`.slds-timeline li style[identifier='${identifier}']`)
                     .innerHTML = this.getItemStyle0(identifier, lineColor);
+            },
+            ['items.$_.expandable']: (evt) => {
+                const { parentObject: { ["@key"]: identifier } } = evt;
+                this.setExpandButtonVisibility(identifier);
+            },
+            ['items.$_.expanded']: (evt) => {
+                const { newValue: expanded, parentObject: { ["@key"]: identifier } } = evt;
+                const { items } = this.getInput();
+                const item = items[identifier];
+
+                if (item.expanded == expanded) {
+                    return;
+                }
+
+                this.expandOrCollapseItem(identifier);
             }
         }
     }
@@ -36,7 +50,7 @@ class ActivityTimeline extends components.LightningComponent {
     registerContextMenuTargetNodes() {
         const { items } = this.getInput();
 
-        if (!items.length) {
+        if (!Object.keys(items).length) {
             return;
         }
 
@@ -61,8 +75,7 @@ class ActivityTimeline extends components.LightningComponent {
         await this.contextMenu.load();
     }
 
-    async onMount(node) {
-        this.node = node;
+    async onMount() {
         const { contextActions } = this.getInput();
 
         if (contextActions) {
@@ -71,7 +84,25 @@ class ActivityTimeline extends components.LightningComponent {
         }
     }
 
+    expandOrCollapseItem(identifier) {
+        const node = this.node.querySelector(`li[identifier='${identifier}'] > div.slds-timeline__item_expandable`);
+        const className = 'slds-is-open';
+        const { classList } = node;
+
+        if (classList.contains(className)) {
+            classList.remove(className);
+        } else {
+            classList.add(className);
+        }
+    }
+
     itemTransform({ node, blockData, initial }) {
+        const identifier = node.querySelector(':scope > li').getAttribute('identifier');
+
+        const { items } = this.getInput();
+
+        const item = items[identifier];
+
         if (this.contextMenu) {
             if (!initial) {
                 const targetNode = node.querySelector(':scope > li .slds-timeline__actions button');
@@ -81,6 +112,31 @@ class ActivityTimeline extends components.LightningComponent {
                 // through the onMount lifecycle method
             }
             return;
+        }
+
+        this.node.querySelector(
+            this.getExpandButtonSelector(identifier)
+        )
+            .addEventListener('click', () => {
+                item.expanded = !item.expanded;
+            });
+    }
+
+    getExpandButtonSelector(identifier) {
+        return `#${this.getElementId()} li${identifier ? `[identifier='${identifier}']` : ''} > div.slds-timeline__item_expandable .slds-media__figure > button`;
+    }
+
+    setExpandButtonVisibility(identifier) {
+        const { getExpandButtonSelector } = ActivityTimeline;
+
+        const node = this.node.querySelector(this.getExpandButtonSelector(identifier));
+        const { items } = this.getInput();
+        const item = items[identifier];
+
+        if (item.expandable) {
+            node.style.visibility = 'visible';
+        } else {
+            node.style.visibility = 'hidden';
         }
     }
 

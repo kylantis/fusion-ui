@@ -1,5 +1,5 @@
 
-class illustration extends components.LightningComponent {
+class Illustration extends components.LightningComponent {
 
 }
-module.exports = illustration;
+module.exports = Illustration;

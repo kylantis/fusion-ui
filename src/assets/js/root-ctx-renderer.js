@@ -154,13 +154,13 @@ class RootCtxRenderer extends BaseRenderer {
     // We require that the <parentNode> is a live element, present om the DOM
     assert(parentNode != null, `DOMElement #${container} does not exist`);
 
-    const node = document.createElement('div');
-   
-    node.id = this.getElementId();
-    node.classList.add(htmlWrapperCssClassname);
-    node.innerHTML = html;
+    this.node = document.createElement('div');
 
-    parentNode.appendChild(node);
+    this.node.id = this.getElementId();
+    this.node.classList.add(htmlWrapperCssClassname);
+    this.node.innerHTML = html;
+
+    parentNode.appendChild(this.node);
 
     this.#resolve();
 
@@ -185,8 +185,6 @@ class RootCtxRenderer extends BaseRenderer {
               return o1 < o2 ? -1 : o2 < o1 ? 1 : 0;
             });
 
-          await this.invokeLifeCycleMethod('onMount', parentNode.lastChild);
-          
           // Trigger block hooks
           const hooks = hookKeys
             .map(selector => {
@@ -205,6 +203,9 @@ class RootCtxRenderer extends BaseRenderer {
             });
 
           await Promise.all(hooks);
+
+          await this.invokeLifeCycleMethod('onMount');
+
 
           // As a general contract, we expect developers to update the futures object 
           // with any extra promises, including the loading of sub components. hence
@@ -335,7 +336,7 @@ class RootCtxRenderer extends BaseRenderer {
   forEach({ options, ctx, params }) {
 
     const {
-      dataPathRoot, pathSeparator, arrayBlockHookName, syntheticMethodPrefix
+      arrayBlockHookName, syntheticMethodPrefix
     } = RootProxy;
     const {
       htmlWrapperCssClassname, syntheticBlockKeyPrefix
@@ -668,17 +669,23 @@ class RootCtxRenderer extends BaseRenderer {
     }
   }
 
+  toRealPath(path) {
+    const { getDataBasePath } = RootCtxRenderer;
+
+    return this.getExecPath({ fqPath: path, })
+      .replace(`${getDataBasePath()}.`, '');
+  }
+
   doBlockNext({ path }) {
 
     const { syntheticBlockKeyPrefix } = RootCtxRenderer;
-    const { pathSeparator } = RootProxy;
 
     const isSynthetic = path.startsWith(syntheticBlockKeyPrefix);
 
     const isMap = isSynthetic ?
       this.syntheticContext[path].value.constructor.name == 'Object' :
       this.proxyInstance.isMapPath(
-        path.split(pathSeparator).join('.')
+        this.toRealPath(path)
       );
 
     if (isMap) {
@@ -687,7 +694,7 @@ class RootCtxRenderer extends BaseRenderer {
 
       // 1. We need .length (called by our forEach helper) to work 
       // properly on next iteration. Unlike the array proxy 
-      // knows the length becuase it is an inherent property 
+      // knows the length because it is an inherent property 
       // of the backing array, the object proxy relies on the
       // last lookup value to determine the value of the "length" 
       // property. This is the reason, we need to set the last lookup

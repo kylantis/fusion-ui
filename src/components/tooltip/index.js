@@ -7,10 +7,8 @@ class Tooltip extends components.OverlayComponent {
         this.getInput().targetElement;
     }
 
-    onMount(node) {
-        const { getBoundingClientRectOffset } = components.OverlayComponent;
-
-        this.node = node;
+    onMount() {
+        const { getBoundingClientRectOffset, getOverlayConfig } = components.OverlayComponent;
 
         const { targetElement } = this.getInput();
 
@@ -18,13 +16,21 @@ class Tooltip extends components.OverlayComponent {
             return;
         }
 
-        const container = document.querySelector(targetElement);
+        const target = document.querySelector(targetElement);
 
-        if (!container) {
+        if (!target) {
             throw Error(`[${this.getId()}] Could not find targetElement: ${targetElement}`);
         }
 
-        const containerRect = getBoundingClientRectOffset(container);
+        const { container } = getOverlayConfig();
+
+        if (container) {
+            document.getElementById(container).appendChild(
+                this.node.parentElement.removeChild(this.node)
+            )
+        }
+
+        const containerRect = getBoundingClientRectOffset(target);
 
         const result = this.getPosition(containerRect);
 
@@ -44,8 +50,6 @@ class Tooltip extends components.OverlayComponent {
         style.position = 'absolute';
 
         this.addNubbinCssClass(position);
-
-        this.observeTargetElementPosition();
     }
 
     addNubbinCssClass(position) {
@@ -109,6 +113,10 @@ class Tooltip extends components.OverlayComponent {
         }
     }
 
+    getSupportedPositions() {
+        return ["top", "right", "bottom", "left"];
+    }
+
     getPadding() {
         return 16;
     }
@@ -136,9 +144,6 @@ class Tooltip extends components.OverlayComponent {
 
     getRenderingArea(position) {
         return this.getRequiredArea(position);
-    }
-
-    observeTargetElementPosition(container) {
     }
 
 }

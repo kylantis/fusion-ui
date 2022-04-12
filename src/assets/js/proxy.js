@@ -555,7 +555,7 @@ class RootProxy {
 
           case global.clientUtils.isNumber(prop):
 
-            // At least access the context, so that our array proxy
+            // At least access the context, so that the proxy
             // created in setSyntheticContext(...) intercepts the value
             // and updates the synthetic context
             // eslint-disable-next-line no-unused-expressions
@@ -590,7 +590,7 @@ class RootProxy {
         switch (true) {
           case global.clientUtils.isNumber(prop):
 
-            // At least access the context, so that our array proxy
+            // At least access the context, so that the proxy
             // created in setSyntheticContext(...) intercepts the value
             // and updates the synthetic context
             // eslint-disable-next-line no-unused-expressions
@@ -865,7 +865,17 @@ class RootProxy {
       }
     }
 
-    this.component.constructor.schemaDefinitions = definitions;
+    this.component.constructor.schemaDefinitions = new Proxy(definitions, {
+      // For paths that reference shared types, we want to automatically return
+      // the referenced shared type
+      get: (obj, prop) => {
+        let v = obj[prop];
+        if (v.referencesShared) {
+          v = obj[v.$ref.replace(defPrefx, '')];
+        }
+        return v;
+      },
+    });
 
     const ajv = new ajv7.default({
       schemas: Object.values(definitions),
@@ -1050,7 +1060,7 @@ class RootProxy {
           }
 
           const evt = { path: fqPath, oldValue, newValue, parentObject: obj };
-          
+
           customHooks.forEach(fn => {
             fn(evt);
           });
@@ -1307,11 +1317,27 @@ class RootProxy {
           }
         });
 
-        // Add missing properties and default to null
+        // Add missing properties
         def.required
           .filter(p => !p.startsWith('@') && !keys.includes(p))
           .forEach(p => {
-            obj[p] = null;
+            obj[p] = (() => {
+              // Assign a default value based on the data type
+              const { type } = def.properties[p];
+
+              if (!type || ['array', 'string'].includes(type[0])) {
+                return null;
+              }
+
+              switch (type[0]) {
+                case 'number':
+                  return 0;
+                case 'boolean':
+                  return false;
+                default:
+                  throw Error(`Unknown type: ${type[0]}`);
+              }
+            })();
           });
         break;
     }
@@ -1421,6 +1447,15 @@ class RootProxy {
     RootProxy.#runPriviledged(() => {
       delete obj[typeProperty];
     })
+
+    // Todo: Remove if not used
+    const normalizeObject = (obj) => {
+      const o = {};
+      Object.entries(obj).forEach(([k, v]) => {
+        o[k.replace(mapKeyPrefix, '')] = v;
+      });
+      return o;
+    }
 
     return new Proxy(obj, {
       get: (obj, prop) => {
