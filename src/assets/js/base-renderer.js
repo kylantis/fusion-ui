@@ -39,11 +39,6 @@ class BaseRenderer {
      BaseRenderer.#componentIds.push(this.#id);
    }
 
-   if (global.isServer && global.isWatch && this.loadable()) {
-     // Todo: What's this for? Can't remember
-    throw Error();
-   }
-
    this.setInput(input);
 
    // Create root proxy

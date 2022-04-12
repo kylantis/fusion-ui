@@ -25,26 +25,27 @@ parts, and each part is either plain text or a link
 
 <ul class="slds-timeline">
 
-  {{#each items transform = "itemTransform" as |item itemIndex|}}
+  {{#each items transform = "itemTransform" as |item|}}
   {{component Icon alias="icon"}}
 
-  <li>
+  <li identifier="{{@key}}">
     {{!-- Use a helper function to get the stylesheet declarations for this block, if any --}}
-    {{getItemStyle identifier lineColor}}
+    {{getItemStyle @key lineColor}}
 
     <div
-      class="slds-timeline__item_expandable {{lineColor ? 'slds-timeline__item_lc_${identifier}' : '' }} {{expanded ? 'slds-is-open': ''}}">
+      class="slds-timeline__item_expandable {{lineColor ? 'slds-timeline__item_lc_${@key}' : '' }} {{expanded ? 'slds-is-open': ''}}">
       {{#if assistiveText}}
       <span class="slds-assistive-text">{{assistiveText}}</span>
       {{/if}}
       <div class="slds-media">
         <div class="slds-media__figure">
-
           
           <button class="slds-button slds-button_icon"
             title="Toggle details for Review proposals for EBC deck with larger team and have marketing review this"
-            aria-controls="item-{{@root.componentId}}-{{identifier}}" aria-expanded="true">
-
+            aria-controls="item-{{@root.componentId}}-{{@key}}"
+            {{!-- aria-expanded="true" --}}
+            {{expandable ? "" : "style='visibility: hidden;'"}}
+            >
 
             <svg class="slds-button__icon slds-timeline__details-action-icon" aria-hidden="true">
               <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#switch"></use>
@@ -64,9 +65,9 @@ parts, and each part is either plain text or a link
 
               {{#if checkable}}
               <div class="slds-checkbox">
-                <input type="checkbox" name="options" id="checkbox-{{@root.componentId}}-{{identifier}}"
-                  value="checkbox-{{@root.componentId}}-{{identifier}}" />
-                <label class="slds-checkbox__label" for="checkbox-{{@root.componentId}}-{{identifier}}">
+                <input type="checkbox" name="options" id="checkbox-{{@root.componentId}}-{{@key}}"
+                  value="checkbox-{{@root.componentId}}-{{@key}}" />
+                <label class="slds-checkbox__label" for="checkbox-{{@root.componentId}}-{{@key}}">
                   <span class="slds-checkbox_faux"></span>
                   <span class="slds-form-element__label slds-assistive-text">Mark Review proposals for EBC deck with
                     larger team and have marketing review this complete</span>
@@ -106,7 +107,7 @@ parts, and each part is either plain text or a link
           </p>
           <article
             class="slds-box slds-timeline__item_details slds-theme_shade slds-m-top_x-small slds-m-horizontal_xx-small slds-p-around_medium"
-            id="item-{{@root.componentId}}-{{identifier}}" aria-hidden="false">
+            id="item-{{@root.componentId}}-{{@key}}" aria-hidden="false">
             <ul class="slds-list_horizontal slds-wrap">
               <li class="slds-grid slds-grid_vertical slds-size_1-of-2 slds-p-bottom_small">
                 <span class="slds-text-title slds-p-bottom_x-small">Name</span>

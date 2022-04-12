@@ -129,6 +129,11 @@
     {{> illustration_svg name}}
 
     <div class="slds-text-longform">
-        <h3 class="slds-text-heading_medium">{{summary}}</h3>
+        {{#if title}}
+            <h3 class="slds-text-heading_medium">{{title}}</h3>
+        {{/if}}
+        {{#if description}}
+            <p class="slds-text-body_regular">{{description}}</p>
+        {{/if}}
     </div>
 </div>

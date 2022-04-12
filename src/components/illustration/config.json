@@ -29,12 +29,6 @@
         "maintenance"
       ]
     },
-    "summary": {
-      "type": "String",
-      "defaults": [
-        "Illustration summary"
-      ]
-    },
     "verticallyAlign": {
       "type": "Boolean",
       "defaultValue": true
@@ -48,6 +42,14 @@
       "defaults": [
         "small"
       ]
+    },
+    "title": {
+      "type": "String",
+      "defaults": []
+    },
+    "description": {
+      "type": "String",
+      "defaults": []
     }
   },
   "escapeDynamicHtml": false

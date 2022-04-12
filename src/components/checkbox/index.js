@@ -28,10 +28,6 @@ class Checkbox extends components.LightningComponent {
         }
     }
 
-    onMount(node) {
-        this.node = node;
-    }
-
     getUsers() {
         return {
             item: { label: "hello" }

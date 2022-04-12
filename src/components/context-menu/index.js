@@ -9,13 +9,21 @@ class ContextMenu extends components.OverlayComponent {
     initCompile() {
         this.getInput().clickType;
         this.getInput().useTargetPosition;
-        this.getInput().hideOnClick;
+        this.getInput().hideOnItemClick;
+        this.getInput().positions[0];
     }
 
     hooks() {
         return {
             menu: (evt) => this.onMenuChange(evt.newValue)
         }
+    }
+
+    getSupportedPositions() {
+        const { positions } = this.getInput()
+        return (positions && positions.length) ?
+            [...positions] :
+            ["bottom-right", "bottom-left", "top-right", "top-left"];
     }
 
     onMenuChange(newMenu) {
@@ -76,6 +84,7 @@ class ContextMenu extends components.OverlayComponent {
 
     async setupMenus(menu) {
         const { cloneMenu, getMenuNode } = ContextMenu;
+        const { getOverlayConfig } = components.OverlayComponent;
 
         this.destroyMenus();
 
@@ -86,19 +95,21 @@ class ContextMenu extends components.OverlayComponent {
             ["bottom-right"]: cloneMenu(menu, 'right', 'bottom'),
         };
 
+        const { container } = getOverlayConfig();
+
         await Promise.all(
             Object.values(this.menus)
                 .map(menu =>
-                    menu.load()
+                    menu.load({ container })
                         .then(() => {
                             const node = getMenuNode(menu);
 
                             node.style.top = 0;
                             node.style.left = 0;
 
-                            // Override .slds-dropdown: transform: translateX(-50%);
+                            // Note: This will override .slds-dropdown: transform: translateX(-50%);
                             // in lightning design css
-                            node.style.transform = 'translateX(0%)';
+                            node.style.transform  = `translateX(0%)`;
 
                             node.style.visibility = 'hidden';
 
@@ -130,18 +141,18 @@ class ContextMenu extends components.OverlayComponent {
         return this.bodyClickListener || (
             this.bodyClickListener = ({ target }) => {
 
-                let { hideOnClick } = this.getInput();
+                let { hideOnItemClick } = this.getInput();
 
-                if (hideOnClick == null) {
-                    hideOnClick = true;
+                if (hideOnItemClick == null) {
+                    hideOnItemClick = true;
                 }
 
                 if (this.targetNodes && this.targetNodes.includes(target)) {
-                    // Clicks on targetNodes is handled by this.targetClickListener
+                    // Clicks on <this.targetNodes> is handled by this.targetClickListener
                     return;
                 }
 
-                if (!this.selectedIdentifier || hideOnClick) {
+                if (!this.selectedMenuItemArea || hideOnItemClick) {
                     this.hide();
                 }
             });
@@ -261,20 +272,10 @@ class ContextMenu extends components.OverlayComponent {
                 )
                     .forEach(node => {
                         node.addEventListener("click", (evt) => {
-
-                            let identifier;
-
-                            for (const node of evt.path) {
-                                if (node.matches('li.slds-dropdown__item')) {
-                                    identifier = node.getAttribute('identifier');
-                                    break;
-                                }
-                            }
-
-                            this.selectedIdentifier = identifier;
+                            this.selectedMenuItemArea = true;
 
                             setTimeout(() => {
-                                this.selectedIdentifier = null;
+                                this.selectedMenuItemArea = null;
                             }, 200);
                         });
                     })

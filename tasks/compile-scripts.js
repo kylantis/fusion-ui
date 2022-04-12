@@ -26,10 +26,12 @@ const babelTransform = through.obj((vinylFile, encoding, callback) => {
 });
 
 gulp.task('compile-scripts', () => gulp.src(['src/assets/js/**/*.js', '!src/assets/js/**/*.min.js'])
-  .pipe(babelTransform)
+  // This is commented out (and may be removed) because it does not integrate with gulp-sourcemaps
+  // and we cannot use gulp-babel due to an issue I experiened in the past
+  // .pipe(babelTransform)
   .pipe(sourcemaps.init())
   .pipe(uglify({
-    mangle: false,
+    mangle: true,
     compress: true,
   }).on('error', (msg) => {
     console.error(msg);
@@ -40,10 +42,10 @@ gulp.task('compile-scripts', () => gulp.src(['src/assets/js/**/*.js', '!src/asse
 
 
 gulp.task('compile-scripts:watch', () => watch(['src/assets/js/**/*.js', '!src/assets/js/**/*.min.js'], { ignoreInitial: true })
-  .pipe(babelTransform)
+  // .pipe(babelTransform)
   .pipe(sourcemaps.init())
   .pipe(uglify({
-    mangle: false,
+    mangle: true,
     compress: true,
   }).on('error', (msg) => {
     console.error(msg);

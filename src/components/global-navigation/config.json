@@ -26,6 +26,14 @@
       "type": "Boolean",
       "defaultValue": true
     },
+    "hideOnItemClick": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "expandOnHover": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
     "tabs_$.identifier": {
       "type": "String",
       "defaults": []
@@ -62,5 +70,10 @@
       "defaults": []
     }
   },
-  "escapeDynamicHtml": false
+  "escapeDynamicHtml": false,
+  "sample": {
+    "nullifyRandomly": [
+      "tabs_$.content"
+    ]
+  }
 }

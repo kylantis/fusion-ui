@@ -18,7 +18,7 @@ class AppContext {
     this.userGlobals = {};
 
     for (const k in userGlobals) {
-      const v = userGlobals[k];
+      let v = userGlobals[k];
 
       // Transform variables with their default (falsy) values
       // This is usually done because the server did not provide us with any value
@@ -42,15 +42,19 @@ class AppContext {
       throw Error('Duplicate appContext instance');
     }
 
-    // This is needed for loading component metadata.min.js files
-    // because they reference global, i.e. global['metadata_abstract_component']
-    self.global = self;
-
     self.assert = (condition, message) => {
       if (!condition) {
         throw Error(`Assertion Error${message ? `: ${message}` : ''}`);
       }
     };
+
+    self.module = {
+      exports: {},
+    };
+
+    // This is needed for loading component metadata.min.js files
+    // because they reference global, i.e. global['metadata_abstract_component']
+    self.global = self;
 
     Object.defineProperty(self, 'appContext', {
       value: this, configurable: false, writable: false,

@@ -314,13 +314,12 @@ class BaseComponent extends WebRenderer {
 
   destroy() {
 
-    // Todo: Prune resources
-    // ....
-    delete this.getInput();
-
-    // Detach DOM
+    // Detach from DOM
     const node = document.getElementById(this.getId());
     node.parentElement.removeChild(node)
+
+    // Todo: Prune resources
+    delete this.getInput();
   }
 
   static cloneComponent(component, inputVistor = (i) => i) {
