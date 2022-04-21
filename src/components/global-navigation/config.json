@@ -66,8 +66,8 @@
       "isNull": false
     },
     "tabs_$.isActive": {
-      "type": "String",
-      "defaults": []
+      "type": "Boolean",
+      "defaultValue": false
     }
   },
   "escapeDynamicHtml": false,

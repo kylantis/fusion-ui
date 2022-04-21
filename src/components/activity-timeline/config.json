@@ -55,6 +55,10 @@
       "type": "Icon",
       "isNull": false
     },
+    "items.$_.actions": {
+      "type": "Menu",
+      "isNull": false
+    },
     "items.$_.summary.parts_$.link": {
       "type": {
         "$ref": "Sentence.parts_$.link"
@@ -106,10 +110,6 @@
     },
     "Sentence.parts_$.text": {
       "type": "String"
-    },
-    "contextActions": {
-      "type": "Menu",
-      "isNull": false
     }
   },
   "sample": {
