@@ -1,0 +1,10 @@
+{
+  "enableTypeMerging": false,
+  "collections": {},
+  "scalars": {},
+  "sample": {
+    "nullifyRandomly": []
+  },
+  "useArrayLengthProperty": false,
+  "escapeDynamicHtml": false
+}

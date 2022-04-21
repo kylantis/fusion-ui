@@ -88,12 +88,24 @@ class ContextMenu extends components.OverlayComponent {
 
         this.destroyMenus();
 
-        this.menus = {
-            ["top-left"]: cloneMenu(menu, 'left', 'top'),
-            ["top-right"]: cloneMenu(menu, 'right', 'top'),
-            ["bottom-left"]: cloneMenu(menu, 'left', 'bottom'),
-            ["bottom-right"]: cloneMenu(menu, 'right', 'bottom'),
-        };
+        this.menus = {};
+
+        this.getSupportedPositions().forEach(pos => {
+            switch (pos) {
+                case "top-left":
+                    this.menus[pos] = cloneMenu(menu, 'left', 'top');
+                    break;
+                case "top-right":
+                    this.menus[pos] = cloneMenu(menu, 'right', 'top');
+                    break;
+                case "bottom-left":
+                    this.menus[pos] = cloneMenu(menu, 'left', 'bottom');
+                    break;
+                case "bottom-left":
+                    this.menus[pos] = cloneMenu(menu, 'left', 'bottom');
+                    break;
+            }
+        });
 
         const { container } = getOverlayConfig();
 
@@ -109,7 +121,7 @@ class ContextMenu extends components.OverlayComponent {
 
                             // Note: This will override .slds-dropdown: transform: translateX(-50%);
                             // in lightning design css
-                            node.style.transform  = `translateX(0%)`;
+                            node.style.transform = `translateX(0%)`;
 
                             node.style.visibility = 'hidden';
 
@@ -120,6 +132,7 @@ class ContextMenu extends components.OverlayComponent {
     }
 
     destroy() {
+        const { getInstances } = ContextMenu;
         this.destroyMenus();
 
         // Remove event listeners
@@ -131,32 +144,10 @@ class ContextMenu extends components.OverlayComponent {
             delete this.targetClickListener;
         }
 
-        document.body.removeEventListener('click', this.bodyClickListener);
-        delete this.bodyClickListener;
+        delete getInstances()[this.getId()];
 
         super.destroy();
     }
-
-    getBodyClickListener() {
-        return this.bodyClickListener || (
-            this.bodyClickListener = ({ target }) => {
-
-                let { hideOnItemClick } = this.getInput();
-
-                if (hideOnItemClick == null) {
-                    hideOnItemClick = true;
-                }
-
-                if (this.targetNodes && this.targetNodes.includes(target)) {
-                    // Clicks on <this.targetNodes> is handled by this.targetClickListener
-                    return;
-                }
-
-                if (!this.selectedMenuItemArea || hideOnItemClick) {
-                    this.hide();
-                }
-            });
-    };
 
     getTargetClickListener() {
         return this.targetClickListener || (
@@ -257,7 +248,38 @@ class ContextMenu extends components.OverlayComponent {
         targetNodes.push(targetNode);
     }
 
+    static getBodyClickListener() {
+        const { getInstances } = ContextMenu;
+
+        return ContextMenu.bodyClickListener || (
+            ContextMenu.bodyClickListener = ({ target }) => {
+
+                Object.values(getInstances())
+                    .forEach(i => {
+                        let { hideOnItemClick } = i.getInput();
+
+                        if (hideOnItemClick == null) {
+                            hideOnItemClick = true;
+                        }
+
+                        if (i.targetNodes && i.targetNodes.includes(target)) {
+                            // Clicks on <targetNodes> is handled by this.targetClickListener
+                            return;
+                        }
+
+                        if (!i.selectedMenuItemArea || hideOnItemClick) {
+                            i.hide();
+                        }
+                    });
+            });
+    };
+
+    static getInstances() {
+        return ContextMenu.instances || (ContextMenu.instances = {});
+    }
+
     async onMount() {
+        const { getInstances, getBodyClickListener } = ContextMenu;
         const { menu } = this.getInput();
 
         await this.calculateAreas();
@@ -281,7 +303,11 @@ class ContextMenu extends components.OverlayComponent {
                     })
             });
 
-        document.body.addEventListener('click', this.getBodyClickListener());
+        getInstances()[this.getId()] = this;
+
+        if (!ContextMenu.bodyClickListener) {
+            document.body.addEventListener('click', getBodyClickListener());
+        }
     }
 
     async getRequiredArea(position) {

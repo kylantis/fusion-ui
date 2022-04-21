@@ -8,19 +8,28 @@ class ActivityTimeline extends components.LightningComponent {
 
     hooks() {
         return {
-            contextActions: (evt) => {
-                const { newValue: menu } = evt;
-                if (this.contextMenu) {
-                    this.contextMenu.onMenuChange(menu)
+            ['items.$_.actions']: (evt) => {
+                const { newValue: menu, parentObject: { ["@key"]: identifier } } = evt;
+
+                const contextMenu = (this.contextMenus || {})[identifier];
+
+                if (menu) {
+                    if (contextMenu) {
+                        contextMenu.onMenuChange(menu)
+                    } else {
+    
+                        // Note: Hooks are eagerly called by RootProxy - even before the
+                        // newValue is validated, transformed or saved, hence we need to 
+                        // manually validate that <menu> is a Menu instance
+                        assert(newMenu instanceof components.Menu);
+    
+                        this.addContextMenu(identifier, menu);
+                    }
                 } else {
+                    assert(!!contextMenu);
 
-                    // Note: Hooks are eagerly called by RootProxy - even before the
-                    // newValue is validated, transformed or saved, hence we need to 
-                    // manually validate that <menu> is a Menu instance
-                    assert(newMenu instanceof components.Menu);
-
-                    this.createContextMenu(menu);
-                    this.registerContextMenuTargetNodes()
+                    contextMenu.destroy();
+                    delete this.contextMenus[identifier];
                 }
             },
             ['items.$_.lineColor']: (evt) => {
@@ -47,43 +56,6 @@ class ActivityTimeline extends components.LightningComponent {
         }
     }
 
-    registerContextMenuTargetNodes() {
-        const { items } = this.getInput();
-
-        if (!Object.keys(items).length) {
-            return;
-        }
-
-        const targetNodes = document.querySelectorAll(
-            `#${this.getElementId()} li .slds-timeline__actions button`
-        );
-
-        targetNodes.forEach(targetNode => {
-            this.contextMenu.addNode(targetNode);
-        });
-    }
-
-    async createContextMenu(menu) {
-        this.contextMenu = new components.ContextMenu({
-            input: {
-                menu,
-                clickType: 'left',
-                useTargetPosition: true,
-            }
-        });
-
-        await this.contextMenu.load();
-    }
-
-    async onMount() {
-        const { contextActions } = this.getInput();
-
-        if (contextActions) {
-            await this.createContextMenu(contextActions);
-            this.registerContextMenuTargetNodes();
-        }
-    }
-
     expandOrCollapseItem(identifier) {
         const node = this.node.querySelector(`li[identifier='${identifier}'] > div.slds-timeline__item_expandable`);
         const className = 'slds-is-open';
@@ -96,22 +68,38 @@ class ActivityTimeline extends components.LightningComponent {
         }
     }
 
-    itemTransform({ node, blockData, initial }) {
+    async addContextMenu(identifier, actions) {
+        const contextMenus = this.contextMenus || (this.contextMenus = {});
+
+        const contextMenu = new components.ContextMenu({
+            input: {
+                menu: actions,
+                clickType: 'left',
+                useTargetPosition: true,
+                positions: ['bottom-left'],
+                hideOnItemClick: true,
+            }
+        });
+
+        await contextMenu.load();
+
+        contextMenu
+            .addNode(this.node.querySelector(
+                `#${this.getElementId()} li[identifier='${identifier}'] .slds-timeline__actions button`
+            ));
+
+        contextMenus[identifier] = contextMenu;
+    }
+
+    async itemTransform({ node, blockData, initial }) {
         const identifier = node.querySelector(':scope > li').getAttribute('identifier');
 
         const { items } = this.getInput();
 
         const item = items[identifier];
 
-        if (this.contextMenu) {
-            if (!initial) {
-                const targetNode = node.querySelector(':scope > li .slds-timeline__actions button');
-                this.contextMenu.addNode(targetNode);
-            } else {
-                // If initial, contextMenu has already been registered
-                // through the onMount lifecycle method
-            }
-            return;
+        if (item.actions) {
+            await this.addContextMenu(identifier, item.actions);
         }
 
         this.node.querySelector(
@@ -127,7 +115,6 @@ class ActivityTimeline extends components.LightningComponent {
     }
 
     setExpandButtonVisibility(identifier) {
-        const { getExpandButtonSelector } = ActivityTimeline;
 
         const node = this.node.querySelector(this.getExpandButtonSelector(identifier));
         const { items } = this.getInput();
