@@ -1046,6 +1046,10 @@ class RootProxy {
 
       const triggerHooks = () => {
 
+        if (!this.component.isMounted()) {
+          return;
+        }
+
         const componentHooks = this.component.getHooks();
         let customHooks = componentHooks[fqPath];
 
@@ -1325,7 +1329,7 @@ class RootProxy {
               // Assign a default value based on the data type
               const { type } = def.properties[p];
 
-              if (!type || ['array', 'string'].includes(type[0])) {
+              if (!type || ['array', 'string', 'object'].includes(type[0])) {
                 return null;
               }
 

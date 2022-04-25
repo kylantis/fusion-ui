@@ -123,7 +123,7 @@
 {{/inline}}
 
 
-<div class="slds-illustration slds-illustration_{{size}}" 
+<div class="slds-illustration {{(size eq "x-large") ? "" : "slds-illustration_${size}"}}" 
      style="{{verticallyAlign ? 'position: relative; left: 50%; top: 50%; transform: translate(-50%, -50%);' : ''}}">
 
     {{> illustration_svg name}}

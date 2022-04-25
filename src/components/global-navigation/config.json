@@ -32,7 +32,7 @@
     },
     "expandOnHover": {
       "type": "Boolean",
-      "defaultValue": false
+      "defaultValue": true
     },
     "tabs_$.identifier": {
       "type": "String",

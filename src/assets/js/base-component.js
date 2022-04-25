@@ -235,15 +235,15 @@ class BaseComponent extends WebRenderer {
 
     this.recursivelyInvokeMethod('hooks').forEach(r => {
       Object.entries(r)
-      .forEach(([key, value]) => {
-        assert(value instanceof Function);
+        .forEach(([key, value]) => {
+          assert(value instanceof Function);
 
-        if (!hooks[key]) {
-          hooks[key] = [];
-        }
+          if (!hooks[key]) {
+            hooks[key] = [];
+          }
 
-        hooks[key].push(value);
-      });
+          hooks[key].push(value);
+        });
     })
 
     return hooks;
@@ -304,6 +304,9 @@ class BaseComponent extends WebRenderer {
     return this.getSyntheticMethod({ name: 'hasSubComponent' })();
   }
 
+  beforeMount() {
+  }
+
   onMount() {
   }
 
@@ -324,19 +327,19 @@ class BaseComponent extends WebRenderer {
 
   static cloneComponent(component, inputVistor = (i) => i) {
     const input = inputVistor(
-        eval(`module.exports=${global.clientUtils.stringifyComponentData(
-            component.getInput(),
-        )}`)
+      eval(`module.exports=${global.clientUtils.stringifyComponentData(
+        component.getInput(),
+      )}`)
     )
 
     const o = new components.Menu({ input });
 
     Object.entries(component.handlers).forEach(([k, v]) => {
-        o.handlers[k] = v;
+      o.handlers[k] = v;
     });
 
     return o;
-}
+  }
 
 }
 module.exports = BaseComponent;
