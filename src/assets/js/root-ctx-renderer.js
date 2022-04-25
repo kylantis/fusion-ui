@@ -66,7 +66,7 @@ class RootCtxRenderer extends BaseRenderer {
     RootCtxRenderer.#token = token;
   }
 
-  load({ container, token } = {}) {
+  async load({ container, token } = {}) {
 
     if (!this.loadable() || this.isMounted()) {
       throw Error(`${this.getId()} is not loadable`);
@@ -121,6 +121,7 @@ class RootCtxRenderer extends BaseRenderer {
     // https://handlebarsjs.com/api-reference/runtime-options.html#options-to-control-prototype-access
     const dataPaths = this.getSyntheticMethod({ name: 'dataPaths' })();
     const allowedProtoProperties = {};
+    
     for (const path of dataPaths) {
       allowedProtoProperties[path] = true;
     }
@@ -133,6 +134,8 @@ class RootCtxRenderer extends BaseRenderer {
     };
 
     this.hbsInput = hbsInput;
+
+    await this.invokeLifeCycleMethod('beforeMount');
 
     // eslint-disable-next-line no-undef
     const html = Handlebars.template(template)(

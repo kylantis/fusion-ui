@@ -89,6 +89,12 @@ class GlobalNavigation extends components.LightningComponent {
     defaultHandlers() {
         return {
             tabItemClick: async (identifier) => {
+                const { expandOnHover } = this.getInput();
+
+                if (!expandOnHover) {
+                    this.closeOpenSubMenu();
+                }
+
                 await this.setActiveItem(identifier);
             },
             tabClose: (identifier) => { },
@@ -100,7 +106,7 @@ class GlobalNavigation extends components.LightningComponent {
                 // hovered, the submenus are not made visible
 
                 if (expandOnHover) {
-                    const { li } = this.getItems()[identifier];
+                    const { li, subMenu } = this.getItems()[identifier];
 
                     // Note: if <li> was opened programmatically, slds-dropdown-trigger_click and slds-is-open
                     // would already be added to its classList
@@ -114,10 +120,14 @@ class GlobalNavigation extends components.LightningComponent {
                     }
 
                     this.visibleSubMenuHover = null;
-
-                    li.querySelector('.trigger-submenu').style.visibility = 'visible';
+                    
+                    if (subMenu) {
+                        li.querySelector('.trigger-submenu').style.visibility = 'visible';
+                    }
 
                 } else {
+                    // The submenu is likely already closed by the tabItemClick handler.
+                    // Call closeOpenSubMenu, in case the tab was made active programmatically
                     this.closeOpenSubMenu();
                 }
             },
@@ -346,6 +356,10 @@ class GlobalNavigation extends components.LightningComponent {
         if (!identifier) {
             const msg = `[${this.getId()}] Empty item identifier`;
             throw Error(msg)
+        }
+
+        if (items[identifier]) {
+            throw Error(`Tab with identifier "${identifier}" already exists`);
         }
 
         items[identifier] = { li, hasSubMenu: !!subMenu, content, subMenu };

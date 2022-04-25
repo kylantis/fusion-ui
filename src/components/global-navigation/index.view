@@ -76,15 +76,13 @@
 
         {{!-- <span class="slds-hint-parent"></span> --}}
 
-        {{#if subMenu}}
-          <div 
+        <div 
           class="slds-context-bar__icon-action slds-p-left_none slds-p-right_none trigger-submenu"
-          style="{{../expandOnHover ? "visibility: hidden" : ""}}">
+          style="{{(subMenu and (not ../expandOnHover)) ? "" : "visibility: hidden;"}}">
             {{> Icon role="button" type='utility' name='chevrondown' buttonSize="x-small" title="Show submenu"}}
-          </div>
+        </div>
 
-          {{!-- direction="right" --}}
-          {{!-- size='xx-small' --}}
+        {{#if subMenu}}
           {{> subMenu }}
         {{/if}}
 

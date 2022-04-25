@@ -69,10 +69,6 @@ class AppContext {
       testMode = true;
     }
 
-    if (data == '{{data}}') {
-      data = false;
-    }
-
     this.testMode = testMode;
 
     if (!AppContext.#initialized) {
@@ -83,10 +79,18 @@ class AppContext {
 
     await this.loadComponentClasses({ rootComponent });
 
+    let id;
+
     if (testMode) {
       data = self.Samples[
         self.clientUtils.getRandomInt(0, self.Samples.length - 1)
       ];
+    } else {
+      assert(!!data && data instanceof Function);
+      data = data();
+
+      id = data.id;
+      delete data.id;
     }
 
     const container = document.createElement('div');
@@ -97,7 +101,7 @@ class AppContext {
 
     // eslint-disable-next-line no-new
     const component = new self.components[rootComponent]({
-      input: data, testMode,
+      id, input: data, testMode,
     });
 
     if (testMode) {

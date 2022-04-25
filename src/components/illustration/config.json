@@ -37,19 +37,24 @@
       "type": "String",
       "allowed": [
         "small",
-        "large"
+        "large",
+        "x-large"
       ],
       "defaults": [
-        "small"
+        "large"
       ]
     },
     "title": {
       "type": "String",
-      "defaults": []
+      "defaults": [
+        "Title"
+      ]
     },
     "description": {
       "type": "String",
-      "defaults": []
+      "defaults": [
+        "Description"
+      ]
     }
   },
   "escapeDynamicHtml": false

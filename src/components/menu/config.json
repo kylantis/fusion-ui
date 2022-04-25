@@ -26,14 +26,11 @@
     },
     "x": {
       "type": "String",
-      "allowed": "direction"
+      "allowed": "positionX"
     },
     "y": {
       "type": "String",
-      "allowed": [
-        "top",
-        "bottom"
-      ]
+      "allowed": "positionY"
     },
     "groups_$.title": {
       "type": "String"
@@ -51,7 +48,7 @@
     },
     "groups_$.checkIconPosition": {
       "type": "String",
-      "allowed": "direction"
+      "allowed": "positionX"
     },
     "groups_$.required": {
       "type": "String",
@@ -90,17 +87,14 @@
     },
     "groups_$.items_$.subMenuX": {
       "type": "String",
-      "allowed": "direction",
+      "allowed": "positionX",
       "defaults": [
         "right"
       ]
     },
     "groups_$.items_$.subMenuY": {
       "type": "String",
-      "allowed": [
-        "top",
-        "bottom"
-      ],
+      "allowed": "positionY",
       "defaults": [
         "bottom"
       ]

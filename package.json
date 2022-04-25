@@ -15,8 +15,8 @@
     },
     "scripts": {
         "start": "nodemon server/index.js",
-        "build": "gulp dist",
-        "watch": "gulp watch",
+        "build": "gulp dist && node lib/model-factories/build-archive.js",
+        "watch": "buildArchive=true gulp watch",
         "build-watch": "npm run build && npm run watch",
         "build-components": "gulp compile-components --component=context-menu",
         "watch-components": "gulp compile-components:watch",

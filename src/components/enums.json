@@ -158,9 +158,13 @@
         "x-large",
         "xx-large"
     ],
-    "direction": [
+    "positionX": [
         "left",
         "right"
+    ],
+    "positionY": [
+        "top",
+        "bottom"
     ],
     "overlayPosition": [
         "bottom-right",
