@@ -14,13 +14,12 @@
         "url": "%GIT_URL%"
     },
     "scripts": {
-        "start": "nodemon server/index.js",
-        "build": "gulp dist && node lib/model-factories/build-archive.js",
-        "watch": "buildArchive=true gulp watch",
+        "start-server": "nodemon server/index.js",
+        "build-archive": "APP_ID=platform node lib/model-factories/build-archive.js",
+        "build": "APP_ID=platform gulp dist && npm run build-archive",
+        "watch": "BUILD_ARCHIVE=true APP_ID=platform gulp watch",
         "build-watch": "npm run build && npm run watch",
-        "build-components": "gulp compile-components --component=context-menu",
-        "watch-components": "gulp compile-components:watch",
-        "build-all": "gulp dist-all && node lib/model-factories/build-archive.js",
+        "build-all": "APP_ID=platform gulp dist-all && npm run build-archive",
         "lint": "eslint --ext js --fix src/ tasks/",
         "pretest": "npm run lint",
         "test": "jest --runInBand --forceExit --coverage"
