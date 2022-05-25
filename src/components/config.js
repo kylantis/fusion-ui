@@ -8,6 +8,8 @@ module.exports = {
     loadOrder: [
         "lightning-component",
         "overlay-component",
+        "tooltip",
+        "text-companion"
     ],
     /**
      * In some cases, during component imports, we may need to load an arbitrary scalar

@@ -69,7 +69,7 @@ class Menu extends components.LightningComponent {
         item.isSelected = false;
         selectedItems.splice(selectedItems.indexOf(identifier), 1);
 
-        this.dispatch('unselect', identifier)
+        this.dispatchEvent('unselect', identifier)
     }
 
     selectItem(identifier) {
@@ -93,7 +93,7 @@ class Menu extends components.LightningComponent {
                 item.isSelected = true;
                 selectedItems.push(identifier);
 
-                this.dispatch('select', identifier)
+                this.dispatchEvent('select', identifier)
 
                 break;
 
@@ -261,7 +261,7 @@ class Menu extends components.LightningComponent {
             const identifier = this.getAttribute('identifier');
             const item = items[identifier];
 
-            _this.dispatch('click', identifier)
+            _this.dispatchEvent('click', identifier)
 
             if (item.checkIconContainer) {
                 // This item supports selection

@@ -1,0 +1,22 @@
+<button class="slds-button slds-button_icon
+ {{type ? 'slds-button_icon-${type}' : ''}}
+ {{useCurrentColor ? 'slds-button_icon-current-color' : ''}}
+ {{container ? 'slds-button_icon-container' : ''}}
+ {{selected ? "slds-is-selected" : "" transform='ensureIconContainer'}}
+ {{containerSize ? 'slds-button_icon-${containerSize}' : '' transform='ensureIconContainer'}}
+ {{warning ? "slds-button_icon-warning" : ""}}
+ {{error ? "slds-button_icon-error" : ""}}
+ "  
+ title="{{title ? title : ""}}"
+ {{disabled ? "disabled=\"\"" : ""}}
+ >
+    <svg class="slds-button__icon
+    {{size ? 'slds-button__icon_${size}' : '' transform='ensureBareIcon'}}
+    {{cssClass ? cssClass : ""}}
+    " aria-hidden="true">
+        <use xlink:href="/assets/icons/{{iconType}}-sprite/svg/symbols.svg#{{iconName}}"></use>
+    </svg>
+    {{#if title}}
+        <span class="slds-assistive-text">{{title}}</span>
+    {{/if}}
+</button>

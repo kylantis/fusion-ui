@@ -65,12 +65,11 @@
         "Menu Item Two"
       ]
     },
-    "groups_$.items_$.level": {
+    "groups_$.items_$.feedbackState": {
       "type": "String",
-      "allowed": [
-        "error",
-        "success",
-        "warning"
+      "allowed": "feedbackState",
+      "defaults": [
+        null
       ]
     },
     "groups_$.items_$.leftIcon": {
@@ -102,7 +101,8 @@
   },
   "sample": {
     "nullifyRandomly": [
-      "groups_$.items_$.leftIcon"
+      "groups_$.items_$.leftIcon",
+      "groups_$.items_$.feedbackState"
     ]
   },
   "escapeDynamicHtml": false

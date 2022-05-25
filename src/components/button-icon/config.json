@@ -1,0 +1,92 @@
+{
+  "collections": {},
+  "scalars": {
+    "size": {
+      "type": "String",
+      "allowed": [
+        "x-small",
+        "small",
+        "large"
+      ],
+      "defaults": [
+        "small"
+      ]
+    },
+    "containerSize": {
+      "type": "String",
+      "allowed": [
+        "xx-small",
+        "x-small",
+        "small",
+        "large"
+      ],
+      "defaults": [
+        null
+      ]
+    },
+    "iconName": {
+      "type": "String",
+      "allowed": "iconName",
+      "defaults": [
+        "settings"
+      ]
+    },
+    "iconType": {
+      "type": "String",
+      "allowed": "iconType",
+      "defaults": [
+        "utility"
+      ]
+    },
+    "title": {
+      "type": "String",
+      "defaults": [
+        null
+      ]
+    },
+    "cssClass": {
+      "type": "String",
+      "defaults": [
+        null
+      ]
+    },
+    "type": {
+      "type": "String",
+      "allowed": [
+        "brand",
+        "inverse",
+        "border",
+        "border-filled",
+        "border-inverse"
+      ],
+      "defaults": [
+        null
+      ]
+    },
+    "container": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "useCurrentColor": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "selected": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "disabled": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "warning": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "error": {
+      "type": "Boolean",
+      "defaultValue": false
+    }
+  },
+  "escapeDynamicHtml": false
+}

@@ -24,6 +24,14 @@ class LightningComponent extends BaseComponent {
         return true;
     }
 
+    behaviours() {
+        return ['showTooltip'];
+    }
+
+    showTooltip() {
+
+    }
+
     getLoader() {
         return `
             <div style='position: absolute; display: table; width: 100%; height: 100%;'>
@@ -43,6 +51,14 @@ class LightningComponent extends BaseComponent {
             || navigator.userAgent.match(/BlackBerry/i)
             || navigator.userAgent.match(/Windows Phone/i)
     }
+
+    hasInputProperty(component, propertyName) {
+        assert(component instanceof BaseComponent);
+        assert(typeof propertyName == 'string');
+
+        return component.getInput()[propertyName] != undefined;
+    }
+
 }
 
 module.exports = LightningComponent;

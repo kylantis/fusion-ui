@@ -23,6 +23,8 @@ class RootCtxRenderer extends BaseRenderer {
 
   #currentBindContext;
 
+  #inlineComponentInstances;
+
   constructor({
     id, input, loadable, logger,
   } = {}) {
@@ -53,6 +55,8 @@ class RootCtxRenderer extends BaseRenderer {
 
     this.blockHooks = {};
     this.eachContext = [];
+
+    this.#inlineComponentInstances = {};
   }
 
   isMounted() {
@@ -80,8 +84,6 @@ class RootCtxRenderer extends BaseRenderer {
       throw Error(`${this.getId()} is already loaded`);
     }
 
-    // this.logger.info(`Loading component, id=${this.getId()}, assetId=${this.getAssetId()}`);
-
     const { htmlWrapperCssClassname, getMetaHelpers } = RootCtxRenderer;
     super.load();
 
@@ -95,11 +97,19 @@ class RootCtxRenderer extends BaseRenderer {
     for (const helperName of this.getHelpers()) {
       componentHelpers[helperName] = this[helperName].bind(this);
     }
+
+    const helpers = {
+      ...componentHelpers,
+      // Todo: clean up handlebars helpers before adding
+      // eslint-disable-next-line no-undef
+      ...Handlebars.helpers,
+    }
+
     // Register meta helper(s)
     for (const helperName of getMetaHelpers()) {
       // eslint-disable-next-line no-underscore-dangle
       const _this = this;
-      componentHelpers[helperName] = function () {
+      helpers[helperName] = function () {
         // eslint-disable-next-line prefer-rest-params
         const params = Array.from(arguments);
         const options = params.pop();
@@ -109,19 +119,40 @@ class RootCtxRenderer extends BaseRenderer {
       };
     }
 
-    const helpers = {
-      // eslint-disable-next-line no-undef
-      // Todo: clean up handlebars helpers before adding
-      ...Handlebars.helpers,
-      ...componentHelpers,
-    };
+    // Expose global helpers as global functions, using obfuscated names
+    const functionNames = {};
+    const noOpHelper = 'noOp';
+
+    const __helpers = global.__helpers || (global.__helpers = {});
+
+    for (const helperName of this.getGlobalHelpers()) {
+      let helperFn = componentHelpers[helperName];
+
+      if (!helperFn) {
+        helperFn = this[helperName].bind(this);
+      }
+
+      const id = clientUtils.randomString();
+
+      functionNames[helperName] = id;
+      __helpers[id] = helperFn;
+    }
+
+    if (!__helpers[noOpHelper]) {
+      __helpers[noOpHelper] = () => { }
+    }
+
+    // Add fn helper
+    helpers.fn = (helperName) => {
+      return `__helpers.${functionNames[helperName] || noOpHelper}`;
+    }
 
     // Control prototype access, to prevent attackers from executing
     // arbitray code on user machine, more info here:
     // https://handlebarsjs.com/api-reference/runtime-options.html#options-to-control-prototype-access
     const dataPaths = this.getSyntheticMethod({ name: 'dataPaths' })();
     const allowedProtoProperties = {};
-    
+
     for (const path of dataPaths) {
       allowedProtoProperties[path] = true;
     }
@@ -247,17 +278,24 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   async invokeLifeCycleMethod(name, ...args) {
-    await Promise.all(this.recursivelyInvokeMethod(name, ...args));
+    const methods = this.recursivelyGetMethods(name);
+    for (const fn of methods) {
+      await fn(...args)
+    }
   }
 
   recursivelyInvokeMethod(names, ...args) {
-    const result = [];
+    return this.recursivelyGetMethods(names).map(fn => fn(...args))
+  }
+
+  recursivelyGetMethods(names) {
+    const methods = [];
 
     let component = this;
 
     while ((component = Reflect.getPrototypeOf(component))
       // eslint-disable-next-line no-undef
-      && component.constructor.name !== BaseComponent.name
+      && component.constructor.name !== BaseRenderer.name
     ) {
 
       if (typeof names === 'string') {
@@ -268,12 +306,12 @@ class RootCtxRenderer extends BaseRenderer {
         assert(name !== 'constructor');
 
         if (Reflect.ownKeys(component).includes(name)) {
-          result.push(component[name].bind(this)(...args));
+          methods.push(component[name].bind(this));
         }
       });
     }
 
-    return result;
+    return methods.reverse();
   }
 
   conditional({ options, ctx, params }) {
@@ -969,7 +1007,10 @@ class RootCtxRenderer extends BaseRenderer {
         let value = this.resolvePath0({ path });
 
         if (this.resolver) {
-          assert(value instanceof Map || value instanceof Array);
+          assert(
+            value instanceof Map || value instanceof Array,
+            `${path} should resolve to either a Map or an Array`
+          );
 
           if (value instanceof Map) {
             value = toObject({ map: value });
@@ -993,7 +1034,7 @@ class RootCtxRenderer extends BaseRenderer {
 
           if (
             i == segments.length - 2 &&
-            firstChild !== Object(firstChild) &&
+            (firstChild !== Object(firstChild) || firstChild instanceof BaseComponent) &&
             getDataVariables().includes(dataVariable)
           ) {
 
@@ -1023,7 +1064,7 @@ class RootCtxRenderer extends BaseRenderer {
               // to throw a "redundant path" error for <canonicalPath>. Hence, we need to 
               // at least access index 0 at compile-time
 
-              if (this.resolver) {
+              if (this.resolver && isArray) {
                 this.resolver.resolve({ path: `${path}[0]` })
               }
             }
@@ -1044,7 +1085,8 @@ class RootCtxRenderer extends BaseRenderer {
             break;
 
           case isMap:
-            part += `.${Object.keys(value)[index]}`;
+            const k = Object.keys(value)[index];
+            part += this.resolver ? `.${k}` : `["${k}"]`;
             break;
 
           default:
@@ -1245,15 +1287,20 @@ class RootCtxRenderer extends BaseRenderer {
     if (!input) {
       input = {};
       // We will have to depend solely on the schema validation
-      // that happens in RootProxysetSchema(...)
+      // that happens in RootProxy
       addAll = true;
     }
 
     for (const [key, value] of Object.entries(hash)) {
+      if (value === undefined) {
+        continue;
+      }
+
       const k = `input.${key}`;
+
       const exists = () => {
         try {
-          return eval(k) !== undefined || addAll;
+          return (eval(k) !== undefined) || addAll;
         } catch (e) {
           return false;
         }
@@ -1281,44 +1328,57 @@ class RootCtxRenderer extends BaseRenderer {
 
   // eslint-disable-next-line class-methods-use-this
   loadInlineComponent() {
+
     // eslint-disable-next-line prefer-rest-params
     const params = Array.from(arguments);
     const options = params.pop();
 
     const { hash } = options;
-    const [componentSpec] = params;
+    let [componentSpec] = params;
+
+    delete hash.ctx;
+
+    const ref = hash.ref;
+    delete hash.ref;
 
     switch (true) {
       case componentSpec && componentSpec.constructor.name === 'String':
 
-        return this.createComponent({
+        componentSpec = this.createComponent({
           hash,
           componentClass: components[componentSpec],
-        })
+        });
+
+        break;
 
       case componentSpec && componentSpec instanceof BaseComponent:
-        // Todo: If there is no hash, there is no need to re-create the component, 
-        // because this is done in the first place to
-        // allow us re-build input data
-        return this.createComponent({
+
+        const { handlers, config } = this.buildInputData({
+          input: componentSpec.getInput(), 
           hash,
-          data: eval(`module.exports=${global.clientUtils.stringifyComponentData(componentSpec.getInput())
-            }`),
-          componentClass: componentSpec.constructor,
-        })
+        });
+
+        componentSpec.config = config;
+        this.addEventHandlers({ handlers, component: componentSpec });
+
+      break;
 
       default:
-        throw Error(`Unknown sub-component in ${this.getId()}`);
+        // We don't know what this is, return undefined so that BaseComponent.render(...) will
+        // return an empty string
+        return undefined;
     }
+
+    if (ref) {
+      this.#inlineComponentInstances[ref] = componentSpec;
+    }
+
+    return componentSpec;
   }
 
-  createComponent({ hash, data, componentClass }) {
+  createComponent({ hash, componentClass }) {
 
-    delete hash.ctx;
-
-    const { input, handlers, config } = this.buildInputData({
-      input: data, hash,
-    });
+    const { input, handlers, config } = this.buildInputData({ hash });
 
     const component = new componentClass({
       input,
@@ -1326,9 +1386,17 @@ class RootCtxRenderer extends BaseRenderer {
     });
 
     component.config = config;
-
     this.addEventHandlers({ handlers, component });
+
     return component;
+  }
+
+  getInlineComponents() {
+    return this.#inlineComponentInstances;
+  }
+
+  getInlineComponent(ref) {
+    return this.#inlineComponentInstances[ref];
   }
 
   getComponentName() {
@@ -1340,8 +1408,48 @@ class RootCtxRenderer extends BaseRenderer {
     }
   }
 
-  getInputSchema() {
-    return this.getSyntheticMethod({ name: 'getInputSchema' })();
+  booleanOperators() {
+    return {
+      LT: (x, y) => x < y,
+      LTE: (x, y) => x <= y,
+      GT: (x, y) => x > y,
+      GTE: (x, y) => x >= y,
+      EQ: (x, y) => x == y,
+      NEQ: (x, y) => x != y,
+      INCLUDES: (x, y) => {
+        if (!x) { return false; }
+        const isArray = x.constructor.name == 'Array';
+        const isObject = x.constructor.name == 'Object';
+        assert(isArray || isObject, 'Left-hand side of INCLUDES must be an array or object');
+
+        return (isArray ? x : Object.keys(x)).includes(y);
+      },
+      INSTANCEOF: (x, y) => {
+        if (!x) { return false; }
+        const componentClass = components[y];
+        assert(x instanceof BaseComponent, 'Left-hand side of INSTANCEOF must be a component');
+        assert(!!componentClass, 'Right-hand side of INSTANCEOF must be a valid component name');
+
+        return x instanceof componentClass;
+      },
+    }
+  }
+
+  getBooleanOperators() {
+    const o = {};
+    this.recursivelyInvokeMethod('booleanOperators').forEach(r => {
+      Object.entries(r)
+        .forEach(([key, value]) => {
+          assert(value instanceof Function);
+
+          if (!o[key]) {
+            o[key] = [];
+          }
+
+          o[key].push(value);
+        });
+    });
+    return o;
   }
 
   getAssetId() {
@@ -1360,5 +1468,8 @@ class RootCtxRenderer extends BaseRenderer {
     return this.getSyntheticMethod({ name: 'enableDataBinding' })();
   }
 
+  getGlobalHelpers() {
+    return this.getSyntheticMethod({ name: 'globalHelpers' })();
+  }
 }
 module.exports = RootCtxRenderer;

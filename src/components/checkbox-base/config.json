@@ -1,0 +1,25 @@
+{
+  "enableTypeMerging": false,
+  "collections": {},
+  "scalars": {
+    "name": {
+      "type": "String",
+      "defaults": [
+        null
+      ]
+    },
+    "checked": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "disabled": {
+      "type": "Boolean",
+      "defaultValue": false
+    }
+  },
+  "sample": {
+    "nullifyRandomly": []
+  },
+  "useArrayLengthProperty": false,
+  "escapeDynamicHtml": false
+}

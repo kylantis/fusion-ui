@@ -1,6 +1,7 @@
 
 {{style url="/components/global_navigation/style.min.css"}}
-{{!-- <div style="position: relative; min-height: 100% !important; height: auto; overflow: auto;"> --}}
+
+{{!-- Todo: Implement Subtabs, tab dialog, Icon-only tabs, states, pinned, overflow tabs  --}}
 
 <div style="width: 100%; height: 100%;">
 <div class="slds-context-bar slds-context-bar_tabs">
@@ -56,30 +57,63 @@
 
     <ul class="slds-grid" role="tablist">
 
-      {{#each tabs transform = "tabTransform" as |tab tabIndex|}}
+    {{#each tabs transform = "tabTransform" as |tab tabIndex|}}
 
       {{component Menu alias="subMenu"}}
       {{component alias="content"}}
+      {{component Icon alias="icon"}}
 
       {{#if ../useDivider }}
       <div class="slds-context-bar__item--divider-left"></div>
       {{/if}}
 
       <li
-        class="slds-context-bar__item slds-context-bar__dropdown-trigger slds-dropdown-trigger {{ ../expandOnHover ? "" : "slds-dropdown-trigger_click"}}"
+        class="
+        slds-context-bar__item slds-context-bar__item_tab slds-context-bar__dropdown-trigger slds-dropdown-trigger 
+        {{ ../expandOnHover ? "" : "slds-dropdown-trigger_click"}}
+
+        {{!-- 
+            Note: When the feedbackState is dynamically updated, the developer needs to also update the icons
+            respectively. For more info, see the conditions used below in rendering the icons.
+                
+            UPDATE: Todo: Add data-bind support for the paramerters of inline components, so that the developer
+            do not have to do the above, which quite frankly is an anti-pattern and against what we are trying to achieve
+        --}}
+        {{feedbackState ? 'slds-has-${feedbackState}' : ''}}
+        "
         identifier="{{identifier}}" role="presentation">
 
         <a class="slds-context-bar__label-action" title="{{title}}">
-          <span class="slds-assistive-text">{{assistiveText ? assistiveText : title}}</span>
+          
+          {{#if icon}}
+            {{> icon 
+                marginRight=((isSolidIcon icon) ? 'x-small' : null) 
+                textDefault=(feedbackState ? false : undefined ) 
+                useCurrentColor=(feedbackState eq 'warning') 
+                onSolidStateChange='onTabIconSolidStateChange' 
+            }}
+          {{/if}}
+
+          {{#if assistiveText}}
+            <span class="slds-assistive-text">{{assistiveText}}</span>
+          {{/if}}
+
           <span class="slds-truncate" title="{{title}}">{{title}}</span>
         </a>
 
-        {{!-- <span class="slds-hint-parent"></span> --}}
-
-        <div 
+        <div
           class="slds-context-bar__icon-action slds-p-left_none slds-p-right_none trigger-submenu"
           style="{{(subMenu and (not ../expandOnHover)) ? "" : "visibility: hidden;"}}">
-            {{> Icon role="button" type='utility' name='chevrondown' buttonSize="x-small" title="Show submenu"}}
+            {{> ButtonIcon 
+                  iconType='utility' 
+                  iconName='chevrondown'
+                  container=true
+                  containerSize='x-small'
+                  title="Show submenu" 
+                  useCurrentColor=(not feedbackState or (feedbackState eq 'warning'))
+                  type=((feedbackState and (not (feedbackState eq 'warning'))) ? 'inverse' : null)
+                  ref="tab-${identifier}-submenuTrigger-icon"
+            }}
         </div>
 
         {{#if subMenu}}
@@ -88,13 +122,22 @@
 
         {{#if closeable}}
         <div class="slds-context-bar__icon-action slds-col_bump-left slds-p-left_none trigger-close">
-          {{> Icon role="button" type='utility' name='close' buttonSize="x-small" title="Close Tab"}}
+            {{> ButtonIcon
+                  iconType='utility' 
+                  iconName='close' 
+                  container=true
+                  containerSize='x-small'
+                  title="Close Tab" 
+                  useCurrentColor=(not feedbackState or (feedbackState eq 'warning'))
+                  type=((feedbackState and (feedbackState neq 'warning')) ? 'inverse' : null)
+                  ref="tab-${identifier}-close-icon"
+            }}
         </div>
         {{/if}}
 
       </li>
 
-      {{/each}}
+    {{/each}}
 
     </ul>
   </nav>

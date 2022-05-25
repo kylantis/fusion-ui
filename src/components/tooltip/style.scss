@@ -1,0 +1,7 @@
+// The styles align with the positioning logic
+.slds-popover {
+    min-height: 1.8rem;
+    &__body {
+        padding: 0.3rem 0.65rem;
+    }
+}

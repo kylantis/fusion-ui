@@ -1,7 +1,8 @@
 
 /* eslint-disable no-underscore-dangle */
 
-const anyIndex = /\[[0-9]+\]/g;
+const anyArrayIndex = /\[[0-9]+\]/g;
+const mapKey = /\["\$_.+?"\]/g;
 
 module.exports = {
   flattenJson: (data) => {
@@ -80,9 +81,12 @@ module.exports = {
   },
 
   getSegments: ({ original }) => {
-    const tailIndex = /(\[[0-9]+\])+$/g;
 
-    const indexes = (original.match(tailIndex) || []).join('');
+    const indexes = (
+      original.match(/(\[[0-9]+\])+$/g) ||
+      original.match(mapKey) ||
+      []
+    ).join('');
 
     const segments = [
       original.replace(
@@ -92,21 +96,24 @@ module.exports = {
     ];
 
     if (indexes.length) {
-      indexes.match(anyIndex)
+      (indexes.match(anyArrayIndex) || indexes.match(mapKey))
         .forEach(index => segments.push(index))
     }
 
     return segments;
   },
 
-  toCanonicalPath: (fqPath, separator='.') => {
+  toCanonicalPath: (fqPath) => {
+    const separator = '.';
     return fqPath.split(separator)
       .map(p => global.clientUtils.getSegments({
         original: p,
       }).map((segment) => {
         switch (true) {
-          case !!segment.match(anyIndex):
+          case !!segment.match(anyArrayIndex):
             return '_$';
+          case !!segment.match(mapKey):
+            return `${separator}$_`;
           case segment.startsWith('$_'):
             return '$_';
           default: return segment;

@@ -1,15 +1,19 @@
 
 class Tooltip extends components.OverlayComponent {
 
-    static c = 234;
-
     initCompile() {
         this.getInput().targetElement;
     }
 
-    onMount() {
-        const { getBoundingClientRectOffset, getOverlayConfig } = components.OverlayComponent;
+    behaviours() {
+        return ['refresh'];
+    }
 
+    refresh() {
+        this.setPosition();
+    }
+
+    setPosition() {
         const { targetElement } = this.getInput();
 
         if (!targetElement) {
@@ -22,34 +26,34 @@ class Tooltip extends components.OverlayComponent {
             throw Error(`[${this.getId()}] Could not find targetElement: ${targetElement}`);
         }
 
-        const { container } = getOverlayConfig();
+        const rect = target.getBoundingClientRect();
+
+        const { position, fn } = this.getPosition(
+            this.getBoundingClientRectOffset0(rect)
+        );
+
+        fn(this.getNode());
+
+        this.addNubbinCssClass(position);
+    }
+
+    onMount() {
+        this.hide();
+
+        const node = this.getNode();
+        node.style.position = 'absolute';
+        // node.style.left = 0;
+        // node.style.top = 0;
+
+        node.style.width = node.style.height = "max-content";
+
+        const container = this.container ? document.getElementById(this.container) : null;
 
         if (container) {
-            document.getElementById(container).appendChild(
+            container.appendChild(
                 this.node.parentElement.removeChild(this.node)
             )
         }
-
-        const containerRect = getBoundingClientRectOffset(target);
-
-        const result = this.getPosition(containerRect);
-
-        if (!result) {
-            this.logger.error(`No available position was found to place component: ${this.getId()}`);
-            
-            this.hide();
-            return;
-        }
-
-        const { position, top, left } = result;
-
-        const { style } = this.getNode();
-
-        style.top = top;
-        style.left = left;
-        style.position = 'absolute';
-
-        this.addNubbinCssClass(position);
     }
 
     addNubbinCssClass(position) {
@@ -114,11 +118,17 @@ class Tooltip extends components.OverlayComponent {
     }
 
     getSupportedPositions() {
-        return ["top", "right", "bottom", "left"];
+        return [
+            "right",
+            "left",
+            "top",
+            "bottom",
+           
+        ];
     }
 
     getPadding() {
-        return 16;
+        return 12;
     }
 
     getRequiredArea(position) {

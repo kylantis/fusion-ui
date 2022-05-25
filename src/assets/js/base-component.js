@@ -176,6 +176,10 @@ class BaseComponent extends WebRenderer {
     this.logger[level](`[${this.getId()}] ${msg}`);
   }
 
+  throw(msg) {
+    throw Error(`[${this.getId()}] ${msg}`);
+  }
+
   /**
    * The main goal for this is to allow the component dynamically register fields 
    * in it's object model. Note: this method is only invoked at compile-time.
@@ -277,7 +281,7 @@ class BaseComponent extends WebRenderer {
     return this;
   }
 
-  dispatch(event, data) {
+  dispatchEvent(event, ...args) {
     this.ensureKnownEvent(event);
 
     let defaultHandler = this.defaultHandlers()[event]
@@ -294,7 +298,7 @@ class BaseComponent extends WebRenderer {
     let handlers = this.handlers[event] || (defaultHandler ? [defaultHandler] : null);
 
     if (handlers && handlers.length) {
-      handlers.forEach(handler => handler(data));
+      handlers.forEach(handler => handler(...args));
     }
 
     return this;

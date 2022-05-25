@@ -17,12 +17,12 @@ class ActivityTimeline extends components.LightningComponent {
                     if (contextMenu) {
                         contextMenu.onMenuChange(menu)
                     } else {
-    
+
                         // Note: Hooks are eagerly called by RootProxy - even before the
                         // newValue is validated, transformed or saved, hence we need to 
                         // manually validate that <menu> is a Menu instance
                         assert(newMenu instanceof components.Menu);
-    
+
                         this.addContextMenu(identifier, menu);
                     }
                 } else {
@@ -61,11 +61,16 @@ class ActivityTimeline extends components.LightningComponent {
         const className = 'slds-is-open';
         const { classList } = node;
 
-        if (classList.contains(className)) {
+        const collapse = classList.contains(className);
+
+        if (collapse) {
             classList.remove(className);
         } else {
             classList.add(className);
         }
+
+        // Note: this is optional
+        this.getExpandButton(identifier).setAttribute("aria-expanded", !collapse);
     }
 
     async addContextMenu(identifier, actions) {
@@ -76,7 +81,6 @@ class ActivityTimeline extends components.LightningComponent {
                 menu: actions,
                 clickType: 'left',
                 useTargetPosition: true,
-                positions: ['bottom-left'],
                 hideOnItemClick: true,
             }
         });
@@ -102,21 +106,29 @@ class ActivityTimeline extends components.LightningComponent {
             await this.addContextMenu(identifier, item.actions);
         }
 
-        this.node.querySelector(
-            this.getExpandButtonSelector(identifier)
-        )
-            .addEventListener('click', () => {
-                item.expanded = !item.expanded;
-            });
+        const expandBtn = this.getExpandButton(identifier);
+
+        expandBtn.addEventListener('click', () => { item.expanded = !item.expanded; });
+
+        // Note: this is optional
+        expandBtn.setAttribute("aria-controls", this.getArticle(identifier).id);
     }
 
-    getExpandButtonSelector(identifier) {
-        return `#${this.getElementId()} li${identifier ? `[identifier='${identifier}']` : ''} > div.slds-timeline__item_expandable .slds-media__figure > button`;
+    getArticle(identifier) {
+        return this.node.querySelector(`#${this.getElementId()} li${identifier ? `[identifier='${identifier}']` : ''} > div.slds-timeline__item_expandable .slds-media > .slds-media__body > article`);
+    }
+
+    /**
+     * Note: this function assumes that the ButtonIcon component renders a button html elemeent
+     * @returns 
+     */
+    getExpandButton(identifier) {
+        return this.node.querySelector(`#${this.getElementId()} li${identifier ? `[identifier='${identifier}']` : ''} > div.slds-timeline__item_expandable > .slds-media > .slds-media__figure button`);
     }
 
     setExpandButtonVisibility(identifier) {
 
-        const node = this.node.querySelector(this.getExpandButtonSelector(identifier));
+        const node = this.getExpandButton(identifier);
         const { items } = this.getInput();
         const item = items[identifier];
 

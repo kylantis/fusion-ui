@@ -55,6 +55,8 @@ class RootProxy {
 
   static globalsBasePath = 'globals';
 
+  static isMapProperty = '$isMap';
+
   #dataPathHooks;
 
   #logicGates;
@@ -104,26 +106,27 @@ class RootProxy {
     }
   }
 
-  static getBooleanExpression(operator) {
-    switch (operator) {
-      case 'LT':
-        return '<';
-      case 'LTE':
-        return '<=';
-      case 'GT':
-        return '>';
-      case 'GTE':
-        return '>=';
-      case 'EQ':
-        return '==';
-      case 'NEQ':
-        return '!=';
+  static evaluateBooleanExpression(component, left, right, operator, scope = '') {
+    const predicates = component.getBooleanOperators()[operator];
+
+    if (!predicates) {
+      throw Error(`Unknown boolean operator: ${operator}`);
     }
+    for (const fn of predicates) {
+      const b = Function(
+        `${scope} return arguments[0](${left}, ${right})`,
+      )
+        .bind(component)(fn);
+
+      if (!b) { return false; }
+    }
+
+    return true;
   }
 
   getLogicGateValue({ gateId }) {
 
-    const { getBooleanExpression: boolExpr } = RootProxy;
+    const { evaluateBooleanExpression } = RootProxy;
 
     const MUST_GRP = 'MustacheGroup';
     const LOGIC_GATE = 'LogicGate';
@@ -151,15 +154,13 @@ class RootProxy {
       const or = ' || ';
 
       const getBoolExpr = (expr) => {
+
         const left = getExpr(expr.left);
         const right = getExpr(expr.right);
 
-        if (expr.operator != 'INCLUDES') {
-          return `${left} ${boolExpr(expr.operator)} ${right}`
-        } else {
-          // Todo: maintain original, so we can throw a descriptive error
-          return `${left}.includes(${right})`
-        }
+        return evaluateBooleanExpression(
+          this.component, left, right, expr.operator, scope
+        );
       }
 
       const getExpr = (part) => {
@@ -219,6 +220,8 @@ class RootProxy {
         case NUM_LITERAL:
         case BOOL_LITERAL:
         case PATH_EXPR:
+        case NULL_LITERAL:
+        case UNDEFINED_LITERAL:
           expr = original;
           break;
         case STR_LITERAL:
@@ -236,13 +239,20 @@ class RootProxy {
     };
 
     const analyzeGate = (item) => {
+      const { invert } = item;
 
       while (item.type == LOGIC_GATE) {
         const data = gate.table[item.original];
-        item = analyzeCondition(data.condition, data.invert) ? data.left : data.right;
+        item = analyzeCondition(data.condition, data.conditionInversions) ? data.left : data.right;
       }
 
-      return getValue(item);
+      let value = getValue(item);
+
+      if (invert) {
+        value = !value;
+      }
+
+      return value;
     }
 
     // Todo: Only replace blockData if a sub expression exists in
@@ -264,8 +274,9 @@ class RootProxy {
   resolveLogicPath({ prop }) {
 
     const {
-      dataPathRoot, logicGatePathRoot,
-      pathSeparator, gateParticipantHookName, globalsBasePath
+      dataPathRoot, logicGatePathRoot, literalPrefix,
+      pathSeparator, gateParticipantHookName, globalsBasePath,
+      parsePathExpressionLiteralValue,
     } = RootProxy;
 
     const includePath = prop.endsWith('!');
@@ -297,9 +308,12 @@ class RootProxy {
 
       switch (type) {
         case PATH_EXPR:
-          item.original = this.component.getExecPath({
-            fqPath: original.replace(`${dataPathRoot}${pathSeparator}`, ''),
-          });
+          const p = original.replace(`${dataPathRoot}${pathSeparator}`, '');
+          item.original = p.startsWith(literalPrefix) ?
+            parsePathExpressionLiteralValue(p) :
+            this.component.getExecPath({
+              fqPath: p,
+            });
           break;
         case BOOL_EXPR:
           item.left = toExecutablePath(left);
@@ -334,6 +348,7 @@ class RootProxy {
 
     const gateId = global.clientUtils.randomString();
 
+    // Add participants to <dataPathHooks>, if applicable
     gate.participants
       .filter(p =>
         // Exclude synthetic functions
@@ -390,15 +405,36 @@ class RootProxy {
     }
   }
 
+  static parsePathExpressionLiteralValue(prop) {
+    const { literalPrefix, emptyString } = RootProxy;
+    const p = prop.replace(literalPrefix, emptyString);
+
+    switch (true) {
+      case p == 'null':
+      case p == 'undefined':
+      case p == 'true':
+      case p == 'false':
+      case clientUtils.isNumber(p):
+        return p;
+      default:
+        return `"${p}"`;
+    }
+  }
+
   resolveDataPath({ prop, isRawReturn = false }) {
 
-    const { literalPrefix, emptyString, rawDataPrefix } = RootProxy;
+    const {
+      literalPrefix, rawDataPrefix, parsePathExpressionLiteralValue
+    } = RootProxy;
 
     // eslint-disable-next-line no-undef
     assert(prop.constructor.name === 'String');
 
     if (prop.startsWith(literalPrefix)) {
-      return prop.replace(literalPrefix, emptyString);
+      // eslint-disable-next-line no-eval
+      return eval(
+        parsePathExpressionLiteralValue(prop)
+      );
     }
 
     if (prop.startsWith(rawDataPrefix)) {
@@ -624,7 +660,7 @@ class RootProxy {
 
       if (!component.constructor.schemaDefinitions) {
         // register input schema
-        proxy.withSchema(proxy.component.getInputSchema());
+        proxy.withSchema(proxy.component.constructor.schema);
       }
 
       // Add our observer, to orchestrate data binding operations
@@ -659,18 +695,17 @@ class RootProxy {
 
         let definition = definitions[id];
 
+        if (definition.isComponent || definition.isEnumRef) {
+          // These will be pruned later
+          continue;
+        }
+
         if (definition.$ref) {
           definition = definitions[definition.$ref.replace(defPrefx, emptyString)];
         }
 
         // Add definition id
         definition.$id = `${defPrefx}${id}`;
-
-        if (definition.isComponent) {
-          // A component instance will be validated against
-          // this, so simply set additionalProperties to true
-          definition.additionalProperties = true;
-        }
 
         const addDataVariables = (def) => {
           const dataVariables = {
@@ -711,10 +746,16 @@ class RootProxy {
 
                     // Inline enum reference
                     case definitions[refName].isEnumRef:
-                      def.enum = [
-                        ...self.appContext.enums[
+                      const enum0 = self.appContext.enums[
                         definitions[refName].originalName
-                        ],
+                      ];
+
+                      if (!enum0) {
+                        throw Error(`Ensure that dist/components/enums.json contains the latest changes`);
+                      }
+
+                      def.enum = [
+                        ...enum0,
                         null
                       ];
 
@@ -727,8 +768,6 @@ class RootProxy {
                     case refName == this.component.getComponentName():
 
                       def.type = ['object', 'null']
-                      def.additionalProperties = true;
-
                       def.component = {
                         className: refName,
                       },
@@ -938,10 +977,6 @@ class RootProxy {
       .forEach(variable => {
         this.#dataPathHooks[[dataPathRoot, globalsBasePath, variable].join(pathSeparator)] = [];
       });
-
-
-    // when whole object are removed, via (array or object) operations, also, we need
-    // do a bulk remove on this.#dataPaths as well
   }
 
   getDataPathHooks() {
@@ -975,8 +1010,8 @@ class RootProxy {
   getObserverProxy(object) {
     const {
       dataPathRoot, logicGatePathRoot, pathSeparator, textNodeHookName,
-      gateParticipantHookName, pathProperty, typeProperty, mapType,
-      getMapWrapper,
+      gateParticipantHookName, pathProperty, typeProperty, mapType, isMapProperty,
+      getMapWrapper, toFqPath,
     } = RootProxy;
     const { getDataVariables } = RootCtxRenderer;
 
@@ -1008,6 +1043,11 @@ class RootProxy {
 
       const isArray = obj.constructor.name === 'Array';
 
+      const isMap = !isArray && obj[isMapProperty];
+
+
+      // Support using -1 as array index to refer to the last index
+
       if (isArray &&
         !global.clientUtils.isNumber(prop) &&
         ![...getDataVariables(), pathProperty].includes(prop)
@@ -1018,10 +1058,9 @@ class RootProxy {
       // What happens when newValue === undefined
       // Can newValue be null in all scenarios?
 
-      const fqPath = `${dataPathRoot}${pathSeparator}${isArray ?
-        `${parent}[${prop}]` :
-        `${parent.length ? `${parent}.` : ''}${prop}`
-        }`;
+      const fqPath0 = toFqPath({ isArray, isMap, parent, prop });
+      
+      const fqPath = `${dataPathRoot}${pathSeparator}${fqPath0}`;
 
       const sPath = global.clientUtils.toCanonicalPath(fqPath)
         .replace(`${dataPathRoot}${pathSeparator}`, '');
@@ -1029,6 +1068,26 @@ class RootProxy {
       const oldValue = obj[prop];
 
       if (oldValue instanceof BaseComponent) {
+
+
+
+        // Note: this is false, components can be updated... we just have to 
+        // destroy the existing one and re-render the new one
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         throw Error(`Path: ${fqPath} cannot be mutated`);
       }
 
@@ -1047,7 +1106,7 @@ class RootProxy {
       const triggerHooks = () => {
 
         if (!this.component.isMounted()) {
-          return;
+          return true;
         }
 
         const componentHooks = this.component.getHooks();
@@ -1065,12 +1124,12 @@ class RootProxy {
 
           const evt = { path: fqPath, oldValue, newValue, parentObject: obj };
 
-          customHooks.forEach(fn => {
+          for (const fn of customHooks) {
             fn(evt);
-          });
 
-          if (evt.defaultPrevented) {
-            return;
+            if (evt.preventDefault) {
+              return false;
+            }
           }
         }
 
@@ -1099,34 +1158,23 @@ class RootProxy {
 
           }
         });
+
+        return true;
       }
 
-      const reloadPath = path => {
-        // Because of babel optimizations, I need to call this outside
-        // the eval string to avoid getting an "undefined" error at runtime
-        const component = this.component;
-        const p = ['component.getInput()', path].join('.')
-        return eval(`${p} = ${p}`)
-      };
-
-      triggerHooks();
-
-      const isNonPrimitive = (() => {
-        const def = this.component.constructor.schemaDefinitions[sPath];
-        return def.type == 'object' || def.type == 'array'
-      })();
-
-      const getValidator = () => {
-        try {
-          return this.component.constructor.ajv.getSchema(`#/definitions/${sPath}`)
-        } catch (e) {
-          throw Error(`Unknown path: ${fqPath}`);
-        }
+      if (!triggerHooks()) {
+        return false;
       }
 
       if (newValue != null && oldValue !== newValue) {
 
-        const validate = getValidator();
+        const validate = (() => {
+          try {
+            return this.component.constructor.ajv.getSchema(`#/definitions/${sPath}`)
+          } catch (e) {
+            throw Error(`Unknown path: ${fqPath}`);
+          }
+        })();
 
         if (!validate(newValue)) {
           throw Error(`${fqPath} could not be mutated due to schema mismatch`);
@@ -1148,11 +1196,12 @@ class RootProxy {
             obj: newValue
           });
 
-          newValue = this.getObserverProxy(newValue)
-
           if (newValue[typeProperty] == mapType) {
             newValue = getMapWrapper(newValue);
           }
+
+          newValue = this.getObserverProxy(newValue)
+
         }
 
         // If parent is a collection (array or map), we need to update blockData
@@ -1167,8 +1216,36 @@ class RootProxy {
 
       // * Implement hook for conditionals
 
-      // Reload children, if applicable
+      // Reload children and parent, if applicable
+
+      const reloadPath = path => {
+        // Because of babel optimizations, I need to call this outside
+        // the eval string to avoid getting an "undefined" error at runtime
+        const component = this.component;
+        const p = ['component.getInput()', path].join('.')
+        
+        return eval(`${p} = ${p}`)
+      };
+
+      const isNonPrimitive = (() => {
+        const def = this.component.constructor.schemaDefinitions[sPath];
+        return def.type == 'object' || def.type == 'array'
+      })();
+
+
       if (isNonPrimitive) {
+
+
+
+
+        // I DONT LIKE THIS WHOLE CHILD AND PARENT THINGY, TO BE HONEST
+        // ANYWAYS, BE IT MAY, WE NEED TO LET THE DEVELOPERS KNOW THAT 
+        // THEY ALWAYS NEED TO CHECK IF OLD_VALUE === NEW_VALUE
+
+
+
+
+
 
         const childPaths = Object.keys(this.#dataPathHooks)
           .filter(p => p !== fqPath && p.startsWith(`${fqPath}`));
@@ -1233,10 +1310,14 @@ class RootProxy {
   }
 
   isMapPath(path) {
-    return path.length &&
-      !!this.component.constructor.schemaDefinitions[
-        global.clientUtils.toCanonicalPath(path)
-      ].additionalProperties;
+    if (!path.length) {
+      return false;
+    }
+
+    const canonicalPath = global.clientUtils.toCanonicalPath(path);
+    const schema = this.component.constructor.schemaDefinitions[canonicalPath];
+
+    return path.length && !!schema.additionalProperties;
   }
 
   isArrayPath(path) {
@@ -1269,6 +1350,14 @@ class RootProxy {
   }
 
   /**
+   * This constructs a key that can be used to make a call to {dataPathHooks}
+   * @returns String
+   */
+  static toFqPath({ isArray, isMap, parent, prop }) {
+    return `${parent}${isArray ? `[${prop}]` : isMap ? `["${prop}"]` : `${parent.length ? '.' : ''}${prop}`}`;
+  }
+
+  /**
     Recursively add @path to each object and array, 
     and also update this.#dataPaths accordingly
   */
@@ -1276,10 +1365,20 @@ class RootProxy {
 
     const {
       dataPathRoot, pathSeparator, pathProperty, typeProperty, mapType, mapKeyPrefix,
-      getMapWrapper, addDataVariables, getDataVariables
+      getMapWrapper, addDataVariables, getDataVariables, getReservedObjectKeys, toFqPath,
     } = RootProxy;
 
+    const reservedObjectKeys = getReservedObjectKeys();
+
     const isArray = Array.isArray(obj);
+
+    if (!isArray) {
+      Object.keys(obj).forEach(k => {
+        if (reservedObjectKeys.includes(k)) {
+          throw Error(`An object cannot contain the key: ${k}`);
+        }
+      })
+    }
 
     Object.defineProperty(obj, pathProperty, { value: path, configurable: false, writable: false, enumerable: false });
 
@@ -1291,7 +1390,7 @@ class RootProxy {
         break;
 
       case this.isMapPath(path):
-        assert(obj.constructor.name == 'Object');
+        assert(obj.constructor.name == 'Object', `${path}, ${obj.constructor.name}`);
 
         // If this is a map path, add set @type to Map, and trasform the keys
         // to start with the map key prefix: $_
@@ -1308,6 +1407,7 @@ class RootProxy {
         break;
 
       default:
+
         assert(obj.constructor.name == 'Object');
 
         const def = this.getObjectDefiniton(path);
@@ -1360,8 +1460,8 @@ class RootProxy {
     for (let i = 0; i < keys.length; i++) {
       const prop = keys[i];
 
-      if (isMap && obj[prop] === Object(obj[prop])) {
-        // Inject data variables
+      if (isMap && !(obj[prop] instanceof BaseComponent) && obj[prop] === Object(obj[prop])) {
+        // Inject data variables, if this is a map of objects
         addDataVariables(
           obj[prop],
           i == 0,
@@ -1378,19 +1478,20 @@ class RootProxy {
         assert(global.clientUtils.isNumber(prop));
       }
 
-      const p = `${path}${isArray ? `[${prop}]` : `${path.length ? '.' : ''}${prop}`}`;
+      const p = toFqPath({ isArray, isMap, parent: path, prop });
+      
       const isEmpty = obj[prop] == null || obj[prop] === undefined;
 
       // eslint-disable-next-line default-case
       switch (true) {
         case !isEmpty && obj[prop].constructor.name === 'Object':
           this.toCanonicalObject({ path: p, obj: obj[prop] });
-
-          obj[prop] = this.getObserverProxy(obj[prop]);
-
+          
           if (obj[prop][typeProperty] == mapType) {
             obj[prop] = getMapWrapper(obj[prop]);
           }
+
+          obj[prop] = this.getObserverProxy(obj[prop]);
 
           break;
 
@@ -1398,7 +1499,7 @@ class RootProxy {
           // eslint-disable-next-line no-plusplus
           for (let i = 0; i < obj[prop].length; i++) {
 
-            if (obj[prop][i] === Object(obj[prop][i])) {
+            if (!(obj[prop][i] instanceof BaseComponent) && obj[prop][i] === Object(obj[prop][i])) {
 
               const o = obj[prop][i];
 
@@ -1413,11 +1514,12 @@ class RootProxy {
               )
 
               this.toCanonicalObject({ path: `${p}[${i}]`, obj: o });
-              obj[prop][i] = this.getObserverProxy(o);
-
+              
               if (obj[prop][i][typeProperty] == mapType) {
                 obj[prop][i] = getMapWrapper(obj[prop][i]);
               }
+              
+              obj[prop][i] = this.getObserverProxy(o);
 
             } else {
               this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}[${i}]`] = [];
@@ -1441,8 +1543,13 @@ class RootProxy {
     return obj;
   }
 
+  static getReservedObjectKeys() {
+    const { isMapProperty } = RootProxy;
+    return [isMapProperty];
+  }
+
   static getMapWrapper(obj) {
-    const { typeProperty, mapType, mapKeyPrefix } = RootProxy;
+    const { typeProperty, mapType, mapKeyPrefix, isMapProperty } = RootProxy;
 
     assert(obj[typeProperty] == mapType)
 
@@ -1452,15 +1559,6 @@ class RootProxy {
       delete obj[typeProperty];
     })
 
-    // Todo: Remove if not used
-    const normalizeObject = (obj) => {
-      const o = {};
-      Object.entries(obj).forEach(([k, v]) => {
-        o[k.replace(mapKeyPrefix, '')] = v;
-      });
-      return o;
-    }
-
     return new Proxy(obj, {
       get: (obj, prop) => {
 
@@ -1468,6 +1566,9 @@ class RootProxy {
 
           case !!Object.getPrototypeOf(obj)[prop]:
             return obj[prop];
+
+          case prop == isMapProperty:
+            return true;
 
           default:
             // Props can start with "@" if <obj> is also a collection

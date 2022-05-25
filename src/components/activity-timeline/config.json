@@ -1,6 +1,9 @@
 {
   "enableTypeMerging": true,
   "collections": {
+    "Sentence.parts": {
+      "singularType": "Part"
+    },
     "items": {
       "minLength": 5,
       "singularType": "Item"
@@ -17,11 +20,32 @@
         "$ref": "Sentence.parts"
       }
     },
-    "Sentence.parts": {
-      "singularType": "Part"
+    "items.$_.title.left": {
+      "minLength": 1
+    },
+    "items.$_.title.right": {
+      "minLength": 1
+    },
+    "items.$_.properties": {
+      "minLength": 2,
+      "defaultKeys": [
+        "Name",
+        "Related To",
+        "From Address",
+        "To Address",
+        "Location",
+        "Attendees",
+        "When"
+      ]
     }
   },
   "scalars": {
+    "Sentence.parts_$.link": {
+      "type": "Link"
+    },
+    "Sentence.parts_$.text": {
+      "type": "String"
+    },
     "items.$_.expanded": {
       "type": "Boolean",
       "defaultValue": false
@@ -47,10 +71,6 @@
         "Plum"
       ]
     },
-    "items.$_.checkable": {
-      "type": "Boolean",
-      "defaultValue": true
-    },
     "items.$_.icon": {
       "type": "Icon",
       "isNull": false
@@ -63,9 +83,7 @@
       "type": {
         "$ref": "Sentence.parts_$.link"
       },
-      "defaults": [
-        "http://www.google.com"
-      ]
+      "isNull": false
     },
     "items.$_.summary.parts_$.text": {
       "type": {
@@ -92,9 +110,7 @@
       "type": {
         "$ref": "Sentence.parts_$.link"
       },
-      "defaults": [
-        null
-      ]
+      "isNull": true
     },
     "items.$_.description.parts_$.text": {
       "type": {
@@ -105,11 +121,27 @@
         "Create the deployments assets prior to production validation and release"
       ]
     },
-    "Sentence.parts_$.link": {
-      "type": "String"
+    "items.$_.title.main": {
+      "type": "Link",
+      "isNull": false
     },
-    "Sentence.parts_$.text": {
-      "type": "String"
+    "items.$_.title.left_$": {
+      "type": "TextCompanion",
+      "isNull": false
+    },
+    "items.$_.title.right_$": {
+      "type": "TextCompanion",
+      "isNull": false
+    },
+    "items.$_.date": {
+      "type": "String",
+      "defaults": [
+        "9:00am | 3/20/17"
+      ]
+    },
+    "items.$_.properties.$_": {
+      "type": "Link",
+      "isNull": false
     }
   },
   "sample": {

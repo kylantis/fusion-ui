@@ -1,3 +1,5 @@
+{{style url="/components/tooltip/style.min.css"}}
+
 <div class="slds-popover slds-popover_tooltip" role="tooltip">
     <div class="slds-popover__body">
     {{#each parts as |i j|}}

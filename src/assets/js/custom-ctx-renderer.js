@@ -168,7 +168,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
   }
 
   logical() {
-    const { getBooleanExpression } = RootProxy;
+    const { evaluateBooleanExpression } = RootProxy;
     const params = Array.from(arguments);
 
     const [left, right, operator] = params;
@@ -181,18 +181,15 @@ class CustomCtxRenderer extends RootCtxRenderer {
         case value.constructor.name == 'Boolean':
           return value;
         case value.constructor.name == 'String':
-          return `"${value}"`;
+            return `"${value}"`;
+        case value instanceof BaseComponent:
+            return clientUtils.stringifyComponentData(value.toJSON());
         case value === Object(value):
           return JSON.stringify(value);
       }
     }
-
-    const b = eval(
-      `${expr(left)} ${getBooleanExpression(operator)} ${expr(right)}`
-    );
-    assert(typeof b == 'boolean');
-
-    return b;
+    
+    return evaluateBooleanExpression(this, expr(left), expr(right), operator);
   }
 
   noOpHelper() {
@@ -210,7 +207,8 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     const options = params.pop();
 
-    const invert = JSON.parse(params.pop());
+    const invert = params.pop();
+    const conditionInversions = JSON.parse(params.pop());
     const right = params.pop();
     const left = params.pop();
     const condition = [...params];
@@ -251,7 +249,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
         }
       })
       .map((part, index) => {
-        if (invert[index]) {
+        if (conditionInversions[index]) {
           part = `!${part}`
         }
         return part;
@@ -261,7 +259,11 @@ class CustomCtxRenderer extends RootCtxRenderer {
     const b = eval(`${scope}${expr}`);
     assert(typeof b == 'boolean');
 
-    const val = b ? left : right;
+    let val = b ? left : right;
+
+    if (invert) {
+      val = !val;
+    }
 
     const result = val === Object(val) ? JSON.stringify(val) : val;
 
@@ -274,7 +276,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
   }
 
   static getAllValidationTypes() {
-    return ['Array', 'Map', 'Object', 'Literal', 'Component'];
+    return ['Array', 'Map', 'Object', 'Literal', 'componentRef'];
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -313,7 +315,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
             return value;
 
           // eslint-disable-next-line no-undef
-          case type === 'Component' && (value == null || value instanceof BaseComponent):
+          case type === 'componentRef' && (value == null || value instanceof BaseComponent):
             return value;
         }
       }

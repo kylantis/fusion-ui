@@ -61,6 +61,33 @@ class AppContext {
     });
   }
 
+  setupSessionSocket() {
+    this.socketSessionId = global.clientUtils.randomString();
+    document.cookie = `socketSessionId=${this.socketSessionId};path=/`
+
+    const port = 4583;
+    const sessionSocket = new WebSocket(`ws://${location.hostname}:${port}/client-session`);
+
+    sessionSocket.onopen = () => {
+      const data = {
+        op: 'init',
+        sessionId: this.socketSessionId,
+      }
+
+      sessionSocket.send(JSON.stringify(data));
+      this.logger.info(`Initialized new client session; id=${this.socketSessionId}`);
+    };
+
+    sessionSocket.onmessage = (event) => {
+      const { op, path, value } = JSON.parse(event);
+
+
+
+    };
+
+    this.sessionSocket = sessionSocket;
+  }
+
   async start({
     rootComponent, data, testMode,
   }) {
@@ -73,6 +100,10 @@ class AppContext {
 
     if (!AppContext.#initialized) {
       await this.loadDependencies();
+
+      if (!testMode) {
+        this.setupSessionSocket();
+      }
     }
 
     await this.loadEnums();
@@ -152,15 +183,15 @@ class AppContext {
     let rootAssetId;
     self.components = {};
 
-    const loadComponentClass = (name, assetId, tpl, componentSrc, testComponentSrc) => {
+    const loadComponentClass = (name, assetId, tpl, src, testSrc, config) => {
 
       const componentClass = this.processScript({
-        contents: componentSrc,
+        contents: src,
       });
 
       self.components[name] = componentClass;
 
-      if (testComponentSrc) {
+      if (testSrc) {
         // If we are in test mode, load component test classes, to override the main ones
         const inlineScope = ` const require = (module) => {
 
@@ -174,7 +205,7 @@ class AppContext {
       `;
 
         const componentTestClass = this.processScript({
-          contents: testComponentSrc, inlineScope,
+          contents: testSrc, inlineScope,
         });
 
         // When serializing, toJSON(...) should use the actual className, not the test class
@@ -182,6 +213,8 @@ class AppContext {
 
         self.components[name] = componentTestClass;
       }
+
+      self.components[name].schema = config.schema;
 
       if (name === rootComponent) {
         rootAssetId = assetId;
@@ -205,15 +238,21 @@ class AppContext {
             url: `/components/${assetId}/index.test.js`,
             process: false,
           }) : null,
+
+          this.fetch({
+            url: `/components/${assetId}/config.json`,
+            asJson: true,
+          }),
+
         ]);
       }))
       .then(async (components) => {
 
-        for (const [name, assetId, tpl, componentSrc, testComponentSrc] of components) {
-          loadComponentClass(name, assetId, tpl, componentSrc, testComponentSrc);
+        for (const [name, assetId, tpl, componentSrc, testComponentSrc, config] of components) {
+          loadComponentClass(name, assetId, tpl, componentSrc, testComponentSrc, config);
         }
 
-        assert(!!rootAssetId, `Uknown root component: ${rootComponent}`);
+        assert(!!rootAssetId, `Unknown root component: ${rootComponent}`);
 
         if (!this.testMode) {
           return;
