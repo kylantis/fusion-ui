@@ -21,7 +21,7 @@
     },
     "required": {
       "type": "Boolean",
-      "defaultValue": true
+      "defaultValue": false
     },
     "disabled": {
       "type": "Boolean",
@@ -29,7 +29,9 @@
     },
     "items_$.name": {
       "type": "String",
-      "defaults": []
+      "defaults": [
+        null
+      ]
     },
     "items_$.label": {
       "type": "String",
@@ -55,15 +57,21 @@
     },
     "formElement": {
       "type": "Boolean",
-      "defaultValue": true
+      "defaultValue": false
     },
     "viewMode": {
       "type": "Boolean",
       "defaultValue": false
     },
-    "component": {
+    "icon": {
+      "type": "Icon",
+      "isNull": true
+    },
+    "helperText": {
       "type": "String",
-      "defaults": []
+      "defaults": [
+        "Some helpful information"
+      ]
     }
   },
   "sample": {

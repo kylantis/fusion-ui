@@ -1,0 +1,21 @@
+{
+  "enableTypeMerging": false,
+  "collections": {},
+  "scalars": {
+    "marginLeft": {
+      "type": "String",
+      "allowed": "size",
+      "default": null
+    },
+    "marginRight": {
+      "type": "String",
+      "allowed": "size",
+      "default": null
+    }
+  },
+  "sample": {
+    "nullifyRandomly": []
+  },
+  "useArrayLengthProperty": false,
+  "escapeDynamicHtml": false
+}

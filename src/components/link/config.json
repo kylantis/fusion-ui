@@ -1,0 +1,35 @@
+{
+  "enableTypeMerging": false,
+  "collections": {},
+  "scalars": {
+    "href": {
+      "type": "String",
+      "defaults": [
+        null
+      ]
+    },
+    "title": {
+      "type": "String",
+      "defaults": [
+        "Invites you to a hurdle after the break",
+        "Brainstorming session today at the meeting room",
+        "Westen St. Francis, San Francisco, CA, 94622",
+        "Jason Dewar (Organizer) + 5 others",
+        "March 26, 10:00 AM - 11:00 AM",
+        "Tesla Cloudhub + Anypoint Connectors",
+        "Review proposals for EBC deck with larger team and have marketing",
+        "Re: Mobile conversation on Monday with the new global team",
+        "EBC Follow up call"
+      ]
+    },
+    "pointer": {
+      "type": "Boolean",
+      "defaultValue": true
+    }
+  },
+  "sample": {
+    "nullifyRandomly": []
+  },
+  "useArrayLengthProperty": false,
+  "escapeDynamicHtml": false
+}

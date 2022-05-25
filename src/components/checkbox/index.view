@@ -14,26 +14,41 @@
 {{#*inline "render_input_element" id item}}
     <input type="checkbox" name="{{item.name}}" id="{{id}}_input" value="{{id}}_input"
       {{item.checked ? "checked=\"\"" : "" }}
-      {{(disabled or item.disabled) ? "disabled=\"\"" : "" }} 
+      {{(disabled or item.disabled) ? "disabled=\"\"" : "" }}
       {{(item.error and errorMessage) ? "aria-describedby=\"${@root.componentId}_err\"" : "" }}
+      onchange="{{fn "onCheckboxChange"}}(event)"
     >
 {{/inline}}
 
-
 {{#*inline "render_title"}}
-  {{component Icon alias="titleIcon"}}
   {{#if title}}
+    <span style="vertical-align: middle;">
       {{title}}
+    </span>
+    {{> render_icon}}
   {{/if}}
 {{/inline}}
 
+{{#*inline "render_icon"}}
+  {{component Icon alias="icon"}}
+  {{#if icon}}
+  <div style="display: inline-block; padding-left: 2px;">
+      {{> icon}}
+  </div>
+  {{else}}
+    {{#if helperText}}
+    <div id="{{@root.componentId}}-icon-container" style="display: inline-block; position: absolute; padding: 2px 0 0 6px; font-weight: initial;">
+      {{> Icon type='utility' name='info' size="xx-small" addPadding=false}}
+    </div>
+    {{/if}}
+  {{/if}}
+{{/inline}}
 
 {{#*inline "render_standalone" item}}
 
   <div class="slds-form-element 
   {{(item.error or errorMessage) ? "slds-has-error" : ""}}
   {{(formElement and viewMode) ? "slds-form-element_readonly" : ""}}"
-  {{rtl ? " dir='rtl'" : ""}}
   >
 
   {{#if formElement}}
@@ -97,20 +112,21 @@
 
 {{#*inline "render_group"}}
 
-<fieldset class="slds-form-element" {{rtl ? " dir='rtl'" : ""}}>
+<fieldset class="slds-form-element">
 
   {{#if title}}
   <legend class="slds-form-element__legend slds-form-element__label">
     {{#if required}}
       {{> render_required_label}}
     {{/if}}
-    {{title}}
+
+    {{> render_title}}
   </legend>
   {{/if}}
 
   <div class="slds-form-element__control">
     
-    {{#each items transform = "itemTransform" as |item itemIndex|}}
+    {{#each items transform = "groupItemTransform" as |item itemIndex|}}
     <div class="mst-w {{error ? 'slds-has-error' : ''}}">
       
       <div class="slds-checkbox">

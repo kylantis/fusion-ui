@@ -15,18 +15,9 @@ class OverlayComponent extends components.LightningComponent {
     async onMount() {
         const { getOverlayConfig } = OverlayComponent;
 
-        const { container, topOffset, containerScrollable } = getOverlayConfig();
-
-        if (topOffset) {
-            this.topOffset = topOffset;
-        }
-
+        const { container } = getOverlayConfig();
         if (container) {
             this.container = container;
-        }
-
-        if (containerScrollable !== undefined) {
-            this.containerScrollable = containerScrollable;
         }
     }
 
@@ -90,7 +81,7 @@ class OverlayComponent extends components.LightningComponent {
         return position;
     }
 
-    async getCssPosition(containerRect, position, area) {
+    getCssPosition(containerRect, position, area) {
 
         const { top, left, width, height } = containerRect;
         const { horizontal, vertical } = area;
@@ -143,15 +134,14 @@ class OverlayComponent extends components.LightningComponent {
         }
     }
 
-    async getPosition(containerRect) {
-
+    getPosition(containerRect) {
         const { isPositionAvailable } = OverlayComponent;
 
         const avaiablePositions = this.getSupportedPositions();
 
         if (this.isPointerBased()) {
             for (const p of [...avaiablePositions]) {
-                const inView = this.isVisibleInViewPort(containerRect, p, await this.getRequiredArea(p));
+                const inView = this.isVisibleInViewPort(containerRect, p, this.getRequiredArea(p));
 
                 if (!inView) {
                     avaiablePositions.splice(avaiablePositions.indexOf(p), 1);
@@ -159,9 +149,9 @@ class OverlayComponent extends components.LightningComponent {
             }
         }
 
-        let position = await (async () => {
+        let position = (() => {
             for (const p of avaiablePositions) {
-                if (isPositionAvailable(containerRect, p, await this.getRequiredArea(p))) {
+                if (isPositionAvailable(containerRect, p, this.getRequiredArea(p))) {
                     return p;
                 }
             }
@@ -171,24 +161,54 @@ class OverlayComponent extends components.LightningComponent {
             position = this.getAnyPosition(containerRect);
         }
 
-        const cssPosition = await this.getCssPosition(
+        const cssStyles = this.getCssPosition(
             containerRect,
             position,
-            await this.getRenderingArea(position)
+            this.getRenderingArea(position),
         );
 
-        if (this.topOffset) {
-            cssPosition.top -= this.topOffset;
-        }
+        cssStyles.position = 'absolute';
 
-        if (this.containerScrollable) {
-            cssPosition.top += document.getElementById(this.container).scrollTop;
+        const container = this.getContainer();
+
+        if (container) {
+            const computedStyle = getComputedStyle(container);
+            if (computedStyle.position != 'absolute') {
+                throw Error(`Container: ${this.container} must be absolutely positioned`);
+            }
+
+            // We need to offset the distance between the container and the 
+            // top and left of the document body respectively
+            const { top, left } = this.getContainerOffset();
+
+            cssStyles.top -= top;
+            cssStyles.left -= left;
+
+            if (container.style.overflow == 'scroll') {
+                cssStyles.top += container.scrollTop;
+            }
         }
 
         return {
             position,
-            ...cssPosition,
+            fn: (node) => {
+                const { style } = node;
+                for (let name in cssStyles) {
+                    style[name] = cssStyles[name];
+                }
+            },
         };
+    }
+
+    getContainer() {
+        return this.container ? document.getElementById(this.container) : null;
+    }
+
+    getContainerOffset() {
+        const container = this.getContainer();
+        return container ?
+            this.getBoundingClientRectOffset(container) :
+            {};
     }
 
     isVisibleInViewPort(rect, position, area) {
@@ -208,6 +228,7 @@ class OverlayComponent extends components.LightningComponent {
         const verticalBottomScrollHeight = (window.innerHeight + (document.body.scrollHeight - (Math.floor(window.scrollY) + window.innerHeight)));
 
         const bodyRect = document.body.getBoundingClientRect();
+        const containerOffset = this.getContainerOffset();
 
         // The reason we have this is because in some cases. there may be some space between 
         // the body and the absolute end of the screen
@@ -217,7 +238,7 @@ class OverlayComponent extends components.LightningComponent {
         let hasSpaceRelativeToBottomScroll;
 
         if (position.startsWith('top')) {
-            hasSpaceRelativeToTopScroll = top - (vertical + (this.topOffset || 0)) >= 0;
+            hasSpaceRelativeToTopScroll = top - (vertical + (containerOffset.top || 0)) >= 0;
             hasSpaceRelativeToBottomScroll = (bottom + vertical + bodyDistanceToBottom) <= verticalBottomScrollHeight;
         } else {
             hasSpaceRelativeToTopScroll = (top + vertical) <= verticalTopScrollHeight;
@@ -291,14 +312,13 @@ class OverlayComponent extends components.LightningComponent {
         return fn({ position, horizontal, vertical });
     }
 
-    static getBoundingClientRectOffset(container) {
-        const { getBoundingClientRectOffset0 } = OverlayComponent;
-        return getBoundingClientRectOffset0(
+    getBoundingClientRectOffset(container) {
+        return this.getBoundingClientRectOffset0(
             container.getBoundingClientRect()
         );
     }
 
-    static getBoundingClientRectOffset0(rect) {
+    getBoundingClientRectOffset0(rect) {
         const bodyRect = document.body.getBoundingClientRect();
         return {
             top: rect.top - bodyRect.top,

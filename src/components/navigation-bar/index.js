@@ -60,7 +60,7 @@ class NavigationBar extends components.LightningComponent {
             }
 
             // Trigger the click event
-            _this.dispatch('navItemClick', identifier)
+            _this.dispatchEvent('navItemClick', identifier)
         }, false);
     }
 

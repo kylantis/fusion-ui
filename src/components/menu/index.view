@@ -29,7 +29,7 @@
 
         <a role="menuitem" 
         tabindex="{{(groupIndex eq 0) and (@index eq 0) ? '0' : '-1'}}"
-        {{level ? "class=\"slds-has-${level}\"" : ""}}
+        {{feedbackState ? "class=\"slds-has-${feedbackState}\"" : ""}}
         {{ subMenu ? "aria-haspop=\"true\"" : "" }}
         >
 
@@ -38,7 +38,7 @@
             {{component Icon alias="leftIcon"}}
 
             {{#if leftIcon}}
-              {{> leftIcon marginRight='x-small' useCurrentColor=(level eq 'warning')}}
+              {{> leftIcon marginRight='x-small' useCurrentColor=(feedbackState eq 'warning')}}
             {{/if}}
             
             {{title}}
@@ -47,7 +47,7 @@
             {{component Icon alias="rightIcon"}}
           
             {{#if rightIcon and (not subMenu)}}
-              {{> rightIcon marginLeft='small' useCurrentColor=(level eq 'warning')}}
+              {{> rightIcon marginLeft='small' useCurrentColor=(feedbackState eq 'warning')}}
             {{/if}}
         </a>
             

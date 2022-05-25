@@ -19,12 +19,12 @@
     "tabs_$.content": {
       "type": "componentRef",
       "defaults": [
-        "ActivityTimeline"
+        null
       ]
     },
     "useDivider": {
       "type": "Boolean",
-      "defaultValue": true
+      "defaultValue": false
     },
     "hideOnItemClick": {
       "type": "Boolean",
@@ -32,7 +32,7 @@
     },
     "expandOnHover": {
       "type": "Boolean",
-      "defaultValue": true
+      "defaultValue": false
     },
     "tabs_$.identifier": {
       "type": "String",
@@ -51,11 +51,9 @@
     },
     "tabs_$.assistiveText": {
       "type": "String",
-      "defaults": []
-    },
-    "tabs_$.closeable": {
-      "type": "Boolean",
-      "defaultValue": true
+      "defaults": [
+        null
+      ]
     },
     "icon": {
       "type": "Icon",
@@ -68,12 +66,28 @@
     "tabs_$.isActive": {
       "type": "Boolean",
       "defaultValue": false
+    },
+    "tabs_$.icon": {
+      "type": "Icon",
+      "isNull": false
+    },
+    "tabs_$.feedbackState": {
+      "type": "String",
+      "allowed": "feedbackState",
+      "defaults": [
+        null
+      ]
+    },
+    "tabs_$.closeable": {
+      "type": "Boolean",
+      "defaultValue": true
     }
   },
   "escapeDynamicHtml": false,
   "sample": {
     "nullifyRandomly": [
-      "tabs_$.content"
+      "tabs_$.content",
+      "tabs_$.feedbackState"
     ]
   }
 }

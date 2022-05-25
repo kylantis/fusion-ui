@@ -41,14 +41,17 @@ class WebRenderer extends CustomCtxRenderer {
       let styles = [...this.cssDependencies()];
       // Filter styles that have previously loaded
       styles = styles
-        .filter(style => !WebRenderer.#loadedStyles
-          .includes((style.startsWith('/') ? window.location.origin : '') + style));
+        .filter(style => !WebRenderer.#loadedStyles.includes(style));
 
       if (!styles.length) {
         return resolve([]);
       }
 
       styles.forEach((url) => {
+        if (WebRenderer.#loadedStyles.includes(url)) {
+          return;
+        }
+
         const link = document.createElement('link');
         link.rel = 'stylesheet';
         link.href = url;
@@ -58,7 +61,6 @@ class WebRenderer extends CustomCtxRenderer {
         const _this = this;
         link.onload = function () {
           loaded.push(this.href);
-          WebRenderer.#loadedStyles.push(this.href);
           // _this.logger.info(`Loaded ${this.href}`);
           if (loaded.length === styles.length) {
             resolve();
@@ -66,6 +68,8 @@ class WebRenderer extends CustomCtxRenderer {
         };
         link.onerror = () => reject(this.href);
         document.body.appendChild(link);
+
+        WebRenderer.#loadedStyles.push(url);
       });
       // eslint-disable-next-line consistent-return
       setTimeout(() => {

@@ -1,0 +1,1 @@
+<a {{(pointer or (pointer eq undefined)) ? "style=\"cursor: pointer;\"" : ""}} {{href ? "href=\"${href}\"" : ""}} title="{{title}}">{{title}}</a>

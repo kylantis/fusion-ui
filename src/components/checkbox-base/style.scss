@@ -1,0 +1,51 @@
+// In some cases, lightning design can add extra margin to checkboxes, for example
+// if it is within an activity timeline, i.e. .slds-timeline__item_expandable .slds-checkbox
+
+// Hence, re-define these rules for better specificity, so that they will not be overriden
+
+.slds-checkbox {
+    &.slds-m-left_xx-small {
+        margin-left: 0.25rem;
+    }
+    &.slds-m-left_x-small {
+        margin-left: 0.5rem;
+    }
+    &.slds-m-left_small {
+        margin-left: 0.75rem;
+    }
+    &.slds-m-left_medium {
+        margin-left: 1rem;
+    }
+    &.slds-m-left_large {
+        margin-left: 1.5rem;
+    }
+    &.slds-m-left_x-large {
+        margin-left: 2rem;
+    }
+    &.slds-m-left_xx-large {
+        margin-left: 3rem;
+    }
+
+
+    &.slds-m-right_xx-small {
+        margin-right: 0.25rem;
+    }
+    &.slds-m-right_x-small {
+        margin-right: 0.5rem;
+    }
+    &.slds-m-right_small {
+        margin-right: 0.75rem;
+    }
+    &.slds-m-right_medium {
+        margin-right: 1rem;
+    }
+    &.slds-m-right_large {
+        margin-right: 1.5rem;
+    }
+    &.slds-m-right_x-large {
+        margin-right: 2rem;
+    }
+    &.slds-m-right_xx-large {
+        margin-right: 3rem;
+    }
+}

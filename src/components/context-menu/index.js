@@ -154,7 +154,6 @@ class ContextMenu extends components.OverlayComponent {
             this.targetClickListener = async (evt) => {
 
                 const { getMenuNode } = ContextMenu;
-                const { getBoundingClientRectOffset0 } = components.OverlayComponent;
                 const { clickType, useTargetPosition } = this.getInput();
                 let { which, x, y, target } = evt;
 
@@ -177,8 +176,8 @@ class ContextMenu extends components.OverlayComponent {
 
                     this.prevTarget = target;
 
-                    const { position, top, left } = await this.getPosition(
-                        getBoundingClientRectOffset0({
+                    const { position, fn } = this.getPosition(
+                        this.getBoundingClientRectOffset0({
                             width: 0, height: 0,
                             top: y,
                             bottom: y,
@@ -198,9 +197,7 @@ class ContextMenu extends components.OverlayComponent {
 
                     this.currentMenu = menu;
 
-                    const { style } = getMenuNode(this.currentMenu);
-                    style.top = top;
-                    style.left = left;
+                    fn(getMenuNode(this.currentMenu));
 
                     this.show();
                 }
@@ -310,11 +307,11 @@ class ContextMenu extends components.OverlayComponent {
         }
     }
 
-    async getRequiredArea(position) {
+    getRequiredArea(position) {
         return this.areas[position].requiredArea;
     }
 
-    async getRenderingArea(position) {
+    getRenderingArea(position) {
         return this.areas[position].renderingArea;
     }
 

@@ -7,7 +7,11 @@
 ## Guidelines
 - If your component wants to load other components before it is fully mounted itself, either await component.load(...) or this.futures.push(component.load(...)). Don't just do a blanket component.load(...) because this will cause problems when your component is rendered on the server side. The server will wait for the top-level component to be loaded, after which browser globals will be cleared from Node and html written.
 
-## Tip
+## Technical guidelines
+
+- When creating custom Boolean Operators, the names must be specified in uppercase, else it will be inaccessible from your template
+
+## Architectural guidelines
 When creating components, there are some architectural guidelines you need to need to keep in mind, in order to create high-quality components
 
 - Use Shared Enums where possible: Enums are a set of pre-determined values, a concept that exist in many programming languages. Enums can be defined individually for each field, but if you see that there are fields that share the same value set across components, you should create a shared enum, and have the components reference that instead.
@@ -22,7 +26,9 @@ When creating components, there are some architectural guidelines you need to ne
 
 - Make your helper invocations async: When using template helpers that perform long-running tasks (relatively speaking), it's best to make these invocations async, so that they don't drastically increase the initial rendering time of your component. For mustache statements and custom blocks, add the hash async=true
 
-- Subclass existing components where necessary: Even though each component has it's own template file that is not shared, components can extend a component class
+- Subclass existing components where necessary: Even though each component has it's own template file that is not shared, components can extend a component class. If subclassing, make sure both component classes have a compactible data model, i.e. ensure that either the fields are unique, or the intersecting fields have the same type, else you will experience compilation errors during model generation due to conflicting method signatures. Also, if Y extends X, it implies that all fields in X are applicable to Y. If this is not the case, then Y should not be extending X.
+
+- Use variables as necessary.
 
 - Learn by looking at the built-in components: This framework comes pre-loaded with an exhaustive list of components that you can use out of the box and also learn from.
 
