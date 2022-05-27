@@ -1,0 +1,51 @@
+{
+  "enableTypeMerging": false,
+  "collections": {},
+  "scalars": {
+    "text": {
+      "type": "String",
+      "defaults": [
+        "Public Sharing"
+      ]
+    },
+    "type": {
+      "type": "String",
+      "allowed": [
+        "neutral",
+        "brand",
+        "outline-brand",
+        "destructive",
+        "text-destructive",
+        "success"
+      ],
+      "defaults": [
+        "neutral"
+      ]
+    },
+    "disabled": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "stretch": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "fullWidth": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "leftIcon": {
+      "type": "ButtonIconSvg",
+      "isNull": false
+    },
+    "rightIcon": {
+      "type": "ButtonIconSvg",
+      "isNull": true
+    }
+  },
+  "sample": {
+    "nullifyRandomly": []
+  },
+  "useArrayLengthProperty": false,
+  "escapeDynamicHtml": false
+}

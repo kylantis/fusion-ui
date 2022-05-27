@@ -1,0 +1,20 @@
+{{component ButtonIconSvg alias="leftIcon"}}
+{{component ButtonIconSvg alias="rightIcon"}}
+
+<button class="slds-button
+{{type ? 'slds-button_${type}' : ''}}
+{{stretch ? 'slds-button_stretch' : ''}}
+{{fullWidth ? 'slds-button_full-width' : ''}}
+"
+ {{disabled ? "disabled=\"\"" : ""}}
+>
+    {{#if leftIcon}}
+        {{> leftIcon cssClass='slds-button__icon_left'}}
+    {{/if}}
+
+    {{text}}
+
+    {{#if rightIcon}}
+        {{> rightIcon cssClass='slds-button__icon_right'}}
+    {{/if}}
+</button>

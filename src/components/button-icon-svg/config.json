@@ -1,0 +1,37 @@
+{
+  "collections": {},
+  "scalars": {
+    "size": {
+      "type": "String",
+      "allowed": [
+        "x-small",
+        "small",
+        "large"
+      ],
+      "defaults": [
+        "small"
+      ]
+    },
+    "iconName": {
+      "type": "String",
+      "allowed": "iconName",
+      "defaults": [
+        "world"
+      ]
+    },
+    "iconType": {
+      "type": "String",
+      "allowed": "iconType",
+      "defaults": [
+        "utility"
+      ]
+    },
+    "cssClass": {
+      "type": "String",
+      "defaults": [
+        null
+      ]
+    }
+  },
+  "escapeDynamicHtml": false
+}

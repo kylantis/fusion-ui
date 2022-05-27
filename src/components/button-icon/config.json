@@ -12,18 +12,6 @@
         "small"
       ]
     },
-    "containerSize": {
-      "type": "String",
-      "allowed": [
-        "xx-small",
-        "x-small",
-        "small",
-        "large"
-      ],
-      "defaults": [
-        null
-      ]
-    },
     "iconName": {
       "type": "String",
       "allowed": "iconName",
@@ -38,13 +26,25 @@
         "utility"
       ]
     },
-    "title": {
+    "cssClass": {
       "type": "String",
       "defaults": [
         null
       ]
     },
-    "cssClass": {
+    "containerSize": {
+      "type": "String",
+      "allowed": [
+        "xx-small",
+        "x-small",
+        "small",
+        "large"
+      ],
+      "defaults": [
+        null
+      ]
+    },
+    "title": {
       "type": "String",
       "defaults": [
         null
