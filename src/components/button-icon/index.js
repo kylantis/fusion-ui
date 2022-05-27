@@ -30,6 +30,10 @@ class ButtonIcon extends components.LightningComponent {
         });
     }
 
+    getIconSvg() {
+        return this.getInlineComponent('iconSvg');
+    }
+
     isIconContainer() {
         const { type, container } = this.getInput();
         return container || ["border", "border-filled", "border-inverse"].includes(type);

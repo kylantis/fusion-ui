@@ -20,6 +20,13 @@ parts, and each part is either plain text or a link
 
 <ul class="slds-timeline">
 
+  {{#each as as |a|}}
+    {{#each . as |b|}}
+        {{#each . as |c|}}
+        {{/each}}
+    {{/each}}
+  {{/each}}
+
   {{#each items transform = "itemTransform" as |item|}}
     
     {{component Icon alias="icon"}}

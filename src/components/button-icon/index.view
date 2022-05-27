@@ -10,12 +10,9 @@
  title="{{title ? title : ""}}"
  {{disabled ? "disabled=\"\"" : ""}}
  >
-    <svg class="slds-button__icon
-    {{size ? 'slds-button__icon_${size}' : '' transform='ensureBareIcon'}}
-    {{cssClass ? cssClass : ""}}
-    " aria-hidden="true">
-        <use xlink:href="/assets/icons/{{iconType}}-sprite/svg/symbols.svg#{{iconName}}"></use>
-    </svg>
+
+    {{> ButtonIconSvg size iconName iconType cssClass ref='iconSvg'}}
+    
     {{#if title}}
         <span class="slds-assistive-text">{{title}}</span>
     {{/if}}
