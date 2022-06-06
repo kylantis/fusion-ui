@@ -5,7 +5,7 @@
       "singularType": "Item"
     }
   },
-  "useArrayLengthProperty": true,
+  "useCollectionLengthProperty": true,
   "scalars": {
     "title": {
       "type": "String",
@@ -64,7 +64,7 @@
       "defaultValue": false
     },
     "icon": {
-      "type": "Icon",
+      "type": "ButtonIcon",
       "isNull": true
     },
     "helperText": {

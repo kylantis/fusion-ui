@@ -37,16 +37,6 @@
         "Attendees",
         "When"
       ]
-    },
-    "as": {
-      "minLength": 10
-    },
-    "as.$_": {
-      "minLength": 10
-    },
-    "as.$_.$_": {
-      "keyType": "iconName",
-      "minLength": 10
     }
   },
   "scalars": {
@@ -152,10 +142,6 @@
     "items.$_.properties.$_": {
       "type": "Link",
       "isNull": false
-    },
-    "as.$_.$_.$_": {
-      "type": "String",
-      "defaults": []
     }
   },
   "sample": {

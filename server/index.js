@@ -1,21 +1,14 @@
-const restify = require('restify');
 
-const server = restify.createServer({
-  name: 'Kylantis',
-  versions: ['0.1'],
-});
+var http = require('http')
+var serveStatic = require('serve-static')
 
-// server.use((req, res, next) => {
-//   res.setHeader(
-//     'Content-Security-Policy',
-//     "script-src 'self' https://apis.google.com",
-//   );
-//   return next();
-// });
+// Serve up dist folder
+var serve = serveStatic('dist', { index: ['index.html'] })
 
-server.get('/*', restify.plugins.serveStatic({
-  directory: './dist',
-  default: 'index.html',
-}));
+// Create server
+var server = http.createServer(function onRequest (req, res) {
+  serve(req, res, () => {})
+})
 
-server.listen(8090, () => {});
+// Listen
+server.listen(8090)

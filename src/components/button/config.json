@@ -1,13 +1,13 @@
 {
   "enableTypeMerging": false,
-  "collections": {},
+  "collections": {
+    "states": {
+      "minLength": 2,
+      "keyType": "buttonState",
+      "singularType": "State"
+    }
+  },
   "scalars": {
-    "text": {
-      "type": "String",
-      "defaults": [
-        "Public Sharing"
-      ]
-    },
     "type": {
       "type": "String",
       "allowed": [
@@ -41,11 +41,49 @@
     "rightIcon": {
       "type": "ButtonIconSvg",
       "isNull": true
+    },
+    "title": {
+      "type": "String",
+      "defaults": [
+        "Shop Apparel"
+      ]
+    },
+    "stateful": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "state": {
+      "type": "String",
+      "allowed": "buttonState",
+      "defaults": [
+        "selected"
+      ]
+    },
+    "states.$_.leftIcon": {
+      "type": "ButtonIconSvg",
+      "isNull": false
+    },
+    "states.$_.rightIcon": {
+      "type": "ButtonIconSvg",
+      "isNull": false
+    },
+    "states.$_.title": {
+      "type": "String",
+      "defaults": [
+        "Order now",
+        "Create Profile",
+        "Continue",
+        "Global settings",
+        "My Profile",
+        "Delete Account",
+        "Send gift",
+        "Refresh"
+      ]
     }
   },
   "sample": {
     "nullifyRandomly": []
   },
-  "useArrayLengthProperty": false,
+  "useCollectionLengthProperty": true,
   "escapeDynamicHtml": false
 }

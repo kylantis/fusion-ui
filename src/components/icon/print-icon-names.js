@@ -14,6 +14,7 @@ fs.readdirSync(iconsDir)
         !dirName.endsWith('-sprite') &&
         !fs.lstatSync(path.join(iconsDir, dirName)).isFile()
     )
+    // .filter(iconType => iconType == 'utility')
     .forEach((iconType) => {
 
         const iconNames = fs.readdirSync(path.join(iconsDir, iconType))
