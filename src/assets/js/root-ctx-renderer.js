@@ -478,7 +478,11 @@ class RootCtxRenderer extends BaseRenderer {
     return this.syntheticNodeId.pop();
   }
 
-  invokeTransform({ params }) {
+  invokeTransform() {
+    // eslint-disable-next-line prefer-rest-params
+    const params = Array.from(arguments);
+    const options = params.pop();
+
     const [transform, data] = params;
     return this[transform](data)
   }
@@ -1354,14 +1358,14 @@ class RootCtxRenderer extends BaseRenderer {
       case componentSpec && componentSpec instanceof BaseComponent:
 
         const { handlers, config } = this.buildInputData({
-          input: componentSpec.getInput(), 
+          input: componentSpec.getInput(),
           hash,
         });
 
         componentSpec.config = config;
         this.addEventHandlers({ handlers, component: componentSpec });
 
-      break;
+        break;
 
       default:
         // We don't know what this is, return undefined so that BaseComponent.render(...) will
@@ -1408,35 +1412,18 @@ class RootCtxRenderer extends BaseRenderer {
     }
   }
 
-  booleanOperators() {
-    return {
-      LT: (x, y) => x < y,
-      LTE: (x, y) => x <= y,
-      GT: (x, y) => x > y,
-      GTE: (x, y) => x >= y,
-      EQ: (x, y) => x == y,
-      NEQ: (x, y) => x != y,
-      INCLUDES: (x, y) => {
-        if (!x) { return false; }
-        const isArray = x.constructor.name == 'Array';
-        const isObject = x.constructor.name == 'Object';
-        assert(isArray || isObject, 'Left-hand side of INCLUDES must be an array or object');
-
-        return (isArray ? x : Object.keys(x)).includes(y);
-      },
-      INSTANCEOF: (x, y) => {
-        if (!x) { return false; }
-        const componentClass = components[y];
-        assert(x instanceof BaseComponent, 'Left-hand side of INSTANCEOF must be a component');
-        assert(!!componentClass, 'Right-hand side of INSTANCEOF must be a valid component name');
-
-        return x instanceof componentClass;
-      },
-    }
+  /**
+   * These are boolean operators that the component wants to exclusively implement, rather
+   * than combine with the parents as list of predicates
+   */
+  overridenBooleanOperators() {
+    return [];
   }
 
   getBooleanOperators() {
+    const overridenOperators = this.overridenBooleanOperators();
     const o = {};
+
     this.recursivelyInvokeMethod('booleanOperators').forEach(r => {
       Object.entries(r)
         .forEach(([key, value]) => {
@@ -1449,7 +1436,55 @@ class RootCtxRenderer extends BaseRenderer {
           o[key].push(value);
         });
     });
+
+    Object.entries(this.booleanOperators())
+      .filter(([key]) => overridenOperators.includes(key))
+      .forEach(([key, value]) => {
+        o[key] = [value]
+      });
+
     return o;
+  }
+
+  getBehaviours() {
+    let behaviours = [];
+
+    this.recursivelyInvokeMethod('behaviours').forEach(arr => {
+      assert(arr.constructor.name == 'Array');
+      behaviours = behaviours.concat(arr);
+    });
+
+    return behaviours;
+  }
+
+  getEvents() {
+    let events = [];
+
+    this.recursivelyInvokeMethod('events').forEach(arr => {
+      assert(arr.constructor.name == 'Array');
+      events = events.concat(arr);
+    });
+
+    return events;
+  }
+
+  getHooks() {
+    const hooks = {};
+
+    this.recursivelyInvokeMethod('hooks').forEach(r => {
+      Object.entries(r)
+        .forEach(([key, value]) => {
+          assert(value instanceof Function);
+
+          if (!hooks[key]) {
+            hooks[key] = [];
+          }
+
+          hooks[key].push(value);
+        });
+    })
+
+    return hooks;
   }
 
   getAssetId() {

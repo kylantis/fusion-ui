@@ -54,18 +54,23 @@ module.exports = {
   stringifyComponentData: (srcObject) => {
     const replacer = (name, val) => {
       const mapType = 'Map';
-      if (val && val.constructor.name === 'Object' && val['@type'] && val['@type'] !== mapType) {
-        // This is a component, see toJSON() in BaseRenderer
-        const data = JSON.stringify(val['@data'], replacer, 2)
-          // Normalize by replacing double quotes to single quotes, so we can inline
-          // <data> below
-          .replace(/"/g, "'");
+      if (val && val.constructor.name === 'Object') {
+        if (val['@type'] == mapType) {
+          delete val['@type'];
+        }
+        if (val['@type']) {
+          // This is a component, see toJSON() in BaseRenderer
+          const data = JSON.stringify(val['@data'], replacer, 2)
+            // Normalize by replacing double quotes to single quotes, so we can inline
+            // <data> below
+            .replace(/"/g, "'");
 
-        return `%%new components['${val['@type']}']({
+          return `%%new components['${val['@type']}']({
           input: ${data},
           loadable: !!self.appContext
         })%%`
-          .replace(/\n/g, '');
+            .replace(/\n/g, '');
+        }
       }
 
       return val;

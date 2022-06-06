@@ -1,20 +1,41 @@
 {{component ButtonIconSvg alias="leftIcon"}}
 {{component ButtonIconSvg alias="rightIcon"}}
 
-<button class="slds-button
-{{type ? 'slds-button_${type}' : ''}}
-{{stretch ? 'slds-button_stretch' : ''}}
-{{fullWidth ? 'slds-button_full-width' : ''}}
-"
- {{disabled ? "disabled=\"\"" : ""}}
->
+{{#*inline "render_base" title leftIcon rightIcon}}
     {{#if leftIcon}}
         {{> leftIcon cssClass='slds-button__icon_left'}}
     {{/if}}
 
-    {{text}}
+    {{title}}
 
     {{#if rightIcon}}
         {{> rightIcon cssClass='slds-button__icon_right'}}
     {{/if}}
+{{/inline}}
+
+<button class="slds-button
+{{type ? 'slds-button_${type}' : ''}}
+{{stretch ? 'slds-button_stretch' : ''}}
+{{fullWidth ? 'slds-button_full-width' : ''}}
+{{stateful ? 'slds-button_stateful' : ''}}
+{{stateful ? (not state) ? 'slds-not-selected' : (states includes state) ? 'slds-is-${state}' : '' : ''}}
+"
+ {{disabled ? "disabled=\"\"" : ""}}
+>
+
+    <span class="{{stateful ? 'slds-text-not-selected' : ''}}">
+        {{> render_base title leftIcon rightIcon}}
+    </span>
+
+    {{#if stateful}}
+        {{#each states as |state|}}
+            {{component ButtonIconSvg alias="leftIcon"}}
+            {{component ButtonIconSvg alias="rightIcon"}}
+
+            <span class="slds-text-{{@key transform="toStateCssClass"}}">
+                {{> render_base title leftIcon rightIcon}}
+            </span>
+        {{/each}}
+    {{/if}}
+
 </button>

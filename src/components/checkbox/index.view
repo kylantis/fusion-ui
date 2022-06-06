@@ -30,7 +30,7 @@
 {{/inline}}
 
 {{#*inline "render_icon"}}
-  {{component Icon alias="icon"}}
+  {{component ButtonIcon alias="icon"}}
   {{#if icon}}
   <div style="display: inline-block; padding-left: 2px;">
       {{> icon}}
@@ -38,7 +38,7 @@
   {{else}}
     {{#if helperText}}
     <div id="{{@root.componentId}}-icon-container" style="display: inline-block; position: absolute; padding: 2px 0 0 6px; font-weight: initial;">
-      {{> Icon type='utility' name='info' size="xx-small" addPadding=false}}
+      {{> ButtonIcon iconType='utility' iconName='info' size="small"}}
     </div>
     {{/if}}
   {{/if}}

@@ -57,6 +57,8 @@ class RootProxy {
 
   static isMapProperty = '$isMap';
 
+  static mapSizeProperty = 'size';
+
   #dataPathHooks;
 
   #logicGates;
@@ -548,10 +550,7 @@ class RootProxy {
   }
 
   createObjectProxy() {
-    const {
-      dataPathRoot, dataPathPrefix, logicGatePathPrefix,
-      syntheticMethodPrefix, rawDataPrefix, isRootPath
-    } = RootProxy;
+    const { dataPathRoot, dataPathPrefix, logicGatePathPrefix, isRootPath } = RootProxy;
     // eslint-disable-next-line no-underscore-dangle
     const _this = this;
     return new Proxy({}, {
@@ -1059,7 +1058,7 @@ class RootProxy {
       // Can newValue be null in all scenarios?
 
       const fqPath0 = toFqPath({ isArray, isMap, parent, prop });
-      
+
       const fqPath = `${dataPathRoot}${pathSeparator}${fqPath0}`;
 
       const sPath = global.clientUtils.toCanonicalPath(fqPath)
@@ -1223,7 +1222,7 @@ class RootProxy {
         // the eval string to avoid getting an "undefined" error at runtime
         const component = this.component;
         const p = ['component.getInput()', path].join('.')
-        
+
         return eval(`${p} = ${p}`)
       };
 
@@ -1366,6 +1365,7 @@ class RootProxy {
     const {
       dataPathRoot, pathSeparator, pathProperty, typeProperty, mapType, mapKeyPrefix,
       getMapWrapper, addDataVariables, getDataVariables, getReservedObjectKeys, toFqPath,
+      getReservedMapKeys,
     } = RootProxy;
 
     const reservedObjectKeys = getReservedObjectKeys();
@@ -1375,7 +1375,7 @@ class RootProxy {
     if (!isArray) {
       Object.keys(obj).forEach(k => {
         if (reservedObjectKeys.includes(k)) {
-          throw Error(`An object cannot contain the key: ${k}`);
+          throw Error(`[${path}] An object cannot contain the key: ${k}`);
         }
       })
     }
@@ -1392,10 +1392,17 @@ class RootProxy {
       case this.isMapPath(path):
         assert(obj.constructor.name == 'Object', `${path}, ${obj.constructor.name}`);
 
+        const reservedMapKeys = getReservedMapKeys();
+
         // If this is a map path, add set @type to Map, and trasform the keys
         // to start with the map key prefix: $_
 
         for (const k of Object.keys(obj).filter(k => !k.startsWith('@'))) {
+
+          if (reservedMapKeys.includes(k)) {
+            throw Error(`[${path}] A map cannot contain the key: ${k}`);
+          }
+
           obj[`${mapKeyPrefix}${k}`] = obj[k];
           delete obj[k];
         }
@@ -1439,7 +1446,7 @@ class RootProxy {
                 case 'boolean':
                   return false;
                 default:
-                  throw Error(`Unknown type: ${type[0]}`);
+                  throw Error(`[${path}] Unknown type: ${type[0]} for propery "${p}"`);
               }
             })();
           });
@@ -1479,14 +1486,14 @@ class RootProxy {
       }
 
       const p = toFqPath({ isArray, isMap, parent: path, prop });
-      
+
       const isEmpty = obj[prop] == null || obj[prop] === undefined;
 
       // eslint-disable-next-line default-case
       switch (true) {
         case !isEmpty && obj[prop].constructor.name === 'Object':
           this.toCanonicalObject({ path: p, obj: obj[prop] });
-          
+
           if (obj[prop][typeProperty] == mapType) {
             obj[prop] = getMapWrapper(obj[prop]);
           }
@@ -1514,11 +1521,11 @@ class RootProxy {
               )
 
               this.toCanonicalObject({ path: `${p}[${i}]`, obj: o });
-              
+
               if (obj[prop][i][typeProperty] == mapType) {
                 obj[prop][i] = getMapWrapper(obj[prop][i]);
               }
-              
+
               obj[prop][i] = this.getObserverProxy(o);
 
             } else {
@@ -1548,8 +1555,15 @@ class RootProxy {
     return [isMapProperty];
   }
 
+  static getReservedMapKeys() {
+    const { mapSizeProperty } = RootProxy;
+    return [mapSizeProperty];
+  }
+
   static getMapWrapper(obj) {
-    const { typeProperty, mapType, mapKeyPrefix, isMapProperty } = RootProxy;
+    const {
+      typeProperty, mapType, mapKeyPrefix, isMapProperty, mapSizeProperty
+    } = RootProxy;
 
     assert(obj[typeProperty] == mapType)
 
@@ -1560,7 +1574,7 @@ class RootProxy {
     })
 
     return new Proxy(obj, {
-      get: (obj, prop) => {
+      get(obj, prop) {
 
         switch (true) {
 
@@ -1569,6 +1583,9 @@ class RootProxy {
 
           case prop == isMapProperty:
             return true;
+
+          case prop == mapSizeProperty:
+            return Object.keys(obj).length;
 
           default:
             // Props can start with "@" if <obj> is also a collection
@@ -1579,7 +1596,7 @@ class RootProxy {
             ]
         }
       },
-      set: (obj, prop, newValue) => {
+      set(obj, prop, newValue) {
 
         assert(!Object.getPrototypeOf(obj)[prop]);
 

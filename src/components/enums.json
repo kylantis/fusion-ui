@@ -1290,5 +1290,9 @@
         "success",
         "error",
         "warning"
+    ],
+    "buttonState": [
+        "selected-clicked",
+        "selected"
     ]
 }

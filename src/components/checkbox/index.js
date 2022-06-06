@@ -1,6 +1,10 @@
 
 class Checkbox extends components.LightningComponent {
 
+    initCompile() {
+        components.Tooltip;
+    }
+
     hooks() {
         return {
             ['helperText']: async (evt) => {

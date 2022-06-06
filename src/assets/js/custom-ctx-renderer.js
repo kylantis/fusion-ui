@@ -79,6 +79,9 @@ class CustomCtxRenderer extends RootCtxRenderer {
       case data instanceof Array:
         return data.map(this.wrapDataWithProxy, this);
 
+      case data instanceof BaseComponent:
+        return data;
+
       default:
         // eslint-disable-next-line no-undef
         assert(data instanceof Object);

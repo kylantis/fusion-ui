@@ -5,6 +5,6 @@
   "sample": {
     "nullifyRandomly": []
   },
-  "useArrayLengthProperty": false,
+  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false
 }

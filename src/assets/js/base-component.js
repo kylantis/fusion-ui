@@ -212,47 +212,6 @@ class BaseComponent extends WebRenderer {
     return {};
   }
 
-  getBehaviours() {
-    let behaviours = [];
-
-    this.recursivelyInvokeMethod('behaviours').forEach(arr => {
-      assert(arr.constructor.name == 'Array');
-      behaviours = behaviours.concat(arr);
-    });
-
-    return behaviours;
-  }
-
-  getEvents() {
-    let events = [];
-
-    this.recursivelyInvokeMethod('events').forEach(arr => {
-      assert(arr.constructor.name == 'Array');
-      events = events.concat(arr);
-    });
-
-    return events;
-  }
-
-  getHooks() {
-    const hooks = {};
-
-    this.recursivelyInvokeMethod('hooks').forEach(r => {
-      Object.entries(r)
-        .forEach(([key, value]) => {
-          assert(value instanceof Function);
-
-          if (!hooks[key]) {
-            hooks[key] = [];
-          }
-
-          hooks[key].push(value);
-        });
-    })
-
-    return hooks;
-  }
-
   defaultHandlers() {
     return {};
   }
@@ -304,6 +263,47 @@ class BaseComponent extends WebRenderer {
     return this;
   }
 
+  booleanOperators() {
+    const { mapKeyPrefix } = RootProxy;
+
+    return {
+      LT: (x, y) => x < y,
+      LTE: (x, y) => x <= y,
+      GT: (x, y) => x > y,
+      GTE: (x, y) => x >= y,
+      EQ: (x, y) => x == y,
+      NEQ: (x, y) => x != y,
+      INCLUDES: (x, y) => {
+        if (!x) { return false; }
+        const isArray = x.constructor.name == 'Array';
+        const isObject = x.constructor.name == 'Object';
+        assert(isArray || isObject, 'Left-hand side of INCLUDES must be an array or object');
+
+        return (
+          isArray ? x :
+            Object.keys(x)
+            // // If this is a map, remove <mapKeyPrefix> 
+            //   .map(k => k.replace(mapKeyPrefix, ''))
+        )
+          .includes(y);
+      },
+      INSTANCEOF: (x, y) => {
+        if (!x) { return false; }
+        const componentClass = components[y];
+        assert(x instanceof BaseComponent, 'Left-hand side of INSTANCEOF must be a component');
+        assert(!!componentClass, 'Right-hand side of INSTANCEOF must be a valid component name');
+
+        return x instanceof componentClass;
+      },
+      STARTSWITH: (x, y) => {
+        if (typeof x != 'string') {
+          return false;
+        }
+        return x.startsWith(y);
+      }
+    }
+  }
+
   hasSubComponent() {
     return this.getSyntheticMethod({ name: 'hasSubComponent' })();
   }
@@ -336,7 +336,7 @@ class BaseComponent extends WebRenderer {
       )}`)
     )
 
-    const o = new components.Menu({ input });
+    const o = new component.constructor({ input });
 
     Object.entries(component.handlers).forEach(([k, v]) => {
       o.handlers[k] = v;
