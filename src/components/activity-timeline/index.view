@@ -22,6 +22,18 @@ parts, and each part is either plain text or a link
 
   {{#each items transform = "itemTransform" as |item|}}
     
+    {{#each itemsX as |i|}}
+    {{/each}}
+
+    {{#each (true ? itemsX : 1234) as |i|}}
+    {{/each}}
+
+    {{#each itemsY as |i j|}}
+      {{#each . as |k l|}}
+        {{.}}
+      {{/each}}
+    {{/each}}
+
     {{component Icon alias="icon"}}
     {{component Menu alias="actions"}}
 

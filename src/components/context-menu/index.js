@@ -15,7 +15,7 @@ class ContextMenu extends components.OverlayComponent {
 
     hooks() {
         return {
-            menu: (evt) => this.onMenuChange(evt.newValue)
+            ['beforeMount.menu']: (evt) => this.onMenuChange(evt.newValue)
         }
     }
 

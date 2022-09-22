@@ -2,7 +2,9 @@
 /* eslint-disable no-underscore-dangle */
 
 const anyArrayIndex = /\[[0-9]+\]/g;
+const canonicalArrayIndex = /_\$$/g
 const mapKey = /\["\$_.+?"\]/g;
+const segment = /(\[[0-9]+\])|(\["\$_.+?"\])|(_\$)/g;
 
 module.exports = {
   flattenJson: (data) => {
@@ -86,32 +88,126 @@ module.exports = {
   },
 
   getSegments: ({ original }) => {
-
-    const indexes = (
-      original.match(/(\[[0-9]+\])+$/g) ||
-      original.match(mapKey) ||
-      []
-    ).join('');
-
-    const segments = [
+    const segments = original.match(segment) || [];
+    return [
       original.replace(
-        RegExp(`${global.clientUtils.escapeRegExp(indexes)}$`),
+        RegExp(
+          `${clientUtils.escapeRegExp(segments.join(''))}$`
+        ),
         ''
       ),
+      ...segments,
     ];
+  },
 
-    if (indexes.length) {
-      (indexes.match(anyArrayIndex) || indexes.match(mapKey))
-        .forEach(index => segments.push(index))
+  peek: (arr) => {
+    if (arr.length > 0) {
+      return arr[arr.length - 1];
     }
+    return undefined;
+  },
 
-    return segments;
+  countSubstrings: (str, searchValue) => {
+    let count = 0,
+      i = 0;
+    while (true) {
+      const r = str.indexOf(searchValue, i);
+      if (r !== -1) [count, i] = [count + 1, r + 1];
+      else return count;
+    }
+  },
+
+  getIndexes: (start, len) => {
+    const keys = [];
+    for (let i = start; i < len; i++) {
+      keys.push(i);
+    }
+    return keys;
+  },
+
+  getCollectionKeys: (obj) => {
+    if (Array.isArray(obj)) {
+      return clientUtils.getIndexes(0, obj.length);
+    } else {
+      return Object.keys(obj);
+    }
+  },
+
+  getCollectionLength: (coll) => {
+    const { mapSizeProperty } = RootProxy;
+    return Array.isArray(coll) ? coll.length : coll[mapSizeProperty];
+  },
+
+  getCollectionIndex: (coll, key) => {
+    return Array.isArray(coll) ? Number(key) : Object.keys(coll).indexOf(key);
+  },
+
+  getCollectionIndexAndLength: (coll, key) => {
+    const { mapKeyPrefix, isMapProperty } = RootProxy;
+
+    assert(
+      (Array.isArray(coll) && clientUtils.isNumber(key)) ||
+      (coll[isMapProperty] && key.startsWith(mapKeyPrefix))
+    );
+
+    return { 
+      index: clientUtils.getCollectionIndex(coll, key), 
+      length: clientUtils.getCollectionLength(coll),
+    };
+  },
+
+  // Todo: Remove if not used
+  getCanonicalSegments: (fqPathArr) => {
+
+    const arr = [];
+    let p = '';
+
+    // eslint-disable-next-line no-labels
+    loop:
+    for (let i = 0; i < fqPathArr.length; i++) {
+
+      const segments = clientUtils.getSegments({
+        original: fqPathArr[i],
+      });
+
+      // eslint-disable-next-line no-plusplus
+      for (let j = 0; j < segments.length; j++) {
+        if (j == 0) {
+          p += `${i > 0 ? '.' : ''}${segments[j]}`;
+
+          const accept = (segment) => {
+            arr.push(segment);
+            if (segment.match(canonicalArrayIndex)) {
+              accept(segment.replace(canonicalArrayIndex, ''));
+            }
+          }
+          accept(p);
+
+        } else {
+          // We encountered an index..., i.e. [0]
+          break loop;
+        }
+      }
+    }
+    return arr.sort((x, y) => y.length - x.length);
   },
 
   toCanonicalPath: (fqPath) => {
+    if (fqPath.constructor.name == 'Array') {
+      if (!fqPath.length) {
+        return fqPath;
+      }
+      return fqPath.map(s => clientUtils.toCanonicalPath0(s));
+    } else {
+      assert(typeof fqPath == 'string');
+      return clientUtils.toCanonicalPath0(fqPath);
+    }
+  },
+
+  toCanonicalPath0: (fqPath) => {
     const separator = '.';
     return fqPath.split(separator)
-      .map(p => global.clientUtils.getSegments({
+      .map(p => clientUtils.getSegments({
         original: p,
       }).map((segment) => {
         switch (true) {
@@ -124,6 +220,20 @@ module.exports = {
           default: return segment;
         }
       }).join('')).join(separator);
+  },
+
+  isCanonicalArrayIndex: (path, parent) => {
+    const arr = parent.split('.');
+
+    const index = parent.length - 1;
+    const segmentIndex = clientUtils.getSegments(arr[index]).length;
+
+    const arr2 = path.split('.');
+    const segments = clientUtils.getSegments(arr2[index]);
+    
+    assert(segments.length > segmentIndex); 
+
+    return segments[segmentIndex] == '_$';
   },
 
   isNumber: (n) => {

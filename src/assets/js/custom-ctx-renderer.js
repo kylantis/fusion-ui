@@ -45,7 +45,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     let { hash, fn } = options;
 
-   //  const partialName = hash[partialNameHash];
+    //  const partialName = hash[partialNameHash];
 
     if (hash[partialIdHash]) {
       // eslint-disable-next-line no-undef
@@ -184,14 +184,14 @@ class CustomCtxRenderer extends RootCtxRenderer {
         case value.constructor.name == 'Boolean':
           return value;
         case value.constructor.name == 'String':
-            return `"${value}"`;
+          return `"${value}"`;
         case value instanceof BaseComponent:
-            return clientUtils.stringifyComponentData(value.toJSON());
+          return clientUtils.stringifyComponentData(value.toJSON());
         case value === Object(value):
           return JSON.stringify(value);
       }
     }
-    
+
     return evaluateBooleanExpression(this, expr(left), expr(right), operator);
   }
 
@@ -206,6 +206,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
   }
 
   ternary() {
+    const { wrapRenderableObject } = CustomCtxRenderer;
     const params = Array.from(arguments);
 
     const options = params.pop();
@@ -268,9 +269,22 @@ class CustomCtxRenderer extends RootCtxRenderer {
       val = !val;
     }
 
-    const result = val === Object(val) ? JSON.stringify(val) : val;
+    return this.proxyInstance.getRawValueWrapper(val);
+  }
 
-    return result;
+  static wrapRenderableObject(data) {
+    const _this = this;
+    return new Proxy(data, {
+      get(obj, prop) {
+        switch (true) {
+          case prop === 'toHTML':
+          case prop === Symbol.toPrimitive:
+            return () => _this.toHtml(obj);
+          default:
+            return obj[prop];
+        }
+      },
+    });
   }
 
   static isPrimitive(value) {
@@ -289,6 +303,18 @@ class CustomCtxRenderer extends RootCtxRenderer {
     strict = false, line,
   }) {
     const { isPrimitive } = CustomCtxRenderer;
+
+    const arr = path.split('%');
+    let nameQualifier;
+
+    if (arr.length == 2) {
+      path = arr[0];
+      const metaArray = arr[1].split('/');
+
+      validTypes = [metaArray[0]];
+      // eslint-disable-next-line prefer-destructuring
+      nameQualifier = metaArray[1];
+    }
 
     if (validTypes && validTypes.length) {
       // eslint-disable-next-line no-plusplus
@@ -318,12 +344,17 @@ class CustomCtxRenderer extends RootCtxRenderer {
             return value;
 
           // eslint-disable-next-line no-undef
-          case type === 'componentRef' && (value == null || value instanceof BaseComponent):
+          case type === 'componentRef' &&
+            (value == null || (value instanceof BaseComponent && (!nameQualifier || value.constructor.name == nameQualifier))):
             return value;
         }
       }
 
-      throw Error(`${path} must resolve to a non-empty value with one of the types: ${validTypes}${line ? ` on line ${line}` : ''}.`);
+      const currentType = value === null ? 'null' : value === Object(value) ? value.constructor.name : typeof value;
+
+      throw Error(
+        `${line ? `[${line}] ` : ''}${path} must resolve to one of the types: [${validTypes}]${nameQualifier ? `(${nameQualifier}) ` : ''} instead of ${currentType}`
+      );
     }
     return value;
   }

@@ -14,19 +14,19 @@ class Icon extends components.TextCompanion {
     hooks() {
         const { SOLID_STATE_CHANGE_EVT } = Icon;
         return {
-            type: (evt) => {
+            ['beforeMount.type']: (evt) => {
                 const { newValue } = evt;
                 if (this.#willChangeSolidState('type', newValue)) {
                     this.dispatchEvent(SOLID_STATE_CHANGE_EVT, this);
                 }
             },
-            textDefault: (evt) => {
+            ['beforeMount.textDefault']: (evt) => {
                 const { newValue } = evt;
                 if (this.#willChangeSolidState('textDefault', newValue)) {
                     this.dispatchEvent(SOLID_STATE_CHANGE_EVT, this);
                 }
             },
-            solid: (evt) => {
+            ['beforeMount.solid']: (evt) => {
                 const { newValue } = evt;
                 if (this.#willChangeSolidState('solid', newValue)) {
                     this.dispatchEvent(SOLID_STATE_CHANGE_EVT, this);

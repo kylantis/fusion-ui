@@ -37,3 +37,7 @@ When creating components, there are some architectural guidelines you need to ne
 For beginners, when creating templates you may encounter some parser error. Below are some tips that may be helpful.
 
 - For block statements, hashes comes before params, while for partial statements the reverse is the case.
+
+## Data binding 
+
+- If you want to data-bind on any of the data variables of a collection, ensure that it's an object collection not a scalar one, else data binding will not work for the data variable.

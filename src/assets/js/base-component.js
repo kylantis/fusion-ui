@@ -37,6 +37,7 @@ class BaseComponent extends WebRenderer {
       return '';
     }
 
+    const { mapKeyPrefixRegex } = RootProxy;
     const { getDataVariables } = RootCtxRenderer;
 
     const replacer = (name, val) => {
@@ -56,7 +57,7 @@ class BaseComponent extends WebRenderer {
         keys.forEach(k => {
           o[k
             // Remove $_ prefixes for map keys, if applicable
-            .replace(/^\$_/g, '')
+            .replace(mapKeyPrefixRegex, '')
           ] = val[k];
         });
 
@@ -183,7 +184,7 @@ class BaseComponent extends WebRenderer {
   /**
    * The main goal for this is to allow the component dynamically register fields 
    * in it's object model. Note: this method is only invoked at compile-time.
-   * Also, note that there is no way to define a map/component structure here. This can only
+   * Also, note that there is no way to define map and component types here. This can only
    * be done from the template
    * 
    * Todo: Can we add support for non-scalar attributes here by using a setter
@@ -194,10 +195,6 @@ class BaseComponent extends WebRenderer {
 
   validateInput() {
     return true;
-  }
-
-  getConfigurationProperties() {
-    return []
   }
 
   behaviours() {
@@ -264,8 +261,6 @@ class BaseComponent extends WebRenderer {
   }
 
   booleanOperators() {
-    const { mapKeyPrefix } = RootProxy;
-
     return {
       LT: (x, y) => x < y,
       LTE: (x, y) => x <= y,
@@ -281,9 +276,7 @@ class BaseComponent extends WebRenderer {
 
         return (
           isArray ? x :
-            Object.keys(x)
-            // // If this is a map, remove <mapKeyPrefix> 
-            //   .map(k => k.replace(mapKeyPrefix, ''))
+            x.keys instanceof Function ? x.keys() : Object.keys(x)
         )
           .includes(y);
       },

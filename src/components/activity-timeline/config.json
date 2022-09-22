@@ -37,6 +37,16 @@
         "Attendees",
         "When"
       ]
+    },
+    "items.$_.itemsX": {
+      "minLength": 10,
+      "keyType": "String"
+    },
+    "items.$_.itemsY": {
+      "minLength": 10
+    },
+    "items.$_.itemsY_$": {
+      "minLength": 10
     }
   },
   "scalars": {
@@ -142,6 +152,14 @@
     "items.$_.properties.$_": {
       "type": "Link",
       "isNull": false
+    },
+    "items.$_.itemsX.$_": {
+      "type": "String",
+      "defaults": []
+    },
+    "items.$_.itemsY_$_$": {
+      "type": "String",
+      "defaults": []
     }
   },
   "sample": {
