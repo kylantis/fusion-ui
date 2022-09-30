@@ -171,28 +171,15 @@ class CustomCtxRenderer extends RootCtxRenderer {
   }
 
   logical() {
+    const { getExecStringFromValue: execString } = RootCtxRenderer;
     const { evaluateBooleanExpression } = RootProxy;
     const params = Array.from(arguments);
 
     const [left, right, operator] = params;
 
-    const expr = (value) => {
-      switch (true) {
-        case value == null:
-        case value === undefined:
-        case value.constructor.name == 'Number':
-        case value.constructor.name == 'Boolean':
-          return value;
-        case value.constructor.name == 'String':
-          return `"${value}"`;
-        case value instanceof BaseComponent:
-          return clientUtils.stringifyComponentData(value.toJSON());
-        case value === Object(value):
-          return JSON.stringify(value);
-      }
-    }
-
-    return evaluateBooleanExpression(this, expr(left), expr(right), operator);
+    return evaluateBooleanExpression(
+      this, execString(left), execString(right), operator,
+    );
   }
 
   noOpHelper() {

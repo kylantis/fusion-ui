@@ -67,6 +67,8 @@ class RootProxy {
 
   static mapKeysProperty = 'keys';
 
+  static lenientExceptionMsgPattern = /^Cannot read properties of (undefined|null)/g;
+
   #dataPathHooks;
 
   #logicGates;
@@ -174,6 +176,21 @@ class RootProxy {
     }
 
     return r;
+  }
+
+  getLogicGateAssociatedHooks(id, pathPrefix) {
+    const result = [];
+    Object
+      .entries(this.#dataPathHooks)
+      .filter(([k]) => k.startsWith(pathPrefix))
+      .forEach(([k, v]) => {
+        v.forEach(({ type, gateId }) => {
+          if (gateId == id) {
+            result.push({ path: k, hookType: type });
+          }
+        })
+      });
+    return result;
   }
 
   getLogicGateValue({ gate, useBlockData = true }) {
@@ -316,16 +333,13 @@ class RootProxy {
 
           const { condition, left, right } = item;
 
-          item.condition = condition.map(item => this.toExecutablePath(item));
+          item.condition = condition.map(item => this.toExecutablePath(item, true));
 
           item.left = this.toExecutablePath(left);
           item.right = this.toExecutablePath(right);
         }
 
-        return analyzeGate({
-          type: LOGIC_GATE,
-          original: 0,
-        })
+        return analyzeGate({ type: LOGIC_GATE, original: 0 })
       },
       blockData
     );
@@ -337,7 +351,7 @@ class RootProxy {
    * If this is a PathExpression, convert from a canonical path to
    * it's executable path
    */
-  toExecutablePath(item, allowSynthetic = true) {
+  toExecutablePath(item, lenient, allowSynthetic = true) {
     const {
       dataPathRoot, literalPrefix, pathSeparator, parsePathExpressionLiteralValue,
     } = RootProxy;
@@ -348,23 +362,31 @@ class RootProxy {
 
     const { type, original, left, right } = item;
 
+    const getExecPath = (fqPath) => {
+      let execString = this.component.getExecPath0({
+        fqPath,
+        allowSynthetic,
+      });
+      if (lenient) {
+        execString = `this.evalPathLeniently("${execString}")`;
+      }
+      return execString;
+    }
+
     switch (type) {
       case PATH_EXPR:
         const p = original.replace(`${dataPathRoot}${pathSeparator}`, '');
-
+        item.canonicalPath = p;
         item.original = p.startsWith(literalPrefix) ?
           parsePathExpressionLiteralValue(p) :
-          this.component.getExecPath0({
-            fqPath: p,
-            allowSynthetic,
-          });
+          getExecPath(p);
         break;
       case BOOL_EXPR:
-        item.left = this.toExecutablePath(left);
-        item.right = this.toExecutablePath(right);
+        item.left = this.toExecutablePath(left, lenient);
+        item.right = this.toExecutablePath(right, lenient);
         break;
       case MUST_GRP:
-        item.items = item.items.map(item => this.toExecutablePath(item));
+        item.items = item.items.map(item => this.toExecutablePath(item, lenient));
         break;
     }
     return item;
@@ -385,6 +407,7 @@ class RootProxy {
             type: PATH_EXPR,
             original: path,
           },
+          false,
           false,
         );
 
@@ -429,10 +452,9 @@ class RootProxy {
 
     if (this.component.dataBindingEnabled()) {
 
-      // Add participants to <dataPathHooks>, if applicable
-      const participants = this.getParticipantsFromLogicGate(gate);
+      // Register hook for participants to <dataPathHooks>, if applicable
 
-      participants
+      this.getParticipantsFromLogicGate(gate)
         .filter(({ synthetic }) => !synthetic)
         .forEach(({ original, canonicalPath }) => {
           this.#dataPathHooks[original].push({
@@ -442,6 +464,7 @@ class RootProxy {
           });
         });
 
+      gate.id = gateId;
       gate.canonicalId = prop;
       gate.blockData = this.component.getBlockDataSnapshot(path);
 
@@ -507,23 +530,35 @@ class RootProxy {
       isRawReturn = true;
     }
 
-    const includePath = prop.endsWith('!');
+    const suffixMarker = /\!$/g;
+    const lenientMarker = /\?$/g;
+
+    // 1. Should enable lenient path resolution?
+    const lenientResolution = prop.match(lenientMarker);
+    if (lenientResolution) {
+      // eslint-disable-next-line no-param-reassign
+      prop = prop.replace(lenientMarker, '');
+    }
+
+    // 2. Should include path?
+    const includePath = prop.match(suffixMarker);
 
     if (includePath) {
       // eslint-disable-next-line no-param-reassign
-      prop = prop.replace(/\!$/g, '');
+      prop = prop.replace(suffixMarker, '');
     }
 
-    isRawReturn = isRawReturn || prop.endsWith('!');
+    // 3. Should return raw data?
+    isRawReturn = isRawReturn || prop.match(suffixMarker);
 
     if (isRawReturn) {
       // eslint-disable-next-line no-param-reassign
-      prop = prop.replace(/\!$/g, '');
+      prop = prop.replace(suffixMarker, '');
     }
 
     // eslint-disable-next-line no-case-declarations
     const v = this.component
-      .getPathValue({ path: prop, includePath });
+      .getPathValue({ path: prop, includePath, lenientResolution });
 
     const rawValue = this.getRawValueWrapper(
       includePath ? v.value : v
@@ -1082,7 +1117,7 @@ class RootProxy {
    */
   pruneHooks0(hookList, predicate) {
 
-    const { logicGatePathPrefix, gateParticipantHookName } = RootProxy;
+    const { logicGatePathPrefix, dataPathPrefix } = RootProxy;
 
     hookList.forEach(([k, v]) => {
 
@@ -1100,19 +1135,17 @@ class RootProxy {
         delete this.#dataPathHooks[k];
 
         if (isLogicGate) {
-          // We also need to detach participants hooks
+          // We also need to detach associated hooks
 
           const gateId = k.replace(logicGatePathPrefix, '');
-          const { participants } = this.#logicGates[gateId];
 
-          participants
-            .filter(({ synthetic }) => !synthetic)
-            .forEach(({ original }) => {
-              const arr = this.#dataPathHooks[original];
+          this.getLogicGateAssociatedHooks(gateId, dataPathPrefix)
+            .forEach(({ path, hookType }) => {
+              const arr = this.#dataPathHooks[path];
               if (arr) {
                 this.#dataPathHooks.set(
-                  original,
-                  arr.filter((o) => o.type != gateParticipantHookName || o.gateId != gateId)
+                  path,
+                  arr.filter((o) => o.type != hookType || o.gateId != gateId)
                 );
               }
             });
@@ -1151,13 +1184,12 @@ class RootProxy {
     ];
   }
 
-  triggerHooks(fqPath, parentObject, newValue, dataPathHooks, withParent = true) {
+  triggerHooks(fqPath, parentObject, newValue, dataPathHooks, withParent) {
     const {
       logicGatePathRoot, pathSeparator, textNodeHookName, eachBlockHookName,
       gateParticipantHookName, pathProperty, conditionalBlockHookName, dataPathPrefix,
       mapSizeProperty, isNullProperty,
     } = RootProxy;
-    const { getDataVariables } = RootCtxRenderer;
 
     const sPath = clientUtils.toCanonicalPath(fqPath.replace(dataPathPrefix, ''));
 
@@ -1166,6 +1198,8 @@ class RootProxy {
     }
 
     const triggerComponentHooks = (phase) => {
+      if (!parentObject) return;
+
       const componentHooks = this.component.getHooks();
 
       const hookList = [
@@ -1182,7 +1216,7 @@ class RootProxy {
       }
     }
 
-    const triggerHooks0 = (path) => {
+    const triggerHooks0 = (path, withParent) => {
 
       const hooksFilter = (hook) => {
         const selector = `#${this.component.getId()} #${hook.nodeId}`;
@@ -1195,11 +1229,9 @@ class RootProxy {
         throw Error(`Unknown path: "${path}"`);
       }
 
-      if (getDataVariables().filter(k => path.endsWith(k)).length) {
-        withParent = false;
-      }
+      const parent = parentObject ? parentObject[pathProperty] : null;
 
-      const parent = parentObject[pathProperty];
+      assert(parent || !withParent);
 
       // Note: Appending-to/Removing-from a parent takes the highest priority as applicable sub-path hooks
       // will be invalidated after this, because their nodeId(s) will no longer be on the DOM
@@ -1260,17 +1292,7 @@ class RootProxy {
 
                 assert(index >= 0 && index < length);
 
-                const createAndAppendNode = (content) => {
-                  const parent = document.querySelector(selector);
-
-                  assert(
-                    index == 0 ||
-                    (
-                      parent.lastElementChild.getAttribute('key') ==
-                      clientUtils.getCollectionKeys(parentObject)[index - 1]
-                    )
-                  )
-
+                const createAndAppendNode0 = (parent, key, content) => {
                   const node = document.createElement('div');
                   node.classList.add(htmlWrapperCssClassname);
                   node.setAttribute('key', key);
@@ -1279,6 +1301,18 @@ class RootProxy {
 
                   parent.appendChild(node);
                   return node.id;
+                }
+
+                const createAndAppendNode = (content) => {
+                  const parent = document.querySelector(selector);
+                  assert(
+                    index == 0 ||
+                    (
+                      parent.lastElementChild.getAttribute('key') ==
+                      clientUtils.getCollectionKeys(parentObject)[index - 1]
+                    )
+                  )
+                  return createAndAppendNode0(parent, key, content);
                 }
 
 
@@ -1293,6 +1327,7 @@ class RootProxy {
                 switch (true) {
 
                   case newValue === null || newValue[isNullProperty]:
+                    // null collection members are always represented as an empty strings
                     if (childNode) {
                       childNode.innerHTML = '';
                     } else {
@@ -1322,6 +1357,20 @@ class RootProxy {
                       childNode.innerHTML = markup;
                       elementNodeId = childNode.id;
                     } else {
+
+                      if (type == 'array' && index > 0) {
+                        // Backfill sparse indexes (if any)
+                        const parent = document.querySelector(selector);
+
+                        for (let i = parent.childNodes.length; i < index; i++) {
+                          assert(
+                            !parent.querySelector(`:scope > div[key='${i}']`)
+                          )
+
+                          createAndAppendNode0(parent, `${i}`, '');
+                        }
+                      }
+
                       elementNodeId = createAndAppendNode(markup);
                     }
 
@@ -1370,7 +1419,6 @@ class RootProxy {
             case gateParticipantHookName:
               triggerHooks0(
                 `${logicGatePathRoot}${pathSeparator}${hook.gateId}`,
-                false,
               );
               break;
 
@@ -1425,9 +1473,10 @@ class RootProxy {
 
                 const html = this.executeWithBlockData(
                   () => {
+                    const computedValue = newValue;
                     let ret = "";
 
-                    const len = newValue ? newValue.length || newValue[mapSizeProperty] : -1;
+                    const len = computedValue ? computedValue.length || computedValue[mapSizeProperty] : -1;
 
                     if (len >= 0) {
 
@@ -1439,14 +1488,14 @@ class RootProxy {
 
                         let markup = fn(this.handler);
 
-                        const elementNodeId = clientUtils.randomString();;
+                        const elementNodeId = clientUtils.randomString();
                         const key = this.component.getBlockData({ path: canonicalPath, dataVariable: '@key' });
 
                         markup = `<div id="${elementNodeId}" class="${htmlWrapperCssClassname}" key="${key}">
                                     ${markup}
                                   </div>`;
 
-                        if (Array.isArray(newValue)) {
+                        if (Array.isArray(computedValue)) {
                           this.component.backfillArrayChildBlocks(`${path}[${i}]`, elementNodeId);
                         }
 
@@ -1500,7 +1549,7 @@ class RootProxy {
 
     triggerComponentHooks('beforeMount');
 
-    triggerHooks0(fqPath);
+    triggerHooks0(fqPath, withParent);
 
     triggerComponentHooks('onMount');
   }
@@ -2050,10 +2099,8 @@ class RootProxy {
 
 
 
-        // Object.entries(dataPathHooks)
-        //        .filter(.... equalTo changeSet[0]  ...)
 
-        // withParent=true
+        // dataPathHooks[changeSet[0]], set withParent=true
 
         this.triggerHooks(fqPath, obj, newValue);
 
@@ -2080,6 +2127,8 @@ class RootProxy {
         } catch (e) {
           if (e.name == 'TypeError' && e.message.startsWith('Cannot read properties of undefined')) {
             // Make value <undefined>
+
+            // Use this same strategy to retrieve the <parentObj> that will be passed in to triggerHooks
           } else {
             throw e;
           }

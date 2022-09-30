@@ -25,8 +25,6 @@ class RootCtxRenderer extends BaseRenderer {
 
   #inlineComponentInstances;
 
-  static strictPathEvaluation = true;
-
   constructor({
     id, input, loadable, logger,
   } = {}) {
@@ -37,9 +35,6 @@ class RootCtxRenderer extends BaseRenderer {
     this.blockData = {};
 
     this.syntheticContext = {};
-
-    // Todo: make this configurable
-    this.strict = false;
 
     this.promise = new Promise((resolve) => {
       this.#resolve = resolve;
@@ -85,10 +80,6 @@ class RootCtxRenderer extends BaseRenderer {
 
     const { htmlWrapperCssClassname, getMetaHelpers } = RootCtxRenderer;
     super.load();
-
-    // Todo: Remove unused hbs helper(s)
-    // eslint-disable-next-line no-undef
-    delete Handlebars.helpers.lookup;
 
     const componentHelpers = {};
 
@@ -272,6 +263,32 @@ class RootCtxRenderer extends BaseRenderer {
       });
   }
 
+  getHandlebarsHelpers() {
+    const { helpers } = Handlebars;
+
+    delete helpers.lookup;
+    delete helpers.log;
+
+    const conditionalFn = (value, invert, options, ctx) => {
+      const b = this.analyzeConditionValue(value);
+      if (invert ? !b : b) {
+        return options.fn(ctx);
+      } else {
+        return options.inverse(ctx);
+      }
+    }
+
+    helpers.if = function (value, options) {
+      conditionalFn(value, false, options, this)
+    };
+
+    helpers.unless = function (value, options) {
+      conditionalFn(value, true, options, this)
+    };
+
+    return helpers;
+  }
+
   getElementId() {
     return this.getId();
   }
@@ -388,11 +405,9 @@ class RootCtxRenderer extends BaseRenderer {
 
   forEach({ options, ctx, params }) {
 
+    const { eachBlockHookName, isMapProperty } = RootProxy;
     const {
-      eachBlockHookName, syntheticMethodPrefix, isMapProperty
-    } = RootProxy;
-    const {
-      htmlWrapperCssClassname, syntheticBlockKeyPrefix, wrapFnWithExceptionCatching,
+      htmlWrapperCssClassname, getSyntheticAliasFromPath, wrapFnWithExceptionCatching,
     } = RootCtxRenderer;
 
     const { fn, inverse, hash } = {
@@ -423,12 +438,18 @@ class RootCtxRenderer extends BaseRenderer {
 
         // Add (length and type) to this.blockData
 
-        const blockKey = isSynthetic ?
-          `${syntheticBlockKeyPrefix}${path.replace(syntheticMethodPrefix, '')}` :
-          canonicalPath;
+        const blockKey = isSynthetic ? getSyntheticAliasFromPath(path) : canonicalPath;
 
         this.blockData[blockKey].length = value.length;
         this.blockData[blockKey].type = isArray ? 'array' : 'map';
+
+        // Note: <rawValue> and <keys> are only used to check for null members
+
+        const rawValue = Array.isArray(value) ? value :
+          // Get the raw value from our object proxy
+          rawValue.toJSON();
+
+        const keys = Object.keys(rawValue);
 
         let ret = "";
 
@@ -439,7 +460,10 @@ class RootCtxRenderer extends BaseRenderer {
             value[i];
           }
 
-          let markup = fn(this.rootProxy);
+          let markup = rawValue[keys[i]] === null ?
+            // null collection members are always represented as an empty strings
+            '' :
+            fn(this.rootProxy);
 
           let elementNodeId;
           const key = this.getBlockData({ path: blockKey, dataVariable: '@key' });
@@ -451,7 +475,8 @@ class RootCtxRenderer extends BaseRenderer {
                       </div>`;
           }
 
-          if (isArray) {
+          if (isArray && !isSynthetic) {
+            // arrayChildBlock hooks are only added to non-synthetic array paths
             this.backfillArrayChildBlocks(`${path}[${i}]`, elementNodeId);
           }
 
@@ -490,6 +515,13 @@ class RootCtxRenderer extends BaseRenderer {
     }
 
     return forEach0(value);
+  }
+
+  static getSyntheticAliasFromPath(path) {
+    const { syntheticMethodPrefix } = RootProxy;
+    const { syntheticBlockKeyPrefix } = RootCtxRenderer;
+
+    return `${syntheticBlockKeyPrefix}${path.replace(syntheticMethodPrefix, '')}`;
   }
 
   static wrapFnWithExceptionCatching(fn) {
@@ -542,9 +574,9 @@ class RootCtxRenderer extends BaseRenderer {
     */
   getBlockDataSnapshot(path) {
 
-    const { arrayChildBlockHookName } = RootProxy;
+    const { arrayChildBlockHookName, syntheticBlockKeyPrefix } = RootProxy;
 
-    // We first need to find the closest array-based blockData, and
+    // We first need to find the closest non-synthetic array-based blockData, and
     // register <path> as a arrayChildBlock. That way, when the current
     // array index moves, we can update the blockData captured for this path
 
@@ -556,7 +588,7 @@ class RootCtxRenderer extends BaseRenderer {
       const k = blockDataKeys[i];
       const { type, index } = this.blockData[k];
 
-      if (type == 'array') {
+      if (type == 'array' && !k.startsWith(syntheticBlockKeyPrefix)) {
 
         const p = this.getExecPath0({
           fqPath: `${k}[${index}]`,
@@ -679,7 +711,6 @@ class RootCtxRenderer extends BaseRenderer {
   #bindMustache({ path, value, canonicalPath, transform }) {
 
     const { dataPathRoot, pathSeparator, textNodeHookName } = RootProxy;
-    const flickeringMode = false;
     const ctx = this.#currentBindContext.pop();
 
     assert(ctx.type == textNodeHookName);
@@ -688,7 +719,7 @@ class RootCtxRenderer extends BaseRenderer {
       .push({ ...ctx, canonicalPath, transform });
 
     // Todo: Remove this code
-    if (flickeringMode) {
+    if (false) {
       if (value !== Object(value) && path.startsWith(`${dataPathRoot}${pathSeparator}`)) {
         window.setInterval(() => {
           if (!this.isMounted()) {
@@ -706,10 +737,14 @@ class RootCtxRenderer extends BaseRenderer {
     }
   }
 
-  getPathValue({ path, includePath = false }) {
+  getPathValue({ path, includePath = false, lenientResolution }) {
+    // Todo: If path == '', set lenientResolution to false, if true because
+    // this.getInput() will always exist
+
     return this.resolvePath({
       fqPath: path,
       includePath,
+      lenientResolution,
     });
   }
 
@@ -768,8 +803,10 @@ class RootCtxRenderer extends BaseRenderer {
 
   getBlockData({ path, dataVariable }) {
 
-    const { mapKeyPrefixRegex } = RootProxy;
-    const { toObject } = RootCtxRenderer;
+    const { getDataVariables } = RootProxy;
+    const { toObject, getDataVariableValue } = RootCtxRenderer;
+
+    assert(getDataVariables().includes(dataVariable));
 
     // eslint-disable-next-line no-unused-vars
     const blockData = this.blockData[path];
@@ -787,29 +824,36 @@ class RootCtxRenderer extends BaseRenderer {
       }
     }
 
-    const length = value instanceof Array
-      ? value.length : Object.keys(value).length;
+    switch (dataVariable) {
+      case '@random':
+        return blockData.random;
+      default:
+        return getDataVariableValue(
+          dataVariable, blockData.index, Object.keys(value)
+        );
+    }
+  }
+
+  static getDataVariableValue(dataVariable, index, keys) {
+    const { mapKeyPrefixRegex, emptyString } = RootProxy;
 
     switch (dataVariable) {
       case '@first':
-        return blockData.index === 0;
+        return index === 0;
 
       case '@last':
-        return blockData.index === length - 1;
+        return index === keys.length - 1;
 
       case '@index':
-        return blockData.index;
+        return index;
 
       case '@key':
-        return Object.keys(value)[blockData.index]
+        return keys[index]
           // Remove $_ prefixes for map keys, if applicable
-          .replace(mapKeyPrefixRegex, '');
-
-      case '@random':
-        return blockData.random;
+          .replace(mapKeyPrefixRegex, emptyString);
 
       default:
-        throw Error(`Unknown data variable: ${dataVariable}`);
+        throw Error(`Unknown variable: ${dataVariable}`);
     }
   }
 
@@ -913,10 +957,11 @@ class RootCtxRenderer extends BaseRenderer {
     const { syntheticMethodPrefix } = RootProxy;
     const { syntheticAliasSeparator, toObject } = RootCtxRenderer;
 
-    const [construct, syntheticName] = alias.split(syntheticAliasSeparator);
+    const [blockName, syntheticName] = alias.split(syntheticAliasSeparator);
 
     if (value.constructor.name === 'Map') {
-      assert(construct === 'each');
+      assert(blockName === 'each' && this.resolver);
+
       // eslint-disable-next-line no-param-reassign
       value = toObject({ map: value });
     }
@@ -925,7 +970,7 @@ class RootCtxRenderer extends BaseRenderer {
       value,
     };
 
-    if (construct === 'each') {
+    if (blockName === 'each') {
       // eslint-disable-next-line default-case
       switch (true) {
         case value.constructor.name === 'Array':
@@ -994,7 +1039,7 @@ class RootCtxRenderer extends BaseRenderer {
       }
     } else {
       // eslint-disable-next-line no-undef
-      assert(construct === 'with');
+      assert(blockName === 'with');
 
       // Note that since this synthetic invocation is
       // for an #if block (or rather #with turned #if block)
@@ -1002,8 +1047,8 @@ class RootCtxRenderer extends BaseRenderer {
       this.syntheticContext[alias].current = value;
     }
 
-    // We also need to store the object proxy as well. This will be needed
-    // in doBlockNext(...) when we need to reset the last lookup value
+    // We need to store the object proxy created above as <proxyValue>
+    // Note: This will be needed in doBlockNext(...) when we need to reset the last lookup value
     this.syntheticContext[alias].proxyValue = value;
 
     return value;
@@ -1054,6 +1099,24 @@ class RootCtxRenderer extends BaseRenderer {
     return arr.join('.');
   }
 
+  static getExecStringFromValue(value) {
+    switch (true) {
+      case value == null:
+      case value === undefined:
+      case value.constructor.name == 'Number':
+      case value.constructor.name == 'Boolean':
+        return value;
+      case value.constructor.name == 'String':
+        return `"${value}"`;
+      case value instanceof BaseComponent:
+        return clientUtils.stringifyComponentData(value.toJSON());
+      case value === Object(value):
+        return JSON.stringify(value);
+      default:
+        throw Error(`Unknown value: ${value}`);
+    }
+  }
+
   getExecPath({ fqPath, indexResolver, addBasePath, allowSynthetic }) {
     const { syntheticMethodPrefix, pathSeparator, dataPathRoot, getDataVariables } = RootProxy;
 
@@ -1092,9 +1155,11 @@ class RootCtxRenderer extends BaseRenderer {
     allowSynthetic = true
   }) {
 
-    const { pathSeparator, syntheticMethodPrefix, globalsBasePath, getDataVariables } = RootProxy;
     const {
-      toObject, getDataBasePath, toBindPath
+      pathSeparator, syntheticMethodPrefix, globalsBasePath, getDataVariables
+    } = RootProxy;
+    const {
+      toObject, getDataBasePath, toBindPath, getDataVariableValue, getExecStringFromValue,
     } = RootCtxRenderer;
 
     if (fqPath === '') {
@@ -1201,12 +1266,10 @@ class RootCtxRenderer extends BaseRenderer {
             !schema.$ref && getDataVariables().includes(dataVariable)
           ) {
 
-            assert(!suffix);
+            // If this is a scalar collection and the next segment is a dataVariable,
+            // eagerly resolve to a synthetic function that resolves 
 
-            // Since this array/map contain literals as it's children and has one
-            // segment ahead, we expect the next segment to be a dataVariable
-            // Resolve this getExecPath(...) call to a synthetic method that in
-            // turn invokes getBlockData(...)
+            assert(!suffix);
 
             const syntheticMethodName = `${syntheticMethodPrefix}${
               // Method name should be a word
@@ -1214,12 +1277,12 @@ class RootCtxRenderer extends BaseRenderer {
               }_${dataVariable.replace(/^@/g, '')}`;
 
             if (!this[syntheticMethodName]) {
-              this[syntheticMethodName] = Function(`
-                return this.getBlockData({
-                    path: "${canonicalPath}",
-                    dataVariable: "${dataVariable}"
-                })
-              `);
+
+              const dataVariableValue = getDataVariableValue(
+                dataVariable, index, Object.keys(value),
+              );
+
+              this[syntheticMethodName] = Function(`return ${getExecStringFromValue(dataVariableValue)}`);
 
               // Since we are resolving to a synthetic method name (because this is a
               // literal collection), there is a rare possibility that the developer
@@ -1271,8 +1334,7 @@ class RootCtxRenderer extends BaseRenderer {
         if (this.isSynthetic(part)) {
           // eslint-disable-next-line no-undef
           assert(i === 0);
-          // Use getSyntheticMethod to take advantage
-          // of invocation caching
+          // Use getSyntheticMethod to take advantage of invocation caching
           part = this.createSyntheticInvocation(part);
         }
       }
@@ -1303,7 +1365,7 @@ class RootCtxRenderer extends BaseRenderer {
       .join('');
   }
 
-  resolvePath({ fqPath, indexResolver, create, includePath }) {
+  resolvePath({ fqPath, indexResolver, create, includePath, lenientResolution }) {
     const { syntheticMethodPrefix } = RootProxy;
 
     const arr = fqPath.split('%');
@@ -1329,25 +1391,16 @@ class RootCtxRenderer extends BaseRenderer {
     let valueOverride;
 
     if (execPath.startsWith(`this.${syntheticMethodPrefix}`)) {
-      valueOverride = this.evalPath(execPath);
+      valueOverride = this.evalPath(execPath, lenientResolution);
     } else if (arr[1]) {
       // Append type segment to be used by our resolver
       path += `%${arr[1]}`;
     }
 
-    try {
-      const value = this.resolvePath0({
-        path, valueOverride, create, includePath, canonicalPath: arr[0],
-      });
-      return value;
-    } catch (e) {
-      if (this.strict) {
-        throw e;
-      } else {
-        this.logger.error(e);
-        return '';
-      }
-    }
+    return this.resolvePath0({
+      path, valueOverride, create, includePath, canonicalPath: arr[0],
+      lenientResolution,
+    });
   }
 
   static toBindPath(path) {
@@ -1377,24 +1430,48 @@ class RootCtxRenderer extends BaseRenderer {
       path = path.replace(`['${dataVariable[0]}']`, `.${dataVariable[0]}`);
     }
 
-    return `${dataPathRoot}${pathSeparator}${path}`
+    return `${dataPathRoot}${pathSeparator}${path}`;
   }
 
-  evalPath(path) {
-    const { strictPathEvaluation } = RootCtxRenderer;
+  /**
+   * 
+   * Note: This method name is a hardcoded string in RootProxy.toExecutablePath(...) and maybe in other places. 
+   * If this method name is updated, look for references and update those as well
+   * 
+   * @param {string} execPath 
+   * @param {any} undefinedVal 
+   * @returns 
+   */
+  evalPathLeniently(execPath, undefinedVal) {
+    const { lenientExceptionMsgPattern } = RootProxy;
     try {
-      return eval(path);
+      return Function(`return ${execPath}`).bind(this)();
     } catch (e) {
-      this.logger.error(`Error occurred while evaluating: ${path}`);
-      if (strictPathEvaluation) {
-        throw e;
+      if (e.name == 'TypeError' && e.message.match(lenientExceptionMsgPattern)) {
+        return undefinedVal;
       } else {
-        return null;
+        throw e;
       }
     }
   }
 
-  resolvePath0({ path, valueOverride, create, includePath, canonicalPath }) {
+  evalPath(execPath, lenient) {
+
+    if (lenient) {
+      return this.evalPathLeniently(execPath);
+    }
+
+    try {
+      return eval(execPath);
+    } catch (e) {
+      this.logger.error(`Error occurred while evaluating: ${execPath}`);
+      throw e;
+    }
+  }
+
+  resolvePath0({
+    path, valueOverride, create, includePath, canonicalPath, lenientResolution
+  }) {
 
     const { syntheticMethodPrefix } = RootProxy;
     const {
@@ -1407,7 +1484,7 @@ class RootCtxRenderer extends BaseRenderer {
       valueOverride :
       this.resolver && !isSynthetic ? this.resolver.resolve({ path, create })
         // eslint-disable-next-line no-eval
-        : this.evalPath(path);
+        : this.evalPath(path, lenientResolution);
 
     if (isSynthetic) {
 

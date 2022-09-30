@@ -41,3 +41,9 @@ For beginners, when creating templates you may encounter some parser error. Belo
 ## Data binding 
 
 - If you want to data-bind on any of the data variables of a collection, ensure that it's an object collection not a scalar one, else data binding will not work for the data variable.
+
+
+
+## Collections
+
+- Collections can generally contain null members, but you should avoid nulls on the first and last members of a collection at any given point, if your #each block uses @first and @last. This is because null collection members are always represented as an empty strings, hence any conditional expression targeting @first and @last will not be executed if nulls are present on the first and last members respectively
