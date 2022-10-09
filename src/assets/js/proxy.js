@@ -1435,30 +1435,47 @@ class RootProxy {
 
                 const b = this.component.analyzeConditionValue(computedValue);
 
-                const blockData0 = clientUtils.deepClone(blockData);
+                let branch = document.querySelector(selector)
+                  .getAttribute('branch');
 
-                const html = this.executeWithBlockData(
-                  () => {
-                    if (invert ? !b : b) {
-                      return fn(this.handler);
-                    } else if (inverse) {
-                      return inverse(this.handler);
-                    }
-                  },
-                  blockData0,
-                )
+                assert(branch);
 
-                document.querySelector(selector).innerHTML = html;
+                let htmlFn = null
 
-                if (hookMethod) {
-                  const hook = this.component[hookMethod].bind(this.component);
-
-                  hook({
-                    node: document.querySelector(selector),
-                    blockData: blockData0,
-                    initial: false,
-                  })
+                if (invert ? !b : b) {
+                  if (branch != 'fn') {
+                    branch = 'fn';
+                    htmlFn = () => fn(this.handler);
+                  }
+                } else if (inverse) {
+                  if (branch != 'inverse') {
+                    branch = 'inverse';
+                    htmlFn = () => inverse(this.handler);
+                  }
                 }
+
+                if (htmlFn) {
+                  const blockData0 = clientUtils.deepClone(blockData);
+
+                  const html = this.executeWithBlockData(
+                    htmlFn,
+                    blockData0,
+                  )
+
+                  document.querySelector(selector).innerHTML = html;
+                  document.querySelector(selector).setAttribute('branch', branch)
+
+                  if (hookMethod) {
+                    const hook = this.component[hookMethod].bind(this.component);
+
+                    hook({
+                      node: document.querySelector(selector),
+                      blockData: blockData0,
+                      initial: false,
+                    })
+                  }
+                }
+
               })();
               break;
 
@@ -1670,9 +1687,9 @@ class RootProxy {
 
     const {
       dataPathRoot, pathSeparator, pathProperty, typeProperty, mapType, isMapProperty,
-      mapKeyPrefix, isNullProperty, getMapWrapper, toFqPath, addDataVariablesToObject,
+      mapKeyPrefix, isNullProperty, getMapWrapper, toFqPath, getDataVariables,
+      addDataVariablesToObject,
     } = RootProxy;
-    const { getDataVariables } = RootCtxRenderer;
 
     const parent = obj[pathProperty];
 

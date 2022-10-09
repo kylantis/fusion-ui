@@ -44,6 +44,10 @@ For beginners, when creating templates you may encounter some parser error. Belo
 
 
 
+## Creating Components
+- Your component test.js file should contain polyfills for a test environment, i.e. mocking SPI calls, If you have a function called getDataFromAPI(...) in component .js file, you need to add a method called getDataFromAPI(...) to test.js file as well and return mock data
+
+
 ## Collections
 
 - Collections can generally contain null members, but you should avoid nulls on the first and last members of a collection at any given point, if your #each block uses @first and @last. This is because null collection members are always represented as an empty strings, hence any conditional expression targeting @first and @last will not be executed if nulls are present on the first and last members respectively

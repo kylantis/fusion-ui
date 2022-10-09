@@ -283,13 +283,17 @@ class CustomCtxRenderer extends RootCtxRenderer {
     return ['Array', 'Map', 'Object', 'Literal', 'componentRef'];
   }
 
+  static getValueType(value) {
+    return value === null ? 'null' : value === Object(value) ? value.constructor.name : typeof value;
+  }
+
   // eslint-disable-next-line class-methods-use-this
   validateType({
     path, value,
     validTypes = CustomCtxRenderer.getAllValidationTypes(),
-    strict = false, line,
+    line,
   }) {
-    const { isPrimitive } = CustomCtxRenderer;
+    const { isPrimitive, getValueType } = CustomCtxRenderer;
 
     const arr = path.split('%');
     let nameQualifier;
@@ -304,28 +308,33 @@ class CustomCtxRenderer extends RootCtxRenderer {
     }
 
     if (validTypes && validTypes.length) {
+
+      const emptyCollectionErr = (type) => `${path} must resolve to a non-empty [${type}]${nameQualifier ? `(${nameQualifier}) ` : ''}`;
+      
+      const currentType = getValueType(value);
+      let err = `${path} must resolve to one of the types: [${validTypes}]${nameQualifier ? `(${nameQualifier}) ` : ''} instead of ${currentType}`;
+
       // eslint-disable-next-line no-plusplus
       for (let i = 0; i < validTypes.length; i++) {
         const type = validTypes[i];
         // eslint-disable-next-line default-case
         switch (true) {
           case type === 'Array' && value != null && value.constructor.name === 'Array':
-            if (value.length || !strict) {
+            if (value.length) {
               return value;
             }
+            err = emptyCollectionErr(type);
             break;
 
           case type === 'Map' && value != null && value.constructor.name === 'Map':
-            if (value.size || !strict) {
+            if (value.size) {
               return value;
             }
+            err = emptyCollectionErr(type);
             break;
 
           case type === 'Object' && value != null && value.constructor.name === 'Object':
-            if ((!!Object.keys(value).length) || !strict) {
-              return value;
-            }
-            break;
+            return value;
 
           case type === 'Literal' && isPrimitive(value):
             return value;
@@ -337,10 +346,8 @@ class CustomCtxRenderer extends RootCtxRenderer {
         }
       }
 
-      const currentType = value === null ? 'null' : value === Object(value) ? value.constructor.name : typeof value;
-
       throw Error(
-        `${line ? `[${line}] ` : ''}${path} must resolve to one of the types: [${validTypes}]${nameQualifier ? `(${nameQualifier}) ` : ''} instead of ${currentType}`
+        `${line ? `[${line}] ` : ''}${err}`
       );
     }
     return value;
