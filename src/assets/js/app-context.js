@@ -150,6 +150,7 @@ class AppContext {
   getDependencies() {
     return [
       { url: '/assets/js/client-utils.min.js', namespace: 'clientUtils' },
+      { url: '/assets/js/custom-ctx-helpers.min.js', namespace: 'customCtxHelpers' },
       '/assets/js/proxy.min.js',
       '/assets/js/base-renderer.min.js',
       '/assets/js/root-ctx-renderer.min.js',

@@ -4,9 +4,6 @@
 
 // eslint-disable-next-line no-undef
 class BaseComponent extends WebRenderer {
-  static CHAINED_LOADING_STRATEGY = 'chained';
-
-  static ASYNC_LOADING_STRATEGY = 'async';
 
   static #token;
 
@@ -69,11 +66,6 @@ class BaseComponent extends WebRenderer {
     return Object(value) !== value ? `${value}` : JSON.stringify(value, replacer, null);
   }
 
-  // eslint-disable-next-line class-methods-use-this
-  loadingStrategy() {
-    return BaseComponent.ASYNC_LOADING_STRATEGY;
-  }
-
   load(opts = {}) {
     return super.load({
       token: BaseComponent.#token,
@@ -81,7 +73,7 @@ class BaseComponent extends WebRenderer {
     });
   }
 
-  render({ data, target, strategy, options }) {
+  render({ data, target, options }) {
     if (data === undefined) {
       return Promise.resolve();
     }
@@ -95,7 +87,7 @@ class BaseComponent extends WebRenderer {
 
       switch (true) {
         case data instanceof BaseComponent:
-          throw Error(`Component: ${data.getId()} cannot be rendered in this template location: ${global.clientUtils.getLine({ loc })}`);
+          throw Error(`Component: ${data.getId()} cannot be rendered in this template location: ${clientUtils.getLine({ loc })}`);
 
         case data instanceof Function:
           data = data();
@@ -107,11 +99,6 @@ class BaseComponent extends WebRenderer {
 
     // eslint-disable-next-line no-plusplus
     this.renderOffset++;
-
-    const {
-      CHAINED_LOADING_STRATEGY,
-      ASYNC_LOADING_STRATEGY,
-    } = BaseComponent;
 
     const future = this.promise
       // eslint-disable-next-line no-shadow
@@ -155,19 +142,7 @@ class BaseComponent extends WebRenderer {
           });
         }));
 
-    const loadingStrategy = strategy || this.loadingStrategy();
-
-    switch (loadingStrategy) {
-      case CHAINED_LOADING_STRATEGY:
-        this.promise = future;
-        break;
-      case ASYNC_LOADING_STRATEGY:
-        this.futures.push(future);
-        break;
-
-      default:
-        throw Error(`Unknown strategy: ${loadingStrategy}`);
-    }
+    this.futures.push(future);
 
     return future;
   }

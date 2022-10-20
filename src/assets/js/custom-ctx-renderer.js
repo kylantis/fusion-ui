@@ -4,6 +4,7 @@
 
 // eslint-disable-next-line no-undef
 class CustomCtxRenderer extends RootCtxRenderer {
+
   static partialIdHash = '__id';
 
   static partialNameHash = '__name';
@@ -19,6 +20,23 @@ class CustomCtxRenderer extends RootCtxRenderer {
     this.customContext = [];
 
     this.decorators = {};
+  }
+
+  getHandlebarsHelpers() {
+    const { conditional, with: with0, each } = customCtxHelpers;
+
+    const conditionalFn = conditional.bind(this)();
+
+    return {
+      if: function (ctx, options) {
+        conditionalFn(ctx, false, options, this)
+      },
+      unless: function (ctx, options) {
+        conditionalFn(ctx, true, options, this)
+      },
+      with: with0.bind(this)(),
+      each: each.bind(this)(),
+    };
   }
 
   storeContext({ options, ctx }) {
@@ -55,8 +73,9 @@ class CustomCtxRenderer extends RootCtxRenderer {
       const decorator = this.decorators[hash[partialIdHash]];
 
       fn = decorator.fn;
+
       // eslint-disable-next-line no-param-reassign
-      // ctx = decorator.data; VERIFY AND REMOVE THIS LINE
+      // ctx = decorator.data; Todo: VERIFY AND REMOVE THIS LINE
     }
 
     // this.logger.debug(`Loading partial {{> ${partialName} }}`);
@@ -127,7 +146,13 @@ class CustomCtxRenderer extends RootCtxRenderer {
     const { blockParam } = hash;
 
     if (blockParam) {
+      // Note: this is a custom block
+
+      // The compiler added a special hashkey known as <blockParam> that contains
+      // the data variable qualifier used by subpaths, hence prune from <hash> and
+      // inject as data variable
       delete hash.blockParam;
+
       hash[blockParam] = data;
     }
 
@@ -193,7 +218,6 @@ class CustomCtxRenderer extends RootCtxRenderer {
   }
 
   ternary() {
-    const { wrapRenderableObject } = CustomCtxRenderer;
     const params = Array.from(arguments);
 
     const options = params.pop();
@@ -259,21 +283,6 @@ class CustomCtxRenderer extends RootCtxRenderer {
     return this.proxyInstance.getRawValueWrapper(val);
   }
 
-  static wrapRenderableObject(data) {
-    const _this = this;
-    return new Proxy(data, {
-      get(obj, prop) {
-        switch (true) {
-          case prop === 'toHTML':
-          case prop === Symbol.toPrimitive:
-            return () => _this.toHtml(obj);
-          default:
-            return obj[prop];
-        }
-      },
-    });
-  }
-
   static isPrimitive(value) {
     return value == null || ['String', 'Number', 'Boolean']
       .includes(value.constructor.name);
@@ -290,13 +299,12 @@ class CustomCtxRenderer extends RootCtxRenderer {
   // eslint-disable-next-line class-methods-use-this
   validateType({
     path, value,
-    validTypes = CustomCtxRenderer.getAllValidationTypes(),
+    validTypes = CustomCtxRenderer.getAllValidationTypes(), nameQualifier,
     line,
   }) {
     const { isPrimitive, getValueType } = CustomCtxRenderer;
 
     const arr = path.split('%');
-    let nameQualifier;
 
     if (arr.length == 2) {
       path = arr[0];
@@ -310,7 +318,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
     if (validTypes && validTypes.length) {
 
       const emptyCollectionErr = (type) => `${path} must resolve to a non-empty [${type}]${nameQualifier ? `(${nameQualifier}) ` : ''}`;
-      
+
       const currentType = getValueType(value);
       let err = `${path} must resolve to one of the types: [${validTypes}]${nameQualifier ? `(${nameQualifier}) ` : ''} instead of ${currentType}`;
 

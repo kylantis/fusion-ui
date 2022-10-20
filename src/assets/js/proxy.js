@@ -128,621 +128,6 @@ class RootProxy {
     RootProxy.#privilegedMode = false;
   }
 
-  getValue(value) {
-    this.lastLookup = value;
-
-    switch (true) {
-      case value && value.constructor.name === 'Array':
-        return this.createArrayProxy(value);
-
-      case value && value.constructor.name === 'Object':
-        return this.handler;
-
-      default:
-        return value;
-    }
-  }
-
-  static evaluateBooleanExpression(component, left, right, operator, scope = '') {
-    const predicates = component.getBooleanOperators()[operator];
-
-    if (!predicates) {
-      throw Error(`Unknown boolean operator: ${operator}`);
-    }
-    for (const fn of predicates) {
-      const b = Function(
-        `${scope} return arguments[0](${left}, ${right})`,
-      )
-        .bind(component)(fn);
-
-      if (!b) { return false; }
-    }
-
-    return true;
-  }
-
-  executeWithBlockData(fn, blockData) {
-
-    const blockDataSnapshot = this.component.blockData;
-
-    if (blockData) {
-      this.component.blockData = blockData;
-    }
-
-    const r = fn();
-
-    if (blockData) {
-      this.component.blockData = blockDataSnapshot;
-    }
-
-    return r;
-  }
-
-  getLogicGateAssociatedHooks(id, pathPrefix) {
-    const result = [];
-    Object
-      .entries(this.#dataPathHooks)
-      .filter(([k]) => k.startsWith(pathPrefix))
-      .forEach(([k, v]) => {
-        v.forEach(({ type, gateId }) => {
-          if (gateId == id) {
-            result.push({ path: k, hookType: type });
-          }
-        })
-      });
-    return result;
-  }
-
-  getLogicGateValue({ gate, useBlockData = true }) {
-
-    const { evaluateBooleanExpression } = RootProxy;
-
-    const MUST_GRP = 'MustacheGroup';
-    const LOGIC_GATE = 'LogicGate';
-    const BOOL_EXPR = 'BooleanExpression';
-    const PATH_EXPR = 'PathExpression';
-    const STR_LITERAL = 'StringLiteral';
-    const BOOL_LITERAL = 'BooleanLiteral';
-    const NUM_LITERAL = 'NumberLiteral';
-    const NULL_LITERAL = 'NullLiteral';
-    const UNDEFINED_LITERAL = 'UndefinedLiteral';
-
-    const AND = 'AND';
-    const OR = 'OR';
-
-    const evaluateExpr = (expr) => {
-      return Function(expr).bind(this.component)();
-    }
-
-    const getConditionExpr = (parts, invert) => {
-
-      let scope = ``;
-      const and = ' && ';
-      const or = ' || ';
-
-      const getBoolExpr = (expr) => {
-
-        const left = getExpr(expr.left);
-        const right = getExpr(expr.right);
-
-        return evaluateBooleanExpression(
-          this.component, left, right, expr.operator, scope
-        );
-      }
-
-      const getExpr = (part) => {
-        let variableName = global.clientUtils.randomString();
-
-        switch (part.type) {
-          case PATH_EXPR:
-          case BOOL_LITERAL:
-          case NUM_LITERAL:
-          case NULL_LITERAL:
-          case UNDEFINED_LITERAL:
-            scope += `const ${variableName} = ${part.original};\n`;
-            return variableName;
-
-          case BOOL_EXPR:
-            return `(${getBoolExpr(part)})`;
-
-          case STR_LITERAL:
-            switch (part.original) {
-              case AND:
-                return and;
-              case OR:
-                return or;
-              default:
-                scope += `const ${variableName} = \`${part.original}\`;\n`;
-                return variableName;
-            }
-
-          case MUST_GRP:
-            scope += `const ${variableName} = ${getValue(part)};\n`;
-            return variableName;
-
-          case LOGIC_GATE:
-            return `${JSON.stringify(analyzeGate(part))}`;
-        }
-      }
-
-      const expr = `return ${parts
-        .map(getExpr)
-        .map(part => (part != and && part != or) ? `!!${part}` : part)
-        .map((part, index) => `${invert[index] ? '!' : ''}${part}`)
-        .join('')};`;
-
-      return scope + expr;
-    };
-
-    const analyzeCondition = (parts, invert) => {
-      const expr = getConditionExpr(parts, invert);
-      const b = evaluateExpr(expr);
-      assert(typeof b === 'boolean');
-      return b;
-    }
-
-    const getValue = ({ type, original, items, evaluate = true }) => {
-      let expr;
-      switch (type) {
-        case NUM_LITERAL:
-        case BOOL_LITERAL:
-        case PATH_EXPR:
-        case NULL_LITERAL:
-        case UNDEFINED_LITERAL:
-          expr = original;
-          break;
-        case STR_LITERAL:
-          expr = `\`${original.replace(/"/g, '\\"')}\``;
-          break;
-        case MUST_GRP:
-          expr = items.map(item => getValue({
-            type: item.type,
-            original: item.original,
-            evaluate: false
-          })).join(' + ');
-          break;
-      }
-      return evaluate ? evaluateExpr(`return ${expr}`) : expr;
-    };
-
-    const analyzeGate = (item) => {
-      const { invert } = item;
-
-      while (item.type == LOGIC_GATE) {
-        const data = gate.table[item.original];
-        item = analyzeCondition(data.condition, data.conditionInversions) ? data.left : data.right;
-      }
-
-      let value = getValue(item);
-
-      if (invert) {
-        value = !value;
-      }
-
-      return value;
-    }
-
-    const blockData = useBlockData ? gate.blockData : null;
-
-    const value = this.executeWithBlockData(
-      () => {
-
-        for (let i = 0; i < gate.table.length; i++) {
-
-          const item = gate.table[i];
-
-          const { condition, left, right } = item;
-
-          item.condition = condition.map(item => this.toExecutablePath(item, true));
-
-          item.left = this.toExecutablePath(left);
-          item.right = this.toExecutablePath(right);
-        }
-
-        return analyzeGate({ type: LOGIC_GATE, original: 0 })
-      },
-      blockData
-    );
-
-    return value;
-  }
-
-  /**
-   * If this is a PathExpression, convert from a canonical path to
-   * it's executable path
-   */
-  toExecutablePath(item, lenient, allowSynthetic = true) {
-    const {
-      dataPathRoot, literalPrefix, pathSeparator, parsePathExpressionLiteralValue,
-    } = RootProxy;
-
-    const MUST_GRP = 'MustacheGroup';
-    const PATH_EXPR = 'PathExpression';
-    const BOOL_EXPR = 'BooleanExpression';
-
-    const { type, original, left, right } = item;
-
-    const getExecPath = (fqPath) => {
-      let execString = this.component.getExecPath0({
-        fqPath,
-        allowSynthetic,
-      });
-      if (lenient) {
-        execString = `this.evalPathLeniently("${execString}")`;
-      }
-      return execString;
-    }
-
-    switch (type) {
-      case PATH_EXPR:
-        const p = original.replace(`${dataPathRoot}${pathSeparator}`, '');
-        item.canonicalPath = p;
-        item.original = p.startsWith(literalPrefix) ?
-          parsePathExpressionLiteralValue(p) :
-          getExecPath(p);
-        break;
-      case BOOL_EXPR:
-        item.left = this.toExecutablePath(left, lenient);
-        item.right = this.toExecutablePath(right, lenient);
-        break;
-      case MUST_GRP:
-        item.items = item.items.map(item => this.toExecutablePath(item, lenient));
-        break;
-    }
-    return item;
-  }
-
-  getParticipantsFromLogicGate(gate) {
-
-    const { dataPathRoot, pathSeparator } = RootProxy;
-    const { toBindPath } = RootCtxRenderer;
-
-    const PATH_EXPR = 'PathExpression';
-
-    return gate.participants
-      .map((path) => {
-
-        const { original } = this.toExecutablePath(
-          {
-            type: PATH_EXPR,
-            original: path,
-          },
-          false,
-          false,
-        );
-
-        const isSynthetic = this.component.isSynthetic(
-          original.replace('this.', '')
-        )
-
-        // Since <allowSynthetic> is set to false, we don't expect a synthetic path
-        assert(!isSynthetic);
-
-        return {
-          original: toBindPath(original),
-          canonicalPath: path.replace(`${dataPathRoot}${pathSeparator}`, ''),
-        }
-      });
-  }
-
-  resolveLogicPath({ prop }) {
-
-    const {
-      logicGatePathRoot, pathSeparator, gateParticipantHookName,
-    } = RootProxy;
-
-    const includePath = prop.endsWith('!');
-
-    if (includePath) {
-      // eslint-disable-next-line no-param-reassign
-      prop = prop.replace(/\!$/g, '');
-    }
-
-    const isRawReturn = prop.endsWith('!');
-
-    if (isRawReturn) {
-      // eslint-disable-next-line no-param-reassign
-      prop = prop.replace(/\!$/g, '');
-    }
-
-    const gate = this.component.getLogicGates()[prop];
-
-    const gateId = global.clientUtils.randomString();
-    const path = `${logicGatePathRoot}${pathSeparator}${gateId}`;
-
-    if (this.component.dataBindingEnabled()) {
-
-      // Register hook for participants to <dataPathHooks>, if applicable
-
-      this.getParticipantsFromLogicGate(gate)
-        .filter(({ synthetic }) => !synthetic)
-        .forEach(({ original, canonicalPath }) => {
-          this.#dataPathHooks[original].push({
-            type: gateParticipantHookName,
-            gateId,
-            canonicalPath,
-          });
-        });
-
-      gate.id = gateId;
-      gate.canonicalId = prop;
-      gate.blockData = this.component.getBlockDataSnapshot(path);
-
-      this.#logicGates[gateId] = gate;
-      this.#dataPathHooks[path] = [];
-    }
-
-    // This is no longer needed, because participants have been registered above
-    delete gate.participants;
-
-    const v = this.getLogicGateValue({ gate, useBlockData: false });
-
-    const rawValue = this.getRawValueWrapper(v);
-
-    const value = this.getValue(v);
-
-    if (includePath) {
-      return {
-        path,
-        value: isRawReturn ? rawValue : value,
-        canonicalPath: path,
-      };
-    } else {
-      return isRawReturn ? rawValue : value;
-    }
-  }
-
-  static parsePathExpressionLiteralValue(prop) {
-    const { literalPrefix, emptyString } = RootProxy;
-    const p = prop.replace(literalPrefix, emptyString);
-
-    switch (true) {
-      case p == 'null':
-      case p == 'undefined':
-      case p == 'true':
-      case p == 'false':
-      case clientUtils.isNumber(p):
-        return p;
-      default:
-        return `"${p}"`;
-    }
-  }
-
-  resolveDataPath({ prop, isRawReturn = false }) {
-
-    const {
-      literalPrefix, rawDataPrefix, parsePathExpressionLiteralValue
-    } = RootProxy;
-
-    // eslint-disable-next-line no-undef
-    assert(prop.constructor.name === 'String');
-
-    if (prop.startsWith(literalPrefix)) {
-      // eslint-disable-next-line no-eval
-      return eval(
-        parsePathExpressionLiteralValue(prop)
-      );
-    }
-
-    if (prop.startsWith(rawDataPrefix)) {
-      // eslint-disable-next-line no-param-reassign
-      prop = prop.replace(rawDataPrefix, '');
-      isRawReturn = true;
-    }
-
-    const suffixMarker = /\!$/g;
-    const lenientMarker = /\?$/g;
-
-    // 1. Should enable lenient path resolution?
-    const lenientResolution = prop.match(lenientMarker);
-    if (lenientResolution) {
-      // eslint-disable-next-line no-param-reassign
-      prop = prop.replace(lenientMarker, '');
-    }
-
-    // 2. Should include path?
-    const includePath = prop.match(suffixMarker);
-
-    if (includePath) {
-      // eslint-disable-next-line no-param-reassign
-      prop = prop.replace(suffixMarker, '');
-    }
-
-    // 3. Should return raw data?
-    isRawReturn = isRawReturn || prop.match(suffixMarker);
-
-    if (isRawReturn) {
-      // eslint-disable-next-line no-param-reassign
-      prop = prop.replace(suffixMarker, '');
-    }
-
-    // eslint-disable-next-line no-case-declarations
-    const v = this.component
-      .getPathValue({ path: prop, includePath, lenientResolution });
-
-    const rawValue = this.getRawValueWrapper(
-      includePath ? v.value : v
-    );
-
-    const value = this.getValue(includePath ? v.value : v);
-
-    if (includePath) {
-      v.value = isRawReturn ? rawValue : value;
-      return v;
-    } else {
-      return isRawReturn ? rawValue : value;
-    }
-  }
-
-  /**
-   * This wraps a raw value.
-   */
-  getRawValueWrapper(value) {
-    // eslint-disable-next-line no-underscore-dangle
-    const _this = this;
-    switch (true) {
-      case value !== Object(value):
-        return value;
-      // eslint-disable-next-line no-undef
-      case value instanceof BaseComponent:
-      case value instanceof Map:
-        return value;
-      default:
-        assert(['Array', 'Object'].includes(value.constructor.name));
-        return new Proxy(value, {
-          get(obj, prop) {
-
-            switch (true) {
-              case prop === 'toHTML' || prop === Symbol.toPrimitive:
-                return () => _this.component.toHtml(obj);
-
-              default:
-                return obj[prop];
-            }
-          },
-        });
-    }
-  }
-
-  getProxyIterator() {
-    // eslint-disable-next-line no-underscore-dangle
-    const _this = this;
-    // eslint-disable-next-line func-names
-    return function* () {
-      const keys = Object.keys(_this.lastLookup);
-      // eslint-disable-next-line no-plusplus
-      for (let i = 0; i < keys.length; i++) {
-
-        // At least, attempt to do a read on the underlying json
-        // object, so that if it is a proxy itself, the "get"
-        // interceptor method will be invoked. The main reason
-        // we do this is because of synthetic contexts, as this
-        // needed to set the "current" value. See setSyntheticContext(...)
-
-        // eslint-disable-next-line no-unused-expressions
-        _this.lastLookup[keys[i]];
-
-        yield _this.handler;
-      }
-    };
-  }
-
-  setLastLookup(value) {
-    this.lastLookup = value;
-  }
-
-  /**
-   * This is used by CustomCtxRenderer#wrapDataWithProxy to determine if a path
-   * should be resolved by the rootProxy
-   * @param {String} path 
-   * @returns 
-   */
-  static isRootPath(path) {
-    // eslint-disable-next-line no-undef
-    const {
-      dataPathPrefix, syntheticMethodPrefix, logicGatePathPrefix, rawDataPrefix
-    } = RootProxy;
-    return !!(path.match(dataPathPrefix) ||
-      path.startsWith(syntheticMethodPrefix) ||
-      path.startsWith(`${rawDataPrefix}${syntheticMethodPrefix}`) ||
-      path.match(logicGatePathPrefix));
-  }
-
-  createObjectProxy() {
-    const { dataPathRoot, dataPathPrefix, logicGatePathPrefix, isRootPath } = RootProxy;
-    // eslint-disable-next-line no-underscore-dangle
-    const _this = this;
-    return new Proxy({}, {
-      get: (obj, prop) => {
-
-        switch (true) {
-          case prop === Symbol.iterator:
-            return this.getProxyIterator();
-
-          // eslint-disable-next-line no-prototype-builtins
-          case !!Object.getPrototypeOf(obj)[prop]:
-            return obj[prop];
-
-          case prop === 'toHTML':
-          case prop === Symbol.toPrimitive:
-            return () => _this.component.toHtml(this.lastLookup);
-
-          case prop === 'toJSON':
-            return () => this.lastLookup;
-
-          case prop == dataPathRoot:
-            return _this.createObjectProxy()
-
-          case isRootPath(prop):
-            return prop.match(logicGatePathPrefix) ?
-              this.resolveLogicPath({ prop: prop.replace(logicGatePathPrefix, '') }) :
-              this.resolveDataPath({ prop: prop.replace(dataPathPrefix, '') });
-
-          case prop === 'getSyntheticNodeId':
-            return this.component.getSyntheticNodeId();
-
-          case prop === 'length':
-            // The forEach helper has an object target
-            assert(_this.lastLookup.constructor.name == 'Object');
-
-            return Object.keys(_this.lastLookup).length;
-
-          case global.clientUtils.isNumber(prop):
-
-            // At least access the context, so that the proxy
-            // created in setSyntheticContext(...) intercepts the value
-            // and updates the synthetic context
-            // eslint-disable-next-line no-unused-expressions
-            _this.lastLookup[
-              Object.keys(_this.lastLookup)[prop]
-            ];
-
-            return this.createObjectProxy();
-
-          default:
-            throw Error(`Invalid path: ${prop}`);
-        }
-      },
-      // Todo: remove these functions if not used
-      ownKeys() {
-        return Reflect.ownKeys(_this.lastLookup);
-      },
-      getOwnPropertyDescriptor() {
-        return {
-          enumerable: true,
-          configurable: true,
-        }
-      }
-    });
-  }
-
-  createArrayProxy(array) {
-    // eslint-disable-next-line no-underscore-dangle
-    const _this = this;
-    return new Proxy(array, {
-      get: (obj, prop) => {
-        switch (true) {
-          case global.clientUtils.isNumber(prop):
-
-            // At least access the context, so that the proxy
-            // created in setSyntheticContext(...) intercepts the value
-            // and updates the synthetic context
-            // eslint-disable-next-line no-unused-expressions
-            obj[prop];
-
-            return this.createObjectProxy();
-
-          case prop === 'toHTML':
-          case prop === Symbol.toPrimitive:
-            return () => _this.component.toHtml(obj);
-
-          default:
-            return obj[prop];
-        }
-      },
-    });
-  }
-
   static create(component) {
 
     const { validateInputSchema } = RootProxy;
@@ -751,9 +136,9 @@ class RootProxy {
     proxy.component.proxyInstance = proxy;
     proxy.component.rootProxy = proxy.handler;
 
-    // On compile-time, it would be too early for <resolver>
-    // to be set, so let's use <loadable> instead, since we know
-    // it will be false at compile-time and true at runtime
+    // At compile-time, it would be too early for <resolver> to be set, so let's use 
+    // <loadable> instead, since we know it will be false at compile-time and true at
+    // runtime
     if (proxy.component.loadable()) {
 
       if (!component.constructor.schemaDefinitions) {
@@ -1051,6 +436,34 @@ class RootProxy {
     }
   }
 
+  getDataPathHooks() {
+    return this.#dataPathHooks;
+  }
+
+  getGlobalVariables() {
+    return {
+      // User Global Variables
+      ...self.appContext.userGlobals,
+
+      // Component Global Variables
+      ...{
+        componentId: this.component.getId()
+      }
+    }
+  }
+
+  // Note: We cannot have a global variable called 'data', as this will be immediately
+  // overriden by the 'data' object we pass to handlebars
+  static getGlobalVariableNames() {
+    return [
+      // User Global Variables
+      'rtl',
+
+      // Component Global Variables
+      'componentId'
+    ];
+  }
+
   addDataObserver() {
 
     const {
@@ -1097,6 +510,638 @@ class RootProxy {
       },
       this.component.config.hookCleanupInterval
     );
+  }
+
+  createObjectProxy() {
+    const { dataPathRoot, dataPathPrefix, logicGatePathPrefix, isRootPath } = RootProxy;
+    // eslint-disable-next-line no-underscore-dangle
+    const _this = this;
+    return new Proxy({}, {
+      get: (obj, prop) => {
+
+        switch (true) {
+          case prop === Symbol.iterator:
+            return this.getProxyIterator();
+
+          // eslint-disable-next-line no-prototype-builtins
+          case !!Object.getPrototypeOf(obj)[prop]:
+            return obj[prop];
+
+          case prop === 'toHTML':
+          case prop === Symbol.toPrimitive:
+            return () => _this.component.toHtml(this.lastLookup);
+
+          case prop === 'toJSON':
+            return () => this.lastLookup;
+
+          case prop == dataPathRoot:
+            return _this.createObjectProxy()
+
+          case isRootPath(prop):
+            return prop.match(logicGatePathPrefix) ?
+              this.resolveLogicPath({ prop: prop.replace(logicGatePathPrefix, '') }) :
+              this.resolveDataPath({ prop: prop.replace(dataPathPrefix, '') });
+
+          case prop === 'getSyntheticNodeId':
+            return this.component.getSyntheticNodeId();
+
+          case prop === 'length':
+            // The forEach helper has an object target
+            assert(_this.lastLookup.constructor.name == 'Object');
+
+            return Object.keys(_this.lastLookup).length;
+
+          case global.clientUtils.isNumber(prop):
+
+            // At least access the context, so that the proxy
+            // created in setSyntheticContext(...) intercepts the value
+            // and updates the synthetic context
+            // eslint-disable-next-line no-unused-expressions
+            _this.lastLookup[
+              Object.keys(_this.lastLookup)[prop]
+            ];
+
+            return this.createObjectProxy();
+
+          default:
+            throw Error(`Invalid path: ${prop}`);
+        }
+      },
+      // Todo: remove these functions if not used
+      ownKeys() {
+        return Reflect.ownKeys(_this.lastLookup);
+      },
+      getOwnPropertyDescriptor() {
+        return {
+          enumerable: true,
+          configurable: true,
+        }
+      }
+    });
+  }
+
+  createArrayProxy(array) {
+    // eslint-disable-next-line no-underscore-dangle
+    const _this = this;
+    return new Proxy(array, {
+      get: (obj, prop) => {
+        switch (true) {
+          case global.clientUtils.isNumber(prop):
+
+            // At least access the context, so that the proxy
+            // created in setSyntheticContext(...) intercepts the value
+            // and updates the synthetic context
+            // eslint-disable-next-line no-unused-expressions
+            obj[prop];
+
+            return this.createObjectProxy();
+
+          case prop === 'toHTML':
+          case prop === Symbol.toPrimitive:
+            return () => _this.component.toHtml(obj);
+
+          default:
+            return obj[prop];
+        }
+      },
+    });
+  }
+
+  /**
+   * This wraps a raw value.
+   */
+  getRawValueWrapper(value) {
+    // eslint-disable-next-line no-underscore-dangle
+    const _this = this;
+    switch (true) {
+      case value !== Object(value):
+        return value;
+      // eslint-disable-next-line no-undef
+      case value instanceof BaseComponent:
+      case value instanceof Map:
+        return value;
+      default:
+        assert(['Array', 'Object'].includes(value.constructor.name));
+        return new Proxy(value, {
+          get(obj, prop) {
+
+            switch (true) {
+              case prop === 'toHTML' || prop === Symbol.toPrimitive:
+                return () => _this.component.toHtml(obj);
+
+              default:
+                return obj[prop];
+            }
+          },
+        });
+    }
+  }
+
+  getProxyIterator() {
+    // eslint-disable-next-line no-underscore-dangle
+    const _this = this;
+    // eslint-disable-next-line func-names
+    return function* () {
+      const keys = Object.keys(_this.lastLookup);
+      // eslint-disable-next-line no-plusplus
+      for (let i = 0; i < keys.length; i++) {
+
+        // At least, attempt to do a read on the underlying json
+        // object, so that if it is a proxy itself, the "get"
+        // interceptor method will be invoked. The main reason
+        // we do this is because of synthetic contexts, as this
+        // needed to set the "current" value. See setSyntheticContext(...)
+
+        // eslint-disable-next-line no-unused-expressions
+        _this.lastLookup[keys[i]];
+
+        yield _this.handler;
+      }
+    };
+  }
+
+  setLastLookup(value) {
+    this.lastLookup = value;
+  }
+
+  /**
+   * This is used by CustomCtxRenderer#wrapDataWithProxy to determine if a path
+   * should be resolved by the rootProxy
+   * @param {String} path 
+   * @returns 
+   */
+  static isRootPath(path) {
+    // eslint-disable-next-line no-undef
+    const {
+      dataPathPrefix, syntheticMethodPrefix, logicGatePathPrefix, rawDataPrefix
+    } = RootProxy;
+    return !!(path.match(dataPathPrefix) ||
+      path.startsWith(syntheticMethodPrefix) ||
+      path.startsWith(`${rawDataPrefix}${syntheticMethodPrefix}`) ||
+      path.match(logicGatePathPrefix));
+  }
+
+  getValue(value) {
+    this.lastLookup = value;
+
+    switch (true) {
+      case value && value.constructor.name === 'Array':
+        return this.createArrayProxy(value);
+
+      case value && value.constructor.name === 'Object':
+        return this.handler;
+
+      default:
+        return value;
+    }
+  }
+
+  static evaluateBooleanExpression(component, left, right, operator, scope = '') {
+    const predicates = component.getBooleanOperators()[operator];
+
+    if (!predicates) {
+      throw Error(`Unknown boolean operator: ${operator}`);
+    }
+    for (const fn of predicates) {
+      const b = Function(
+        `${scope} return arguments[0](${left}, ${right})`,
+      )
+        .bind(component)(fn);
+
+      if (!b) { return false; }
+    }
+
+    return true;
+  }
+
+  executeWithBlockData(fn, blockData) {
+
+    const blockDataSnapshot = this.component.blockData;
+
+    if (blockData) {
+      this.component.blockData = blockData;
+    }
+
+    const r = fn();
+
+    if (blockData) {
+      this.component.blockData = blockDataSnapshot;
+    }
+
+    return r;
+  }
+
+  getLogicGateAssociatedHooks(id, pathPrefix) {
+    const result = [];
+    Object
+      .entries(this.#dataPathHooks)
+      .filter(([k]) => k.startsWith(pathPrefix))
+      .forEach(([k, v]) => {
+        v.forEach(({ type, gateId }) => {
+          if (gateId == id) {
+            result.push({ path: k, hookType: type });
+          }
+        })
+      });
+    return result;
+  }
+
+  getLogicGateValue({ gate, useBlockData = true }) {
+
+    const { evaluateBooleanExpression } = RootProxy;
+
+    const MUST_GRP = 'MustacheGroup';
+    const LOGIC_GATE = 'LogicGate';
+    const BOOL_EXPR = 'BooleanExpression';
+    const PATH_EXPR = 'PathExpression';
+    const STR_LITERAL = 'StringLiteral';
+    const BOOL_LITERAL = 'BooleanLiteral';
+    const NUM_LITERAL = 'NumberLiteral';
+    const NULL_LITERAL = 'NullLiteral';
+    const UNDEFINED_LITERAL = 'UndefinedLiteral';
+
+    const AND = 'AND';
+    const OR = 'OR';
+
+    const evaluateExpr = (expr) => {
+      return Function(expr).bind(this.component)();
+    }
+
+    const getConditionExpr = (parts, invert) => {
+
+      let scope = ``;
+      const and = ' && ';
+      const or = ' || ';
+
+      const getBoolExpr = (expr) => {
+
+        const left = getExpr(expr.left);
+        const right = getExpr(expr.right);
+
+        return evaluateBooleanExpression(
+          this.component, left, right, expr.operator, scope
+        );
+      }
+
+      const getExpr = (part) => {
+        let variableName = global.clientUtils.randomString();
+
+        switch (part.type) {
+          case PATH_EXPR:
+          case BOOL_LITERAL:
+          case NUM_LITERAL:
+          case NULL_LITERAL:
+          case UNDEFINED_LITERAL:
+            scope += `const ${variableName} = ${part.original};\n`;
+            return variableName;
+
+          case BOOL_EXPR:
+            return `(${getBoolExpr(part)})`;
+
+          case STR_LITERAL:
+            switch (part.original) {
+              case AND:
+                return and;
+              case OR:
+                return or;
+              default:
+                scope += `const ${variableName} = \`${part.original}\`;\n`;
+                return variableName;
+            }
+
+          case MUST_GRP:
+            scope += `const ${variableName} = ${getValue(part)};\n`;
+            return variableName;
+
+          case LOGIC_GATE:
+            return `${JSON.stringify(analyzeGate(part))}`;
+        }
+      }
+
+      const expr = `return ${parts
+        .map(getExpr)
+        .map(part => (part != and && part != or) ? `!!${part}` : part)
+        .map((part, index) => `${invert[index] ? '!' : ''}${part}`)
+        .join('')};`;
+
+      return scope + expr;
+    };
+
+    const analyzeCondition = (parts, invert) => {
+      const expr = getConditionExpr(parts, invert);
+      const b = evaluateExpr(expr);
+      assert(typeof b === 'boolean');
+      return b;
+    }
+
+    const getValue = ({ type, original, items, evaluate = true }) => {
+      let expr;
+      switch (type) {
+        case NUM_LITERAL:
+        case BOOL_LITERAL:
+        case PATH_EXPR:
+        case NULL_LITERAL:
+        case UNDEFINED_LITERAL:
+          expr = original;
+          break;
+        case STR_LITERAL:
+          expr = `\`${original.replace(/"/g, '\\"')}\``;
+          break;
+        case MUST_GRP:
+          expr = items.map(item => getValue({
+            type: item.type,
+            original: item.original,
+            evaluate: false
+          })).join(' + ');
+          break;
+      }
+      return evaluate ? evaluateExpr(`return ${expr}`) : expr;
+    };
+
+    const analyzeGate = (item) => {
+      const { invert } = item;
+
+      while (item.type == LOGIC_GATE) {
+        const data = gate.table[item.original];
+        item = analyzeCondition(data.condition, data.conditionInversions) ? data.left : data.right;
+      }
+
+      let value = getValue(item);
+
+      if (invert) {
+        value = !value;
+      }
+
+      return value;
+    }
+
+    const blockData = useBlockData ? gate.blockData : null;
+
+    const value = this.executeWithBlockData(
+      () => {
+
+        for (let i = 0; i < gate.table.length; i++) {
+
+          const item = gate.table[i];
+
+          const { condition, left, right } = item;
+
+          item.condition = condition.map(item => this.toExecutablePath(item, true));
+
+          item.left = this.toExecutablePath(left);
+          item.right = this.toExecutablePath(right);
+        }
+
+        return analyzeGate({ type: LOGIC_GATE, original: 0 })
+      },
+      blockData
+    );
+
+    return value;
+  }
+
+  /**
+   * If this is a PathExpression, convert from a canonical path to
+   * it's executable path
+   */
+  toExecutablePath(item, lenient, allowSynthetic = true) {
+    const {
+      dataPathRoot, literalPrefix, pathSeparator, parsePathExpressionLiteralValue,
+    } = RootProxy;
+
+    const MUST_GRP = 'MustacheGroup';
+    const PATH_EXPR = 'PathExpression';
+    const BOOL_EXPR = 'BooleanExpression';
+
+    const lenientMarker = /\?$/g;
+
+    const { type, original, left, right } = item;
+
+    const getExecPath = (fqPath) => {
+      let execString = this.component.getExecPath0({
+        fqPath,
+        allowSynthetic,
+      });
+      if (lenient) {
+        execString = `this.evalPathLeniently("${execString}")`;
+      }
+      return execString;
+    }
+
+    switch (type) {
+      case PATH_EXPR:
+        let p = original.replace(`${dataPathRoot}${pathSeparator}`, '');
+
+        if (p.startsWith(literalPrefix)) {
+          item.type = 'StringLiteral';
+          item.original = parsePathExpressionLiteralValue(p);
+        } else {
+          lenient = lenient || p.match(lenientMarker);
+          if (lenient) {
+            p = p.replace(lenientMarker, '');
+          }
+          item.canonicalPath = p;
+          item.original = getExecPath(p);
+        }
+        break;
+
+      case BOOL_EXPR:
+        item.left = this.toExecutablePath(left, lenient);
+        item.right = this.toExecutablePath(right, lenient);
+        break;
+
+      case MUST_GRP:
+        item.items = item.items.map(item => this.toExecutablePath(item, lenient));
+        break;
+    }
+    return item;
+  }
+
+  getParticipantsFromLogicGate(gate) {
+
+    const { dataPathRoot, pathSeparator } = RootProxy;
+    const { toBindPath } = RootCtxRenderer;
+
+    const PATH_EXPR = 'PathExpression';
+
+    return gate.participants
+      .map((path) => {
+
+        const { original, type } = this.toExecutablePath(
+          {
+            type: PATH_EXPR,
+            original: path,
+          },
+          false,
+          false,
+        );
+
+        if (type.endsWith('Literal')) {
+          return null;
+        }
+
+        const isSynthetic = this.component.isSynthetic(
+          original.replace('this.', '')
+        )
+
+        // Since <allowSynthetic> is set to false, we don't expect a synthetic path
+        assert(!isSynthetic);
+
+        return {
+          original: toBindPath(original),
+          canonicalPath: path.replace(`${dataPathRoot}${pathSeparator}`, ''),
+        }
+      })
+      .filter(e => !!e);
+  }
+
+  resolveLogicPath({ prop }) {
+
+    const {
+      logicGatePathRoot, pathSeparator, gateParticipantHookName,
+    } = RootProxy;
+
+    const includePath = prop.endsWith('!');
+
+    if (includePath) {
+      // eslint-disable-next-line no-param-reassign
+      prop = prop.replace(/\!$/g, '');
+    }
+
+    const isRawReturn = prop.endsWith('!');
+
+    if (isRawReturn) {
+      // eslint-disable-next-line no-param-reassign
+      prop = prop.replace(/\!$/g, '');
+    }
+
+    const gate = this.component.getLogicGates()[prop];
+
+    const gateId = global.clientUtils.randomString();
+    const path = `${logicGatePathRoot}${pathSeparator}${gateId}`;
+
+    if (this.component.dataBindingEnabled()) {
+
+      // Register hook for participants to <dataPathHooks>, if applicable
+
+      this.getParticipantsFromLogicGate(gate)
+        .filter(({ synthetic }) => !synthetic)
+        .forEach(({ original, canonicalPath }) => {
+          this.#dataPathHooks[original].push({
+            type: gateParticipantHookName,
+            gateId,
+            canonicalPath,
+          });
+        });
+
+      gate.id = gateId;
+      gate.canonicalId = prop;
+      gate.blockData = this.component.getBlockDataSnapshot(path);
+
+      this.#logicGates[gateId] = gate;
+      this.#dataPathHooks[path] = [];
+    }
+
+    // This is no longer needed, because participants have been registered above
+    delete gate.participants;
+
+    const v = this.getLogicGateValue({ gate, useBlockData: false });
+
+    const rawValue = this.getRawValueWrapper(v);
+
+    const value = this.getValue(v);
+
+    if (includePath) {
+      return {
+        path,
+        value: isRawReturn ? rawValue : value,
+        canonicalPath: path,
+      };
+    } else {
+      return isRawReturn ? rawValue : value;
+    }
+  }
+
+  static parsePathExpressionLiteralValue(prop) {
+    const { literalPrefix, emptyString } = RootProxy;
+    const p = prop.replace(literalPrefix, emptyString);
+
+    switch (true) {
+      case p == 'null':
+      case p == 'undefined':
+      case p == 'true':
+      case p == 'false':
+      case clientUtils.isNumber(p):
+        return p;
+      default:
+        return `"${p}"`;
+    }
+  }
+
+  resolveDataPath({ prop, isRawReturn = false }) {
+
+    const {
+      literalPrefix, rawDataPrefix, parsePathExpressionLiteralValue
+    } = RootProxy;
+
+    // eslint-disable-next-line no-undef
+    assert(prop.constructor.name === 'String');
+
+    if (prop.startsWith(literalPrefix)) {
+      // eslint-disable-next-line no-eval
+      return eval(
+        parsePathExpressionLiteralValue(prop)
+      );
+    }
+
+    if (prop.startsWith(rawDataPrefix)) {
+      // eslint-disable-next-line no-param-reassign
+      prop = prop.replace(rawDataPrefix, '');
+      isRawReturn = true;
+    }
+
+    const suffixMarker = /\!$/g;
+    const lenientMarker = /\?$/g;
+
+    // 1. Should enable lenient path resolution?
+    const lenientResolution = prop.match(lenientMarker);
+    if (lenientResolution) {
+      // eslint-disable-next-line no-param-reassign
+      prop = prop.replace(lenientMarker, '');
+    }
+
+    // 2. Should include path?
+    const includePath = prop.match(suffixMarker);
+
+    if (includePath) {
+      // eslint-disable-next-line no-param-reassign
+      prop = prop.replace(suffixMarker, '');
+    }
+
+    // 3. Should return raw data?
+    isRawReturn = isRawReturn || prop.match(suffixMarker);
+
+    if (isRawReturn) {
+      // eslint-disable-next-line no-param-reassign
+      prop = prop.replace(suffixMarker, '');
+    }
+
+    // eslint-disable-next-line no-case-declarations
+    const v = this.component
+      .getPathValue({ path: prop, includePath, lenientResolution });
+
+    const rawValue = this.getRawValueWrapper(
+      includePath ? v.value : v
+    );
+
+    const value = this.getValue(includePath ? v.value : v);
+
+    if (includePath) {
+      v.value = isRawReturn ? rawValue : value;
+      return v;
+    } else {
+      return isRawReturn ? rawValue : value;
+    }
   }
 
   pruneHooks() {
@@ -1154,34 +1199,6 @@ class RootProxy {
         }
       }
     })
-  }
-
-  getDataPathHooks() {
-    return this.#dataPathHooks;
-  }
-
-  getGlobalVariables() {
-    return {
-      // User Global Variables
-      ...self.appContext.userGlobals,
-
-      // Component Global Variables
-      ...{
-        componentId: this.component.getId()
-      }
-    }
-  }
-
-  // Note: We cannot have a global variable called 'data', as this will be immediately
-  // overriden by the 'data' object we pass to handlebars
-  static getGlobalVariableNames() {
-    return [
-      // User Global Variables
-      'rtl',
-
-      // Component Global Variables
-      'componentId'
-    ];
   }
 
   triggerHooks(fqPath, parentObject, newValue, dataPathHooks, withParent) {
@@ -1412,7 +1429,11 @@ class RootProxy {
                   computedValue = this.getLogicGateValue({ gate: this.#logicGates[gateId] });
                 }
 
-                document.getElementById(hook.nodeId).innerHTML = this.component.toHtml(computedValue);
+                const { transform } = hook;
+
+                document.getElementById(hook.nodeId).innerHTML = this.component.toHtml(
+                  transform ? transform(computedValue) : computedValue
+                );
               })();
               break;
 

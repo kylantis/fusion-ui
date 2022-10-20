@@ -5,6 +5,7 @@ const anyArrayIndex = /\[[0-9]+\]/g;
 const canonicalArrayIndex = /_\$$/g
 const mapKey = /\["\$_.+?"\]/g;
 const segment = /(\[[0-9]+\])|(\["\$_.+?"\])|(_\$)/g;
+const toString = Object.prototype.toString;
 
 module.exports = {
   flattenJson: (data) => {
@@ -156,7 +157,7 @@ module.exports = {
     };
   },
 
-  // Todo: Remove if not used
+  // Todo: Remove if not used - IT WILL BE USED WHEN TRIGGERING HOOKS.... DON'T REMOVE
   getCanonicalSegments: (fqPathArr) => {
 
     const arr = [];
@@ -238,6 +239,37 @@ module.exports = {
 
   isNumber: (n) => {
     return !Number.isNaN(parseInt(n, 10))
+  },
+
+  isFunction(value) {
+    return typeof value === 'function';
+  },
+
+  extend(obj) {
+    for (let i = 1; i < arguments.length; i++) {
+      for (let key in arguments[i]) {
+        if (Object.prototype.hasOwnProperty.call(arguments[i], key)) {
+          obj[key] = arguments[i][key];
+        }
+      }
+    }
+    return obj;
+  },
+
+  createFrame(object) {
+    const frame = clientUtils.extend({}, object);
+    frame._parent = object;
+    return frame;
+  },
+
+  isEmpty(value) {
+    if (!value && value !== 0) {
+      return true;
+    } else if (Array.isArray(value) && value.length === 0) {
+      return true;
+    } else {
+      return false;
+    }
   },
 
   findDuplicatesInArray: (arr) => {

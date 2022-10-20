@@ -141,10 +141,10 @@ class RootCtxRenderer extends BaseRenderer {
     // Control prototype access, to prevent attackers from executing
     // arbitray code on user machine, more info here:
     // https://handlebarsjs.com/api-reference/runtime-options.html#options-to-control-prototype-access
-    const dataPaths = this.getSyntheticMethod({ name: 'dataPaths' })();
+    const allowedPaths = this.getSyntheticMethod({ name: 'allowedPaths' })();
     const allowedProtoProperties = {};
 
-    for (const path of dataPaths) {
+    for (const path of allowedPaths) {
       allowedProtoProperties[path] = true;
     }
 
@@ -272,32 +272,6 @@ class RootCtxRenderer extends BaseRenderer {
         }
 
       });
-  }
-
-  getHandlebarsHelpers() {
-    const { helpers } = Handlebars;
-
-    delete helpers.lookup;
-    delete helpers.log;
-
-    const conditionalFn = (value, invert, options, ctx) => {
-      const b = this.analyzeConditionValue(value);
-      if (invert ? !b : b) {
-        return options.fn(ctx);
-      } else {
-        return options.inverse(ctx);
-      }
-    }
-
-    helpers.if = function (ctx, options) {
-      conditionalFn(ctx, false, options, this)
-    };
-
-    helpers.unless = function (ctx, options) {
-      conditionalFn(ctx, true, options, this)
-    };
-
-    return helpers;
   }
 
   getElementId() {
@@ -654,9 +628,8 @@ class RootCtxRenderer extends BaseRenderer {
 
   static getMetaHelpers() {
     return [
-      'storeContext', 'loadContext', 'forEach', 'conditional',
-      'startAttributeBindContext', 'endAttributeBindContext',
-      'startTextNodeBindContext', 'setSyntheticNodeId', 'resolveMustache',
+      'storeContext', 'loadContext', 'forEach', 'conditional', 'startAttributeBindContext',
+      'endAttributeBindContext', 'startTextNodeBindContext', 'setSyntheticNodeId', 'resolveMustache',
       'invokeTransform'
     ];
   }
@@ -737,13 +710,13 @@ class RootCtxRenderer extends BaseRenderer {
       this.#currentBindContext.length
     ) {
       // Data-bind support exists for this mustache statement
-      this.#bindMustache({ path, value, canonicalPath, transform });
+      this.#bindMustache({ path, canonicalPath, transform });
     }
 
     return (value && transform) ? this[transform](value) : this.toHtml(value);
   }
 
-  #bindMustache({ path, value, canonicalPath, transform }) {
+  #bindMustache({ path, canonicalPath, transform }) {
 
     const { textNodeHookName } = RootProxy;
     const ctx = this.#currentBindContext.pop();
@@ -755,7 +728,8 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   getPathValue({ path, includePath = false, lenientResolution }) {
-    // Todo: If path == '', set lenientResolution to false, if true because
+    assert(!this.resolver);
+    // Todo: If path == '', set lenientResolution to false, because 
     // this.getInput() will always exist
 
     return this.resolvePath({
@@ -813,7 +787,7 @@ class RootCtxRenderer extends BaseRenderer {
   getBlockData({ path, dataVariable }) {
 
     const { getDataVariables } = RootProxy;
-    const { toObject, getDataVariableValue } = RootCtxRenderer;
+    const { getDataVariableValue } = RootCtxRenderer;
 
     assert(getDataVariables().includes(dataVariable));
 
@@ -824,14 +798,11 @@ class RootCtxRenderer extends BaseRenderer {
       ? this.syntheticContext[path].value
       : this.getPathValue({ path });
 
-    if (this.resolver) {
-      assert(value instanceof Map || value instanceof Array);
-
-      if (value instanceof Map) {
-        assert(this.resolver);
-        value = toObject({ map: value });
-      }
-    }
+    assert(
+      !this.resolver ||
+      // At compile-time, getBlockData(...) is called for synthetic contexts only
+      this.syntheticContext[path].value
+    );
 
     switch (dataVariable) {
       case '@random':
@@ -891,6 +862,7 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   doBlockNext({ path }) {
+    assert(!this.resolver);
 
     const { syntheticBlockKeyPrefix } = RootCtxRenderer;
 
@@ -928,6 +900,7 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   doBlockFinalize({ path }) {
+    assert(!this.resolver);
     delete this.blockData[path];
   }
 
@@ -1056,9 +1029,8 @@ class RootCtxRenderer extends BaseRenderer {
               },
             });
           } else {
-            // Note: this is used by TemplateProcessor during sub-path
-            // traversal, as the proxy above this is designed for use
-            // during runtime
+            // Note: this is used by TemplateProcessor during sub-path traversal, as the 
+            // proxy above this is designed for use during runtime
             [this.syntheticContext[alias].current] = value;
           }
           break;
@@ -1215,7 +1187,7 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   getExecPath({ fqPath, indexResolver, addBasePath, allowSynthetic }) {
-    const { pathSeparator, dataPathRoot, getDataVariables } = RootProxy;
+    const { pathSeparator, getDataVariables } = RootProxy;
 
     const result = {
       execPath: this.getExecPath0({
@@ -1227,30 +1199,23 @@ class RootCtxRenderer extends BaseRenderer {
       path: null,
     };
 
-    const segments = fqPath.split(pathSeparator);
-
-    result.path = this.isSyntheticInvocation(result.execPath)
-      && segments[0] == dataPathRoot
-      && getDataVariables().includes(segments[segments.length - 1])
-      ?
-      // We need a non-synthetic path to use in <result.path>
-      this.getExecPath0({
-        fqPath,
-        indexResolver,
-        addBasePath,
-        allowSynthetic: false,
-      })
-      : result.execPath;
+    result.path =
+      this.isSyntheticInvocation(result.execPath)
+        && getDataVariables().includes(fqPath.split(pathSeparator).pop())
+        ?
+        // We need a non-synthetic path to use in <result.path>
+        this.getExecPath0({
+          fqPath,
+          indexResolver,
+          addBasePath,
+          allowSynthetic: false,
+        })
+        : result.execPath;
 
     return result;
   }
 
-  getExecPath0({
-    fqPath,
-    indexResolver,
-    addBasePath = true,
-    allowSynthetic = true
-  }) {
+  getExecPath0({ fqPath, indexResolver, addBasePath = true, allowSynthetic = true }) {
 
     const {
       pathSeparator, syntheticMethodPrefix, globalsBasePath, getDataVariables
@@ -1331,7 +1296,8 @@ class RootCtxRenderer extends BaseRenderer {
         part = path.split(/\.(?!\$_)/g).pop();
 
         let value = this.resolvePath0({
-          path: `${!this.resolver && !this.isSyntheticInvocation(path) && !addBasePath ?
+          path: `${
+            !this.resolver && !this.isSyntheticInvocation(path) && !addBasePath ?
             `${getDataBasePath()}.` : ''
             }${path}`
         });
@@ -1388,11 +1354,10 @@ class RootCtxRenderer extends BaseRenderer {
 
               this[syntheticMethodName] = Function(`return ${getExecStringFromValue(dataVariableValue)}`);
 
-              // Since we are resolving to a synthetic method name (because this is a
-              // literal collection), there is a rare possibility that the developer
-              // never accesses {{.}} inside the #each block, thereby causing the PathResolver
-              // to throw a "redundant path" error for <canonicalPath>. Hence, we need to 
-              // at least access index 0 at compile-time
+              // Since we are resolving to a synthetic method name (because this is a literal collection),
+              // there is a possibility that the developer never accesses {{.}} inside the #each block, 
+              // thereby causing the PathResolver to throw a "redundant path" error for <canonicalPath>. 
+              // Hence, we need to at least access index 0 at compile-time
 
               if (this.resolver && isArray) {
                 this.resolver.resolve({ path: `${path}[0]` })
