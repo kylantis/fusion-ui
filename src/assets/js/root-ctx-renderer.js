@@ -326,18 +326,25 @@ class RootCtxRenderer extends BaseRenderer {
       inverse: wrapFnWithExceptionCatching(options.inverse),
     };
 
+    const nodeId = this.getSyntheticNodeId();
+
     let [target, invert] = params;
 
+    if (Object(target) !== target) {
+      assert(!nodeId);
+
+      // <target> resolved to a literal
+      target = { value: target };
+    }
+
     const { path, value, canonicalPath } = target;
-
-    assert(!!canonicalPath);
-
-    const nodeId = this.getSyntheticNodeId();
 
     const hookName = hash['transform'];
     const hookOrder = hash['transformOrder'];
 
     const isSynthetic = this.isSynthetic(path);
+
+    // Todo: Support data-binding for synthetic invocations
     const dataBinding = !isSynthetic && this.dataBindingEnabled() && nodeId != undefined;
 
     const conditional0 = (value) => {
@@ -399,8 +406,7 @@ class RootCtxRenderer extends BaseRenderer {
 
     const { eachBlockHookName } = RootProxy;
     const {
-      htmlWrapperCssClassname, getSyntheticAliasFromPath, getChildPathFromPath,
-      wrapFnWithExceptionCatching,
+      htmlWrapperCssClassname, getSyntheticAliasFromPath, getChildPathFromPath, wrapFnWithExceptionCatching,
     } = RootCtxRenderer;
 
     const { fn, inverse, hash } = {
@@ -698,37 +704,47 @@ class RootCtxRenderer extends BaseRenderer {
     return id;
   }
 
-  resolveMustache({ params }) {
-
-    const [{ path, value, canonicalPath }, transform] = params;
-
-    assert(!!canonicalPath);
-
-    if (
-      this.dataBindingEnabled() &&
-      !this.isSynthetic(path) &&
-      this.#currentBindContext.length
-    ) {
-      // Data-bind support exists for this mustache statement
-      this.#bindMustache({ path, canonicalPath, transform });
-    }
-
-    return (value && transform) ? this[transform](value) : this.toHtml(value);
-  }
-
-  #bindMustache({ path, canonicalPath, transform }) {
+  resolveMustache({ options, params }) {
 
     const { textNodeHookName } = RootProxy;
-    const ctx = this.#currentBindContext.pop();
 
-    assert(ctx.type == textNodeHookName);
+    const { hash } = options;
 
-    this.proxyInstance.getDataPathHooks()[path]
-      .push({ ...ctx, canonicalPath, transform });
+    const bindContext = this.#currentBindContext.pop();
+
+    let [target] = params;
+
+    if (Object(target) !== target) {
+      assert(!bindContext);
+
+      // <target> resolved to a literal
+      target = { value: target };
+    }
+
+    const { path, value, canonicalPath } = target;
+
+    const hookName = hash['transform'];
+
+    const isSynthetic = this.isSynthetic(path);
+
+    // Todo: Support data-binding for synthetic invocations
+    const dataBinding = !isSynthetic && this.dataBindingEnabled() && bindContext;
+
+    if (dataBinding) {
+      assert(bindContext.type == textNodeHookName);
+
+      this.proxyInstance.getDataPathHooks()[path]
+        .push({ ...bindContext, hookMethod: hookName, canonicalPath })
+    }
+
+    const html = this.toHtml(value);
+
+    return (html && hookName) ? this[hookName](html) : html;
   }
 
   getPathValue({ path, includePath = false, lenientResolution }) {
     assert(!this.resolver);
+
     // Todo: If path == '', set lenientResolution to false, because 
     // this.getInput() will always exist
 
@@ -838,10 +854,10 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   toRealPath(path) {
-    const { getDataBasePath } = RootCtxRenderer;
+    const { getDataBaseExecPath } = RootCtxRenderer;
 
     return this.getExecPath0({ fqPath: path, })
-      .replace(`${getDataBasePath()}.`, '');
+      .replace(`${getDataBaseExecPath()}.`, '');
   }
 
   doBlockInit({ path }) {
@@ -941,16 +957,7 @@ class RootCtxRenderer extends BaseRenderer {
     const { getBlockNameFromSyntheticAlias, toObject } = RootCtxRenderer;
     const { getValueType } = CustomCtxRenderer;
 
-    let value0;
-
-    try {
-      value0 = fn();
-    } catch (e) {
-      this.throwError(
-        `Exception thrown while executing "${canonicalSource}": ${e.message}`,
-        loc
-      );
-    }
+    const value0 = fn();
 
     let value = value0;
 
@@ -974,7 +981,7 @@ class RootCtxRenderer extends BaseRenderer {
         case 'each':
           if (!Array.isArray(value) && !value.constructor.name === 'Map') {
             this.throwError(
-              `Expected an array or map to be the target of the #each block, not a ${getValueType(value)}`,
+              `Expected an array or map to be the target of the #each block, not a ${getValueType(value)}, expression=${canonicalSource}`,
               loc,
             );
           }
@@ -982,7 +989,7 @@ class RootCtxRenderer extends BaseRenderer {
         case 'with':
           if (!value.constructor.name === 'Object') {
             this.throwError(
-              `Expected an object to be the target of the #with block, not a ${getValueType(value)}`,
+              `Expected an object to be the target of the #with block, not a ${getValueType(value)}, expression=${canonicalSource}`,
               loc,
             );
           }
@@ -1136,7 +1143,7 @@ class RootCtxRenderer extends BaseRenderer {
   // eslint-disable-next-line class-methods-use-this
   isSynthetic(name) {
     // eslint-disable-next-line no-undef
-    return name.startsWith(RootProxy.syntheticMethodPrefix);
+    return name && name.startsWith(RootProxy.syntheticMethodPrefix);
   }
 
   getSyntheticMethod({
@@ -1147,22 +1154,22 @@ class RootCtxRenderer extends BaseRenderer {
     return f ? f.bind(this) : null;
   }
 
-  static getDataBasePath() {
+  static getDataBaseExecPath() {
     return 'this.getInput()';
   }
 
-  static getGlobalsBasePath() {
+  static getGlobalsBaseExecPath() {
     return 'this.getRootGlobals()';
   }
 
   getGlobalsExecPath(fqPath) {
     const { globalsBasePath, pathSeparator } = RootProxy;
-    const { getGlobalsBasePath } = RootCtxRenderer;
+    const { getGlobalsBaseExecPath } = RootCtxRenderer;
 
     const arr = fqPath.split(pathSeparator);
 
     assert(arr[0] == globalsBasePath);
-    arr[0] = getGlobalsBasePath();
+    arr[0] = getGlobalsBaseExecPath();
 
     // eslint-disable-next-line no-eval
     return arr.join('.');
@@ -1221,11 +1228,11 @@ class RootCtxRenderer extends BaseRenderer {
       pathSeparator, syntheticMethodPrefix, globalsBasePath, getDataVariables
     } = RootProxy;
     const {
-      toObject, getDataBasePath, toBindPath, getDataVariableValue, getExecStringFromValue,
+      toObject, getDataBaseExecPath, toBindPath, getDataVariableValue, getExecStringFromValue,
     } = RootCtxRenderer;
 
     if (fqPath === '') {
-      return getDataBasePath();
+      return getDataBaseExecPath();
     }
 
     assert(fqPath != globalsBasePath);
@@ -1243,7 +1250,7 @@ class RootCtxRenderer extends BaseRenderer {
       addBasePath = false;
     }
 
-    const basePath = addBasePath ? getDataBasePath() : '';
+    const basePath = addBasePath ? getDataBaseExecPath() : '';
 
     const segments = fqPath.split(pathSeparator);
     const parts = [];
@@ -1296,9 +1303,8 @@ class RootCtxRenderer extends BaseRenderer {
         part = path.split(/\.(?!\$_)/g).pop();
 
         let value = this.resolvePath0({
-          path: `${
-            !this.resolver && !this.isSyntheticInvocation(path) && !addBasePath ?
-            `${getDataBasePath()}.` : ''
+          path: `${!this.resolver && !this.isSyntheticInvocation(path) && !addBasePath ?
+              `${getDataBaseExecPath()}.` : ''
             }${path}`
         });
 
@@ -1325,15 +1331,15 @@ class RootCtxRenderer extends BaseRenderer {
 
         if (isArray || isMap) {
 
-          const schema = this.proxyInstance.getCollectionDefinition(
-            toBindPath(path)
-          );
+          const firstChild = isArray ? value[0] : value[Object.keys(value)[0]];
+          const isScalarCollection = firstChild !== Object(firstChild) || firstChild instanceof BaseComponent;
 
           const dataVariable = segments[i + 1] || '';
 
           if (
             allowSynthetic && i == segments.length - 2 &&
-            !schema.$ref && getDataVariables().includes(dataVariable)
+            isScalarCollection && 
+            getDataVariables().includes(dataVariable)
           ) {
 
             // If this is a scalar collection and the next segment is a dataVariable,
@@ -1473,13 +1479,13 @@ class RootCtxRenderer extends BaseRenderer {
   static toBindPath(path) {
     const { dataPathRoot, pathSeparator, globalsBasePath } = RootProxy;
     const { escapeRegExp } = global.clientUtils;
-    const { getDataBasePath, getGlobalsBasePath } = RootCtxRenderer;
+    const { getDataBaseExecPath, getGlobalsBaseExecPath } = RootCtxRenderer;
 
-    let prefix = getDataBasePath();
+    let prefix = getDataBaseExecPath();
     let repl = '';
 
-    if (path.startsWith(getGlobalsBasePath())) {
-      prefix = getGlobalsBasePath();
+    if (path.startsWith(getGlobalsBaseExecPath())) {
+      prefix = getGlobalsBaseExecPath();
       repl = `${globalsBasePath}${pathSeparator}`;
     }
 
@@ -1526,17 +1532,20 @@ class RootCtxRenderer extends BaseRenderer {
     }
   }
 
-  evalPath(execPath, lenient) {
+  evalPath(execPath, lenient, loc) {
+    const { getGlobalsBaseExecPath } = RootCtxRenderer;
 
-    if (lenient) {
+    if (lenient || execPath.startsWith(getGlobalsBaseExecPath())) {
       return this.evalPathLeniently(execPath, this.undefinedValue());
     }
 
     try {
       return eval(execPath);
     } catch (e) {
-      this.logger.error(`Error occurred while evaluating: ${execPath}`);
-      throw e;
+      this.throwError(
+        `Exception thrown while executing: ${execPath}`,
+        loc,
+      );
     }
   }
 
@@ -1544,7 +1553,7 @@ class RootCtxRenderer extends BaseRenderer {
     path, valueOverride, create, includePath, canonicalPath, lenientResolution
   }) {
 
-    const { getDataBasePath, getGlobalsBasePath, toBindPath } = RootCtxRenderer;
+    const { getDataBaseExecPath, getGlobalsBaseExecPath, toBindPath } = RootCtxRenderer;
 
     const isSynthetic = this.isSyntheticInvocation(path);
 
@@ -1563,8 +1572,8 @@ class RootCtxRenderer extends BaseRenderer {
 
       assert(
         this.resolver ||
-        path.startsWith(getDataBasePath()) ||
-        path.startsWith(getGlobalsBasePath())
+        path.startsWith(getDataBaseExecPath()) ||
+        path.startsWith(getGlobalsBaseExecPath())
       );
 
       return includePath ? {
@@ -1577,9 +1586,7 @@ class RootCtxRenderer extends BaseRenderer {
 
   // eslint-disable-next-line class-methods-use-this
   getRootGlobals() {
-    return {
-      ...this.proxyInstance.getGlobalVariables()
-    };
+    return this.getGlobalVariables();
   }
 
   buildInputData({ input, hash }) {

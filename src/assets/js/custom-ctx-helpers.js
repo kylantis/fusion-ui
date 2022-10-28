@@ -15,7 +15,7 @@ module.exports = {
     with() {
         const _this = this;
         return function (context, options) {
-            const { loc, fn, inverse, data, hash } = options;
+            const { loc, fn, inverse, hash } = options;
             const { blockParam } = hash;
 
             assert(blockParam);
@@ -30,11 +30,17 @@ module.exports = {
             }
 
             if (!clientUtils.isEmpty(context)) {
-                data[blockParam] = context;
+
+                let data;
+
+                if (options.data) {
+                    data = clientUtils.createFrame(options.data);
+
+                    data[blockParam] = context;
+                }
 
                 return fn(context, {
                     data,
-                    blockParams: [context]
                 });
             } else {
                 return inverse(this);
@@ -68,10 +74,12 @@ module.exports = {
 
             function execIteration(field, index, last) {
                 if (data) {
+
                     data.key = field;
                     data.index = index;
                     data.first = index === 0;
                     data.last = !!last;
+                    data.random = clientUtils.randomString();
 
                     data[blockParam] = context[field];
                 }

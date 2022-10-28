@@ -16,9 +16,6 @@ class CustomCtxRenderer extends RootCtxRenderer {
       id, input, loadable, logger,
     });
 
-    this.canonicalHash = {};
-    this.customContext = [];
-
     this.decorators = {};
   }
 
@@ -81,7 +78,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
     // this.logger.debug(`Loading partial {{> ${partialName} }}`);
 
     return this.renderBlock({
-      data: ctx,
+      ctx,
       options: {
         ...options,
         fn,
@@ -140,52 +137,34 @@ class CustomCtxRenderer extends RootCtxRenderer {
     }
   }
 
-  renderBlock({ data, options }) {
-    const { hash, fn } = options;
+  renderBlock({ options, ctx, scope }) {
+    const { fn, hash } = options;
 
     const { blockParam } = hash;
 
-    if (blockParam) {
-      // Note: this is a custom block
+    if (scope) {
+      assert(blockParam);
 
       // The compiler added a special hashkey known as <blockParam> that contains
       // the data variable qualifier used by subpaths, hence prune from <hash> and
       // inject as data variable
       delete hash.blockParam;
 
-      hash[blockParam] = data;
+      hash[blockParam] = ctx;
+
+      options.data = clientUtils.createFrame(options.data);
     }
 
-    const hashKeys = Object.keys(hash);
-    // eslint-disable-next-line no-plusplus
-    for (let i = 0; i < hashKeys.length; i++) {
-      const k = hashKeys[i];
-      hash[k] = this.wrapDataWithProxy(hash[k]);
-    }
-
-    const prevCanonicalHash = this.canonicalHash;
-    this.canonicalHash = {
-      ...this.canonicalHash,
-      ...hash,
-    };
-    this.customContext.push({
-      hash,
-      data
-    });
+    Object.keys(hash).forEach(k => {
+      options.data[k] = this.wrapDataWithProxy(hash[k]);
+    })
 
     const output = fn(
-      this.wrapDataWithProxy(data),
-      { data: this.canonicalHash },
+      this.wrapDataWithProxy(ctx),
+      { data: options.data },
     );
 
-    this.customContext.pop();
-    this.canonicalHash = prevCanonicalHash;
-
     return output;
-  }
-
-  inCustomContext() {
-    return this.customContext.length > 0;
   }
 
   concatenate() {
@@ -288,21 +267,14 @@ class CustomCtxRenderer extends RootCtxRenderer {
       .includes(value.constructor.name);
   }
 
-  static getAllValidationTypes() {
-    return ['Array', 'Map', 'Object', 'Literal', 'componentRef'];
-  }
-
   static getValueType(value) {
     return value === null ? 'null' : value === Object(value) ? value.constructor.name : typeof value;
   }
 
   // eslint-disable-next-line class-methods-use-this
-  validateType({
-    path, value,
-    validTypes = CustomCtxRenderer.getAllValidationTypes(), nameQualifier,
-    line,
-  }) {
+  validateType({ path, value, validType, nameQualifier, line, allowEmptyCollection=false }) {
     const { isPrimitive, getValueType } = CustomCtxRenderer;
+    const { literalType, arrayType, objectType, mapType, componentRefType } = RootProxy;
 
     const arr = path.split('%');
 
@@ -310,55 +282,52 @@ class CustomCtxRenderer extends RootCtxRenderer {
       path = arr[0];
       const metaArray = arr[1].split('/');
 
-      validTypes = [metaArray[0]];
+      validType = metaArray[0];
       // eslint-disable-next-line prefer-destructuring
       nameQualifier = metaArray[1];
     }
 
-    if (validTypes && validTypes.length) {
-
-      const emptyCollectionErr = (type) => `${path} must resolve to a non-empty [${type}]${nameQualifier ? `(${nameQualifier}) ` : ''}`;
-
-      const currentType = getValueType(value);
-      let err = `${path} must resolve to one of the types: [${validTypes}]${nameQualifier ? `(${nameQualifier}) ` : ''} instead of ${currentType}`;
-
-      // eslint-disable-next-line no-plusplus
-      for (let i = 0; i < validTypes.length; i++) {
-        const type = validTypes[i];
-        // eslint-disable-next-line default-case
-        switch (true) {
-          case type === 'Array' && value != null && value.constructor.name === 'Array':
-            if (value.length) {
-              return value;
-            }
-            err = emptyCollectionErr(type);
-            break;
-
-          case type === 'Map' && value != null && value.constructor.name === 'Map':
-            if (value.size) {
-              return value;
-            }
-            err = emptyCollectionErr(type);
-            break;
-
-          case type === 'Object' && value != null && value.constructor.name === 'Object':
-            return value;
-
-          case type === 'Literal' && isPrimitive(value):
-            return value;
-
-          // eslint-disable-next-line no-undef
-          case type === 'componentRef' &&
-            (value == null || (value instanceof BaseComponent && (!nameQualifier || value.constructor.name == nameQualifier))):
-            return value;
-        }
-      }
-
-      throw Error(
-        `${line ? `[${line}] ` : ''}${err}`
-      );
+    if (!validType) {
+      return value;
     }
-    return value;
+
+    const emptyCollectionErrorMsg = () => `${path} must resolve to a non-empty [${validType}]${nameQualifier ? ` (${nameQualifier}) ` : ''}`;
+
+    const currentType = getValueType(value);
+
+    let err = `${path} must resolve to the type : [${validType}]${nameQualifier ? ` (${nameQualifier}) ` : ''} instead of ${currentType}`;
+
+    // eslint-disable-next-line default-case
+    switch (true) {
+      case validType === arrayType && value != null && value.constructor.name === 'Array':
+        if (value.length || allowEmptyCollection) {
+          return value;
+        }
+        err = emptyCollectionErrorMsg();
+        break;
+
+      case validType === mapType && value != null && value.constructor.name === 'Map':
+        if (value.size || allowEmptyCollection) {
+          return value;
+        }
+        err = emptyCollectionErrorMsg();
+        break;
+
+      case validType === objectType && value != null && value.constructor.name === 'Object':
+        return value;
+
+      case validType === literalType && isPrimitive(value):
+        return value;
+
+      // eslint-disable-next-line no-undef
+      case validType === componentRefType &&
+        (value == null || (value instanceof BaseComponent && (!nameQualifier || value.constructor.name == nameQualifier))):
+        return value;
+    }
+
+    throw Error(
+      `${line ? `[${line}] ` : ''}${err}`
+    );
   }
 }
 

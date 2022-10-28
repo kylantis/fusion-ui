@@ -2,10 +2,11 @@
 /* eslint-disable no-underscore-dangle */
 
 const anyArrayIndex = /\[[0-9]+\]/g;
-const canonicalArrayIndex = /_\$$/g
 const mapKey = /\["\$_.+?"\]/g;
-const segment = /(\[[0-9]+\])|(\["\$_.+?"\])|(_\$)/g;
-const toString = Object.prototype.toString;
+
+const canonicalArrayIndex = /_\$$/g
+const segment = /(\[[0-9]+\])|(\["\$_.+?"\])/g;
+const segmentWithCanonical = /(\[[0-9]+\])|(\["\$_.+?"\])|(_\$)/g;
 
 module.exports = {
   flattenJson: (data) => {
@@ -89,7 +90,11 @@ module.exports = {
   },
 
   getSegments: ({ original }) => {
-    const segments = original.match(segment) || [];
+    return clientUtils.getSegments0(original, segment)
+  },
+
+  getSegments0: (original, regex) => {
+    const segments = original.match(regex) || [];
     return [
       original.replace(
         RegExp(
@@ -151,13 +156,12 @@ module.exports = {
       (coll[isMapProperty] && key.startsWith(mapKeyPrefix))
     );
 
-    return { 
-      index: clientUtils.getCollectionIndex(coll, key), 
+    return {
+      index: clientUtils.getCollectionIndex(coll, key),
       length: clientUtils.getCollectionLength(coll),
     };
   },
 
-  // Todo: Remove if not used - IT WILL BE USED WHEN TRIGGERING HOOKS.... DON'T REMOVE
   getCanonicalSegments: (fqPathArr) => {
 
     const arr = [];
@@ -167,9 +171,9 @@ module.exports = {
     loop:
     for (let i = 0; i < fqPathArr.length; i++) {
 
-      const segments = clientUtils.getSegments({
-        original: fqPathArr[i],
-      });
+      const segments = clientUtils.getSegments0(fqPathArr[i],  canonicalArrayIndex);
+
+      // Todo: !!!!!!!!!! FIX!!
 
       // eslint-disable-next-line no-plusplus
       for (let j = 0; j < segments.length; j++) {
@@ -227,12 +231,12 @@ module.exports = {
     const arr = parent.split('.');
 
     const index = parent.length - 1;
-    const segmentIndex = clientUtils.getSegments(arr[index]).length;
+    const segmentIndex = clientUtils.getSegments0(arr[index], segmentWithCanonical).length;
 
     const arr2 = path.split('.');
-    const segments = clientUtils.getSegments(arr2[index]);
-    
-    assert(segments.length > segmentIndex); 
+    const segments = clientUtils.getSegments0(arr2[index], segmentWithCanonical);
+
+    assert(segments.length > segmentIndex);
 
     return segments[segmentIndex] == '_$';
   },

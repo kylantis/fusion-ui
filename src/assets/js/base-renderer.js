@@ -31,7 +31,7 @@ class BaseRenderer {
     );
 
     this.#id = id;
-    this.logger = logger || self.appContext.logger;
+    this.logger = logger || self.appContext ? self.appContext.logger : console;
     this.isLoadable = loadable;
     this.#isRoot = !BaseRenderer.#componentIds.length;
 

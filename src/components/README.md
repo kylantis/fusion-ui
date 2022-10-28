@@ -51,6 +51,13 @@ The compiler will make best effort to perform ahead of time partial inlining. Th
 
 ## Collections
 
+- #each
+    - Ternary expressions are supported
+
+
+- #with
+
+
 - Collections can generally contain null members, but you should avoid nulls on the first and last members of a collection at any given point, if your #each block uses @first and @last. This is because null collection members are always represented as an empty strings, hence any conditional expression targeting @first and @last will not be executed if nulls are present on the first and last members respectively
 
 ### Manipulating collection members
@@ -64,12 +71,14 @@ The compiler will make best effort to perform ahead of time partial inlining. Th
 
 ## Partials
 
+- A partial statement is used to render either a decorator block or an external file
+
 - When creating partials that may be used accross a myriad of components, you should prefix "free-form" paths with "this" to access paths in the current context, so that the compiler does not match it to a scope qualifier in an outer context, i.e. you should do {{this.abc}} instead of {{abc}} if you want to be extra sure that `abc` will resolve in the current context; 
 
     - Examples of non-free form paths include: {{[0]}} , {{.././.}}, {{@index}}, e.t.c
     - Exampmple of free-form paths include {{abc}}
 
-- Loading partials from unverified sources is potentially unsafe, hence developers need to take extra precaution. If in a custom context and you want to prevent access to the root context from a partial, add the hash "allowRootAccess=false" to the enclosing custom block. Similarly, if on the root context, use "unsafe=true" directly on the partial statement to  prevent the partial from accessing any context outside it.
+- Loading partials from unverified sources is potentially unsafe, hence developers need to take extra precaution. If in a custom context and you want to prevent access to the root context from a partial, add the hash "allowRootAccess=false" to the enclosing custom block.
 
  - If a property on the root context of a partial is the same as a global variable name, the global variable will always take precedence. For example: If a global variable called "abc" exists, accessing {{@root.abc}} in a partial will refer to the global variable, not the property in the current context
 
@@ -86,5 +95,46 @@ The compiler will make best effort to perform ahead of time partial inlining. Th
  - `CustomCtxRenderer`
  - `WebRenderer`
  - `BaseComponent`
+ - `ajv7`
+ - `Handlebars`
+ - `appContext`
+ - `isServer`
+ - `rootComponent`
 
  They are used internally to provide framework functionality, and making any modifications to these properties will break all your components.
+
+
+ ## Notable differences with handlebars
+
+- New frames are created for all blocks including #with blocks.
+- If multiple pairs have the same key in a hash, then the last occuring pair is used, instead of the first
+
+
+ ## Global Variables
+
+- Global vatriables resolve leniently by default
+- TODO
+
+ ## Component Configuration
+
+- src/components/config
+- src/components/**/config
+
+
+## Variables
+- Can be inlined or not
+
+## Inline Blocks
+
+- @root is never resolved inside a decorator block, If you need to access the root inside a decorator block, use a variable, and set inline=false, i.e. 
+{{var myRootVariable = @root inline-false}}
+
+{{#*inline myBlock}}
+    {{myRootVariable.xyz}}
+{{/inline}}
+
+## Transform
+
+- Mustache Transform - A mustache transform is the name of a component method that receives the resolved value of a mustache expression, and returns the new value you want to transform it to.
+
+- Block Transform -  A block transform is the name of a component method that receives the rendered DOM Element of a block context. Unlike mustache transforms, this is a terminal operation, and is used to plug-in external DOM manipulation logic

@@ -37,7 +37,15 @@ class RootProxy {
 
   static typeProperty = '@type';
 
+  static literalType = 'Literal';
+
+  static arrayType = 'Array';
+
+  static objectType = 'Object';
+
   static mapType = 'Map';
+
+  static componentRefType = 'componentRef';
 
   static mapKeyPrefix = '$_';
 
@@ -426,42 +434,26 @@ class RootProxy {
     const validate = this.component.constructor.ajv.getSchema(`#/definitions/${this.component.getComponentName()
       }`)
 
-    const input = this.component.getInput();
+    const { getInput, getId, getComponentName } = this.component;
+    const input = getInput();
 
     if (!validate(input)) {
+      const msg = `Component "${getId()}" could not be loaded due to schema mismatch of input data`;
+      
+      if (global.isServer) {
+        assert(global.rootComponent != getComponentName());
 
-      throw Error(`Component: ${this.component.getId()
-        } could not be loaded due to schema mismatch of input data - ${this.component.constructor.ajv.errorsText(validate.errors)
-        }`);
+        msg += `. ${global.rootComponent} may contain outdated sample data for ${getComponentName()}. Re-compile ${global.rootComponent} to fix this problem`;
+      } else {
+        msg += `; ${this.component.constructor.ajv.errorsText(validate.errors)}`;
+      }
+
+      throw Error(msg);
     }
   }
 
   getDataPathHooks() {
     return this.#dataPathHooks;
-  }
-
-  getGlobalVariables() {
-    return {
-      // User Global Variables
-      ...self.appContext.userGlobals,
-
-      // Component Global Variables
-      ...{
-        componentId: this.component.getId()
-      }
-    }
-  }
-
-  // Note: We cannot have a global variable called 'data', as this will be immediately
-  // overriden by the 'data' object we pass to handlebars
-  static getGlobalVariableNames() {
-    return [
-      // User Global Variables
-      'rtl',
-
-      // Component Global Variables
-      'componentId'
-    ];
   }
 
   addDataObserver() {
@@ -490,10 +482,8 @@ class RootProxy {
 
     RootProxy.#dataReferences.push(this.component.getInput());
 
-    // Add globals to dataPathHooks 
-    // Even though this is registered here, global variables are generally never 
-    // expected to change
-    Object.keys(this.getGlobalVariables())
+    // Add globals to dataPathHooks
+    Object.keys(this.component.getGlobalVariables())
       .forEach(variable => {
         this.#dataPathHooks[[dataPathRoot, globalsBasePath, variable].join(pathSeparator)] = [];
       });
@@ -1081,7 +1071,7 @@ class RootProxy {
   resolveDataPath({ prop, isRawReturn = false }) {
 
     const {
-      literalPrefix, rawDataPrefix, parsePathExpressionLiteralValue
+      literalPrefix, rawDataPrefix, globalsBasePath, pathSeparator, parsePathExpressionLiteralValue
     } = RootProxy;
 
     // eslint-disable-next-line no-undef
@@ -1103,14 +1093,7 @@ class RootProxy {
     const suffixMarker = /\!$/g;
     const lenientMarker = /\?$/g;
 
-    // 1. Should enable lenient path resolution?
-    const lenientResolution = prop.match(lenientMarker);
-    if (lenientResolution) {
-      // eslint-disable-next-line no-param-reassign
-      prop = prop.replace(lenientMarker, '');
-    }
-
-    // 2. Should include path?
+    // 1. Should include path?
     const includePath = prop.match(suffixMarker);
 
     if (includePath) {
@@ -1118,13 +1101,23 @@ class RootProxy {
       prop = prop.replace(suffixMarker, '');
     }
 
-    // 3. Should return raw data?
+    // 2. Should return raw data?
     isRawReturn = isRawReturn || prop.match(suffixMarker);
-
     if (isRawReturn) {
       // eslint-disable-next-line no-param-reassign
       prop = prop.replace(suffixMarker, '');
     }
+    assert(
+      !prop.startsWith(`${globalsBasePath}${pathSeparator}`) || isRawReturn
+    );
+
+    // 3. Should enable lenient path resolution?
+    const lenientResolution = prop.match(lenientMarker);
+    if (lenientResolution) {
+      // eslint-disable-next-line no-param-reassign
+      prop = prop.replace(lenientMarker, '');
+    }
+
 
     // eslint-disable-next-line no-case-declarations
     const v = this.component
@@ -1429,10 +1422,10 @@ class RootProxy {
                   computedValue = this.getLogicGateValue({ gate: this.#logicGates[gateId] });
                 }
 
-                const { transform } = hook;
+                const { hookMethod } = hook;
 
                 document.getElementById(hook.nodeId).innerHTML = this.component.toHtml(
-                  transform ? transform(computedValue) : computedValue
+                  hookMethod ? hookMethod(computedValue) : computedValue
                 );
               })();
               break;
@@ -2388,15 +2381,13 @@ class RootProxy {
       assert(![typeProperty, pathProperty, isNullProperty].includes(k));
     });
 
+    const isCollection = this.getCollectionDefinition(path)
+
     const keys = [
       ...Object.keys(obj),
-      // Since our data variables are non-enumerable, we want to eagerly add them here.
-      // If obj has no data variables defined on it, this will have no effect, as it will
-      // be undefined and dataPathHooks will not be updated
-      ...getDataVariables()
+      // Since our data variables are non-enumerable, we want to eagerly add them here
+      ...isCollection ? getDataVariables() : [],
     ];
-
-    const isCollection = this.getCollectionDefinition(path)
 
     if (isMap) {
       this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${path}.length`] = this.createHooksArray();

@@ -63,7 +63,7 @@ class BaseComponent extends WebRenderer {
       return val;
     }
 
-    return Object(value) !== value ? `${value}` : JSON.stringify(value, replacer, null);
+    return this.analyzeConditionValue(value) ? Object(value) !== value ? `${value}` : JSON.stringify(value, replacer, null) : '';
   }
 
   load(opts = {}) {
@@ -282,11 +282,6 @@ class BaseComponent extends WebRenderer {
   onMount() {
   }
 
-  static getWrapperCssClass() {
-    const { htmlWrapperCssClassname } = RootCtxRenderer;
-    return htmlWrapperCssClassname;
-  }
-
   destroy() {
 
     // Detach from DOM
@@ -295,6 +290,32 @@ class BaseComponent extends WebRenderer {
 
     // Todo: Prune resources
     delete this.getInput();
+  }
+
+  getGlobalVariables() {
+    return {
+      // ... User Global Variables
+      ...self.appContext.userGlobals,
+      // ... Component Global Variables
+      ...{
+        componentId: this.getId(),
+      }
+    }
+  }
+
+  getGlobalVariableTypes() {
+    const { literalType } = RootProxy;
+    return {
+      // ... User Global Variables
+      rtl: literalType,
+      // ... Component Global Variables
+      componentId: literalType,
+    };
+  }
+
+  static getWrapperCssClass() {
+    const { htmlWrapperCssClassname } = RootCtxRenderer;
+    return htmlWrapperCssClassname;
   }
 
   static cloneComponent(component, inputVistor = (i) => i) {
