@@ -4,19 +4,16 @@
 
 // eslint-disable-next-line no-undef
 class BaseComponent extends WebRenderer {
-  static CHAINED_LOADING_STRATEGY = 'chained';
-
-  static ASYNC_LOADING_STRATEGY = 'async';
 
   static #token;
 
   #parent;
 
   constructor({
-    id, input, loadable, logger, parent
+    id, input, logger, parent
   } = {}) {
     super({
-      id, input, loadable, logger,
+      id, input, logger,
     });
 
     if (!BaseComponent.#token) {
@@ -37,7 +34,7 @@ class BaseComponent extends WebRenderer {
       return '';
     }
 
-    const { getDataVariables } = RootCtxRenderer;
+    const { mapKeyPrefixRegex, getDataVariables } = RootProxy;
 
     const replacer = (name, val) => {
       if (val && val.constructor.name === 'Object') {
@@ -56,7 +53,7 @@ class BaseComponent extends WebRenderer {
         keys.forEach(k => {
           o[k
             // Remove $_ prefixes for map keys, if applicable
-            .replace(/^\$_/g, '')
+            .replace(mapKeyPrefixRegex, '')
           ] = val[k];
         });
 
@@ -65,12 +62,7 @@ class BaseComponent extends WebRenderer {
       return val;
     }
 
-    return Object(value) !== value ? `${value}` : JSON.stringify(value, replacer, null);
-  }
-
-  // eslint-disable-next-line class-methods-use-this
-  loadingStrategy() {
-    return BaseComponent.ASYNC_LOADING_STRATEGY;
+    return this.analyzeConditionValue(value) ? Object(value) !== value ? `${value}` : JSON.stringify(value, replacer, null) : '';
   }
 
   load(opts = {}) {
@@ -80,7 +72,7 @@ class BaseComponent extends WebRenderer {
     });
   }
 
-  render({ data, target, strategy, options }) {
+  render({ data, target, transform, options }) {
     if (data === undefined) {
       return Promise.resolve();
     }
@@ -94,7 +86,7 @@ class BaseComponent extends WebRenderer {
 
       switch (true) {
         case data instanceof BaseComponent:
-          throw Error(`Component: ${data.getId()} cannot be rendered in this template location: ${global.clientUtils.getLine({ loc })}`);
+          throw Error(`Component: ${data.getId()} cannot be rendered in this template location: ${clientUtils.getLine({ loc })}`);
 
         case data instanceof Function:
           data = data();
@@ -106,11 +98,6 @@ class BaseComponent extends WebRenderer {
 
     // eslint-disable-next-line no-plusplus
     this.renderOffset++;
-
-    const {
-      CHAINED_LOADING_STRATEGY,
-      ASYNC_LOADING_STRATEGY,
-    } = BaseComponent;
 
     const future = this.promise
       // eslint-disable-next-line no-shadow
@@ -133,18 +120,21 @@ class BaseComponent extends WebRenderer {
             case data instanceof BaseComponent:
               promise = data.load({
                 container: target,
+                transform,
               });
               break;
 
             case data instanceof Function:
               promise = promise.then(() => {
-                data({ target });
+                data({ target, transform });
               });
               break;
 
             default:
               promise = promise.then(() => {
-                node.innerHTML = String(data);
+                node.innerHTML = this.toHtml(
+                  transform ? this[transform](data) : data,
+                );
               });
               break;
           }
@@ -154,19 +144,7 @@ class BaseComponent extends WebRenderer {
           });
         }));
 
-    const loadingStrategy = strategy || this.loadingStrategy();
-
-    switch (loadingStrategy) {
-      case CHAINED_LOADING_STRATEGY:
-        this.promise = future;
-        break;
-      case ASYNC_LOADING_STRATEGY:
-        this.futures.push(future);
-        break;
-
-      default:
-        throw Error(`Unknown strategy: ${loadingStrategy}`);
-    }
+    this.futures.push(future);
 
     return future;
   }
@@ -183,7 +161,7 @@ class BaseComponent extends WebRenderer {
   /**
    * The main goal for this is to allow the component dynamically register fields 
    * in it's object model. Note: this method is only invoked at compile-time.
-   * Also, note that there is no way to define a map/component structure here. This can only
+   * Also, note that there is no way to define map and component types here. This can only
    * be done from the template
    * 
    * Todo: Can we add support for non-scalar attributes here by using a setter
@@ -194,10 +172,6 @@ class BaseComponent extends WebRenderer {
 
   validateInput() {
     return true;
-  }
-
-  getConfigurationProperties() {
-    return []
   }
 
   behaviours() {
@@ -264,8 +238,6 @@ class BaseComponent extends WebRenderer {
   }
 
   booleanOperators() {
-    const { mapKeyPrefix } = RootProxy;
-
     return {
       LT: (x, y) => x < y,
       LTE: (x, y) => x <= y,
@@ -275,15 +247,16 @@ class BaseComponent extends WebRenderer {
       NEQ: (x, y) => x != y,
       INCLUDES: (x, y) => {
         if (!x) { return false; }
+
+        const isString = typeof x == 'string';
         const isArray = x.constructor.name == 'Array';
         const isObject = x.constructor.name == 'Object';
-        assert(isArray || isObject, 'Left-hand side of INCLUDES must be an array or object');
+
+        assert(isString || isArray || isObject, `Left-hand side of INCLUDES must be a string, array or object, got value ${x}`);
 
         return (
-          isArray ? x :
-            Object.keys(x)
-            // // If this is a map, remove <mapKeyPrefix> 
-            //   .map(k => k.replace(mapKeyPrefix, ''))
+          isObject ? x.keys instanceof Function ? x.keys() : Object.keys(x)
+            : x
         )
           .includes(y);
       },
@@ -314,11 +287,6 @@ class BaseComponent extends WebRenderer {
   onMount() {
   }
 
-  static getWrapperCssClass() {
-    const { htmlWrapperCssClassname } = RootCtxRenderer;
-    return htmlWrapperCssClassname;
-  }
-
   destroy() {
 
     // Detach from DOM
@@ -329,14 +297,54 @@ class BaseComponent extends WebRenderer {
     delete this.getInput();
   }
 
+  getGlobalVariables() {
+    return {
+      // ... User Global Variables
+      ...self.appContext ? self.appContext.userGlobals : {},
+      // ... Component Global Variables
+      ...{
+        componentId: this.getId(),
+      }
+    }
+  }
+
+  getGlobalVariableTypes() {
+    const { literalType } = RootProxy;
+    return {
+      // ... User Global Variables
+      rtl: literalType,
+      // ... Component Global Variables
+      componentId: literalType,
+    };
+  }
+
+  static getWrapperCssClass() {
+    const { htmlWrapperCssClassname } = RootCtxRenderer;
+    return htmlWrapperCssClassname;
+  }
+
+  static cloneInputData(data) {
+    const { unsafeEval } = AppContext;
+    return unsafeEval(
+      `module.exports=${clientUtils.stringifyComponentData(
+        data,
+      )}`
+    )
+  }
+
   static cloneComponent(component, inputVistor = (i) => i) {
+    const { cloneInputData } = BaseComponent;
+
     const input = inputVistor(
-      eval(`module.exports=${global.clientUtils.stringifyComponentData(
+      cloneInputData(
         component.getInput(),
-      )}`)
+      )
     )
 
-    const o = new component.constructor({ input });
+    const o = new component.constructor({ 
+      input, 
+      config: { ...component.getConfig() }
+    });
 
     Object.entries(component.handlers).forEach(([k, v]) => {
       o.handlers[k] = v;

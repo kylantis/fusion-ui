@@ -30,7 +30,7 @@ const gulpTransform = ({ fromWatch, componentList, beforeHook } = {}) => {
       dir,
       fromGulp: true,
       fromWatch,
-      componentList,
+      srcComponentList: componentList,
     });
 
     // write precompiled template

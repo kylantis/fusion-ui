@@ -2,8 +2,8 @@
  {{type ? 'slds-button_icon-${type}' : ''}}
  {{useCurrentColor ? 'slds-button_icon-current-color' : ''}}
  {{container ? 'slds-button_icon-container' : ''}}
- {{selected ? "slds-is-selected" : "" transform='ensureIconContainer'}}
- {{containerSize ? 'slds-button_icon-${containerSize}' : '' transform='ensureIconContainer'}}
+ {{selected ? "slds-is-selected" : "" transform='selectedTransform'}}
+ {{size ? 'slds-button_icon-${size}' : ''}}
  {{warning ? "slds-button_icon-warning" : ""}}
  {{error ? "slds-button_icon-error" : ""}}
  "  
@@ -11,9 +11,9 @@
  {{disabled ? "disabled=\"\"" : ""}}
  >
 
-    {{> ButtonIconSvg size iconName iconType cssClass ref='iconSvg'}}
+    {{> ButtonIconSvg iconName iconType cssClass size=iconSize ref='iconSvg'}}
     
     {{#if title}}
-        <span class="slds-assistive-text">{{title}}</span>
+        <span class="slds-assistive-text">{{assistiveText}}</span>
     {{/if}}
 </button>

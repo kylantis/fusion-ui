@@ -6,35 +6,15 @@ class Button extends components.LightningComponent {
     }
 
     synchronizeStateButtonSizes() {
-       
+        
     }
 
     hooks() {
         return {
-            ['states.$_.title']: (evt) => {
-                const { newValue: title, parentObject: { ['@key']: state } } = evt;
-                
-                setTimeout(() => {
-                    // When this hooks is called, the DOM would not have been updated, hence
-                    // we want to wait a little
-                    this.synchronizeStateButtonSizes();
-                }, 500);
+            ['onMount.states.$_.title']: () => {
+                this.synchronizeStateButtonSizes();
             },
         }
-    }
-
-    /**
-     * This function checks if the solid state of this
-     */
-    #willChangeSolidState(property, value) {
-        const { isSolid0 } = Icon;
-
-        const input = { ...this.getInput() };
-        input[property] = value;
-
-        const { type, textDefault, solid } = input;
-
-        return this.isSolid() !== isSolid0({ type, textDefault, solid });
     }
 
     beforeMount() {
@@ -50,20 +30,43 @@ class Button extends components.LightningComponent {
     }
 
     onMount() {
-        this.node.querySelector(':scope > button').addEventListener("click", () => {
-            this.dispatchEvent('click');;
-        });
+        this.synchronizeStateButtonSizes();
+
+        this.node.querySelector(':scope .slds-text-not-selected')
+            .addEventListener("click", () => {
+                this.dispatchEvent('click');
+            });
+
+        const selectedFocusBtn = this.node.querySelector(':scope .slds-text-selected-focus');
+
+        if (selectedFocusBtn) {
+            selectedFocusBtn.addEventListener("click", () => {
+                this.dispatchEvent('click', 'selected-focus');
+            });
+        }
+    }
+
+    selectStateTransform(selectStateClass) {
+        const input = this.getInput();
+        const availableStates = Object.keys(input.states);
+        const classPrefix = 'slds-is-';
+
+        if (selectStateClass.startsWith(classPrefix)) {
+            const selectState = selectStateClass.replace(classPrefix, '');
+
+            switch(true) {
+                case !availableStates.includes('selected'):
+                    return 'slds-not-selected';
+                case !availableStates.includes('selected_focus') && selectState == 'selected':
+                    return `${classPrefix}selected-click`;
+            }
+        }
+
+        return selectStateClass;
     }
 
     toStateCssClass(state) {
-        switch (state) {
-            case 'selected-clicked':
-                return 'selected';
-            case 'selected':
-                return 'selected-focus';
-            default:
-                throw Error(`Unknown state: ${state}`);
-        }
+        return state.replace('_', '-');
     }
 }
 module.exports = Button;

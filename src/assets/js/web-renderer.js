@@ -6,10 +6,10 @@ class WebRenderer extends CustomCtxRenderer {
   static #loadedScripts = [];
 
   constructor({
-    id, input, loadable, logger,
+    id, input, logger,
   } = {}) {
     super({
-      id, input, loadable, logger,
+      id, input, logger,
     });
   }
 

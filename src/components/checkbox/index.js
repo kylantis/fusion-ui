@@ -7,7 +7,7 @@ class Checkbox extends components.LightningComponent {
 
     hooks() {
         return {
-            ['helperText']: async (evt) => {
+            ['beforeMount.helperText']: async (evt) => {
                 const { newValue: helperText, parentObject: obj } = evt;
                 if (helperText) {
                     if (!obj.icon) {
@@ -94,7 +94,7 @@ class Checkbox extends components.LightningComponent {
         }
     }
 
-    async groupItemTransform({ node, blockData }) {
+    async groupItemHook({ node, blockData }) {
 
         const { htmlWrapperCssClassname: mstW } = RootCtxRenderer
 

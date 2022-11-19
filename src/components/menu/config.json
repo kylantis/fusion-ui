@@ -100,6 +100,7 @@
     }
   },
   "sample": {
+    "count": 15,
     "nullifyRandomly": [
       "groups_$.items_$.leftIcon",
       "groups_$.items_$.feedbackState"

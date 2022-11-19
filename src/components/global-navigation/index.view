@@ -16,6 +16,7 @@
           title="{{appName}}" type="button">
 
           {{#if useWaffleIcon}}
+          {{!-- Todo: Move to a different component --}}
           <span class="slds-icon-waffle">
             <span class="slds-r1"></span>
             <span class="slds-r2"></span>
@@ -57,7 +58,7 @@
 
     <ul class="slds-grid" role="tablist">
 
-    {{#each tabs transform = "tabTransform" as |tab tabIndex|}}
+    {{#each tabs hook = "tabHook" as |tab tabIndex|}}
 
       {{component Menu alias="subMenu"}}
       {{component alias="content"}}
@@ -90,7 +91,7 @@
                 marginRight=((isSolidIcon icon) ? 'x-small' : null) 
                 textDefault=(feedbackState ? false : undefined ) 
                 useCurrentColor=(feedbackState eq 'warning') 
-                onSolidStateChange='onTabIconSolidStateChange' 
+                on-solidStateChange='onTabIconSolidStateChange' 
             }}
           {{/if}}
 
@@ -108,7 +109,7 @@
                   iconType='utility' 
                   iconName='chevrondown'
                   container=true
-                  containerSize='x-small'
+                  size='x-small'
                   title="Show submenu" 
                   useCurrentColor=(not feedbackState or (feedbackState eq 'warning'))
                   type=((feedbackState and (not (feedbackState eq 'warning'))) ? 'inverse' : null)
@@ -126,7 +127,7 @@
                   iconType='utility' 
                   iconName='close' 
                   container=true
-                  containerSize='x-small'
+                  size='x-small'
                   title="Close Tab" 
                   useCurrentColor=(not feedbackState or (feedbackState eq 'warning'))
                   type=((feedbackState and (feedbackState neq 'warning')) ? 'inverse' : null)
@@ -147,9 +148,9 @@
 
 {{!-- Todo: Implement inline transforms --}}
 
-{{!-- We are using transformOrder = 0, so that contentTransform can be executed
+{{!-- We are using hookOrder = 0, so that contentTransform can be executed
 before other transforms on this page --}}
-{{#with . transform = "contentTransform" transformOrder = 0 as |x|}}
+{{#with . hook = "contentHook" hookOrder = 0 as |x|}}
 <div class="content"></div>
 {{/with}}
 

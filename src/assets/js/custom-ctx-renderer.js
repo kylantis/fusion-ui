@@ -4,21 +4,36 @@
 
 // eslint-disable-next-line no-undef
 class CustomCtxRenderer extends RootCtxRenderer {
+
   static partialIdHash = '__id';
 
   static partialNameHash = '__name';
 
   constructor({
-    id, input, loadable, logger,
+    id, input, logger,
   } = {}) {
     super({
-      id, input, loadable, logger,
+      id, input, logger,
     });
 
-    this.canonicalHash = {};
-    this.customContext = [];
-
     this.decorators = {};
+  }
+
+  getHandlebarsHelpers() {
+    const { conditional, with: with0, each } = customCtxHelpers;
+
+    const conditionalFn = conditional.bind(this)();
+
+    return {
+      if: function (ctx, options) {
+        conditionalFn(ctx, false, options, this)
+      },
+      unless: function (ctx, options) {
+        conditionalFn(ctx, true, options, this)
+      },
+      with: with0.bind(this)(),
+      each: each.bind(this)(),
+    };
   }
 
   storeContext({ options, ctx }) {
@@ -45,7 +60,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     let { hash, fn } = options;
 
-   //  const partialName = hash[partialNameHash];
+    //  const partialName = hash[partialNameHash];
 
     if (hash[partialIdHash]) {
       // eslint-disable-next-line no-undef
@@ -55,14 +70,15 @@ class CustomCtxRenderer extends RootCtxRenderer {
       const decorator = this.decorators[hash[partialIdHash]];
 
       fn = decorator.fn;
+
       // eslint-disable-next-line no-param-reassign
-      // ctx = decorator.data; VERIFY AND REMOVE THIS LINE
+      // ctx = decorator.data; Todo: VERIFY AND REMOVE THIS LINE
     }
 
     // this.logger.debug(`Loading partial {{> ${partialName} }}`);
 
     return this.renderBlock({
-      data: ctx,
+      ctx,
       options: {
         ...options,
         fn,
@@ -121,46 +137,93 @@ class CustomCtxRenderer extends RootCtxRenderer {
     }
   }
 
-  renderBlock({ data, options }) {
-    const { hash, fn } = options;
-
-    const { blockParam } = hash;
-
-    if (blockParam) {
-      delete hash.blockParam;
-      hash[blockParam] = data;
-    }
-
-    const hashKeys = Object.keys(hash);
-    // eslint-disable-next-line no-plusplus
-    for (let i = 0; i < hashKeys.length; i++) {
-      const k = hashKeys[i];
-      hash[k] = this.wrapDataWithProxy(hash[k]);
-    }
-
-    const prevCanonicalHash = this.canonicalHash;
-    this.canonicalHash = {
-      ...this.canonicalHash,
-      ...hash,
+  captureState() {
+    return {
+      blockData: clientUtils.deepClone(this.blockData),
     };
-    this.customContext.push({
-      hash,
-      data
-    });
+  }
+
+  renderBlock({ options, ctx, scope, state }) {
+    const { fn, hash } = options;
+
+    const { blockParam, hook, hookOrder } = hash;
+    
+    const nodeId = this.peekSyntheticNodeId();
+
+    if (scope) {
+      assert(blockParam);
+
+      // The compiler added a special hashkey known as <blockParam> that contains
+      // the data variable qualifier used by subpaths, hence prune from <hash> and
+      // inject as data variable
+      delete hash.blockParam;
+
+      hash[blockParam] = ctx;
+
+      if (state) {
+        hash.state = state;
+      }
+
+      if (hook) {
+        this.hooks[`#${nodeId}`] = {
+          hookName: hook,
+          order: hookOrder != undefined ? hookOrder : this.getDefaultHookOrder(),
+          blockData: (state || options.data.state).blockData,
+        };
+      }
+
+      options.data = clientUtils.createFrame(options.data);
+    }
+
+    Object.keys(hash).forEach(k => {
+      options.data[k] = this.wrapDataWithProxy(hash[k]);
+    })
 
     const output = fn(
-      this.wrapDataWithProxy(data),
-      { data: this.canonicalHash },
+      this.wrapDataWithProxy(ctx),
+      { data: options.data },
     );
-
-    this.customContext.pop();
-    this.canonicalHash = prevCanonicalHash;
 
     return output;
   }
 
-  inCustomContext() {
-    return this.customContext.length > 0;
+  resolveMustacheInCustom({ options, params }) {
+
+    const { textNodeHookName } = RootProxy;
+
+    const { hash: { hook, hookOrder, transform } } = options;
+
+    const bindContext = this.getCurrentBindContext();
+
+    const [value] = params;
+
+    if (bindContext && bindContext.type == textNodeHookName) {
+      const { selector } = bindContext;
+
+      if (value instanceof Promise || value instanceof BaseComponent) {
+        value = this.render({
+          data: value,
+          target: selector.replace('#', ''),
+          transform,
+        })
+
+        transform = null;
+      }
+
+      if (hook) {
+        this.hooks[selector] = {
+          hookName: hook,
+          order: hookOrder != undefined ? hookOrder : this.getDefaultHookOrder(),
+          blockData: options.data.state.blockData,
+        };
+      }
+    }
+
+    if (transform) {
+      value = this[transform](value);
+    }
+
+    return this.toHtml(value);
   }
 
   concatenate() {
@@ -171,28 +234,14 @@ class CustomCtxRenderer extends RootCtxRenderer {
   }
 
   logical() {
-    const { evaluateBooleanExpression } = RootProxy;
+    const { getExecStringFromValue: execString } = RootCtxRenderer;
     const params = Array.from(arguments);
 
     const [left, right, operator] = params;
 
-    const expr = (value) => {
-      switch (true) {
-        case value == null:
-        case value === undefined:
-        case value.constructor.name == 'Number':
-        case value.constructor.name == 'Boolean':
-          return value;
-        case value.constructor.name == 'String':
-            return `"${value}"`;
-        case value instanceof BaseComponent:
-            return clientUtils.stringifyComponentData(value.toJSON());
-        case value === Object(value):
-          return JSON.stringify(value);
-      }
-    }
-    
-    return evaluateBooleanExpression(this, expr(left), expr(right), operator);
+    return this.proxyInstance.evaluateBooleanExpression(
+      execString(left), execString(right), operator,
+    );
   }
 
   noOpHelper() {
@@ -206,6 +255,8 @@ class CustomCtxRenderer extends RootCtxRenderer {
   }
 
   ternary() {
+    const { unsafeEval } = AppContext;
+
     const params = Array.from(arguments);
 
     const options = params.pop();
@@ -259,7 +310,8 @@ class CustomCtxRenderer extends RootCtxRenderer {
       })
       .join('');
 
-    const b = eval(`${scope}${expr}`);
+    const b = unsafeEval(`${scope}${expr}`);
+
     assert(typeof b == 'boolean');
 
     let val = b ? left : right;
@@ -268,9 +320,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
       val = !val;
     }
 
-    const result = val === Object(val) ? JSON.stringify(val) : val;
-
-    return result;
+    return this.proxyInstance.getRawValueWrapper(val);
   }
 
   static isPrimitive(value) {
@@ -278,54 +328,68 @@ class CustomCtxRenderer extends RootCtxRenderer {
       .includes(value.constructor.name);
   }
 
-  static getAllValidationTypes() {
-    return ['Array', 'Map', 'Object', 'Literal', 'componentRef'];
+  static getValueType(value) {
+    return value === null ? 'null' : value === Object(value) ? value.constructor.name : typeof value;
   }
 
+  // Todo: Move this method to the preprocessor class
   // eslint-disable-next-line class-methods-use-this
-  validateType({
-    path, value,
-    validTypes = CustomCtxRenderer.getAllValidationTypes(),
-    strict = false, line,
-  }) {
-    const { isPrimitive } = CustomCtxRenderer;
+  validateType({ path, value, validType, nameQualifier, line, allowEmptyCollection=false }) {
+    const { isPrimitive, getValueType } = CustomCtxRenderer;
+    const { literalType, arrayType, objectType, mapType, componentRefType } = RootProxy;
 
-    if (validTypes && validTypes.length) {
-      // eslint-disable-next-line no-plusplus
-      for (let i = 0; i < validTypes.length; i++) {
-        const type = validTypes[i];
-        // eslint-disable-next-line default-case
-        switch (true) {
-          case type === 'Array' && value != null && value.constructor.name === 'Array':
-            if (value.length || !strict) {
-              return value;
-            }
-            break;
+    const arr = path.split('%');
 
-          case type === 'Map' && value != null && value.constructor.name === 'Map':
-            if (value.size || !strict) {
-              return value;
-            }
-            break;
+    if (arr.length == 2) {
+      path = arr[0];
+      const metaArray = arr[1].split('/');
 
-          case type === 'Object' && value != null && value.constructor.name === 'Object':
-            if ((!!Object.keys(value).length) || !strict) {
-              return value;
-            }
-            break;
-
-          case type === 'Literal' && isPrimitive(value):
-            return value;
-
-          // eslint-disable-next-line no-undef
-          case type === 'componentRef' && (value == null || value instanceof BaseComponent):
-            return value;
-        }
-      }
-
-      throw Error(`${path} must resolve to a non-empty value with one of the types: ${validTypes}${line ? ` on line ${line}` : ''}.`);
+      validType = metaArray[0];
+      // eslint-disable-next-line prefer-destructuring
+      nameQualifier = metaArray[1];
     }
-    return value;
+
+    if (!validType) {
+      return value;
+    }
+
+    const emptyCollectionErrorMsg = () => `${path} must resolve to a non-empty [${validType}]${nameQualifier ? ` (${nameQualifier}) ` : ''}`;
+
+    const currentType = getValueType(value);
+
+    let err = `${path} must resolve to the type : [${validType}]${nameQualifier ? ` (${nameQualifier}) ` : ''} instead of ${currentType}`;
+
+    // eslint-disable-next-line default-case
+    switch (true) {
+      case validType === arrayType && value != null && value.constructor.name === 'Array':
+        if (value.length || allowEmptyCollection) {
+          return value;
+        }
+        err = emptyCollectionErrorMsg();
+        break;
+
+      case validType === mapType && value != null && value.constructor.name === 'Map':
+        if (value.size || allowEmptyCollection) {
+          return value;
+        }
+        err = emptyCollectionErrorMsg();
+        break;
+
+      case validType === objectType && value != null && value.constructor.name === 'Object':
+        return value;
+
+      case validType === literalType && isPrimitive(value):
+        return value;
+
+      // eslint-disable-next-line no-undef
+      case validType === componentRefType &&
+        (value == null || (value instanceof BaseComponent && (!nameQualifier || value.constructor.className == nameQualifier))):
+        return value;
+    }
+
+    throw Error(
+      `${line ? `[${line}] ` : ''}${err}`
+    );
   }
 }
 

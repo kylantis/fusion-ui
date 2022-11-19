@@ -15,7 +15,7 @@ class ContextMenu extends components.OverlayComponent {
 
     hooks() {
         return {
-            menu: (evt) => this.onMenuChange(evt.newValue)
+            ['beforeMount.menu']: (evt) => this.onMenuChange(evt.newValue)
         }
     }
 
@@ -101,8 +101,8 @@ class ContextMenu extends components.OverlayComponent {
                 case "bottom-left":
                     this.menus[pos] = cloneMenu(menu, 'left', 'bottom');
                     break;
-                case "bottom-left":
-                    this.menus[pos] = cloneMenu(menu, 'left', 'bottom');
+                case "bottom-right":
+                    this.menus[pos] = cloneMenu(menu, 'right', 'bottom');
                     break;
             }
         });
@@ -259,7 +259,10 @@ class ContextMenu extends components.OverlayComponent {
                             hideOnItemClick = true;
                         }
 
-                        if (i.targetNodes && i.targetNodes.includes(target)) {
+                        if (
+                            i.targetNodes && 
+                            i.targetNodes.includes(target) || i.targetNodes.includes(target.parentElement)
+                        ) {
                             // Clicks on <targetNodes> is handled by this.targetClickListener
                             return;
                         }

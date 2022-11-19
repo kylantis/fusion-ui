@@ -8,7 +8,7 @@ class ActivityTimeline extends components.LightningComponent {
 
     hooks() {
         return {
-            ['items.$_.actions']: (evt) => {
+            ['beforeMount.items.$_.actions']: (evt) => {
                 const { newValue: menu, parentObject: { ["@key"]: identifier } } = evt;
 
                 const contextMenu = (this.contextMenus || {})[identifier];
@@ -17,12 +17,6 @@ class ActivityTimeline extends components.LightningComponent {
                     if (contextMenu) {
                         contextMenu.onMenuChange(menu)
                     } else {
-
-                        // Note: Hooks are eagerly called by RootProxy - even before the
-                        // newValue is validated, transformed or saved, hence we need to 
-                        // manually validate that <menu> is a Menu instance
-                        assert(newMenu instanceof components.Menu);
-
                         this.addContextMenu(identifier, menu);
                     }
                 } else {
@@ -32,22 +26,21 @@ class ActivityTimeline extends components.LightningComponent {
                     delete this.contextMenus[identifier];
                 }
             },
-            ['items.$_.lineColor']: (evt) => {
+            ['beforeMount.items.$_.lineColor']: (evt) => {
                 const { newValue: lineColor, parentObject: { ["@key"]: identifier } } = evt;
 
                 this.node.querySelector(`.slds-timeline li style[identifier='${identifier}']`)
                     .innerHTML = this.getItemStyle0(identifier, lineColor);
             },
-            ['items.$_.expandable']: (evt) => {
+            ['beforeMount.items.$_.expandable']: (evt) => {
                 const { parentObject: { ["@key"]: identifier } } = evt;
                 this.setExpandButtonVisibility(identifier);
             },
-            ['items.$_.expanded']: (evt) => {
-                const { newValue: expanded, parentObject: { ["@key"]: identifier } } = evt;
-                const { items } = this.getInput();
-                const item = items[identifier];
+            ['beforeMount.items.$_.expanded']: (evt) => {
+                const { oldValue, newValue, parentObject: { ["@key"]: identifier } } = evt;
 
-                if (item.expanded == expanded) {
+                // Todo: remove condition??
+                if (oldValue == newValue) {
                     return;
                 }
 
@@ -95,7 +88,7 @@ class ActivityTimeline extends components.LightningComponent {
         contextMenus[identifier] = contextMenu;
     }
 
-    async itemTransform({ node, blockData, initial }) {
+    async itemHook({ node, blockData, initial }) {
         const identifier = node.querySelector(':scope > li').getAttribute('identifier');
 
         const { items } = this.getInput();

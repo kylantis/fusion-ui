@@ -26,7 +26,7 @@ class ButtonIcon extends components.LightningComponent {
 
     onMount() {
         this.node.querySelector(':scope > button').addEventListener("click", () => {
-            this.dispatchEvent('click');;
+            this.dispatchEvent('click');
         });
     }
 
@@ -49,9 +49,9 @@ class ButtonIcon extends components.LightningComponent {
         return v;
     }
 
-    ensureIconContainer(v) {
-        if (!this.isIconContainer()) {
-            this.throw(`"${arguments[0]}" cannot be used with a bare icon`);
+    selectedTransform(v) {
+        if (v && !this.isIconContainer()) {
+            this.throw(`"selected" cannot be used with a bare icon`);
         }
 
         return v;

@@ -103,7 +103,20 @@
         "Aida Lee",
         "and 5 others",
         "invites you to a hurdle",
-        "brainstorming session today"
+        "brainstorming session today",
+        "monotonectally morph effective ideas",
+        "interactively grow prospective services",
+        "intrinsically customize cooperative architectures",
+        "synergistically matrix intermandated paradigms",
+        "quickly develop holistic portals",
+        "credibly promote front-end outsourcing",
+        "completely communicate next-generation platforms",
+        "assertively negotiate compelling e-markets",
+        "dramatically integrate standards compliant solutions",
+        "completely reinvent front-end potentialities",
+        "seamlessly implement innovative processes",
+        "enthusiastically actualize cutting-edge e-tailers",
+        "proactively exploit B2B solutions"
       ]
     },
     "items.$_.description.parts_$.link": {
@@ -127,7 +140,10 @@
     },
     "items.$_.title.left_$": {
       "type": "TextCompanion",
-      "isNull": false
+      "isNull": false,
+      "defaults": [
+        "CheckboxBase"
+      ]
     },
     "items.$_.title.right_$": {
       "type": "TextCompanion",

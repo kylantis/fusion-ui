@@ -7,6 +7,7 @@ class AppContext {
 
   static #initialized;
   static #loadedResources = {};
+  static #internalApi = {};
 
   constructor({
     logger, userGlobals,
@@ -48,17 +49,56 @@ class AppContext {
       }
     };
 
-    self.module = {
-      exports: {},
-    };
+    // AppContext.#internalApi.eval = self.eval;
+    // delete self.eval;
 
-    // This is needed for loading component metadata.min.js files
-    // because they reference global, i.e. global['metadata_abstract_component']
     self.global = self;
 
     Object.defineProperty(self, 'appContext', {
       value: this, configurable: false, writable: false,
     });
+  }
+
+  /**
+   * Note: Unlike evaluate(...), only a well known scope property can be
+   * be used here because top-level variables will be defined for them
+   */
+  static unsafeEval(code, scope = {}) {
+    const { require } = scope;
+    return eval(code);
+  }
+
+  static evaluate(code, scope = {}, thisObject) {
+
+    // this.getInput...
+    // module.exports = ...
+    // {...} ?
+    // ""
+    // const x...
+
+    // Todo: Add proxy support
+    const module = {
+      exports: undefined,
+    }
+
+    scope.module = module;
+
+    const args = { names: [], values: [] };
+
+    Object.entries(scope).forEach(([k, v]) => {
+      args.names.push(k);
+      args.values.push(v);
+    });
+
+    let fn = Function(...args.names, code);
+
+    if (thisObject) {
+      fn = fn.bind(thisObject);
+    }
+
+    let r = fn(...args.values);
+
+    return module.exports !== undefined ? module.exports : r;
   }
 
   setupSessionSocket() {
@@ -150,6 +190,7 @@ class AppContext {
   getDependencies() {
     return [
       { url: '/assets/js/client-utils.min.js', namespace: 'clientUtils' },
+      { url: '/assets/js/custom-ctx-helpers.min.js', namespace: 'customCtxHelpers' },
       '/assets/js/proxy.min.js',
       '/assets/js/base-renderer.min.js',
       '/assets/js/root-ctx-renderer.min.js',
@@ -181,7 +222,9 @@ class AppContext {
     });
 
     let rootAssetId;
+
     self.components = {};
+    self.templates = {};
 
     const loadComponentClass = (name, assetId, tpl, src, testSrc, config) => {
 
@@ -193,19 +236,17 @@ class AppContext {
 
       if (testSrc) {
         // If we are in test mode, load component test classes, to override the main ones
-        const inlineScope = ` const require = (module) => {
-
-        switch(module) {
-          case './index':
-            return self.components['${name}'];
-          default:
-            throw Error('Cannot load module: ${module}');
-        }
-      };
-      `;
-
         const componentTestClass = this.processScript({
-          contents: testSrc, inlineScope,
+          contents: testSrc, scope: {
+            require: (module) => {
+              switch (module) {
+                case './index':
+                  return self.components[name];
+                default:
+                  throw Error('Cannot load module: ${module}');
+              }
+            }
+          },
         });
 
         // When serializing, toJSON(...) should use the actual className, not the test class
@@ -230,12 +271,12 @@ class AppContext {
           lazyLoadComponentTemplates ? Promise.resolve() : this.fetch(`/components/${assetId}/metadata.min.js`),
 
           this.fetch({
-            url: `/components/${assetId}/index.js`,
+            url: `/components/${assetId}/index.min.js`,
             process: false,
           }),
 
           this.testMode ? this.fetch({
-            url: `/components/${assetId}/index.test.js`,
+            url: `/components/${assetId}/index.test.min.js`,
             process: false,
           }) : null,
 
@@ -243,7 +284,6 @@ class AppContext {
             url: `/components/${assetId}/config.json`,
             asJson: true,
           }),
-
         ]);
       }))
       .then(async (components) => {
@@ -262,17 +302,10 @@ class AppContext {
       });
   }
 
-  processScript({ contents, inlineScope, namespace }) {
+  processScript({ contents, scope, namespace }) {
+    const { evaluate, unsafeEval } = AppContext;
 
-    if (inlineScope) {
-      contents = `${inlineScope}${contents}`;
-    }
-
-    const exports = {};
-    // eslint-disable-next-line no-unused-vars
-    const module = { exports };
-
-    const result = eval(contents);
+    const result = unsafeEval(contents, scope);
 
     // eslint-disable-next-line default-case
     switch (true) {
@@ -280,7 +313,10 @@ class AppContext {
         namespace = namespace || result.name;
 
       case result instanceof Object && !!namespace:
-        eval(`self.${namespace} = result;`);
+        evaluate(
+          `self.${namespace} = result;`,
+          { result }
+        );
         break;
     }
 
@@ -322,10 +358,10 @@ class AppContext {
       return cached[resourceType];
     }
 
-    const processFn = ({ response, url, asJson, namespace, inlineScope, process }) => {
+    const processFn = ({ response, url, asJson, namespace, process }) => {
 
       const {
-        contents, cached, inlineScope: scope, namespace: ns
+        contents, cached, namespace: ns
       } = response;
 
       let result = contents;
@@ -333,9 +369,8 @@ class AppContext {
       if (!asJson && process) {
 
         if (cached &&
-          // The namespace and inlineScope needs to match for us to know that 
-          // res.module what the developer intended to load
-          scope === inlineScope &&
+          // The namespace needs to match for us to know that res.module is what 
+          // the developer intended to load
           ns === namespace
         ) {
 
@@ -343,12 +378,10 @@ class AppContext {
           result = response.module;
         } else {
 
-          result = this.processScript({ contents, inlineScope, namespace });
+          result = this.processScript({ contents, namespace });
           // this.logger.info(`Processed ${url} [REMOTE]`);
 
           response.module = result;
-
-          response.inlineScope = inlineScope;
           response.namespace = namespace;
         }
       }
@@ -364,16 +397,16 @@ class AppContext {
           }
           return req;
         })
-        .map(async ({ url, asJson, namespace, inlineScope, process = true }) => ({
+        .map(async ({ url, asJson, namespace, process = true }) => ({
           response: await fetchFn({ url, asJson }),
-          url, asJson, namespace, inlineScope, process,
+          url, asJson, namespace, process,
         }))
     ).then(responses => {
       const result = [];
 
-      for (const { response, url, asJson, namespace, inlineScope, process } of responses) {
+      for (const { response, url, asJson, namespace, process } of responses) {
         result.push(
-          processFn({ response, url, asJson, namespace, inlineScope, process })
+          processFn({ response, url, asJson, namespace, process })
         );
       }
 
@@ -381,3 +414,5 @@ class AppContext {
     });
   }
 }
+
+module.exports = AppContext;

@@ -126,7 +126,7 @@ class Menu extends components.LightningComponent {
      * Block Hook that processes new items added to this menu
      * @param {HTMLElement} node 
      */
-    async itemTransform({ node, blockData }) {
+    async itemHook({ node, blockData }) {
 
         const { htmlWrapperCssClassname: mstW } = RootCtxRenderer
         const { pathSeparator } = RootProxy;
@@ -212,12 +212,12 @@ class Menu extends components.LightningComponent {
 
             item.checkIconContainer = checkIconContainer;
 
-            item.checkIconMarkup = await this.createIcon({
+            item.checkIconMarkup = (await this.createIcon({
                 type: 'utility',
                 name: 'check',
                 level,
                 x: checkIconPosition
-            })
+            })).html;
 
             if (initiallySelected) {
                 this.selectItem(identifier)
@@ -239,7 +239,7 @@ class Menu extends components.LightningComponent {
                 }
             }
 
-            this.createIcon({
+            await this.createIcon({
                 type: 'utility',
                 name: `chevron${subMenuX}`,
                 level,

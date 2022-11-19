@@ -2,7 +2,7 @@
   "enableTypeMerging": false,
   "collections": {
     "states": {
-      "minLength": 2,
+      "minLength": 3,
       "keyType": "buttonState",
       "singularType": "State"
     }
@@ -52,13 +52,6 @@
       "type": "Boolean",
       "defaultValue": true
     },
-    "state": {
-      "type": "String",
-      "allowed": "buttonState",
-      "defaults": [
-        "selected"
-      ]
-    },
     "states.$_.leftIcon": {
       "type": "ButtonIconSvg",
       "isNull": false
@@ -78,6 +71,16 @@
         "Delete Account",
         "Send gift",
         "Refresh"
+      ]
+    },
+    "selectState": {
+      "type": "String",
+      "allowed": [
+        "selected",
+        "selected-click"
+      ],
+      "defaults": [
+        null
       ]
     }
   },

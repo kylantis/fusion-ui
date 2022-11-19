@@ -1,0 +1,46 @@
+{
+  "enableTypeMerging": false,
+  "collections": {},
+  "scalars": {
+    "type": {
+      "type": "String",
+      "allowed": [
+        "warning",
+        "error",
+        "offline"
+      ],
+      "defaults": [
+        "offline"
+      ]
+    },
+    "icon": {
+      "type": "Icon",
+      "isNull": false
+    },
+    "assistiveText": {
+      "type": "String",
+      "defaults": [
+        null
+      ]
+    },
+    "link": {
+      "type": "Link",
+      "isNull": false
+    },
+    "message": {
+      "type": "String",
+      "defaults": [
+        "Logged in as John Smith (johnsmith@acme.com)."
+      ]
+    },
+    "closeIcon": {
+      "type": "Boolean",
+      "defaultValue": true
+    }
+  },
+  "sample": {
+    "nullifyRandomly": []
+  },
+  "useCollectionLengthProperty": false,
+  "escapeDynamicHtml": false
+}

@@ -1,6 +1,6 @@
 <ul class="slds-accordion">
 
-    {{#each items transform = "addClickListener" as |item i|}}
+    {{#each items hook = "addClickListener" as |item i|}}
 
     <li class="slds-accordion__list-item">
         <section class="slds-accordion__section {{@first ? 'slds-is-open' : ''}}">

@@ -1,4 +1,5 @@
 {
+  "compilerOptions": {},
   "collections": {
     "items": {
       "minLength": 5,

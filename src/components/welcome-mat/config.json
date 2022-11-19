@@ -1,7 +1,12 @@
 {
   "enableTypeMerging": false,
   "collections": {},
-  "scalars": {},
+  "scalars": {
+    "ff": {
+      "type": "ActivityTimeline",
+      "isNull": false
+    }
+  },
   "sample": {
     "nullifyRandomly": []
   },
