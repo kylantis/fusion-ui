@@ -10,10 +10,10 @@ class BaseComponent extends WebRenderer {
   #parent;
 
   constructor({
-    id, input, loadable, logger, parent
+    id, input, logger, parent
   } = {}) {
     super({
-      id, input, loadable, logger,
+      id, input, logger,
     });
 
     if (!BaseComponent.#token) {
@@ -34,8 +34,7 @@ class BaseComponent extends WebRenderer {
       return '';
     }
 
-    const { mapKeyPrefixRegex } = RootProxy;
-    const { getDataVariables } = RootCtxRenderer;
+    const { mapKeyPrefixRegex, getDataVariables } = RootProxy;
 
     const replacer = (name, val) => {
       if (val && val.constructor.name === 'Object') {
@@ -73,7 +72,7 @@ class BaseComponent extends WebRenderer {
     });
   }
 
-  render({ data, target, options }) {
+  render({ data, target, transform, options }) {
     if (data === undefined) {
       return Promise.resolve();
     }
@@ -121,18 +120,21 @@ class BaseComponent extends WebRenderer {
             case data instanceof BaseComponent:
               promise = data.load({
                 container: target,
+                transform,
               });
               break;
 
             case data instanceof Function:
               promise = promise.then(() => {
-                data({ target });
+                data({ target, transform });
               });
               break;
 
             default:
               promise = promise.then(() => {
-                node.innerHTML = String(data);
+                node.innerHTML = this.toHtml(
+                  transform ? this[transform](data) : data,
+                );
               });
               break;
           }
@@ -245,13 +247,16 @@ class BaseComponent extends WebRenderer {
       NEQ: (x, y) => x != y,
       INCLUDES: (x, y) => {
         if (!x) { return false; }
+
+        const isString = typeof x == 'string';
         const isArray = x.constructor.name == 'Array';
         const isObject = x.constructor.name == 'Object';
-        assert(isArray || isObject, 'Left-hand side of INCLUDES must be an array or object');
+
+        assert(isString || isArray || isObject, `Left-hand side of INCLUDES must be a string, array or object, got value ${x}`);
 
         return (
-          isArray ? x :
-            x.keys instanceof Function ? x.keys() : Object.keys(x)
+          isObject ? x.keys instanceof Function ? x.keys() : Object.keys(x)
+            : x
         )
           .includes(y);
       },
@@ -295,7 +300,7 @@ class BaseComponent extends WebRenderer {
   getGlobalVariables() {
     return {
       // ... User Global Variables
-      ...self.appContext.userGlobals,
+      ...self.appContext ? self.appContext.userGlobals : {},
       // ... Component Global Variables
       ...{
         componentId: this.getId(),
@@ -318,14 +323,28 @@ class BaseComponent extends WebRenderer {
     return htmlWrapperCssClassname;
   }
 
+  static cloneInputData(data) {
+    const { unsafeEval } = AppContext;
+    return unsafeEval(
+      `module.exports=${clientUtils.stringifyComponentData(
+        data,
+      )}`
+    )
+  }
+
   static cloneComponent(component, inputVistor = (i) => i) {
+    const { cloneInputData } = BaseComponent;
+
     const input = inputVistor(
-      eval(`module.exports=${global.clientUtils.stringifyComponentData(
+      cloneInputData(
         component.getInput(),
-      )}`)
+      )
     )
 
-    const o = new component.constructor({ input });
+    const o = new component.constructor({ 
+      input, 
+      config: { ...component.getConfig() }
+    });
 
     Object.entries(component.handlers).forEach(([k, v]) => {
       o.handlers[k] = v;

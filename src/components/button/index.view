@@ -18,7 +18,7 @@
 {{stretch ? 'slds-button_stretch' : ''}}
 {{fullWidth ? 'slds-button_full-width' : ''}}
 {{stateful ? 'slds-button_stateful' : ''}}
-{{stateful ? (not state) ? 'slds-not-selected' : (states includes state) ? 'slds-is-${state}' : '' : ''}}
+{{stateful ? selectState ? 'slds-is-${selectState}' : 'slds-not-selected' : '' transform="selectStateTransform"}}
 "
  {{disabled ? "disabled=\"\"" : ""}}
 >
@@ -28,7 +28,7 @@
     </span>
 
     {{#if stateful}}
-        {{#each states as |state|}}
+        {{#each states as |s|}}
             {{component ButtonIconSvg alias="leftIcon"}}
             {{component ButtonIconSvg alias="rightIcon"}}
 

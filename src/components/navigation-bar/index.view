@@ -7,7 +7,7 @@
 
     <ul class="slds-grid">
 
-      {{#each items transform = "itemTransform" as |item itemIndex|}}
+      {{#each items hook = "itemHook" as |item itemIndex|}}
 
       {{component Menu alias="subMenu"}}
 

@@ -20,19 +20,7 @@ parts, and each part is either plain text or a link
 
 <ul class="slds-timeline">
 
-  {{#each items transform = "itemTransform" as |item|}}
-    
-    {{#each itemsX as |i|}}
-    {{/each}}
-
-    {{#each (true ? itemsX : 1234) as |i|}}
-    {{/each}}
-
-    {{#each itemsY as |i j|}}
-      {{#each . as |k l|}}
-        {{.}}
-      {{/each}}
-    {{/each}}
+  {{#each items hook = "itemHook" as |item|}}
 
     {{component Icon alias="icon"}}
     {{component Menu alias="actions"}}
@@ -51,7 +39,7 @@ parts, and each part is either plain text or a link
         <div class="slds-media__figure">
 
           {{#if expandable}}
-            {{> ButtonIcon iconType='utility' iconName='switch' cssClass="slds-timeline__details-action-icon" title="Toggle details"}}
+            {{> ButtonIcon iconType='utility' iconName='switch' cssClass="slds-timeline__details-action-icon"}}
           {{/if}}
 
           {{> icon}}
@@ -88,7 +76,7 @@ parts, and each part is either plain text or a link
               <p class="slds-timeline__date">{{date}}</p>
 
               {{#if actions}}
-                {{> ButtonIcon iconType='utility' iconName='down' containerSize="x-small" type="border-filled" title="More Options for this item"}}
+                {{> ButtonIcon iconType='utility' iconName='down' size="x-small" type="border-filled"}}
               {{/if}}
 
             </div>

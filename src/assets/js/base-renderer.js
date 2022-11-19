@@ -7,13 +7,11 @@ class BaseRenderer {
 
   #input;
 
-  isLoadable;
-
   #isRoot;
 
   #initialized;
 
-  constructor({ id, input, loadable = true, logger, config={} } = {}) {
+  constructor({ id, input, logger, config={} } = {}) {
     if (!id) {
       // eslint-disable-next-line no-param-reassign
       id = this.#createId();
@@ -32,10 +30,9 @@ class BaseRenderer {
 
     this.#id = id;
     this.logger = logger || self.appContext ? self.appContext.logger : console;
-    this.isLoadable = loadable;
     this.#isRoot = !BaseRenderer.#componentIds.length;
 
-    if (this.loadable()) {
+    if (self.appContext) {
       BaseRenderer.#componentIds.push(this.#id);
     }
 
@@ -60,25 +57,12 @@ class BaseRenderer {
     }
   }
 
-  static getComponentIds() {
-    return BaseRenderer.#componentIds;
+  getConfig() {
+    return this.config;
   }
 
-  loadable() {
-    const { isComponentLoadable } = global;
-
-    if (isComponentLoadable === false) {
-
-      // There are some scenarios where we load components without
-      // actually calling the constructor manually, hence we are unable
-      // to set loadable: false. For example: in getSerializedComponent(...),
-      // sampleData is loaded using require, and this will cause any 
-      // components inside it to be initialized as well.
-
-      return false;
-    }
-
-    return this.isLoadable;
+  static getComponentIds() {
+    return BaseRenderer.#componentIds;
   }
 
   isRoot() {
@@ -105,6 +89,10 @@ class BaseRenderer {
   }
 
   load() {
+  }
+
+  evaluateExpression(code, scope) {
+    return AppContext.evaluate(code, scope, this);
   }
 
   /**

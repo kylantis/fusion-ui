@@ -510,5 +510,8 @@
       "defaultValue": true
     }
   },
+  "sample": {
+    "count": 20
+  },
   "escapeDynamicHtml": false
 }

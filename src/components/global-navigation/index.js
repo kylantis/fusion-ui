@@ -210,7 +210,7 @@ class GlobalNavigation extends components.LightningComponent {
         );
     }
 
-    contentTransform({ node }) {
+    contentHook({ node }) {
         const contentContainer = node.querySelector(':scope > .content');
 
         // Temporarily make the content container hidden, so the user does not see as
@@ -369,7 +369,7 @@ class GlobalNavigation extends components.LightningComponent {
         return contentDiv.id;
     }
 
-    async tabTransform({ node, blockData }) {
+    async tabHook({ node, blockData }) {
         const li = node.querySelector(':scope > .slds-context-bar__item');
 
         const { index = -1, length } = blockData[`tabs`] || {};

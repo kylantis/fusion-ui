@@ -37,11 +37,10 @@ class ActivityTimeline extends components.LightningComponent {
                 this.setExpandButtonVisibility(identifier);
             },
             ['beforeMount.items.$_.expanded']: (evt) => {
-                const { newValue: expanded, parentObject: { ["@key"]: identifier } } = evt;
-                const { items } = this.getInput();
-                const item = items[identifier];
+                const { oldValue, newValue, parentObject: { ["@key"]: identifier } } = evt;
 
-                if (item.expanded == expanded) {
+                // Todo: remove condition??
+                if (oldValue == newValue) {
                     return;
                 }
 
@@ -89,7 +88,7 @@ class ActivityTimeline extends components.LightningComponent {
         contextMenus[identifier] = contextMenu;
     }
 
-    async itemTransform({ node, blockData, initial }) {
+    async itemHook({ node, blockData, initial }) {
         const identifier = node.querySelector(':scope > li').getAttribute('identifier');
 
         const { items } = this.getInput();

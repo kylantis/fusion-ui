@@ -10,10 +10,10 @@ class CustomCtxRenderer extends RootCtxRenderer {
   static partialNameHash = '__name';
 
   constructor({
-    id, input, loadable, logger,
+    id, input, logger,
   } = {}) {
     super({
-      id, input, loadable, logger,
+      id, input, logger,
     });
 
     this.decorators = {};
@@ -137,10 +137,18 @@ class CustomCtxRenderer extends RootCtxRenderer {
     }
   }
 
-  renderBlock({ options, ctx, scope }) {
+  captureState() {
+    return {
+      blockData: clientUtils.deepClone(this.blockData),
+    };
+  }
+
+  renderBlock({ options, ctx, scope, state }) {
     const { fn, hash } = options;
 
-    const { blockParam } = hash;
+    const { blockParam, hook, hookOrder } = hash;
+    
+    const nodeId = this.peekSyntheticNodeId();
 
     if (scope) {
       assert(blockParam);
@@ -151,6 +159,18 @@ class CustomCtxRenderer extends RootCtxRenderer {
       delete hash.blockParam;
 
       hash[blockParam] = ctx;
+
+      if (state) {
+        hash.state = state;
+      }
+
+      if (hook) {
+        this.hooks[`#${nodeId}`] = {
+          hookName: hook,
+          order: hookOrder != undefined ? hookOrder : this.getDefaultHookOrder(),
+          blockData: (state || options.data.state).blockData,
+        };
+      }
 
       options.data = clientUtils.createFrame(options.data);
     }
@@ -167,6 +187,45 @@ class CustomCtxRenderer extends RootCtxRenderer {
     return output;
   }
 
+  resolveMustacheInCustom({ options, params }) {
+
+    const { textNodeHookName } = RootProxy;
+
+    const { hash: { hook, hookOrder, transform } } = options;
+
+    const bindContext = this.getCurrentBindContext();
+
+    const [value] = params;
+
+    if (bindContext && bindContext.type == textNodeHookName) {
+      const { selector } = bindContext;
+
+      if (value instanceof Promise || value instanceof BaseComponent) {
+        value = this.render({
+          data: value,
+          target: selector.replace('#', ''),
+          transform,
+        })
+
+        transform = null;
+      }
+
+      if (hook) {
+        this.hooks[selector] = {
+          hookName: hook,
+          order: hookOrder != undefined ? hookOrder : this.getDefaultHookOrder(),
+          blockData: options.data.state.blockData,
+        };
+      }
+    }
+
+    if (transform) {
+      value = this[transform](value);
+    }
+
+    return this.toHtml(value);
+  }
+
   concatenate() {
     const params = Array.from(arguments);
     const options = params.pop();
@@ -176,13 +235,12 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
   logical() {
     const { getExecStringFromValue: execString } = RootCtxRenderer;
-    const { evaluateBooleanExpression } = RootProxy;
     const params = Array.from(arguments);
 
     const [left, right, operator] = params;
 
-    return evaluateBooleanExpression(
-      this, execString(left), execString(right), operator,
+    return this.proxyInstance.evaluateBooleanExpression(
+      execString(left), execString(right), operator,
     );
   }
 
@@ -197,6 +255,8 @@ class CustomCtxRenderer extends RootCtxRenderer {
   }
 
   ternary() {
+    const { unsafeEval } = AppContext;
+
     const params = Array.from(arguments);
 
     const options = params.pop();
@@ -250,7 +310,8 @@ class CustomCtxRenderer extends RootCtxRenderer {
       })
       .join('');
 
-    const b = eval(`${scope}${expr}`);
+    const b = unsafeEval(`${scope}${expr}`);
+
     assert(typeof b == 'boolean');
 
     let val = b ? left : right;
@@ -271,6 +332,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
     return value === null ? 'null' : value === Object(value) ? value.constructor.name : typeof value;
   }
 
+  // Todo: Move this method to the preprocessor class
   // eslint-disable-next-line class-methods-use-this
   validateType({ path, value, validType, nameQualifier, line, allowEmptyCollection=false }) {
     const { isPrimitive, getValueType } = CustomCtxRenderer;
@@ -321,7 +383,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
       // eslint-disable-next-line no-undef
       case validType === componentRefType &&
-        (value == null || (value instanceof BaseComponent && (!nameQualifier || value.constructor.name == nameQualifier))):
+        (value == null || (value instanceof BaseComponent && (!nameQualifier || value.constructor.className == nameQualifier))):
         return value;
     }
 

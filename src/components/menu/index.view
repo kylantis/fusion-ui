@@ -18,7 +18,7 @@
       </li>
       {{/if}}
 
-      {{#each items transform = "itemTransform" as |item itemIndex|}}
+      {{#each items hook = "itemHook" as |item itemIndex|}}
 
       {{component Menu alias="subMenu"}}
 

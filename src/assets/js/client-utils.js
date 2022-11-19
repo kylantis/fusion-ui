@@ -9,6 +9,9 @@ const segment = /(\[[0-9]+\])|(\["\$_.+?"\])/g;
 const segmentWithCanonical = /(\[[0-9]+\])|(\["\$_.+?"\])|(_\$)/g;
 
 module.exports = {
+  tailSegment: (part) => {
+    return part.match(segment).pop();
+  },
   flattenJson: (data) => {
     const result = {};
     function recurse(cur, prop) {
@@ -71,7 +74,6 @@ module.exports = {
 
           return `%%new components['${val['@type']}']({
           input: ${data},
-          loadable: !!self.appContext
         })%%`
             .replace(/\n/g, '');
         }
@@ -172,8 +174,6 @@ module.exports = {
     for (let i = 0; i < fqPathArr.length; i++) {
 
       const segments = clientUtils.getSegments0(fqPathArr[i],  canonicalArrayIndex);
-
-      // Todo: !!!!!!!!!! FIX!!
 
       // eslint-disable-next-line no-plusplus
       for (let j = 0; j < segments.length; j++) {

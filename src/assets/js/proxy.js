@@ -77,9 +77,13 @@ class RootProxy {
 
   static lenientExceptionMsgPattern = /^Cannot read properties of (undefined|null)/g;
 
+  static enumsFile = 'dist/components/enums.json';
+
   #dataPathHooks;
 
   #logicGates;
+
+  #htmlCache;
 
   static #dataReferences = [];
 
@@ -88,13 +92,13 @@ class RootProxy {
   constructor({ component }) {
     this.component = component;
     this.handler = this.createObjectProxy();
+
     this.#dataPathHooks = this.createDataPathHooksObject();
     this.#logicGates = {};
+    this.#htmlCache = {};
   }
 
   createDataPathHooksObject() {
-
-    const { allowHooksForNonExistentPaths } = this.component.config;
 
     return new Proxy({}, {
       set: function (object, key, value) {
@@ -110,18 +114,7 @@ class RootProxy {
             return (object[k] = v);
           }
         }
-
-        let value = object[key];
-
-        if (!value && allowHooksForNonExistentPaths) {
-          // If an attempt is made to get an entry that does not exist, create that entry. 
-          // This is because at initial rendering time, hooks may be added for
-          // data paths that do not yet exist, but will be used at a later time...
-
-          value = object[key] = this.createHooksArray();
-        }
-
-        return value;
+        return object[key];
       },
     })
   }
@@ -144,10 +137,7 @@ class RootProxy {
     proxy.component.proxyInstance = proxy;
     proxy.component.rootProxy = proxy.handler;
 
-    // At compile-time, it would be too early for <resolver> to be set, so let's use 
-    // <loadable> instead, since we know it will be false at compile-time and true at
-    // runtime
-    if (proxy.component.loadable()) {
+    if (self.appContext) {
 
       if (!component.constructor.schemaDefinitions) {
         // register input schema
@@ -163,7 +153,6 @@ class RootProxy {
         // Add our observer, to orchestrate data binding operations
         proxy.addDataObserver();
       }
-
     }
 
     return proxy.handler;
@@ -172,8 +161,8 @@ class RootProxy {
   withSchema(schema) {
 
     const {
-      pathProperty, firstProperty, lastProperty,
-      keyProperty, indexProperty, randomProperty, emptyString
+      pathProperty, firstProperty, lastProperty, keyProperty, indexProperty, randomProperty, 
+      emptyString, enumsFile,
     } = RootProxy;
 
     const syntheticProperties = [
@@ -245,8 +234,8 @@ class RootProxy {
                       ];
 
                       if (!enum0) {
-                        throw Error(
-                          `Ensure that dist/components/enums.json contains the latest changes`
+                        this.component.throwError(
+                          `Ensure that ${enumsFile} contains the latest changes`
                         );
                       }
 
@@ -434,21 +423,21 @@ class RootProxy {
     const validate = this.component.constructor.ajv.getSchema(`#/definitions/${this.component.getComponentName()
       }`)
 
-    const { getInput, getId, getComponentName } = this.component;
-    const input = getInput();
+    const input = this.component.getInput();
 
     if (!validate(input)) {
-      const msg = `Component "${getId()}" could not be loaded due to schema mismatch of input data`;
-      
-      if (global.isServer) {
-        assert(global.rootComponent != getComponentName());
+      const componentName = this.component.getComponentName();
+      const msg = `Component "${this.component.getId()}" could not be loaded due to schema mismatch of input data`;
 
-        msg += `. ${global.rootComponent} may contain outdated sample data for ${getComponentName()}. Re-compile ${global.rootComponent} to fix this problem`;
+      if (global.isServer) {
+        assert(global.rootComponent != componentName);
+
+        msg += `. ${global.rootComponent} may contain outdated sample data for ${componentName}. Re-compile ${global.rootComponent} to fix this problem`;
       } else {
         msg += `; ${this.component.constructor.ajv.errorsText(validate.errors)}`;
       }
 
-      throw Error(msg);
+      this.component.throwError(msg);
     }
   }
 
@@ -469,7 +458,7 @@ class RootProxy {
       // in an error.
       // It is understandable that the developer may want to re-use input data
       // without giving much thought to it, so in the error message - add a useful hint
-      throw Error(
+      this.component.throwError(
         'Input data already processed. You need to clone the data first before using it on a new component instance'
       );
     }
@@ -488,18 +477,19 @@ class RootProxy {
         this.#dataPathHooks[[dataPathRoot, globalsBasePath, variable].join(pathSeparator)] = [];
       });
 
-    // Setup task to cleanup dead hooks
-    setInterval(
-      () => {
-        if (this.processingDataUpdate) {
-          return;
-        }
+    if (false && !global.isServer) {
+      // Setup task to cleanup dead hooks
+      setInterval(
+        () => {
+          if (this.processingDataUpdate) {
+            return;
+          }
 
-        this.pruneHooks()
-
-      },
-      this.component.config.hookCleanupInterval
-    );
+          this.pruneHooks();
+        },
+        this.component.config.hookCleanupInterval
+      );
+    }
   }
 
   createObjectProxy() {
@@ -554,7 +544,7 @@ class RootProxy {
             return this.createObjectProxy();
 
           default:
-            throw Error(`Invalid path: ${prop}`);
+            this.component.throwError(`Invalid path: ${prop}`);
         }
       },
       // Todo: remove these functions if not used
@@ -576,6 +566,10 @@ class RootProxy {
     return new Proxy(array, {
       get: (obj, prop) => {
         switch (true) {
+          case prop === 'toHTML':
+          case prop === Symbol.toPrimitive:
+            return () => _this.component.toHtml(obj);
+
           case global.clientUtils.isNumber(prop):
 
             // At least access the context, so that the proxy
@@ -585,10 +579,6 @@ class RootProxy {
             obj[prop];
 
             return this.createObjectProxy();
-
-          case prop === 'toHTML':
-          case prop === Symbol.toPrimitive:
-            return () => _this.component.toHtml(obj);
 
           default:
             return obj[prop];
@@ -686,17 +676,17 @@ class RootProxy {
     }
   }
 
-  static evaluateBooleanExpression(component, left, right, operator, scope = '') {
-    const predicates = component.getBooleanOperators()[operator];
+  evaluateBooleanExpression(left, right, operator, scope = '') {
+    const predicates = this.component.getBooleanOperators()[operator];
 
     if (!predicates) {
-      throw Error(`Unknown boolean operator: ${operator}`);
+      this.component.throwError(`Unknown boolean operator: ${operator}`);
     }
     for (const fn of predicates) {
       const b = Function(
         `${scope} return arguments[0](${left}, ${right})`,
       )
-        .bind(component)(fn);
+        .bind(this.component)(fn);
 
       if (!b) { return false; }
     }
@@ -704,7 +694,14 @@ class RootProxy {
     return true;
   }
 
-  executeWithBlockData(fn, blockData) {
+  executeWithBlockData(fn, blockData, cacheKey) {
+
+    let html = this.#htmlCache[cacheKey];
+
+    if (html != undefined) {
+      delete this.#htmlCache[cacheKey];
+      return html;
+    }
 
     const blockDataSnapshot = this.component.blockData;
 
@@ -712,20 +709,20 @@ class RootProxy {
       this.component.blockData = blockData;
     }
 
-    const r = fn();
+    html = fn();
 
     if (blockData) {
       this.component.blockData = blockDataSnapshot;
     }
 
-    return r;
+    return html;
   }
 
   getLogicGateAssociatedHooks(id, pathPrefix) {
     const result = [];
     Object
       .entries(this.#dataPathHooks)
-      .filter(([k]) => k.startsWith(pathPrefix))
+      .filter(([k]) => k.match(pathPrefix))
       .forEach(([k, v]) => {
         v.forEach(({ type, gateId }) => {
           if (gateId == id) {
@@ -737,8 +734,6 @@ class RootProxy {
   }
 
   getLogicGateValue({ gate, useBlockData = true }) {
-
-    const { evaluateBooleanExpression } = RootProxy;
 
     const MUST_GRP = 'MustacheGroup';
     const LOGIC_GATE = 'LogicGate';
@@ -754,7 +749,7 @@ class RootProxy {
     const OR = 'OR';
 
     const evaluateExpr = (expr) => {
-      return Function(expr).bind(this.component)();
+      return this.component.evaluateExpression(expr);
     }
 
     const getConditionExpr = (parts, invert) => {
@@ -768,8 +763,8 @@ class RootProxy {
         const left = getExpr(expr.left);
         const right = getExpr(expr.right);
 
-        return evaluateBooleanExpression(
-          this.component, left, right, expr.operator, scope
+        return this.evaluateBooleanExpression(
+          left, right, expr.operator, scope
         );
       }
 
@@ -898,6 +893,7 @@ class RootProxy {
     const {
       dataPathRoot, literalPrefix, pathSeparator, parsePathExpressionLiteralValue,
     } = RootProxy;
+    const { wrapExecStringForLeniency } = RootCtxRenderer;
 
     const MUST_GRP = 'MustacheGroup';
     const PATH_EXPR = 'PathExpression';
@@ -912,8 +908,9 @@ class RootProxy {
         fqPath,
         allowSynthetic,
       });
+
       if (lenient) {
-        execString = `this.evalPathLeniently("${execString}")`;
+        execString = wrapExecStringForLeniency(execString);
       }
       return execString;
     }
@@ -949,7 +946,6 @@ class RootProxy {
 
   getParticipantsFromLogicGate(gate) {
 
-    const { dataPathRoot, pathSeparator } = RootProxy;
     const { toBindPath } = RootCtxRenderer;
 
     const PATH_EXPR = 'PathExpression';
@@ -957,7 +953,7 @@ class RootProxy {
     return gate.participants
       .map((path) => {
 
-        const { original, type } = this.toExecutablePath(
+        const { canonicalPath, original, type } = this.toExecutablePath(
           {
             type: PATH_EXPR,
             original: path,
@@ -970,16 +966,14 @@ class RootProxy {
           return null;
         }
 
-        const isSynthetic = this.component.isSynthetic(
-          original.replace('this.', '')
-        )
-
         // Since <allowSynthetic> is set to false, we don't expect a synthetic path
-        assert(!isSynthetic);
+        assert(
+          !this.component.isSyntheticInvocation(original)
+        );
 
         return {
           original: toBindPath(original),
-          canonicalPath: path.replace(`${dataPathRoot}${pathSeparator}`, ''),
+          canonicalPath,
         }
       })
       .filter(e => !!e);
@@ -1079,8 +1073,8 @@ class RootProxy {
 
     if (prop.startsWith(literalPrefix)) {
       // eslint-disable-next-line no-eval
-      return eval(
-        parsePathExpressionLiteralValue(prop)
+      return this.component.evaluateExpression(
+        `return ${parsePathExpressionLiteralValue(prop)}`
       );
     }
 
@@ -1140,12 +1134,12 @@ class RootProxy {
   pruneHooks() {
     this.pruneHooks0(
       Object.entries(this.#dataPathHooks),
-      ({ nodeId }) =>
-        // HookType "gateParticipant" do not store a nodeId, and are usually 
+      ({ selector }) =>
+        // HookType "gateParticipant" do not store a selector, and are usually 
         // pruned when the parent logic gate is being pruned
-        !nodeId ||
+        !selector ||
         document.querySelector(
-          `#${this.component.getId()} #${nodeId}`
+          `#${this.component.getId()} ${selector}`
         )
     )
   }
@@ -1161,9 +1155,9 @@ class RootProxy {
 
       const isLogicGate = k.match(logicGatePathPrefix);
 
-      // Logic gate paths are expected to have a single hook due to
+      // Logic gate paths are expected to have a single hook max due to
       // their dynamic nature, see resolveLogicPath(...)
-      assert(!isLogicGate || v.length === 1);
+      assert(!isLogicGate || v.length <= 1);
 
       const arr = v.filter(predicate);
 
@@ -1194,32 +1188,35 @@ class RootProxy {
     })
   }
 
-  triggerHooks(fqPath, parentObject, newValue, dataPathHooks, withParent) {
+  triggerHooks(triggerInfo) {
     const {
       logicGatePathRoot, pathSeparator, textNodeHookName, eachBlockHookName,
       gateParticipantHookName, pathProperty, conditionalBlockHookName, dataPathPrefix,
-      mapSizeProperty, isNullProperty,
+      mapSizeProperty, isNullProperty, getParentFromPath, getKeyFromIndexSegment,
     } = RootProxy;
 
-    const sPath = clientUtils.toCanonicalPath(fqPath.replace(dataPathPrefix, ''));
+    const { fqPath, parentObject, oldValue, newValue, dataPathHooks, withParent, animate } = triggerInfo;
+
+    const fqPath0 = fqPath.replace(dataPathPrefix, '');
+    const sPath = clientUtils.toCanonicalPath(fqPath0);
 
     if (!this.component.isMounted()) {
       return true;
     }
 
     const triggerComponentHooks = (phase) => {
-      if (!parentObject) return;
+      if (!parentObject || !Object.keys(triggerInfo).includes('oldValue')) return;
 
       const componentHooks = this.component.getHooks();
 
       const hookList = [
-        ...componentHooks[fqPath] || [],
-        ...componentHooks[`${phase}.${fqPath}`] || [],
+        ...componentHooks[fqPath0] || [],
+        ...componentHooks[`${phase}.${fqPath0}`] || [],
         ...componentHooks[sPath] || [],
         ...componentHooks[`${phase}.${sPath}`] || [],
       ];
 
-      const evt = { path: fqPath, newValue, parentObject };
+      const evt = { path: fqPath, oldValue, newValue, parentObject };
 
       for (const fn of hookList) {
         fn(evt);
@@ -1228,23 +1225,20 @@ class RootProxy {
 
     const triggerHooks0 = (path, withParent) => {
 
-      const hooksFilter = (hook) => {
-        const selector = `#${this.component.getId()} #${hook.nodeId}`;
-        return !hook.nodeId || document.querySelector(selector)
+      const hooksFilter = ({ selector }) => {
+        return !selector || document.querySelector(`#${this.component.getId()} ${selector}`)
       }
 
       const hooks = dataPathHooks[path];
 
       if (!hooks) {
-        throw Error(`Unknown path: "${path}"`);
+        this.component.throwError(`Unknown path: "${path}"`);
       }
 
       const parent = parentObject ? parentObject[pathProperty] : null;
 
-      assert(parent || !withParent);
-
       // Note: Appending-to/Removing-from a parent takes the highest priority as applicable sub-path hooks
-      // will be invalidated after this, because their nodeId(s) will no longer be on the DOM
+      // will be invalidated after this, because their selector(s) will no longer be on the DOM
 
       const parentHooks = withParent ? dataPathHooks[parent] : null;
 
@@ -1252,16 +1246,21 @@ class RootProxy {
         .filter(hooksFilter)
         .forEach(hook => {
 
-          const selector = `#${this.component.getId()} #${hook.nodeId}`;
+          const selector = `#${this.component.getId()} ${hook.selector}`;
 
           switch (hook.type) {
             case eachBlockHookName:
 
-              // Todo: Support animations: https://cssanimation.rocks/list-items/
+              if (animate) {
+                // Todo: Add transition classes, see: https://cssanimation.rocks/list-items/
+              }
 
               (() => {
 
                 const { htmlWrapperCssClassname } = RootCtxRenderer;
+
+                hook.fn = this.component.lookupFnStore(hook.fn);
+
                 const { fn, hookMethod, canonicalPath, blockData } = hook;
 
                 const collDef = this.getCollectionDefinition(parent);
@@ -1270,11 +1269,11 @@ class RootProxy {
 
                 const { collectionType: type } = collDef;
 
-                // Get key from <fqPath>
-                const key = (() => {
-                  const segments = clientUtils.getSegments({ original: fqPath });
-                  return segments[segments.length - 1];
-                })();
+                const key = getKeyFromIndexSegment(
+                  Path.replace(
+                    getParentFromPath(Path.split('.')), ''
+                  )
+                );
 
                 const childNodeSelector = `${selector} > div[key='${key}']`;
                 const childNode = document.querySelector(childNodeSelector)
@@ -1347,18 +1346,19 @@ class RootProxy {
 
                   default:
 
-                    // We need to decrement <index> by 1 because: inside <fn>, index will
-                    // be incremented by 1 through a call to doBlockUpdate(...)
-                    blockData0[canonicalPath].index--;
-
                     const markup = this.executeWithBlockData(
                       () => {
+
+                        // We need to decrement <index> by 1 because: inside <fn>, index will
+                        // be incremented by 1 through a call to doBlockUpdate(...)
+                        blockData0[canonicalPath].index--;
+
                         return fn(this.handler);
                       },
                       blockData0,
+                      path,
                     );
 
-                    // Todo: Remove
                     assert(blockData0[canonicalPath].index === index);
 
                     let elementNodeId;
@@ -1385,7 +1385,7 @@ class RootProxy {
                     }
 
                     if (Array.isArray(parentObject)) {
-                      this.component.backfillArrayChildBlocks(`${parent}[${index}]`, elementNodeId);
+                      this.component.backfillArrayChildBlocks(`${parent}[${index}]`, `#${elementNodeId}`);
                     }
 
                     break;
@@ -1409,7 +1409,7 @@ class RootProxy {
         .filter(hooksFilter)
         .forEach(hook => {
 
-          const selector = `#${this.component.getId()} #${hook.nodeId}`;
+          const selector = `#${this.component.getId()} ${hook.selector}`;
 
           switch (hook.type) {
 
@@ -1424,7 +1424,7 @@ class RootProxy {
 
                 const { hookMethod } = hook;
 
-                document.getElementById(hook.nodeId).innerHTML = this.component.toHtml(
+                document.querySelector(selector).innerHTML = this.component.toHtml(
                   hookMethod ? hookMethod(computedValue) : computedValue
                 );
               })();
@@ -1444,6 +1444,9 @@ class RootProxy {
                   const gateId = path.replace(`${logicGatePathRoot}${pathSeparator}`, '')
                   computedValue = this.getLogicGateValue({ gate: this.#logicGates[gateId] });
                 }
+
+                hook.fn = this.component.lookupFnStore(hook.fn);
+                hook.inverse = hook.inverse ? this.component.lookupFnStore(hook.inverse) : null;
 
                 const { invert, fn, inverse, hookMethod, blockData } = hook;
 
@@ -1498,6 +1501,10 @@ class RootProxy {
               (() => {
 
                 const { htmlWrapperCssClassname } = RootCtxRenderer;
+
+                hook.fn = this.component.lookupFnStore(hook.fn);
+                hook.inverse = hook.inverse ? this.component.lookupFnStore(hook.inverse) : null;
+
                 const { fn, inverse, hookMethod, canonicalPath, blockData } = hook;
 
                 const hookList = [];
@@ -1527,7 +1534,7 @@ class RootProxy {
                                   </div>`;
 
                         if (Array.isArray(computedValue)) {
-                          this.component.backfillArrayChildBlocks(`${path}[${i}]`, elementNodeId);
+                          this.component.backfillArrayChildBlocks(`${path}[${i}]`, `#${elementNodeId}`);
                         }
 
                         hookList.push({
@@ -1721,19 +1728,19 @@ class RootProxy {
         if (!global.clientUtils.isNumber(prop) &&
           ![...getDataVariables(), pathProperty].includes(prop)
         ) {
-          throw Error(`Invalid index: ${prop} for array: ${obj[pathProperty]}`);
+          this.component.throwError(`Invalid index: ${prop} for array: ${obj[pathProperty]}`);
         }
         break;
       case isMap:
         if (!prop || !prop.length || !['String', 'Number', 'Boolean'].includes(prop.constructor.name)) {
-          throw Error(`Invalid key: ${prop} for map: ${obj[pathProperty]}`);
+          this.component.throwError(`Invalid key: ${prop} for map: ${obj[pathProperty]}`);
         }
         if (!prop.startsWith(mapKeyPrefix)) {
           prop = `${mapKeyPrefix}${prop}`
         }
       default:
         if (!prop || !prop.length || prop.constructor.name !== 'String') {
-          throw Error(`Invalid key: ${prop} for object: ${obj[pathProperty]}`);
+          this.component.throwError(`Invalid key: ${prop} for object: ${obj[pathProperty]}`);
         }
 
 
@@ -1750,7 +1757,7 @@ class RootProxy {
 
           // Meta properties can only be modified in privilegedMode
           if (this.component.isInitialized() && !RootProxy.#isPriviledgedMode()) {
-            throw Error(`Permission denied to modify ${prop}`);
+            this.component.throwError(`Permission denied to modify ${prop}`);
           }
           return obj[prop] = newValue;
         }
@@ -1758,7 +1765,7 @@ class RootProxy {
         break;
     }
 
-    const oldValue = obj[prop];
+    let oldValue = obj[prop];
 
     if (oldValue === undefined) {
       assert(
@@ -1775,8 +1782,8 @@ class RootProxy {
     }
 
     if (oldValue === newValue) {
-      this.component.logger.warn(`[${fqPath}] oldValue === newValue, returning`);
-      return false;
+      // oldValue === newValue, returning
+      return true;
     }
 
     const fqPath0 = toFqPath({ isArray, isMap, parent, prop });
@@ -1809,7 +1816,7 @@ class RootProxy {
 
 
 
-      throw Error(`Path: ${fqPath} cannot be mutated`);
+      this.component.throwError(`Path: ${fqPath} cannot be mutated`);
     }
 
     if (!this.#dataPathHooks[fqPath]) {
@@ -1821,7 +1828,7 @@ class RootProxy {
       // add an entry to dataPathHooks), which will not provide
       // a descriptive error
 
-      throw Error(`Unknown path: ${fqPath}`);
+      this.component.throwError(`Unknown path: ${fqPath}`);
     }
 
     // Perform schema validation for <newValue>
@@ -1832,18 +1839,34 @@ class RootProxy {
             `#/definitions/${clientUtils.toCanonicalPath(fqPath0)}`
           )
         } catch (e) {
-          throw Error(`Unknown path: ${fqPath}`);
+          this.component.throwError(`Unknown path: ${fqPath}`);
         }
       })();
 
       if (!validate(newValue)) {
-        throw Error(`${fqPath} could not be mutated due to schema mismatch`);
+        this.component.throwError(`${fqPath} could not be mutated due to schema mismatch`);
       }
     }
 
-    // This will be used to determine for which paths we need to trigger hooks for. 
-    // Note: entries added here should not include dataPathPrefix
-    changeSet.push(fqPath0);
+    const addToChangeSet = (path, primary) => {
+      let o = {
+        primary,
+        oldValue: this.getValueFromPath(path),
+      };
+      if (primary) {
+        o = {
+          ...o,
+          newValue,
+          parentObject: this.getValueFromPath(parent),
+          animate: true,
+        }
+
+        assert(o.parentObject);
+      }
+      changeSet[path] = o;
+    };
+
+    addToChangeSet(fqPath0, true);
 
     const collDef = this.getCollectionDefinition(parent);
 
@@ -1889,7 +1912,7 @@ class RootProxy {
       } = o;
 
       if (newElementAdded || elementRemoved) {
-        changeSet.push(toFqPath({ parent, prop: 'length' }));
+        addToChangeSet(toFqPath({ parent, prop: 'length' }));
       }
 
       if (removedNonLastElement) {
@@ -1897,7 +1920,7 @@ class RootProxy {
 
         // <i < length - 1> because after modification, array length will be less by 1
         for (let i = index + 1; i < length - 1; i++) {
-          changeSet.push(
+          addToChangeSet(
             toFqPath({ parent, prop: i })
           );
         }
@@ -1918,7 +1941,7 @@ class RootProxy {
             } : null
           );
           // Add sparse index to <changeSet>
-          changeSet.push(
+          addToChangeSet(
             toFqPath({ parent, prop: i })
           );
         }
@@ -1927,7 +1950,7 @@ class RootProxy {
       return o;
     })();
 
-    const setValue = (object, key, value) => {
+    const setValue0 = (object, key, value) => {
       object[key] = value;
     }
 
@@ -1954,7 +1977,7 @@ class RootProxy {
         newValue = this.getObserverProxy(newValue)
       }
 
-      setValue(obj, prop, newValue);
+      setValue0(obj, prop, newValue);
 
     } else {
 
@@ -2023,11 +2046,11 @@ class RootProxy {
           newValue = null;
         }
 
-        setValue(obj, prop, newValue);
+        setValue0(obj, prop, newValue);
       }
     }
 
-    return changeSet;
+    return true;
   }
 
   addNullCollectionMember(obj, prop, dataVariables) {
@@ -2090,86 +2113,198 @@ class RootProxy {
     return new Proxy(object, {
 
       deleteProperty: (obj, prop) => {
-
         if (prop.startsWith('@')) {
 
           // Meta properties can only be modified in privilegedMode
           if (this.component.isInitialized() && !RootProxy.#isPriviledgedMode()) {
-            throw Error(`Permission denied to modify ${prop}`);
+            this.component.throwError(`Permission denied to modify ${prop}`);
           }
-
-          return delete obj[prop];
+          delete obj[prop];
+          return true;
         }
-
-        return this.simpleSetMutationHandler(obj, prop, undefined)
+        return this.mutate((changeSet) => this.simpleSetMutationHandler(obj, prop, undefined, changeSet));
       },
 
-      get: (obj, prop) => {
-
-
-
-
-      },
+      // get: (obj, prop) => {
+      //    Todo: Add array methods
+      // },
 
       set: (obj, prop, newValue) => {
-
-        if (this.processingDataUpdate) {
-          // Todo: This is not correct, we should be able to update as long as there is no
-          // intersection in the paths, fix
-
-          throw Error(`Cannot update '${parent}' while another update is in progress`);
+        if (!this.canMutate()) {
+          return false;
         }
-
-        this.processingDataUpdate = true;
-
-        this.simpleSetMutationHandler(obj, prop, newValue)
-
-
-        // Investigate whether handlebars runtime functions are cloneable?
-        // Todo: Snapshot hooks
-
-
-
-
-        // dataPathHooks[changeSet[0]], set withParent=true
-
-        this.triggerHooks(fqPath, obj, newValue);
-
-
-
-
-
-
-        // Todo:
-        // Run other hooks, set withParent = false
-
-        // Object.entries(dataPathHooks)
-        //        .filter(.... startsWith changeSet[i] && notEqualTo changeSet[0]  ...)
-        //        .sort(.... use clientUtils.getCanonicalSegments for short paths first ...)
-
-        // Note: we need to intelligently handle "scalar dataVariable" paths, this can be done by
-        // checking if collDef.type exists and is a literal... If it is, we can calculate the value
-        // by looking at the last segment, taking the collection length into consideration
-
-
-        // We will definitely run into the problem of undefineds, the below may help
-        try {
-          // trigger exec path
-        } catch (e) {
-          if (e.name == 'TypeError' && e.message.startsWith('Cannot read properties of undefined')) {
-            // Make value <undefined>
-
-            // Use this same strategy to retrieve the <parentObj> that will be passed in to triggerHooks
-          } else {
-            throw e;
-          }
-        }
-
-        this.processingDataUpdate = false;
-
-        return true;
+        return this.mutate((changeSet) => this.simpleSetMutationHandler(obj, prop, newValue, changeSet));
       },
     });
+  }
+
+  static getParentFromPath(pathArray) {
+    const arr = [...pathArray];
+    const lastPart = arr[arr.length - 1];
+
+    const segments = clientUtils.getSegments({ original: lastPart });
+
+    if (segments.length > 1) {
+      segments.pop();
+      arr[arr.length - 1] = segments.join('');
+    } else {
+      arr.pop();
+    }
+    return arr.join('.');
+  }
+
+  static getKeyFromIndexSegment(segment) {
+    assert(segment.startsWith('['));
+    return segment.replace(/\["?/g, '').replace(/"?\]/g, '')
+  }
+
+  getValueFromPath(path, noOpValue) {
+    return this.component.evalPathLeniently(`this.getInput()${path.length ? '.' : ''}${path}`, noOpValue);
+  }
+
+  getInfoFromPath(path) {
+    const {
+      isMapProperty, getParentFromPath, getKeyFromIndexSegment, getValueFromPath,
+    } = RootProxy;
+    const { getDataVariableValue } = RootCtxRenderer;
+
+    assert(path.length);
+
+    const noOpValue = '';
+    const value = (p) => this.getValueFromPath(p, noOpValue);
+
+    const pathArray = path.split(/\./g);
+    const dataVariable = pathArray[pathArray.length - 1];
+
+    if (dataVariable.startsWith('@')) {
+      // For "scalar dataVariable" paths, doing an eval will not work, hence execute a workaround
+
+      const arr = [...pathArray];
+      arr.pop();
+
+      const emptyRet = {
+        parentObject: null,
+        value: noOpValue,
+      };
+
+      const coll = value(
+        getParentFromPath(arr)
+      );
+
+      if (!coll) {
+        return emptyRet;
+      } else {
+        assert(Array.isArray(coll) || coll[isMapProperty]);
+
+        const parent = arr.join('.');
+
+        const collKeys = Object.keys(coll);
+        const key = getKeyFromIndexSegment(
+          clientUtils.tailSegment(parent)
+        );
+        const index = collKeys.indexOf(key);
+
+        if (index < 0) {
+          return emptyRet;
+        }
+
+        // Todo: Fix to support @random, adding a mock here for now
+        if (dataVariable == '@random') {
+          return clientUtils.randomString();
+        }
+
+        return {
+          parentObject: value(parent),
+          value: getDataVariableValue(
+            dataVariable, index, collKeys,
+          ),
+        };
+      }
+    }
+
+    return {
+      parentObject: value(
+        getParentFromPath(pathArray)
+      ) || null,
+      value: value(path),
+    };
+  }
+
+  canMutate() {
+    return !this.processingDataUpdate;
+  }
+
+  mutate(fn) {
+
+    const { dataPathRoot, pathSeparator } = RootProxy;
+    assert(this.canMutate());
+
+    this.processingDataUpdate = true;
+    const changeSet = {};
+
+    const b = fn(changeSet);
+
+    if (b) {
+
+      const dataPathHooks = clientUtils.deepClone(this.#dataPathHooks);
+
+      const primarySet = {};
+      const secondarySet = {};
+
+      Object.entries(changeSet).forEach(([path, changeInfo]) => {
+        (changeInfo.primary ? primarySet : secondarySet)[path] = changeInfo;
+      });
+
+      Object.entries(primarySet)
+        .forEach(([path, { oldValue, newValue, parentObject, animate }]) => {
+          this.triggerHooks({
+            fqPath: `${dataPathRoot}${pathSeparator}${path}`,
+            parentObject,
+            oldValue,
+            newValue,
+            dataPathHooks,
+            withParent: true,
+            animate,
+          });
+        });
+
+      if (secondarySet.length) {
+
+        const { getCanonicalSegments: segs } = clientUtils;
+
+        Object.keys(dataPathHooks)
+          .filter(k => k.startsWith(`${dataPathRoot}${pathSeparator}`))
+          .sort((x, y) => segs(x).length - segs(y).length)
+          .forEach(path => {
+
+            const changeInfo = Object.entries(secondarySet)
+              .map(([k, v]) => ({ ...v, path: `${dataPathRoot}${pathSeparator}${k}` }))
+              .filter(({ path: p }) => path.startsWith(p))[0];
+
+            if (changeInfo) {
+              const { parentObject, value } = this.getInfoFromPath(path);
+
+              const o = {
+                fqPath: path,
+                parentObject,
+                newValue: value,
+                dataPathHooks,
+                animate: false,
+                withParent: false,
+              }
+
+              if (path == changeInfo.path) {
+                o.oldValue = changeInfo.oldValue;
+              }
+
+              this.triggerHooks(o);
+            }
+          });
+      }
+    }
+
+    this.processingDataUpdate = false;
+    return b;
   }
 
   getObjectDefiniton(path) {
@@ -2235,11 +2370,11 @@ class RootProxy {
       firstProperty, lastProperty, keyProperty, indexProperty, randomProperty,
     } = RootProxy;
 
-    Object.defineProperty(obj, firstProperty, { value: first, enumerable: false });
-    Object.defineProperty(obj, lastProperty, { value: last, enumerable: false });
-    Object.defineProperty(obj, keyProperty, { value: key, enumerable: false });
-    Object.defineProperty(obj, indexProperty, { value: index, enumerable: false });
-    Object.defineProperty(obj, randomProperty, { value: random, enumerable: false });
+    Object.defineProperty(obj, firstProperty, { value: first, enumerable: false, configurable: true, });
+    Object.defineProperty(obj, lastProperty, { value: last, enumerable: false, configurable: true, });
+    Object.defineProperty(obj, keyProperty, { value: key, enumerable: false, configurable: true, });
+    Object.defineProperty(obj, indexProperty, { value: index, enumerable: false, configurable: true, });
+    Object.defineProperty(obj, randomProperty, { value: random, enumerable: false, configurable: true, });
   }
 
   /**
@@ -2296,7 +2431,7 @@ class RootProxy {
     if (!isArray) {
       Object.keys(obj).forEach(k => {
         if (reservedObjectKeys.includes(k)) {
-          throw Error(`[${path}] An object cannot contain the key: ${k}`);
+          this.component.throwError(`[${path}] An object cannot contain the key: ${k}`);
         }
       })
     }
@@ -2321,7 +2456,7 @@ class RootProxy {
         for (const k of Object.keys(obj).filter(k => !k.startsWith('@'))) {
 
           if (reservedMapKeys.includes(k)) {
-            throw Error(`[${path}] A map cannot contain the key: ${k}`);
+            this.component.throwError(`[${path}] A map cannot contain the reserved key: ${k}`);
           }
 
           obj[`${mapKeyPrefix}${k}`] = obj[k];
@@ -2330,7 +2465,7 @@ class RootProxy {
 
         // Note: this meta property is only used temporarily and it will be pruned
         // later by getMapWrapper(...)
-        Object.defineProperty(obj, typeProperty, { value: mapType, enumerable: false });
+        Object.defineProperty(obj, typeProperty, { value: mapType, enumerable: false, configurable: true });
 
         break;
 
@@ -2345,7 +2480,7 @@ class RootProxy {
         // Ensure that all keys are valid properties defined in the schema
         keys.forEach(k => {
           if (!def.required.includes(k)) {
-            throw Error(`[${path}] Unknown property: ${k}`);
+            this.component.throwError(`Unknown property (parent=${path ? path : 'root'}): ${k}`);
           }
         });
 
@@ -2367,7 +2502,7 @@ class RootProxy {
                 case 'boolean':
                   return false;
                 default:
-                  throw Error(`[${path}] Unknown type: ${type[0]} for propery "${p}"`);
+                  this.component.throwError(`[${path}] Unknown type: ${type[0]} for propery "${p}"`);
               }
             })();
           });
@@ -2386,7 +2521,7 @@ class RootProxy {
     const keys = [
       ...Object.keys(obj),
       // Since our data variables are non-enumerable, we want to eagerly add them here
-      ...isCollection ? getDataVariables() : [],
+      ...getDataVariables(),
     ];
 
     if (isMap) {
@@ -2396,7 +2531,13 @@ class RootProxy {
     for (let i = 0; i < keys.length; i++) {
       const prop = keys[i];
 
-      assert(obj[prop] !== undefined);
+      if (obj[prop] === undefined) {
+        assert(getDataVariables().includes(prop));
+        // This happened because we added data variables to the keys list anf obj is not
+        // a collection member
+        continue;
+      }
+
 
       // If property is null, and this is a collection of objects, 
       if (obj[prop] === null && isCollection && isCollection.$ref) {
@@ -2455,7 +2596,7 @@ class RootProxy {
 
           for (let i = 0; i < obj[prop].length; i++) {
 
-            const o = obj[prop][i];
+            let o = obj[prop][i];
 
             assert(o !== undefined);
 
@@ -2545,6 +2686,9 @@ class RootProxy {
 
           case !!Object.getPrototypeOf(obj)[prop]:
             return obj[prop];
+
+          case prop === Symbol.toPrimitive:
+            return () => obj.toString();
 
           case prop == isMapProperty:
             return true;

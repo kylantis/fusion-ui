@@ -3,7 +3,21 @@ module.exports = {
     conditional() {
         const _this = this;
         return (value, invert, options, ctx) => {
+
+            const { hash: { hook, hookOrder } } = options;
+
+            const nodeId = _this.getSyntheticNodeId();
+
+            if (hook) {
+                _this.hooks[`#${nodeId}`] = {
+                    hookName: hook,
+                    order: hookOrder != undefined ? hookOrder : _this.getDefaultHookOrder(),
+                    blockData: options.data.state.blockData,
+                };
+            }
+
             const b = _this.analyzeConditionValue(value);
+
             if (invert ? !b : b) {
                 return options.fn(ctx);
             } else {
@@ -15,16 +29,26 @@ module.exports = {
     with() {
         const _this = this;
         return function (context, options) {
-            const { loc, fn, inverse, hash } = options;
-            const { blockParam } = hash;
-
-            assert(blockParam);
-
             if (arguments.length != 2) {
                 _this.throwError(
                     '#with block requires exactly one argument', loc
                 );
             }
+
+            const { loc, fn, inverse, hash } = options;
+            const { blockParam, hook, hookOrder } = hash;
+            assert(blockParam);
+
+            const nodeId = _this.getSyntheticNodeId();
+
+            if (hook) {
+                _this.hooks[`#${nodeId}`] = {
+                    hookName: hook,
+                    order: hookOrder != undefined ? hookOrder : _this.getDefaultHookOrder(),
+                    blockData: options.data.state.blockData,
+                };
+            }
+
             if (clientUtils.isFunction(context)) {
                 context = context.call(this);
             }
@@ -56,9 +80,10 @@ module.exports = {
             }
 
             const { fn, inverse, hash } = options;
-            const { blockParam } = hash;
-
+            const { blockParam, hook, hookOrder } = hash;
             assert(blockParam);
+
+            const nodeId = _this.getSyntheticNodeId();
 
             let i = 0,
                 ret = '',
@@ -90,6 +115,14 @@ module.exports = {
                         data,
                         blockParams: [context[field], field]
                     });
+
+                if (hook) {
+                    _this.hooks[`#${nodeId} > :nth-child(${index + 1})`] = {
+                        hookName: hook,
+                        order: hookOrder != undefined ? hookOrder : _this.getDefaultHookOrder(),
+                        blockData: options.data.state.blockData,
+                    };
+                }
             }
 
             if (context && typeof context === 'object') {

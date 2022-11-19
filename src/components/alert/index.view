@@ -1,0 +1,19 @@
+{{component Icon alias="icon"}}
+{{component Link alias="link"}}
+
+<div class="slds-notify slds-notify_alert {{type ? 'slds-alert_${type}' : ''}}" role="alert">
+  <span class="slds-assistive-text">{{assistiveText}}</span>
+
+  {{> icon marginRight='x-small'}}
+
+  <h2>{{message}}
+    {{> link}}
+  </h2>
+
+{{#if closeIcon}}
+  <div class="slds-notify__close">
+    {{> ButtonIcon iconType='utility' iconName='close' size="small" type="inverse" on-click="onCloseIconClick"}}
+  </div>
+{{/if}}
+
+</div>

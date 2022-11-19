@@ -38,7 +38,7 @@
   {{else}}
     {{#if helperText}}
     <div id="{{@root.componentId}}-icon-container" style="display: inline-block; position: absolute; padding: 2px 0 0 6px; font-weight: initial;">
-      {{> ButtonIcon iconType='utility' iconName='info' size="small"}}
+      {{> ButtonIcon iconType='utility' iconName='info' iconSize="small"}}
     </div>
     {{/if}}
   {{/if}}
@@ -126,7 +126,7 @@
 
   <div class="slds-form-element__control">
     
-    {{#each items transform = "groupItemTransform" as |item itemIndex|}}
+    {{#each items hook = "groupItemHook" as |item itemIndex|}}
     <div class="mst-w {{error ? 'slds-has-error' : ''}}">
       
       <div class="slds-checkbox">

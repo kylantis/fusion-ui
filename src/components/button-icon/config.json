@@ -1,7 +1,7 @@
 {
   "collections": {},
   "scalars": {
-    "size": {
+    "iconSize": {
       "type": "String",
       "allowed": [
         "x-small",
@@ -32,7 +32,7 @@
         null
       ]
     },
-    "containerSize": {
+    "size": {
       "type": "String",
       "allowed": [
         "xx-small",
@@ -86,6 +86,12 @@
     "error": {
       "type": "Boolean",
       "defaultValue": false
+    },
+    "assistiveText": {
+      "type": "String",
+      "defaults": [
+        null
+      ]
     }
   },
   "escapeDynamicHtml": false

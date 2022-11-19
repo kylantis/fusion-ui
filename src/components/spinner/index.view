@@ -1,0 +1,19 @@
+
+{{#if container}}
+<div class="slds-spinner_container {{(container eq 'fixed') ? 'slds-is-fixed' : ''}}">
+{{/if}}
+
+<div role="status" class="slds-spinner 
+  {{size ? 'slds-spinner_${size}' : '' transform='sizeTransform'}}
+  {{delayed ? 'slds-spinner_delayed' : ''}}
+  {{color ? 'slds-spinner_${color}' : ''}}
+  {{inlined ? 'slds-spinner_inline' : ''}}
+  ">
+    <span class="slds-assistive-text">{{assistiveText}}</span>
+    <div class="slds-spinner__dot-a"></div>
+    <div class="slds-spinner__dot-b"></div>
+</div>
+
+{{#if container}}
+</div>
+{{/if}}

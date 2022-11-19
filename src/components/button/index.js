@@ -46,15 +46,27 @@ class Button extends components.LightningComponent {
         }
     }
 
-    toStateCssClass(state) {
-        switch (state) {
-            case 'selected-clicked':
-                return 'selected';
-            case 'selected':
-                return 'selected-focus';
-            default:
-                throw Error(`Unknown state: ${state}`);
+    selectStateTransform(selectStateClass) {
+        const input = this.getInput();
+        const availableStates = Object.keys(input.states);
+        const classPrefix = 'slds-is-';
+
+        if (selectStateClass.startsWith(classPrefix)) {
+            const selectState = selectStateClass.replace(classPrefix, '');
+
+            switch(true) {
+                case !availableStates.includes('selected'):
+                    return 'slds-not-selected';
+                case !availableStates.includes('selected_focus') && selectState == 'selected':
+                    return `${classPrefix}selected-click`;
+            }
         }
+
+        return selectStateClass;
+    }
+
+    toStateCssClass(state) {
+        return state.replace('_', '-');
     }
 }
 module.exports = Button;

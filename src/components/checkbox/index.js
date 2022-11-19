@@ -94,7 +94,7 @@ class Checkbox extends components.LightningComponent {
         }
     }
 
-    async groupItemTransform({ node, blockData }) {
+    async groupItemHook({ node, blockData }) {
 
         const { htmlWrapperCssClassname: mstW } = RootCtxRenderer
 
