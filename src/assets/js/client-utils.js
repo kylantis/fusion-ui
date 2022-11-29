@@ -9,9 +9,31 @@ const segment = /(\[[0-9]+\])|(\["\$_.+?"\])/g;
 const segmentWithCanonical = /(\[[0-9]+\])|(\["\$_.+?"\])|(_\$)/g;
 
 module.exports = {
+  
+  getParentFromPath(pathArray) {
+    const arr = [...pathArray];
+    const lastPart = arr[arr.length - 1];
+
+    const segments = clientUtils.getSegments({ original: lastPart });
+
+    if (segments.length > 1) {
+      segments.pop();
+      arr[arr.length - 1] = segments.join('');
+    } else {
+      arr.pop();
+    }
+    return arr.join('.');
+  },
+
+  getKeyFromIndexSegment(segment) {
+    assert(segment.startsWith('['));
+    return segment.replace(/\["?/g, '').replace(/"?\]/g, '')
+  },
+
   tailSegment: (part) => {
     return part.match(segment).pop();
   },
+  
   flattenJson: (data) => {
     const result = {};
     function recurse(cur, prop) {

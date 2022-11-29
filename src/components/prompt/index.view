@@ -1,0 +1,19 @@
+
+{{#*inline "header" runtime=true config--container=true}}
+  <div class="slds-modal__header {{type ? "slds-theme_${type}" : ""}} slds-theme_alert-texture">
+    {{#if title}}
+      <h1 id="{{@random}}-header" class="slds-text-heading_medium">{{title}}</h1>
+    {{/if}}
+  </div>
+{{/inline}}
+
+{{#*inline "content" runtime=true}}
+<p>{{body}}</p>
+{{/inline}}
+
+
+{{#*inline "footer" runtime=true config--container=true}}
+  <div class="slds-modal__footer slds-theme_default">
+    {{> Button type="neutral" title="Close" on-click="closeModal"}}
+  </div>
+{{/inline}}

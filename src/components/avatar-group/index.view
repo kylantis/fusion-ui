@@ -1,0 +1,17 @@
+{{style url="/components/avatar_group/style.min.css"}}
+
+{{component Avatar alias="primary"}}
+{{component Avatar alias="secondary"}}
+
+{{#*inline "render_avatar" avatar role}}
+  {{#if avatar}}
+    {{> avatar groupRole=role}}
+  {{/if}}
+{{/inline}}
+
+<span class="slds-avatar-group
+{{size ? 'slds-avatar-group_${size}' : ''}}
+">
+  {{> render_avatar avatar=primary role="primary"}}
+  {{> render_avatar avatar=secondary role="secondary"}}
+</span>

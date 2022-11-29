@@ -64,12 +64,17 @@ class BaseComponent extends WebRenderer {
 
     return this.analyzeConditionValue(value) ? Object(value) !== value ? `${value}` : JSON.stringify(value, replacer, null) : '';
   }
-
+  // #API
   load(opts = {}) {
     return super.load({
       token: BaseComponent.#token,
       ...opts,
     });
+  }
+
+  // #API
+  awaitPendingTasks() {
+    return Promise.all(this.futures);
   }
 
   render({ data, target, transform, options }) {
@@ -148,14 +153,10 @@ class BaseComponent extends WebRenderer {
 
     return future;
   }
-
+  // #API
   log(msg, level = 'info') {
     // Todo: verify level
     this.logger[level](`[${this.getId()}] ${msg}`);
-  }
-
-  throw(msg) {
-    throw Error(`[${this.getId()}] ${msg}`);
   }
 
   /**
@@ -169,19 +170,19 @@ class BaseComponent extends WebRenderer {
    */
   initCompile() {
   }
-
+  // #API
   validateInput() {
     return true;
   }
-
+  // #API
   behaviours() {
     return ['destroy'];
   }
-
+  // #API
   events() {
     return [];
   }
-
+  // #API
   hooks() {
     return {};
   }
@@ -204,7 +205,7 @@ class BaseComponent extends WebRenderer {
       `Unknown event '${event}' for component: ${this.constructor.name}`
     );
   }
-
+  // #API
   on(event, handler) {
     this.ensureKnownEvent(event);
     assert(typeof handler == 'function');
@@ -213,7 +214,7 @@ class BaseComponent extends WebRenderer {
     handlers.push(handler);
     return this;
   }
-
+  // #API
   dispatchEvent(event, ...args) {
     this.ensureKnownEvent(event);
 
@@ -236,7 +237,7 @@ class BaseComponent extends WebRenderer {
 
     return this;
   }
-
+  // #API
   booleanOperators() {
     return {
       LT: (x, y) => x < y,
@@ -277,16 +278,12 @@ class BaseComponent extends WebRenderer {
     }
   }
 
-  hasSubComponent() {
-    return this.getSyntheticMethod({ name: 'hasSubComponent' })();
-  }
-
   beforeMount() {
   }
 
   onMount() {
   }
-
+  // #API
   destroy() {
 
     // Detach from DOM
@@ -296,15 +293,14 @@ class BaseComponent extends WebRenderer {
     // Todo: Prune resources
     delete this.getInput();
   }
-
+  // #API
   getGlobalVariables() {
     return {
       // ... User Global Variables
       ...self.appContext ? self.appContext.userGlobals : {},
       // ... Component Global Variables
-      ...{
-        componentId: this.getId(),
-      }
+      componentId: this.getId(),
+      random: this.randomString || (this.randomString = clientUtils.randomString())
     }
   }
 
@@ -315,6 +311,7 @@ class BaseComponent extends WebRenderer {
       rtl: literalType,
       // ... Component Global Variables
       componentId: literalType,
+      random: literalType,
     };
   }
 
@@ -341,8 +338,8 @@ class BaseComponent extends WebRenderer {
       )
     )
 
-    const o = new component.constructor({ 
-      input, 
+    const o = new component.constructor({
+      input,
       config: { ...component.getConfig() }
     });
 
@@ -353,5 +350,28 @@ class BaseComponent extends WebRenderer {
     return o;
   }
 
+  //  Utility methods
+
+  // #API
+  getKeyFromIndexSegment(s) {
+    return clientUtils.getKeyFromIndexSegment(s);
+  }
+
+  // #API
+  getParentFromPath(pathArray) {
+    return clientUtils.getParentFromPath(pathArray);
+  }
+  // #API
+  getMapKeyPrefix() {
+    return RootProxy.mapKeyPrefix;
+  }
+  // #API
+  getSharedEnum(enumName) {
+    return self.appContext ? self.appContext.enums[enumName] : null
+  }
+  // #API
+  isHeadlessContext() {
+    return global.isServer;
+  }
 }
 module.exports = BaseComponent;

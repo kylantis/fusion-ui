@@ -26,6 +26,11 @@ class Tooltip extends components.OverlayComponent {
             throw Error(`[${this.getId()}] Could not find targetElement: ${targetElement}`);
         }
 
+        if (getComputedStyle(target).display == 'contents') {
+            this.throwError(
+                `"${targetElement}" cannot be used as the targetElement because it does not have a box`);
+        }
+
         const rect = target.getBoundingClientRect();
 
         const { position, fn } = this.getPosition(
@@ -54,6 +59,8 @@ class Tooltip extends components.OverlayComponent {
                 this.node.parentElement.removeChild(this.node)
             )
         }
+
+        this.setPosition();
     }
 
     addNubbinCssClass(position) {
@@ -95,7 +102,13 @@ class Tooltip extends components.OverlayComponent {
     }
 
     show() {
-        const node = this.getNode()
+        const node = this.getNode();
+
+        if (!node) {
+            this.throwError(
+                `Could not find tooltip node, did you forget to call .load(...) for this component?`
+            )
+        }
 
         if (this.getHideToggleClass() && this.getHideToggleClass()) {
             node.style.visibility = 'unset';

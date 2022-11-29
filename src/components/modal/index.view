@@ -1,0 +1,16 @@
+
+<section role="dialog" tabindex="{{tabIndex ? tabIndex : -1}}" aria-modal="true" aria-labelledby="{{@random}}-header" 
+aria-describedby="{{@random}}-content"
+class="slds-modal {{size ? 'slds-modal_${size}' : ''}} {{cssClass ? cssClass : ''}}">
+  <div class="slds-modal__container">
+
+    {{#if closeIcon}}
+      {{> ButtonIcon iconType='utility' iconName='close' iconSize="large" cssClass="slds-modal__close" type="inverse" on-click="closeModal"}}
+    {{/if}}
+
+    <div class="slds-modal__header"></div>
+    <div id="{{@random}}-content" class="slds-modal__content {{bodyPadding ? 'slds-p-${bodyPadding}' : ''}}"></div>
+    <div class="slds-modal__footer {{directional ? 'slds-modal__footer_directional"' : ''}}"></div>
+  </div>
+</section>
+<div class="slds-backdrop" role="presentation"></div>

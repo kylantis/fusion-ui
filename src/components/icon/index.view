@@ -14,6 +14,8 @@
         {{!-- Margin --}}
         {{marginLeft ? 'slds-m-left_${marginLeft}' : ''}}
         {{marginRight ? 'slds-m-right_${marginRight}' : ''}}
+
+        {{cssClass ? cssClass : ''}}
         "
         {{!-- 
             Utility and doctype icons do not support background color

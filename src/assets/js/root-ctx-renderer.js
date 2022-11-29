@@ -31,6 +31,10 @@ class RootCtxRenderer extends BaseRenderer {
 
   #fnStore;
 
+  #handlebars;
+
+  #handlebarsOptions;
+
   constructor({
     id, input, logger,
   } = {}) {
@@ -72,7 +76,17 @@ class RootCtxRenderer extends BaseRenderer {
     RootCtxRenderer.#token = token;
   }
 
-  async load({ container, token, transform } = {}) {
+  getMetadata(assetId) {
+    return global.templates[`metadata_${assetId}`];
+  }
+
+  renderDecorator(decorator) {
+    return this.#handlebars.template(decorator)(
+        this.rootProxy, this.#handlebarsOptions,
+      );
+  }
+
+  async load({ container, token, transform }) {
 
     if (this.isMounted()) {
       throw Error(`${this.getId()} is already mounted`);
@@ -149,33 +163,27 @@ class RootCtxRenderer extends BaseRenderer {
       allowedProtoProperties[path] = true;
     }
 
-    let template;
-
-    try {
-      template = global.templates[`metadata_${this.getAssetId()}`].template;
-    } catch (e) {
-      this.logger.error(Object.keys(global.templates));
-      throw e;
-    }
-
-    const hbsInput = {
-      data: this.rootProxy,
+    this.#handlebarsOptions = {
+      helpers,
+      partials: {},
+      allowedProtoProperties: {
+        // ...allowedProtoProperties,
+      },
     };
-
-    this.hbsInput = hbsInput;
 
     await this.invokeLifeCycleMethod('beforeMount');
 
+    const { template } = this.getMetadata(this.getAssetId());
+
+    this.#handlebars = Handlebars.create();
+
     // eslint-disable-next-line no-undef
-    let html = Handlebars.template(template)(
-      this.hbsInput,
+    let html = this.#handlebars.template(template)(
       {
-        helpers,
-        partials: {},
-        allowedProtoProperties: {
-          ...allowedProtoProperties,
-        },
-      });
+        data: this.rootProxy,
+      },
+      this.#handlebarsOptions,
+    );
 
     if (transform) {
       html = transform(html);
@@ -253,11 +261,9 @@ class RootCtxRenderer extends BaseRenderer {
 
           self.appContext.components[this.getId()] = this;
 
-          const html = parentNode.innerHTML;
-
           this.#mounted = true;
 
-          return { id: this.getId(), html };
+          return { id: this.getId(), html: this.node.outerHTML };
         }
 
         if (this.renderOffset === 0) {
@@ -1727,7 +1733,7 @@ class RootCtxRenderer extends BaseRenderer {
 
   createComponent({ hash, componentClass }) {
 
-    const { input={}, handlers, config } = this.buildInputData({ hash });
+    const { input = {}, handlers, config } = this.buildInputData({ hash });
 
     const component = new componentClass({
       input,
@@ -1743,13 +1749,14 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   addEventHandlers({ handlers, component }) {
-    Object.keys(handlers).forEach(evtName => {
-      const handler = this[handlers[evtName]];
-      assert(
-        handler instanceof Function,
-        `Unknown event handler: ${handlers[evtName]}`
-      );
-      component.on(evtName, handler);
+    Object.entries(handlers).forEach(([evtName, methodName]) => {
+      const fn = this[methodName];
+
+      if (!fn || !fn instanceof Function) {
+        this.throwError(`Unknown event handler: ${methodName}`);
+      }
+
+      component.on(evtName, fn.bind(this));
     });
   }
 
@@ -1910,6 +1917,10 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   getAssetId() {
+    return this.getAssetId0();
+  }
+
+  getAssetId0() {
     return this.getSyntheticMethod({ name: 'assetId' })();
   }
 

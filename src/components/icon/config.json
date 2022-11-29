@@ -508,8 +508,17 @@
     "solid": {
       "type": "Boolean",
       "defaultValue": true
+    },
+    "cssClass": {
+      "type": "String",
+      "defaults": [
+        null
+      ]
     }
   },
+  "clientOnlyPaths": [
+    "cssClass"
+  ],
   "sample": {
     "count": 20
   },

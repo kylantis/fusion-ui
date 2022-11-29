@@ -1,0 +1,97 @@
+{
+  "enableTypeMerging": false,
+  "collections": {},
+  "scalars": {
+    "size": {
+      "type": "String",
+      "allowed": [
+        "x-small",
+        "small",
+        "medium",
+        "large"
+      ],
+      "defaults": [
+        "large"
+      ]
+    },
+    "title": {
+      "type": "String",
+      "defaults": [
+        null
+      ]
+    },
+    "circular": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "type": {
+      "type": "String",
+      "allowed": [
+        "profile-image",
+        "group-image"
+      ],
+      "defaults": [
+        null
+      ]
+    },
+    "icon": {
+      "type": "Icon",
+      "isNull": true
+    },
+    "imageURL": {
+      "type": "String",
+      "defaults": [
+        "/assets/images/avatar1.jpg",
+        "/assets/images/avatar2.jpg",
+        "/assets/images/avatar3.jpg",
+        "/assets/images/product1.jpg",
+        "/assets/images/product2.jpg",
+        "/assets/images/product3.jpg",
+        "/assets/images/group_avatar_200.png",
+        "/assets/images/profile_avatar_200.png"
+      ]
+    },
+    "initials.inverse": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "initials.name": {
+      "type": "String",
+      "defaults": [
+        "AB",
+        "OA",
+        "JB",
+        "IG",
+        "UD",
+        "XU",
+        "PP",
+        "FY",
+        "LD",
+        "AE",
+        "YU"
+      ]
+    },
+    "groupRole": {
+      "type": "String",
+      "allowed": [
+        "primary",
+        "secondary"
+      ],
+      "defaults": [
+        null
+      ]
+    }
+  },
+  "sample": {
+    "count": 15,
+    "nullifyRandomly": [],
+    "nullify": [
+      "initials"
+    ]
+  },
+  "clientOnlyPaths": [
+    "groupRole"
+  ],
+  "useCollectionLengthProperty": false,
+  "escapeDynamicHtml": false
+}

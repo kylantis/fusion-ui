@@ -6,17 +6,16 @@ class LightningComponent extends BaseComponent {
     jsDependencies() {
         return [
             ...super.jsDependencies(),
-            // Todo: Add extra js files to be used across all components
+            // Todo: Add extra js files to be used across all lightning components
         ];
     }
 
     cssDependencies() {
         return [
-            ...super.cssDependencies(),
-            '/assets/styles/base.min.css',
             '/assets/styles/salesforce-lightning-design-system.min.css',
             ... this.isMobile() ? ['/assets/styles/salesforce-lightning-design-system_touch.min.css'] : [],
-            // Todo: Add extra css files to be used across all components
+            '/assets/styles/base.min.css',
+            ...super.cssDependencies(),
         ];
     }
 

@@ -40,7 +40,7 @@
         "html-validate": "^4.6.0",
         "hyntax": "^1.1.9",
         "import-fresh": "^3.2.1",
-        "jsdom": "^18.1.1",
+        "jsdom": "^20.0.2",
         "line-column": "^1.0.2",
         "lodash": "^4.17.21",
         "normalize-scss": "7.0.1",

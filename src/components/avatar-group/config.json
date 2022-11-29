@@ -1,0 +1,33 @@
+{
+  "enableTypeMerging": false,
+  "collections": {},
+  "scalars": {
+    "primary": {
+      "type": "Avatar",
+      "isNull": false
+    },
+    "secondary": {
+      "type": "Avatar",
+      "isNull": false
+    },
+    "size": {
+      "type": "String",
+      "allowed": [
+        "x-small",
+        "small",
+        "medium",
+        "large"
+      ],
+      "defaults": [
+        "large"
+      ]
+    }
+  },
+  "sample": {
+    "count": 15,
+    "nullifyRandomly": [],
+    "nullify": []
+  },
+  "useCollectionLengthProperty": false,
+  "escapeDynamicHtml": false
+}

@@ -32,6 +32,12 @@
         null
       ]
     },
+    "svgCssClass": {
+      "type": "String",
+      "defaults": [
+        null
+      ]
+    },
     "size": {
       "type": "String",
       "allowed": [

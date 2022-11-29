@@ -161,7 +161,7 @@ class RootProxy {
   withSchema(schema) {
 
     const {
-      pathProperty, firstProperty, lastProperty, keyProperty, indexProperty, randomProperty, 
+      pathProperty, firstProperty, lastProperty, keyProperty, indexProperty, randomProperty,
       emptyString, enumsFile,
     } = RootProxy;
 
@@ -521,6 +521,9 @@ class RootProxy {
             return prop.match(logicGatePathPrefix) ?
               this.resolveLogicPath({ prop: prop.replace(logicGatePathPrefix, '') }) :
               this.resolveDataPath({ prop: prop.replace(dataPathPrefix, '') });
+
+          case prop === 'data':
+            return this;
 
           case prop === 'getSyntheticNodeId':
             return this.component.getSyntheticNodeId();
@@ -1011,7 +1014,15 @@ class RootProxy {
       this.getParticipantsFromLogicGate(gate)
         .filter(({ synthetic }) => !synthetic)
         .forEach(({ original, canonicalPath }) => {
-          this.#dataPathHooks[original].push({
+          let arr = this.#dataPathHooks[original];
+
+          if (!arr) {
+            // Todo: remove this block if createDataPathHooksObject(...) is updated to automatically
+            // create an empty hooks array if path not added... because in that case <arr> will be always true
+            arr = this.#dataPathHooks[original] = [];
+          }
+
+          arr.push({
             type: gateParticipantHookName,
             gateId,
             canonicalPath,
@@ -1192,7 +1203,7 @@ class RootProxy {
     const {
       logicGatePathRoot, pathSeparator, textNodeHookName, eachBlockHookName,
       gateParticipantHookName, pathProperty, conditionalBlockHookName, dataPathPrefix,
-      mapSizeProperty, isNullProperty, getParentFromPath, getKeyFromIndexSegment,
+      mapSizeProperty, isNullProperty,
     } = RootProxy;
 
     const { fqPath, parentObject, oldValue, newValue, dataPathHooks, withParent, animate } = triggerInfo;
@@ -1269,9 +1280,10 @@ class RootProxy {
 
                 const { collectionType: type } = collDef;
 
-                const key = getKeyFromIndexSegment(
-                  Path.replace(
-                    getParentFromPath(Path.split('.')), ''
+                const key = clientUtils.getKeyFromIndexSegment(
+                  path.replace(
+                    clientUtils.getParentFromPath(path.split('.')),
+                    ''
                   )
                 );
 
@@ -2138,34 +2150,12 @@ class RootProxy {
     });
   }
 
-  static getParentFromPath(pathArray) {
-    const arr = [...pathArray];
-    const lastPart = arr[arr.length - 1];
-
-    const segments = clientUtils.getSegments({ original: lastPart });
-
-    if (segments.length > 1) {
-      segments.pop();
-      arr[arr.length - 1] = segments.join('');
-    } else {
-      arr.pop();
-    }
-    return arr.join('.');
-  }
-
-  static getKeyFromIndexSegment(segment) {
-    assert(segment.startsWith('['));
-    return segment.replace(/\["?/g, '').replace(/"?\]/g, '')
-  }
-
   getValueFromPath(path, noOpValue) {
     return this.component.evalPathLeniently(`this.getInput()${path.length ? '.' : ''}${path}`, noOpValue);
   }
 
   getInfoFromPath(path) {
-    const {
-      isMapProperty, getParentFromPath, getKeyFromIndexSegment, getValueFromPath,
-    } = RootProxy;
+    const { isMapProperty } = RootProxy;
     const { getDataVariableValue } = RootCtxRenderer;
 
     assert(path.length);
@@ -2188,7 +2178,7 @@ class RootProxy {
       };
 
       const coll = value(
-        getParentFromPath(arr)
+        clientUtils.getParentFromPath(arr)
       );
 
       if (!coll) {
@@ -2199,7 +2189,7 @@ class RootProxy {
         const parent = arr.join('.');
 
         const collKeys = Object.keys(coll);
-        const key = getKeyFromIndexSegment(
+        const key = clientUtils.getKeyFromIndexSegment(
           clientUtils.tailSegment(parent)
         );
         const index = collKeys.indexOf(key);
@@ -2224,7 +2214,7 @@ class RootProxy {
 
     return {
       parentObject: value(
-        getParentFromPath(pathArray)
+        clientUtils.getParentFromPath(pathArray)
       ) || null,
       value: value(path),
     };
@@ -2243,6 +2233,8 @@ class RootProxy {
     const changeSet = {};
 
     const b = fn(changeSet);
+
+    this.processingDataUpdate = false;
 
     if (b) {
 
@@ -2302,8 +2294,6 @@ class RootProxy {
           });
       }
     }
-
-    this.processingDataUpdate = false;
     return b;
   }
 
