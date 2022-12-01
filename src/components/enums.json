@@ -1371,5 +1371,94 @@
         "error",
         "offline",
         "alert-texture"
+    ],
+    "columnSize": [
+        "size_1-of-2",
+        "size_2-of-2",
+
+        "size_1-of-3",
+        "size_2-of-3",
+        "size_3-of-3",
+
+        "size_1-of-4",
+        "size_2-of-4",
+        "size_3-of-4",
+        "size_4-of-4",
+        
+        "size_1-of-5",
+        "size_2-of-5",
+        "size_3-of-5",
+        "size_4-of-5",
+        "size_5-of-5",
+
+        "size_1-of-6",
+        "size_2-of-6",
+        "size_3-of-6",
+        "size_4-of-6",
+        "size_5-of-6",
+        "size_6-of-6",
+
+        "size_1-of-7",
+        "size_2-of-7",
+        "size_3-of-7",
+        "size_4-of-7",
+        "size_5-of-7",
+        "size_6-of-7",
+        "size_7-of-7",
+
+        "size_1-of-8",
+        "size_2-of-8",
+        "size_3-of-8",
+        "size_4-of-8",
+        "size_5-of-8",
+        "size_6-of-8",
+        "size_7-of-8",
+        "size_8-of-8",
+
+        "size_1-of-12",
+        "size_2-of-12",
+        "size_3-of-12",
+        "size_4-of-12",
+        "size_5-of-12",
+        "size_6-of-12",
+        "size_7-of-12",
+        "size_8-of-12",
+        "size_9-of-12",
+        "size_10-of-12",
+        "size_11-of-12",
+        "size_12-of-12"
+    ],
+    "textType": [
+        "body_regular",
+        "body_small",
+        "heading_large",
+        "heading_medium",
+        "heading_small",
+        "title",
+        "title_caps"
+    ],
+    "alignType": [
+        "left", "right", "center"
+    ],
+    "textColor": [
+        "default",
+        "success",
+        "weak",
+        "error",
+        "destructive",
+        "inverse",
+        "inverse-weak"
+    ],
+    "textFont": [
+        "monospace"
+    ],
+    "direction": [
+        "left", 
+        "right"
+    ],
+    "layoutSize": [
+        "small",
+        "medium",
+        "large"
     ]
 }

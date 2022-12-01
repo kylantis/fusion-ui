@@ -1,0 +1,77 @@
+.slds-c-drawer-container {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+
+    // Todo: Pass in "width" and "height" from the data model to the template
+    height: 100%;
+
+    .slds-c-drawer {
+
+        z-index: 9001;
+        display: block;
+
+        min-width: unset;
+        width: 0;
+        transition: width .3s ease;
+
+        &.slds-is-open {
+            &.slds-size_xx-large {
+                width: 60rem;
+            }
+
+            &.slds-size_x-large {
+                width: 40rem;
+            }
+
+            &.slds-size_large {
+                width: 25rem;
+            }
+
+            &.slds-size_medium {
+                width: 20rem;
+            }
+
+            &.slds-size_small {
+                width: 15rem;
+            }
+
+            &.slds-size_x-small {
+                width: 12rem;
+            }
+
+            &.slds-size_xx-small {
+                width: 6rem;
+            }
+        }
+    }
+}
+
+.slds-c-overlay-drawer {
+
+    z-index: 9001;
+    display: block;
+
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    transition: transform .3s ease;
+
+    &.slds-panel_docked-left {
+        transform: translate3d(-120%, 0, 0);
+
+        &.slds-is-open {
+            transform: translate3d(0, 0, 0);
+        }
+    }
+
+    &.slds-panel_docked-right {
+        transform: translate3d(120%, 0, 0);
+
+        &.slds-is-open {
+            transform: translate3d(0, 0, 0);
+        }
+    }
+}

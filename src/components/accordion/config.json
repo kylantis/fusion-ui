@@ -13,21 +13,22 @@
         "Accordion Summary"
       ]
     },
-    "items_$.text": {
-      "type": "String",
-      "defaults": [
-        "Accordion Details"
-      ]
-    },
-    "items_$.component": {
-      "type": "componentRef",
-      "defaults": [
-        null
-      ]
-    },
     "expandSingle": {
       "type": "Boolean",
       "defaultValue": false
+    },
+    "items_$.body": {
+      "type": "componentRef",
+      "defaults": [
+        "Text"
+      ]
+    },
+    "items_$.bodyPadding": {
+      "type": "String",
+      "allowed": "spacingType",
+      "defaults": [
+        "horizontal_medium"
+      ]
     }
   },
   "escapeDynamicHtml": false

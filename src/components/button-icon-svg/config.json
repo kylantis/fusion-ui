@@ -555,7 +555,14 @@
       "defaults": [
         null
       ]
+    },
+    "focusable": {
+      "type": "Boolean",
+      "defaultValue": false
     }
   },
+  "clientOnlyPaths": [
+    "cssClass"
+  ],
   "escapeDynamicHtml": false
 }

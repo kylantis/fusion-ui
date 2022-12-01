@@ -1,8 +1,7 @@
 {
   "enableTypeMerging": false,
   "collections": {},
-  "scalars": {
-  },
+  "scalars": {},
   "sample": {
     "nullifyRandomly": []
   },

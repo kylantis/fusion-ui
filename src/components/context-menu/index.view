@@ -1,3 +1,5 @@
+{{style url="/components/context_menu/style.min.css"}}
+
 {{!-- 
     Note: "menu" is never rendered on the DOM, hence data-binding is not available
     for it. If you need to update an item on this menu at a later time, you need to

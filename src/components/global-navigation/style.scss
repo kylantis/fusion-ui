@@ -1,3 +1,10 @@
 html {
     overflow: hidden;
 }
+
+.slds-context-bar {
+    &.slds-context-bar_tabs {
+        // If a tab content displays an overlay, we want the context bar to stay on top
+        z-index: 9001;
+    }
+}

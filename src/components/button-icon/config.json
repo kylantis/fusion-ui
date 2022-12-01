@@ -100,5 +100,9 @@
       ]
     }
   },
+  "clientOnlyPaths": [
+    "cssClass",
+    "svgCssClass"
+  ],
   "escapeDynamicHtml": false
 }

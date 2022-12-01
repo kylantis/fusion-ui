@@ -3,7 +3,7 @@
  {{useCurrentColor ? 'slds-button_icon-current-color' : ''}}
  {{container ? 'slds-button_icon-container' : ''}}
  {{selected ? "slds-is-selected" : "" transform='ensureIconContainer'}}
- {{size ? 'slds-button_icon-${size}' : '' transform='ensureIconContainer'}}
+ {{size ? 'slds-button_icon-${size}' : ''}}
  {{warning ? "slds-button_icon-warning" : ""}}
  {{error ? "slds-button_icon-error" : ""}}
  {{cssClass ? cssClass : ''}}

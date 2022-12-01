@@ -1,0 +1,38 @@
+{
+  "enableTypeMerging": false,
+  "collections": {},
+  "scalars": {
+    "expanded": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "title": {
+      "type": "String",
+      "defaults": [
+        "Section Title"
+      ]
+    },
+    "body": {
+      "type": "componentRef",
+      "defaults": [
+        "Text"
+      ]
+    },
+    "bodyPadding": {
+      "type": "String",
+      "allowed": "spacingType",
+      "defaults": [
+        "horizontal_medium"
+      ]
+    },
+    "collapsible": {
+      "type": "Boolean",
+      "defaultValue": true
+    }
+  },
+  "sample": {
+    "nullifyRandomly": []
+  },
+  "useCollectionLengthProperty": false,
+  "escapeDynamicHtml": false
+}

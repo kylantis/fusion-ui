@@ -5,24 +5,23 @@
     <li class="slds-accordion__list-item">
         <section class="slds-accordion__section {{@first ? 'slds-is-open' : ''}}">
             <div class="slds-accordion__summary">
+                
                 <h2 class="slds-accordion__summary-heading">
+                    
                     <button class="slds-button slds-button_reset slds-accordion__summary-action"
                         aria-controls="{{@random}}" aria-expanded="{{@first ? 'true' : 'false'}}" title="{{title}}" type="button">
-                        <svg class="slds-accordion__summary-action-icon slds-button__icon slds-button__icon_left"
-                            aria-hidden="true" focusable="false">
-                            <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#switch"></use>
-                        </svg>
+                        
+                        {{> ButtonIconSvg iconType='utility' iconName='switch' cssClass='slds-accordion__summary-action-icon slds-button__icon_left'}}
+
                         <span class="slds-accordion__summary-content">{{title}}</span>
                     </button>
+
                 </h2>
+
             </div>
-            <div class="slds-accordion__content" id="{{@random}}">
-                {{component alias="component"}}
-                {{#if component}}
-                    {{> component}}
-                {{else}}
-                    {{text}}
-                {{/if}}
+            <div class="slds-accordion__content {{bodyPadding ? 'slds-p-${bodyPadding}' : ''}}" id="{{@random}}">
+                {{component alias="body"}}
+                {{> body}}
             </div>
         </section>
     </li>
