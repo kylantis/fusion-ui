@@ -1,5 +1,5 @@
 
-class Checkbox extends components.LightningComponent {
+class FormElement extends components.LightningComponent {
 
     initCompile() {
         components.Tooltip;
@@ -110,7 +110,7 @@ class Checkbox extends components.LightningComponent {
 
     async groupItemHook({ node, blockData }) {
 
-        const { htmlWrapperCssClassname: mstW } = RootCtxRenderer
+        const { htmlWrapperCssClassname: mstW } = RootCtxRenderer;
 
         const { index, length } = blockData['items'];
         const { required } = this.getInput().items[index];
@@ -146,4 +146,4 @@ class Checkbox extends components.LightningComponent {
         }
     }
 }
-module.exports = Checkbox;
+module.exports = FormElement;

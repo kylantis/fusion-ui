@@ -425,7 +425,42 @@ class RootProxy {
 
     const input = this.component.getInput();
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      // DEGUB WHY AJV VALIDATION IS TOO SLOW, AND RE-ENABLE VALIATION
+
+
+
+
+
+
+
+
+
+
     if (!validate(input)) {
+
+
+
+
+
+
+
+
+
+
       const componentName = this.component.getComponentName();
       const msg = `Component "${this.component.getId()}" could not be loaded due to schema mismatch of input data`;
 

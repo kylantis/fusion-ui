@@ -4,5 +4,5 @@
     aria-hidden="true"
     {{focusable ? "focusable='true'" : ""}}
     >
-        <use xlink:href="/assets/icons/{{iconType}}-sprite/svg/symbols.svg#{{iconName}}"></use>
+        <use xlink:href="/assets/icons/{{iconType}}-sprite/svg/symbols.svg#{{iconName}}" style="pointer-events: none;"></use>
 </svg>

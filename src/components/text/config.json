@@ -12,7 +12,7 @@
       "type": "String",
       "allowed": "textType",
       "defaults": [
-        "heading_small"
+        "heading_large"
       ]
     },
     "align": {

@@ -21,15 +21,12 @@
 {{/inline}}
 
 {{#*inline "render_title"}}
-  {{component Text alias="title"}}
+  {{#if title}}
     <div style="display: inline-block; vertical-align: middle;">
-      {{#if title}}
-        {{> title}}
-      {{else}}
-        {{titleText ? titleText : ""}}
-      {{/if}}
+      {{title}}
     </div>
-  {{> render_icon}}
+    {{> render_icon}}
+  {{/if}}
 {{/inline}}
 
 {{#*inline "render_icon"}}
@@ -115,6 +112,7 @@
 
 <fieldset class="slds-form-element">
 
+  {{#if title}}
   <legend class="slds-form-element__legend slds-form-element__label">
     {{#if required}}
       {{> render_required_label}}
@@ -122,6 +120,7 @@
 
     {{> render_title}}
   </legend>
+  {{/if}}
 
   <div class="slds-form-element__control">
     

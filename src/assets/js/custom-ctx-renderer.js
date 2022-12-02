@@ -143,12 +143,11 @@ class CustomCtxRenderer extends RootCtxRenderer {
     };
   }
 
-  renderBlock({ options, ctx, scope, state }) {
+  renderBlock({ options, ctx, scope, state, nodeId }) {
+
     const { fn, hash } = options;
 
     const { blockParam, hook, hookOrder } = hash;
-    
-    const nodeId = this.peekSyntheticNodeId();
 
     if (scope) {
       assert(blockParam);
@@ -164,7 +163,9 @@ class CustomCtxRenderer extends RootCtxRenderer {
         hash.state = state;
       }
 
-      if (hook) {
+      if (hook) { 
+        assert(nodeId);
+
         this.hooks[`#${nodeId}`] = {
           hookName: hook,
           order: hookOrder != undefined ? hookOrder : this.getDefaultHookOrder(),

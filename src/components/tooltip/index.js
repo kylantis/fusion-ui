@@ -14,6 +14,11 @@ class Tooltip extends components.OverlayComponent {
     }
 
     setPosition() {
+
+        if (this.isHeadlessContext()) {
+            return;
+        }
+
         const { targetElement } = this.getInput();
 
         if (!targetElement) {
@@ -110,6 +115,8 @@ class Tooltip extends components.OverlayComponent {
             )
         }
 
+        node.style.zIndex = 0;
+
         if (this.getHideToggleClass() && this.getHideToggleClass()) {
             node.style.visibility = 'unset';
             node.classList.remove(this.getHideToggleClass());
@@ -128,15 +135,17 @@ class Tooltip extends components.OverlayComponent {
         } else {
             node.style.visibility = 'hidden';
         }
+
+        // After tooltip has been hidden, we want to have it stacked under (not just hidden)
+        setTimeout(() => node.style.zIndex = -1, 300)
     }
 
     getSupportedPositions() {
-        return [
+        return this.supportedPositions || [
             "right",
             "left",
             "top",
             "bottom",
-           
         ];
     }
 
@@ -170,4 +179,5 @@ class Tooltip extends components.OverlayComponent {
     }
 
 }
+
 module.exports = Tooltip;

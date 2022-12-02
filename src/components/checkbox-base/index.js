@@ -8,7 +8,7 @@ class CheckboxBase extends components.TextCompanion {
     #setDefaults() {
     }
 
-    onCheckboxChange(evt) {
+    onChange(evt) {
         const input = this.getInput();
         const { checked } = evt.target;
 

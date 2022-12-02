@@ -1,5 +1,5 @@
 
-class Checkbox extends components.LightningComponent {
+class RadioGroup extends components.LightningComponent {
 
     initCompile() {
         components.Tooltip;
@@ -61,8 +61,6 @@ class Checkbox extends components.LightningComponent {
 
             this.helperTooltip.setPosition();
 
-
-
             const hoverTrigger = document.querySelector(btn);
             let isMouseHover = false;
 
@@ -85,20 +83,6 @@ class Checkbox extends components.LightningComponent {
                 text: helperText,
             }];
         }
-    }
-
-    beforeMount() {
-        this.#setDefaults();
-    }
-
-    #setDefaults() {
-        const { items } = this.getInput();
-        items.forEach((item) => {
-            // For checkbox for work properly, each item needs to have a name
-            if (!item.name) {
-                item.name = clientUtils.randomString();
-            }
-        })
     }
 
     async onMount() {
@@ -135,6 +119,21 @@ class Checkbox extends components.LightningComponent {
         }
     }
 
+    beforeMount() {
+        this.#setDefaults();
+    }
+
+    #setDefaults() {
+        const { items } = this.getInput();
+        items.forEach((item, i) => {
+            // For checkbox for work properly, each item needs to have a name
+            // Also, the names need to be unique for onChange(...) to work properly
+            if (!item.name || items.filter(({ name }, j) => item.name == name && i != j).length) {
+                item.name = clientUtils.randomString();
+            }
+        })
+    }
+
     onChange(evt) {
         const { items } = this.getInput();
         const { checked, name } = evt.target;
@@ -146,4 +145,4 @@ class Checkbox extends components.LightningComponent {
         }
     }
 }
-module.exports = Checkbox;
+module.exports = RadioGroup;

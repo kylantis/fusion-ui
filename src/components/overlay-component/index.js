@@ -1,6 +1,8 @@
 
 class OverlayComponent extends components.LightningComponent {
 
+    static #overlayConfig = {};
+
     initCompile() {
     }
 
@@ -9,7 +11,7 @@ class OverlayComponent extends components.LightningComponent {
     }
 
     static getOverlayConfig() {
-        return global.OverlayConfig || (global.OverlayConfig = {});
+        return OverlayComponent.#overlayConfig;
     }
 
     async onMount() {

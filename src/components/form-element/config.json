@@ -1,13 +1,13 @@
 {
   "collections": {
     "items": {
-      "minLength": 3,
+      "minLength": 2,
       "singularType": "Item"
     }
   },
   "useCollectionLengthProperty": true,
   "scalars": {
-    "titleText": {
+    "title": {
       "type": "String",
       "defaults": [
         "Checkbox Group Label"
@@ -72,10 +72,6 @@
       "defaults": [
         "Some helpful information"
       ]
-    },
-    "title": {
-      "type": "Text",
-      "isNull": false
     }
   },
   "sample": {

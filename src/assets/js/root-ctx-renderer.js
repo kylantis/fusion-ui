@@ -167,7 +167,11 @@ class RootCtxRenderer extends BaseRenderer {
       helpers,
       partials: {},
       allowedProtoProperties: {
-        // ...allowedProtoProperties,
+
+        // Todo: Stop passing in everthing, we only need the paths prefixed with "data__r$_"
+        // To test any future fix, use checkbox component because it contains a custom context
+
+        ...allowedProtoProperties,
       },
     };
 

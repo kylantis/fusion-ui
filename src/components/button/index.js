@@ -8,7 +8,7 @@ class Button extends components.LightningComponent {
     /**
      * This method ensure a consistent button width when switching between states
      */
-    refreshuttonSize() {
+    refreshButtonSize() {
 
         if (this.isHeadlessContext()) {
             return;
@@ -110,22 +110,22 @@ class Button extends components.LightningComponent {
                 }
             },
             ['onMount.states.$_.title']: () => {
-                this.refreshuttonSize();
+                this.refreshButtonSize();
             },
             ['onMount.states.$_.leftIcon']: () => {
-                this.refreshuttonSize();
+                this.refreshButtonSize();
             },
             ['onMount.states.$_.rightIcon']: () => {
-                this.refreshuttonSize();
+                this.refreshButtonSize();
             },
             ['onMount.title']: () => {
-                this.refreshuttonSize();
+                this.refreshButtonSize();
             },
             ['onMount.leftIcon']: () => {
-                this.refreshuttonSize();
+                this.refreshButtonSize();
             },
             ['onMount.rightIcon']: () => {
-                this.refreshuttonSize();
+                this.refreshButtonSize();
             }
         }
     }
@@ -149,7 +149,7 @@ class Button extends components.LightningComponent {
     }
 
     onMount() {
-        this.refreshuttonSize();
+        this.refreshButtonSize();
 
         this.node.addEventListener("click", () => {
             this.dispatchEvent('click');

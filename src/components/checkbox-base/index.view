@@ -10,7 +10,7 @@
       {{name ? "name=\"${name}\"" : "" }}
       {{checked ? "checked=\"\"" : "" }}
       {{disabled ? "disabled=\"\"" : "" }}
-       onchange="{{fn "onCheckboxChange"}}(event)"
+       onchange="{{fn "onChange"}}(event)"
     >
     <label class="slds-checkbox__label" for="{{@root.componentId}}_input">
     <span class="slds-checkbox_faux"></span></label>
