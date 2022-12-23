@@ -513,12 +513,10 @@
       "type": "String",
       "defaults": [
         null
-      ]
+      ],
+      "clientOnly": true
     }
   },
-  "clientOnlyPaths": [
-    "cssClass"
-  ],
   "sample": {
     "count": 20
   },

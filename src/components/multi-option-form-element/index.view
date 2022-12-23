@@ -1,0 +1,63 @@
+
+
+{{#*inline "render_input_element" id item eager=true}}
+    <input type="{{type}}" name="{{getItemInputName item}}" id="{{id}}_input" value="{{id}}_input"
+      {{item.checked ? "checked=\"\"" : "" }}
+      {{(item.disabled or disabled) ? "disabled=\"\"" : "" }}
+      {{message ? "aria-describedby=\"${@root.componentId}_message\"" : "" }}
+      onchange="{{fn "onChange"}}(event)"
+    >
+{{/inline}}
+
+
+{{#*inline "render_standalone_control" eager=true}}
+  {{var item=items.[0]}}
+
+  {{registerItem item}}
+
+  {{#if readonly}}
+    {{> ?render_readonly checked=item.checked}}
+  {{else}}
+
+    <span class="slds-{{type}}">
+        {{> render_input_element item id=@root.componentId}}
+        <span class="slds-{{type}}_faux"></span>
+    </span>
+  {{/if}}
+{{/inline}}
+
+
+{{#*inline "render_compound_control" eager=true}}  
+  {{#each items hook = "itemHook" as |item itemIndex|}}
+    <div class="mst-w {{error ? 'slds-has-error' : ''}}">
+      
+      <div class="slds-{{../type}}">
+
+        {{#if required and (../items.length eq 1)}}
+            {{> render_required_label}}
+        {{/if}}
+
+        {{#if ../readonly}}
+          {{> ?render_readonly checked=item.checked}}
+        {{else}}
+          {{> render_input_element item id=("${@root.componentId}-${@random}")}}
+        {{/if}}
+
+        <label class="slds-{{../type}}__label" for="{{@root.componentId}}-{{@random}}_input">
+          <span class="slds-{{../type}}_faux"></span>
+          
+          <span class="slds-form-element__label">
+            {{label}}
+
+            {{!-- Note: If there are mutiple items, we are placing the required label on the right rather 
+            than the left inorder to ensure that all elements are aligned uniformly --}}
+
+            {{#if required and (../items.length gt 1)}}
+              {{> render_required_label}}
+            {{/if}}
+          </span>
+        </label>
+      </div>
+    </div>
+  {{/each}}
+{{/inline}}

@@ -312,9 +312,8 @@ module.exports = {
     return results;
   },
 
-  getLine: (stmt) => {
-    const { loc: { start } = {} } = stmt;
-    return start ? `${start.line}:${start.column}` : '';
+  getLine: ({ loc }) => {
+    return loc ? `${loc.source} ${loc.start.line}:${loc.start.column}` : '';
   },
 
   getRandomInt: (min = 10000, max = 99999) => {

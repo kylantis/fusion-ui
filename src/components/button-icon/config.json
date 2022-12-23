@@ -30,13 +30,15 @@
       "type": "String",
       "defaults": [
         null
-      ]
+      ],
+      "clientOnly": true
     },
     "svgCssClass": {
       "type": "String",
       "defaults": [
         null
-      ]
+      ],
+      "clientOnly": true
     },
     "size": {
       "type": "String",
@@ -100,9 +102,5 @@
       ]
     }
   },
-  "clientOnlyPaths": [
-    "cssClass",
-    "svgCssClass"
-  ],
   "escapeDynamicHtml": false
 }

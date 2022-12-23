@@ -23,14 +23,6 @@ class LightningComponent extends BaseComponent {
         return true;
     }
 
-    behaviours() {
-        return ['showTooltip'];
-    }
-
-    showTooltip() {
-
-    }
-
     getLoader() {
         return `
             <div style='position: absolute; display: table; width: 100%; height: 100%;'>

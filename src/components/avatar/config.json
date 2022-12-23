@@ -79,7 +79,8 @@
       ],
       "defaults": [
         null
-      ]
+      ],
+      "clientOnly": true
     }
   },
   "sample": {
@@ -89,9 +90,6 @@
       "initials"
     ]
   },
-  "clientOnlyPaths": [
-    "groupRole"
-  ],
   "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false
 }

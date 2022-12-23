@@ -101,8 +101,12 @@ class RootProxy {
   createDataPathHooksObject() {
 
     return new Proxy({}, {
-      set: function (object, key, value) {
+      set: (object, key, value) => {
         assert(Array.isArray(value));
+
+        if (!this.component.dataBindingEnabled()) {
+          return true;
+        }
 
         // Only set - if not set already
         return object[key] === undefined ? object[key] = value : true;
@@ -149,10 +153,10 @@ class RootProxy {
         proxy.validateInput();
       }
 
-      if (component.dataBindingEnabled()) {
-        // Add our observer, to orchestrate data binding operations
-        proxy.addDataObserver();
-      }
+      proxy.toCanonicalObject({ path: '', obj: component.getInput() });
+
+      // Add our observer, to orchestrate data binding operations
+      proxy.addDataObserver();
     }
 
     return proxy.handler;
@@ -439,7 +443,7 @@ class RootProxy {
 
 
 
-      // DEGUB WHY AJV VALIDATION IS TOO SLOW, AND RE-ENABLE VALIATION
+    // DEGUB WHY AJV VALIDATION IS TOO SLOW, AND RE-ENABLE VALIATION
 
 
 
@@ -497,8 +501,6 @@ class RootProxy {
         'Input data already processed. You need to clone the data first before using it on a new component instance'
       );
     }
-
-    this.toCanonicalObject({ path: '', obj: this.component.getInput() });
 
     this.component.setInput(
       this.getObserverProxy(this.component.getInput())
@@ -1820,7 +1822,7 @@ class RootProxy {
 
         // In toCanonicalObject(...), we always default missing object properties to null,
         // so oldValue === undefined it means that <prop> is invalid
-        `${parent ? `[${parent}] ` : ''}Property ${prop} does not exist`
+        `${parent ? `[${parent}] ` : ''}Property "${prop}" does not exist`
       );
     }
 
@@ -2156,6 +2158,10 @@ class RootProxy {
   }
 
   getObserverProxy(object) {
+
+    if (!this.component.dataBindingEnabled()) {
+      return object;
+    }
 
     return new Proxy(object, {
 

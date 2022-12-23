@@ -8,6 +8,17 @@ class BaseComponent extends WebRenderer {
   static #token;
 
   #parent;
+  
+  // #API
+  static CONSTANTS = {
+    pathSeparator: RootProxy.pathSeparator,
+    pathProperty: RootProxy.pathProperty,
+    firstProperty: RootProxy.firstProperty,
+    lastProperty: RootProxy.lastProperty,
+    keyProperty: RootProxy.keyProperty,
+    indexProperty: RootProxy.indexProperty,
+    randomProperty: RootProxy.randomProperty,
+  };
 
   constructor({
     id, input, logger, parent
@@ -300,7 +311,7 @@ class BaseComponent extends WebRenderer {
       ...self.appContext ? self.appContext.userGlobals : {},
       // ... Component Global Variables
       componentId: this.getId(),
-      random: this.randomString || (this.randomString = clientUtils.randomString())
+      random: this.randomString0 || (this.randomString0 = clientUtils.randomString())
     }
   }
 
@@ -315,6 +326,7 @@ class BaseComponent extends WebRenderer {
     };
   }
 
+  // #API
   static getWrapperCssClass() {
     const { htmlWrapperCssClassname } = RootCtxRenderer;
     return htmlWrapperCssClassname;
@@ -372,6 +384,15 @@ class BaseComponent extends WebRenderer {
   // #API
   isHeadlessContext() {
     return global.isServer;
+  }
+  // #API
+  randomString() {
+    const { randomString } = BaseComponent;
+    return randomString();
+  }
+
+  static randomString() {
+    return clientUtils.randomString();
   }
 }
 module.exports = BaseComponent;

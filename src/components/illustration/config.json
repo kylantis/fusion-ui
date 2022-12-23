@@ -1,34 +1,6 @@
 {
   "collections": {},
   "scalars": {
-    "name": {
-      "type": "String",
-      "allowed": [
-        "going_camping",
-        "maintenance",
-        "desert",
-        "open_road",
-        "no_access",
-        "no_connection",
-        "not_available_in_lightning",
-        "page_not_available",
-        "walkthrough_not_available",
-        "fishing_deals",
-        "lake_mountain",
-        "no_events",
-        "no_task",
-        "setup",
-        "gone_fishing",
-        "no_access_2",
-        "no_content",
-        "no_preview",
-        "preview",
-        "research"
-      ],
-      "defaults": [
-        "maintenance"
-      ]
-    },
     "verticallyAlign": {
       "type": "Boolean",
       "defaultValue": true
@@ -55,6 +27,10 @@
       "defaults": [
         "Description"
       ]
+    },
+    "name": {
+      "type": "String",
+      "defaults": []
     }
   },
   "escapeDynamicHtml": false

@@ -82,8 +82,12 @@ class RootCtxRenderer extends BaseRenderer {
 
   renderDecorator(decorator) {
     return this.#handlebars.template(decorator)(
-        this.rootProxy, this.#handlebarsOptions,
-      );
+      this.rootProxy, this.#handlebarsOptions,
+    );
+  }
+
+  isLoadable() {
+    return true;
   }
 
   async load({ container, token, transform }) {
@@ -94,6 +98,12 @@ class RootCtxRenderer extends BaseRenderer {
 
     if (token !== RootCtxRenderer.#token && !this.isRoot()) {
       throw Error(`Invalid token: ${token}`);
+    }
+
+    await this.invokeLifeCycleMethod('beforeLoad');
+
+    if (!this.isLoadable()) {
+      return { id: this.getId(), html: '' };
     }
 
     const { htmlWrapperCssClassname, getMetaHelpers } = RootCtxRenderer;
@@ -481,15 +491,12 @@ class RootCtxRenderer extends BaseRenderer {
             '' :
             this.lookupFnStore(fn)(this.rootProxy);
 
-          let elementNodeId;
+          const elementNodeId = clientUtils.randomString();;
           const key = this.getBlockData({ path: blockKey, dataVariable: '@key' });
 
-          if (dataBinding) {
-            elementNodeId = clientUtils.randomString();
-            markup = `<div id="${elementNodeId}" class="${htmlWrapperCssClassname}" key="${key}">
+          markup = `<div id="${elementNodeId}" class="${htmlWrapperCssClassname}" key="${key}">
                         ${markup}
                       </div>`;
-          }
 
           if (isArray && !isSynthetic) {
             // arrayChildBlock hooks are only added to non-synthetic array paths
@@ -998,7 +1005,7 @@ class RootCtxRenderer extends BaseRenderer {
 
   throwError(msg, loc) {
     const { getLine } = clientUtils;
-    throw Error(`[${this.getId()}${loc ? ` ${getLine({ loc })}` : ''}] ${msg}`);
+    throw Error(`[${loc ? `${getLine({ loc })}` : this.getId()}] ${msg}`);
   }
 
   setSyntheticContext({ alias, fn, loc, canonicalSource }) {
@@ -1772,7 +1779,7 @@ class RootCtxRenderer extends BaseRenderer {
     const params = Array.from(arguments);
     const options = params.pop();
 
-    const { hash } = options;
+    const { hash, loc } = options;
     let [componentSpec] = params;
 
     delete hash.ctx;
@@ -1780,13 +1787,19 @@ class RootCtxRenderer extends BaseRenderer {
     const ref = hash.ref;
     delete hash.ref;
 
+    let component;
+
     switch (true) {
       case componentSpec && componentSpec.constructor.name === 'String':
 
-        componentSpec = this.createComponent({
-          hash,
-          componentClass: components[componentSpec],
-        });
+        const componentClass = components[componentSpec];
+
+        if (componentClass && componentClass.prototype instanceof BaseComponent) {
+          component = this.createComponent({
+            hash,
+            componentClass,
+          });
+        }
 
         break;
 
@@ -1800,30 +1813,36 @@ class RootCtxRenderer extends BaseRenderer {
         });
 
         if (input || config) {
-          componentSpec = new componentSpec.constructor({
+          component = new componentSpec.constructor({
             input: input || inputProducer(),
             config,
             parent: this,
           });
+        } else {
+          // We don't have to clone the component, because there is no override
+          component = componentSpec;
         }
 
         if (handlers) {
-          this.addEventHandlers({ handlers, component: componentSpec });
+          this.addEventHandlers({ handlers, component });
         }
 
         break;
 
-      default:
-        // We don't know what this is, return undefined so that BaseComponent.render(...) will
-        // return an empty string
+      case componentSpec == null:
+        // We need to return undefined so that BaseComponent.render(...) will render an empty string
         return undefined;
     }
 
-    if (ref) {
-      this.#inlineComponentInstances[ref] = componentSpec;
+    if (!component) {
+      this.throwError(`Unknown target specified in PartialStatement`, loc);
     }
 
-    return componentSpec;
+    if (ref) {
+      this.#inlineComponentInstances[ref] = component;
+    }
+
+    return component;
   }
 
   getInlineComponents() {
@@ -1879,6 +1898,22 @@ class RootCtxRenderer extends BaseRenderer {
     return o;
   }
 
+  getOwnMethod(name) {
+    let o = Reflect.getPrototypeOf(this);
+    if (this.constructor.name != this.getComponentName()) {
+      // This instance was created from the test class
+      o = Reflect.getPrototypeOf(o);
+    }
+
+    return Reflect.ownKeys(o).includes(name) ?
+      o[name].bind(this) : null;
+  }
+
+  getOwnBehaviours() {
+    const fn = this.getOwnMethod('behaviours');
+    return fn ? fn() : [];
+  }
+
   getBehaviours() {
     let behaviours = [];
 
@@ -1888,6 +1923,11 @@ class RootCtxRenderer extends BaseRenderer {
     });
 
     return behaviours;
+  }
+
+  getOwnEvents() {
+    const fn = this.getOwnMethod('events');
+    return fn ? fn() : [];
   }
 
   getEvents() {
@@ -1921,10 +1961,6 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   getAssetId() {
-    return this.getAssetId0();
-  }
-
-  getAssetId0() {
     return this.getSyntheticMethod({ name: 'assetId' })();
   }
 

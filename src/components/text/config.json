@@ -12,7 +12,7 @@
       "type": "String",
       "allowed": "textType",
       "defaults": [
-        "heading_large"
+        "body_regular"
       ]
     },
     "align": {
@@ -26,7 +26,8 @@
       "type": "String",
       "defaults": [
         null
-      ]
+      ],
+      "clientOnly": true
     },
     "color": {
       "type": "String",
@@ -43,9 +44,6 @@
       ]
     }
   },
-  "clientOnlyPaths": [
-    "cssClass"
-  ],
   "sample": {
     "nullifyRandomly": []
   },

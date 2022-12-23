@@ -28,25 +28,19 @@
       "type": "String",
       "defaults": [
         null
-      ]
+      ],
+      "clientOnly": true
     },
     "tabIndex": {
       "type": "Number",
-      "defaultValue": -1
-    },
-    "directional": {
-      "type": "Boolean",
-      "defaultValue": false
+      "defaultValue": -1,
+      "clientOnly": true
     },
     "closeIcon": {
       "type": "Boolean",
       "defaultValue": true
     }
   },
-  "clientOnly": true,
-  "clientOnlyPaths": [
-    "cssClass"
-  ],
   "sample": {
     "nullifyRandomly": []
   },

@@ -6,7 +6,6 @@
 const path = require('path');
 const gulp = require('gulp');
 const imageMin = require('gulp-imagemin');
-const watch = require('gulp-watch');
 const through = require('through2');
 
 gulp.task('minify-images', () => gulp.src('src/assets/images/**/*.{png,svg,ico,gif,jpg,webp}')

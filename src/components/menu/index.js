@@ -129,7 +129,7 @@ class Menu extends components.LightningComponent {
     async itemHook({ node, blockData }) {
 
         const { htmlWrapperCssClassname: mstW } = RootCtxRenderer
-        const { pathSeparator } = RootProxy;
+        const { pathSeparator } = BaseComponent.CONSTANTS;
 
         const _this = this;
         const li = node.querySelector(':scope > li');
@@ -184,7 +184,7 @@ class Menu extends components.LightningComponent {
 
         const createContainerDiv = () => {
             const elem = document.createElement('div');
-            elem.id = global.clientUtils.randomString();
+            elem.id = this.randomString();
             elem.className = mstW;
 
             return elem;

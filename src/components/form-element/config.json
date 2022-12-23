@@ -1,69 +1,20 @@
 {
-  "collections": {
-    "items": {
-      "minLength": 2,
-      "singularType": "Item"
-    }
-  },
-  "useCollectionLengthProperty": true,
+  "collections": {},
+  "useCollectionLengthProperty": false,
   "scalars": {
-    "title": {
+    "titleText": {
       "type": "String",
       "defaults": [
-        "Checkbox Group Label"
+        "My FormElement Label"
       ]
     },
-    "errorMessage": {
+    "message": {
       "type": "String",
       "defaults": [
         "This field is required"
       ]
     },
-    "required": {
-      "type": "Boolean",
-      "defaultValue": false
-    },
-    "disabled": {
-      "type": "Boolean",
-      "defaultValue": false
-    },
-    "items_$.name": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
-    },
-    "items_$.label": {
-      "type": "String",
-      "defaults": [
-        "Checkbox Label"
-      ]
-    },
-    "items_$.checked": {
-      "type": "Boolean",
-      "defaultValue": true
-    },
-    "items_$.required": {
-      "type": "Boolean",
-      "defaultValue": true
-    },
-    "items_$.error": {
-      "type": "Boolean",
-      "defaultValue": true
-    },
-    "items_$.disabled": {
-      "type": "Boolean",
-      "defaultValue": true
-    },
-    "formElement": {
-      "type": "Boolean",
-      "defaultValue": false
-    },
-    "viewMode": {
-      "type": "Boolean",
-      "defaultValue": false
-    },
-    "icon": {
+    "titleIcon": {
       "type": "ButtonIcon",
       "isNull": true
     },
@@ -72,14 +23,55 @@
       "defaults": [
         "Some helpful information"
       ]
+    },
+    "title": {
+      "type": "Text",
+      "isNull": false
+    },
+    "disabled": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "required": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "readonly": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "error": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "isStatic": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "editable": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "inEditMode": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "layoutType": {
+      "type": "String",
+      "allowed": [
+        "compound",
+        "stacked",
+        "horizontal"
+      ],
+      "defaults": [
+        "stacked"
+      ]
     }
   },
   "sample": {
     "nullifyRandomly": [
-      "items_$.checked",
-      "items_$.required",
-      "items_$.error",
-      "items_$.disabled"
+      "error",
+      "readonly"
     ]
   },
   "escapeDynamicHtml": false

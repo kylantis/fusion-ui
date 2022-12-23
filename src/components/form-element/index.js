@@ -3,6 +3,27 @@ class FormElement extends components.LightningComponent {
 
     initCompile() {
         components.Tooltip;
+
+        this.getInput().disabled;
+        this.getInput().readonly;
+        this.getInput().error;
+        this.getInput().layoutType;
+
+        this.getInput().editable;
+        this.getInput().inEditMode;
+    }
+
+    static isAbstract() {
+        return true;
+    }
+
+    isLoadable() {
+        return this.getComponentName() != FormElement.name;
+    }
+
+    isCompound() {
+        const { layoutType } = this.getInput();
+        return layoutType == 'compound';
     }
 
     hooks() {
@@ -10,7 +31,7 @@ class FormElement extends components.LightningComponent {
             ['beforeMount.helperText']: async (evt) => {
                 const { newValue: helperText, parentObject: obj } = evt;
                 if (helperText) {
-                    if (!obj.icon) {
+                    if (!obj.titleIcon) {
                         await this.setHelperTooltip(helperText);
                     }
                 } else if (this.helperTooltip) {
@@ -18,6 +39,22 @@ class FormElement extends components.LightningComponent {
                     delete this.helperTooltip;
                 }
             },
+            ['onMount.readonly']: (evt) => {
+                const { newValue: readonly } = evt;
+                this.toggleReadOnlyClass(readonly);
+            },
+            ['onMount.error']: (evt) => {
+                const { newValue: error } = evt;
+                this.toggleErrorClass(!!error);
+            },
+            ['onMount.editable']: (evt) => {
+                const { newValue: editable } = evt;
+                this.toggleEditableClass(editable);
+            },
+            ['onMount.inEditMode']: (evt) => {
+                const { newValue: inEditMode } = evt;
+                this.toggleEditModeClass(inEditMode);
+            }
         }
     }
 
@@ -33,11 +70,21 @@ class FormElement extends components.LightningComponent {
 
     async setHelperTooltip(helperText) {
 
+        if (this.isHeadlessContext()) {
+            return;
+        }
+
         if (!this.helperTooltip) {
 
             const { rtl } = this.getGlobalVariables();
 
             const btn = `#${this.getElementId()} button.slds-button_icon`;
+            const hoverTarget = document.querySelector(btn);
+
+            if (!hoverTarget) {
+                return;
+            }
+
             const svg = `${btn} svg`;
 
             this.helperTooltip = new components.Tooltip({
@@ -50,11 +97,11 @@ class FormElement extends components.LightningComponent {
                 },
             });
 
-            // We don't want the tooltip to block the user's view of the checkbox
+            // We don't want our tooltip to block the user's view of the checkbox
             this.helperTooltip.supportedPositions = [
-                rtl ? "left" : "right",
                 "top",
                 "bottom",
+                ...rtl ? ["left", "right"] : ["right", "left"],
             ]
 
             await this.helperTooltip.load();
@@ -62,11 +109,9 @@ class FormElement extends components.LightningComponent {
             this.helperTooltip.setPosition();
 
 
-
-            const hoverTrigger = document.querySelector(btn);
             let isMouseHover = false;
 
-            hoverTrigger.addEventListener('mouseenter', () => {
+            hoverTarget.addEventListener('mouseenter', () => {
                 isMouseHover = true;
                 setTimeout(() => {
                     if (isMouseHover) {
@@ -75,7 +120,7 @@ class FormElement extends components.LightningComponent {
                 }, 200);
             });
 
-            hoverTrigger.addEventListener('mouseleave', () => {
+            hoverTarget.addEventListener('mouseleave', () => {
                 isMouseHover = false;
                 this.helperTooltip.hide();
             });
@@ -87,63 +132,91 @@ class FormElement extends components.LightningComponent {
         }
     }
 
-    beforeMount() {
-        this.#setDefaults();
+    getFormElementNode() {
+        return this.node.querySelector(':scope .slds-form-element');
     }
 
-    #setDefaults() {
-        const { items } = this.getInput();
-        items.forEach((item) => {
-            // For checkbox for work properly, each item needs to have a name
-            if (!item.name) {
-                item.name = clientUtils.randomString();
-            }
-        })
+    toggleFormElementCssClass(predicate, className) {
+        const formElement = this.getFormElementNode();
+        if (!formElement) {
+            return;
+        }
+        const { classList } = formElement;
+        if (predicate) {
+            classList.add(className);
+        } else {
+            classList.remove(className);
+        }
+    }
+
+    supportsInlineEdits() {
+        return false;
+    }
+
+    toggleReadOnlyClass(readonly) {
+        this.toggleFormElementCssClass(readonly, 'slds-form-element_readonly');
+    }
+
+    toggleErrorClass(error) {
+        this.toggleFormElementCssClass(error, 'slds-has-error');
+    }
+
+    toggleEditableClass(editable) {
+        if (!this.supportsInlineEdits()) {
+            return;
+        }
+        this.toggleFormElementCssClass(editable, 'slds-form-element_edit');
+    }
+
+    toggleEditModeClass(inEditMode) {
+        const { editable } = this.getInput();
+
+        if (!editable || !this.supportsInlineEdits()) {
+            return;
+        }
+
+        const formElement = this.getFormElementNode();
+        if (!formElement) {
+            return;
+        }
+
+        const { classList } = formElement;
+
+        if (inEditMode) {
+            classList.remove('slds-hint-parent')
+            classList.add('slds-is-editing');
+        } else {
+            classList.add('slds-hint-parent')
+            classList.remove('slds-is-editing');
+        }
+
+
+        // TODO: PERFOFM NECESSART TRANSFORMSTIONS
     }
 
     async onMount() {
-        const { helperText, icon } = this.getInput();
+        const { helperText, icon, readonly, error, editable, inEditMode } = this.getInput();
+
+        if (readonly) {
+            this.toggleReadOnlyClass(readonly);
+        }
+
+        if (error) {
+            this.toggleErrorClass(true);
+        }
+
+        if (editable) {
+            this.toggleEditableClass(true);
+            this.toggleEditModeClass(inEditMode);
+        }
+
+        // Todo: setHelperTooltip(...) contains logic that should be integrated into the tooltip
+        // component, this needs to be done
+
         if (helperText && !icon) {
             await this.setHelperTooltip(helperText);
         }
     }
-
-    async groupItemHook({ node, blockData }) {
-
-        const { htmlWrapperCssClassname: mstW } = RootCtxRenderer;
-
-        const { index, length } = blockData['items'];
-        const { required } = this.getInput().items[index];
-
-        if (required) {
-            this.hasRequiredItem = true;
-        }
-
-        if (index == length - 1 && this.hasRequiredItem) {
-            // Add a small left margin to non-required items, so that
-            // they are on the same plane as their required counterparts
-            this.getInput().items
-                .forEach((item, i) => {
-                    if (item.required) { return; }
-
-                    const marginLeft = this.isMobile() ? '0.967em' : '1.1em';
-
-                    this.node
-                        .querySelector(`:scope .slds-form-element__control > .${mstW} > .${mstW}:nth-child(${i + 1}) .${mstW} label .slds-checkbox_faux`)
-                        .style.marginLeft = marginLeft;
-                })
-        }
-    }
-
-    onChange(evt) {
-        const { items } = this.getInput();
-        const { checked, name } = evt.target;
-
-        for (const item of items) {
-            if (item.name == name) {
-                item.checked = checked;
-            }
-        }
-    }
 }
+
 module.exports = FormElement;

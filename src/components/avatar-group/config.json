@@ -21,6 +21,14 @@
       "defaults": [
         "large"
       ]
+    },
+    "l$_primary": {
+      "type": "String",
+      "defaults": []
+    },
+    "l$_secondary": {
+      "type": "String",
+      "defaults": []
     }
   },
   "sample": {

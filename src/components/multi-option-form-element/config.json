@@ -1,0 +1,67 @@
+{
+  "collections": {
+    "items": {
+      "minLength": 3,
+      "singularType": "Item"
+    }
+  },
+  "useCollectionLengthProperty": true,
+  "scalars": {
+    "items_$.label": {
+      "type": "String",
+      "defaults": [
+        "Checkbox Label",
+        "Enable Feature",
+        "Track location",
+        "Disburse funds",
+        "Delete account",
+        "Send info",
+        "Authorize transaction",
+        "File complaint"
+      ]
+    },
+    "items_$.checked": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "items_$.required": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "items_$.error": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "items_$.disabled": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "items_$.name": {
+      "type": "String",
+      "defaults": []
+    },
+    "type": {
+      "type": "String",
+      "defaults": [
+        null
+      ],
+      "clientOnly": true
+    },
+    "cssClass": {
+      "type": "String",
+      "defaults": [
+        null
+      ],
+      "clientOnly": true
+    }
+  },
+  "sample": {
+    "nullifyRandomly": [
+      "items_$.checked",
+      "items_$.required",
+      "items_$.error",
+      "items_$.disabled"
+    ]
+  },
+  "escapeDynamicHtml": false
+}

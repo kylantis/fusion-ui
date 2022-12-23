@@ -108,7 +108,7 @@ class BaseRenderer {
   }
 
   #createId() {
-    return `${this.constructor.name}-${global.clientUtils.randomString()}`;
+    return `${this.getComponentName()}-${global.clientUtils.randomString()}`;
   }
 }
 module.exports = BaseRenderer;

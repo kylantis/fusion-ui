@@ -31,7 +31,7 @@ class GlobalNavigation extends components.LightningComponent {
         const { tabs } = this.getInput();
         tabs.forEach(tab => {
             if (!tab.identifier) {
-                tab.identifier = clientUtils.randomString();
+                tab.identifier = this.randomString();
             }
         });
     }
