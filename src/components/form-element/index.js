@@ -11,6 +11,7 @@ class FormElement extends components.LightningComponent {
 
         this.getInput().editable;
         this.getInput().inEditMode;
+        this.getInput().insideForm;
     }
 
     static isAbstract() {
@@ -56,6 +57,10 @@ class FormElement extends components.LightningComponent {
                 this.toggleEditModeClass(inEditMode);
             }
         }
+    }
+
+    events() {
+        return ['change'];
     }
 
     behaviours() {
@@ -153,8 +158,20 @@ class FormElement extends components.LightningComponent {
         return false;
     }
 
+    transformFormElementLabel(markup) {
+        const { readonly } = this.getInput();
+        return readonly ? markup
+            .replace(/^\s*<label/g, '<span')
+            .replace(/<\/label>\s*$/g, '</span>')
+            : markup;
+    }
+
     toggleReadOnlyClass(readonly) {
-        this.toggleFormElementCssClass(readonly, 'slds-form-element_readonly');
+        const { insideForm } = this.getInput();
+
+        if (insideForm) {
+            this.toggleFormElementCssClass(readonly, 'slds-form-element_readonly');
+        }
     }
 
     toggleErrorClass(error) {
@@ -188,14 +205,15 @@ class FormElement extends components.LightningComponent {
         } else {
             classList.add('slds-hint-parent')
             classList.remove('slds-is-editing');
+
+            // Todo: Add "edit" icon on the right
         }
-
-
-        // TODO: PERFOFM NECESSART TRANSFORMSTIONS
     }
 
     async onMount() {
-        const { helperText, icon, readonly, error, editable, inEditMode } = this.getInput();
+        const {
+            helperText, icon, readonly, error, editable, inEditMode,
+        } = this.getInput();
 
         if (readonly) {
             this.toggleReadOnlyClass(readonly);

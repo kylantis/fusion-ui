@@ -88,8 +88,7 @@
           
           {{#if icon}}
             {{> icon 
-                marginRight=((isSolidIcon icon) ? 'x-small' : null) 
-                textDefault=(feedbackState ? false : undefined ) 
+                marginRight=((isSolidIcon icon) ? 'x-small' : null)
                 useCurrentColor=(feedbackState eq 'warning') 
                 on-solidStateChange='onTabIconSolidStateChange' 
             }}

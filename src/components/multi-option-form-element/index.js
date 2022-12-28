@@ -10,8 +10,29 @@ class MultiOptionFormElement extends components.FormElement {
         this.getInput().items[0].name;
     }
 
+    cssDependencies() {
+        return [
+            ...super.cssDependencies(),
+            '/components/multi_option_form_element/style.min.css',
+        ];
+    }
+
     beforeMount() {
-        this.#setDefaults();
+        const input = this.getInput();
+        const { items } = input;
+
+        // If no options were provided, isLoadable() should have returned false, and this should not have executed
+        assert(items.length);
+
+        if (!this.isCompound()) {
+
+            // This is needed because {{> render_standalone}} does not access "items_$.required", rather it only
+            // uses "required"
+            const [item] = items;
+            if (!input.required && item.required) {
+                input.required = true;
+            }
+        }
     }
 
     isLoadable() {
@@ -33,24 +54,6 @@ class MultiOptionFormElement extends components.FormElement {
         return true;
     }
 
-    #setDefaults() {
-        const input = this.getInput();
-        const { items } = input;
-
-        // If no options were provided, isLoadable() should have returned false, and this should not have executed
-        assert(items.length);
-
-        if (!this.isCompound()) {
-
-            // This is needed because {{> render_standalone}} does not access "items_$.required", rather it only
-            // uses "required"
-            const [item] = items;
-            if (!input.required && item.required) {
-                input.required = true;
-            }
-        }
-    }
-
     onMount() {
         const { type, required } = this.getInput();
         if (required) {
@@ -64,10 +67,12 @@ class MultiOptionFormElement extends components.FormElement {
                 .querySelectorAll(`.slds-${type}`)
                 .forEach(node => {
                     const input = node.querySelector('input');
-                    const label = node.querySelector(`.slds-${type}__label`);
+                    if (input) {
+                        const label = node.querySelector(`.slds-${type}__label`);
 
-                    input.parentNode.remove();
-                    label.parentNode.insertBefore(input, label);                    
+                        input.parentNode.remove();
+                        label.parentNode.insertBefore(input, label);
+                    }
                 });
         }
     }
@@ -135,8 +140,12 @@ class MultiOptionFormElement extends components.FormElement {
         this.registerItem(item);
     }
 
+    getCheckedItems() {
+        return Object.values(this.getItems()).filter(({ checked: c }) => c);
+    }
+
     getCheckedItem() {
-        return Object.values(this.getItems()).filter(({ checked: c }) => c)[0];
+        return this.getCheckedItems()[0];
     }
 
     registerItem(item) {
@@ -154,6 +163,8 @@ class MultiOptionFormElement extends components.FormElement {
 
         if (checkeditem) {
             checkeditem.checked = false;
+            
+            this.dispatchEvent('change', checkeditem.name, false);
         }
     }
 
@@ -165,7 +176,10 @@ class MultiOptionFormElement extends components.FormElement {
             this.uncheck();
         }
 
-        this.getItems()[id].checked = checked;
+        const item = this.getItems()[id];
+        item.checked = checked;
+
+        this.dispatchEvent('change', item.name, checked);
     }
 }
 

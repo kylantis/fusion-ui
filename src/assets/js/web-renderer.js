@@ -38,7 +38,7 @@ class WebRenderer extends CustomCtxRenderer {
     // eslint-disable-next-line consistent-return
     return new Promise((resolve, reject) => {
       const loaded = [];
-      let styles = [...this.cssDependencies()];
+      let styles = [...new Set(this.cssDependencies())];
       // Filter styles that have previously loaded
       styles = styles
         .filter(style => !WebRenderer.#loadedStyles.includes(style));

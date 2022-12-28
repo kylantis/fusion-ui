@@ -25,20 +25,13 @@
         }}
         title="{{title ? title : ""}}">
 
-    <svg class="
-        slds-icon
-        {{((type eq 'utility') or textDefault) ? 'slds-icon-text-default' : (solid or (solid eq undefined)) ? 'slds-icon-${type}-${name}' : '' transform='toIconClassName'}} 
-        {{!-- Size --}}
-        slds-icon_{{size ? size : (type eq 'utility') ? 'x-small' : 'small' }}
-        "
-            aria-hidden="true"
-            {{!-- 
-                Use cssColor, if available - only if useCurrentColor is falsy
-            --}}
-            {{((not useCurrentColor) and cssColor) ? 'style="fill: ${cssColor};"' : ''}}
-            focusable="false">
-            <use xlink:href="/assets/icons/{{type}}-sprite/svg/symbols{{rtl ? "-rtl" : ''}}.svg#{{name}}"></use>
-    </svg>
+    {{> IconSvg
+            type name solid size 
+            foreground=(((not useCurrentColor) and foreground) ? foreground : null) 
+            foregroundColor=(((not useCurrentColor) and foregroundColor) ? foregroundColor : null) 
+            ref="svg"
+    }}
+
     {{#if title}}
         <span class="slds-assistive-text">{{title}}</span>
     {{/if}}

@@ -44,8 +44,11 @@
         {{/if}}
 
         <label class="slds-{{../type}}__label" for="{{@root.componentId}}-{{@random}}_input">
-          <span class="slds-{{../type}}_faux"></span>
-          
+
+          {{#unless ../readonly}}
+            <span class="slds-{{../type}}_faux"></span>
+          {{/unless}}
+
           <span class="slds-form-element__label">
             {{label}}
 

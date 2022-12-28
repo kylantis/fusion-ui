@@ -13,6 +13,8 @@ class Checkbox extends components.MultiOptionFormElement {
                 .classList.add('slds-checkbox_standalone');
         }
     }
+
+
 }
 
 module.exports = Checkbox;

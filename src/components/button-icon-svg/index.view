@@ -1,8 +1,10 @@
 <svg class="slds-button__icon
     {{size ? 'slds-button__icon_${size}' : ''}}
+    {{foreground ? "slds-icon-${foreground}" : ""}}
     {{cssClass ? cssClass : ""}}" 
-    aria-hidden="true"
-    {{focusable ? "focusable='true'" : ""}}
+        aria-hidden="true"
+        {{foregroundColor ? 'style="fill: ${foregroundColor};"' : ''}}
+        {{focusable ? "focusable='true'" : ""}}
     >
         <use xlink:href="/assets/icons/{{iconType}}-sprite/svg/symbols.svg#{{iconName}}" style="pointer-events: none;"></use>
 </svg>

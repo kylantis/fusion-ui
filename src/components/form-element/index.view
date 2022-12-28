@@ -12,42 +12,45 @@
 
 {{#*inline "render_title_icon" eager=true}}
   {{component ButtonIcon alias="titleIcon"}}
-  {{#if titleIcon}}
-    <div style="display: inline-block; padding-left: 2px;">
-      {{> titleIcon}}
-    </div>
-  {{else}}
-    {{#if helperText}}
-      {{> ButtonIcon iconType='utility' iconName='info'}}
+  <div class="slds-form-element__icon {{displayOnlyControl ? "slds-assistive-text" : ""}}">
+    {{#if titleIcon}}
+        {{> titleIcon}}
+    {{else}}
+      {{#if helperText}}
+        {{> ButtonIcon iconType='utility' iconName='info'}}
+      {{/if}}
     {{/if}}
-  {{/if}}
+  </div>
 {{/inline}}
 
 {{#*inline "render_title" eager=true}}
   {{component Text alias="title"}}
-    <div style="display: inline-block; vertical-align: middle;">
-      {{#if required}}
-        {{> render_required_label}}
+    {{#if required}}
+      {{> render_required_label}}
+    {{/if}}
+    {{#if titleText}}
+      {{titleText}}
+    {{else}}
+      {{#if title}}
+        {{> title}}
       {{/if}}
-      {{#if titleText}}
-        {{titleText}}
-      {{else}}
-        {{#if title}}
-          {{> title}}
-        {{/if}}
-      {{/if}}
-    </div>
-  {{> render_title_icon}}
+    {{/if}}
 {{/inline}}
 
 
 {{#*inline "render_standalone" eager=true}}
-  <div class="slds-form-element">
-    <label class="slds-form-element__label" for="{{@root.componentId}}_input">
-      {{> render_title}}
-    </label>
-    <div class="slds-form-element__control">
-      {{#if isStatic}}
+  <div class="slds-form-element {{padding ? 'slds-p-${padding}' : ''}} {{margin ? 'slds-m-${margin}' : ''}}">
+
+    {{#block transform='transformFormElementLabel'}}
+      <label class="slds-form-element__label {{displayOnlyControl ? "slds-assistive-text" : ""}}" for="{{@root.componentId}}_input">
+        {{> render_title}}
+      </label>
+    {{/block}}
+
+    {{> render_title_icon}}
+
+    <div class="slds-form-element__control {{controlCssClass ? controlCssClass : ""}}">
+      {{#if readonly}}
         <div class="slds-form-element__static">
           {{> ?render_standalone_control}}
         </div>
@@ -63,14 +66,18 @@
 
 
 {{#*inline "render_compound" eager=true}}
-  <fieldset class="slds-form-element">
-    <legend class="slds-form-element__legend slds-form-element__label">
+  <fieldset class="slds-form-element {{padding ? 'slds-p-${padding}' : ''}} {{margin ? 'slds-m-${margin}' : ''}}">
+    
+    <legend class="slds-form-element__legend slds-form-element__label {{displayOnlyControl ? "slds-assistive-text" : ""}}">
       {{#if required}}
         {{> render_required_label}}
       {{/if}}
       {{> render_title}}
     </legend>
-    <div class="slds-form-element__control">
+
+    {{> render_title_icon}}
+    
+    <div class="slds-form-element__control {{controlCssClass ? controlCssClass : ""}}">
       {{> ?render_compound_control}}
       {{#if message}}
         {{> render_message}}

@@ -44,10 +44,6 @@
       "type": "Boolean",
       "defaultValue": false
     },
-    "isStatic": {
-      "type": "Boolean",
-      "defaultValue": false
-    },
     "editable": {
       "type": "Boolean",
       "defaultValue": false
@@ -66,6 +62,36 @@
       "defaults": [
         "stacked"
       ]
+    },
+    "controlCssClass": {
+      "type": "String",
+      "defaults": [
+        null
+      ],
+      "clientOnly": true
+    },
+    "padding": {
+      "type": "String",
+      "allowed": "spacingType",
+      "defaults": [
+        null
+      ]
+    },
+    "margin": {
+      "type": "String",
+      "allowed": "spacingType",
+      "defaults": [
+        null
+      ]
+    },
+    "displayOnlyControl": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "insideForm": {
+      "type": "Boolean",
+      "defaultValue": false,
+      "clientOnly": true
     }
   },
   "sample": {

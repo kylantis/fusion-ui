@@ -4,7 +4,7 @@ module.exports = {
         const _this = this;
         return (value, invert, options, ctx) => {
 
-            const { hash: { hook, hookOrder } } = options;
+            const { hash: { hook, hookOrder, transform } } = options;
 
             const nodeId = _this.getSyntheticNodeId();
 
@@ -18,11 +18,19 @@ module.exports = {
 
             const b = _this.analyzeConditionValue(value);
 
-            if (invert ? !b : b) {
-                return options.fn(ctx);
-            } else {
-                return options.inverse(ctx);
+            let markup = (() => {
+                if (invert ? !b : b) {
+                    return options.fn(ctx);
+                } else {
+                    return options.inverse(ctx);
+                }
+            })();
+
+            if (transform) {
+                markup = _this[transform](markup);
             }
+
+            return markup;
         };
     },
 
@@ -36,7 +44,7 @@ module.exports = {
             }
 
             const { loc, fn, inverse, hash } = options;
-            const { blockParam, hook, hookOrder } = hash;
+            const { blockParam, hook, hookOrder, transform } = hash;
             assert(blockParam);
 
             const nodeId = _this.getSyntheticNodeId();
@@ -53,22 +61,25 @@ module.exports = {
                 context = context.call(this);
             }
 
-            if (!clientUtils.isEmpty(context)) {
+            let markup = (() => {
+                if (!clientUtils.isEmpty(context)) {
+                    let data;
 
-                let data;
-
-                if (options.data) {
-                    data = clientUtils.createFrame(options.data);
-
-                    data[blockParam] = context;
+                    if (options.data) {
+                        data = clientUtils.createFrame(options.data);
+                        data[blockParam] = context;
+                    }
+                    return fn(context, { data });
+                } else {
+                    return inverse(this);
                 }
+            })();
 
-                return fn(context, {
-                    data,
-                });
-            } else {
-                return inverse(this);
+            if (transform) {
+                markup = _this[transform](markup);
             }
+
+            return markup;
         }
     },
 
@@ -80,7 +91,7 @@ module.exports = {
             }
 
             const { fn, inverse, hash } = options;
-            const { blockParam, hook, hookOrder } = hash;
+            const { blockParam, hook, hookOrder, transform } = hash;
             assert(blockParam);
 
             const nodeId = _this.getSyntheticNodeId();
@@ -109,12 +120,18 @@ module.exports = {
                     data[blockParam] = context[field];
                 }
 
-                ret =
-                    ret +
-                    fn(context[field], {
+                let markup = fn(
+                    context[field],
+                    {
                         data,
                         blockParams: [context[field], field]
-                    });
+                    })
+
+                if (transform) {
+                    markup = _this[transform](markup);
+                }
+
+                ret = ret + markup;
 
                 if (hook) {
                     _this.hooks[`#${nodeId} > :nth-child(${index + 1})`] = {

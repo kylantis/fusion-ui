@@ -1,0 +1,12 @@
+
+    <svg class="
+        slds-icon
+        slds-icon_{{size ? size : (type eq 'utility') ? 'x-small' : 'small' }}
+        {{(type eq 'utility') ? 'slds-icon-text-default' : (solid or (solid eq undefined)) ? 'slds-icon-${type}-${name}' : '' transform='toIconClassName'}}
+        {{foreground ? "slds-icon-${foreground}" : ''}}
+        {{cssClass ? cssClass : ""}}"
+            aria-hidden="true"
+            {{foregroundColor ? 'style="fill: ${foregroundColor};"' : ''}}
+            focusable="false">
+            <use xlink:href="/assets/icons/{{type}}-sprite/svg/symbols{{rtl ? "-rtl" : ''}}.svg#{{name}}"></use>
+    </svg>

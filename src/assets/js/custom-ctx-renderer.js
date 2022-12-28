@@ -147,7 +147,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     const { fn, hash } = options;
 
-    const { blockParam, hook, hookOrder } = hash;
+    const { blockParam, hook, hookOrder, transform } = hash;
 
     if (scope) {
       assert(blockParam);
@@ -180,12 +180,16 @@ class CustomCtxRenderer extends RootCtxRenderer {
       options.data[k] = this.wrapDataWithProxy(hash[k]);
     })
 
-    const output = fn(
+    let markup = fn(
       this.wrapDataWithProxy(ctx),
       { data: options.data },
     );
 
-    return output;
+    if (transform) {
+      markup = this[transform](markup);
+    }
+
+    return markup;
   }
 
   resolveMustacheInCustom({ options, params }) {

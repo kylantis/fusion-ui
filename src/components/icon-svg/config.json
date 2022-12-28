@@ -1,13 +1,6 @@
 {
   "collections": {},
   "scalars": {
-    "size": {
-      "type": "String",
-      "allowed": "iconSize",
-      "defaults": [
-        "small"
-      ]
-    },
     "name": {
       "type": "String",
       "allowed": "iconName",
@@ -468,26 +461,16 @@
         "standard"
       ]
     },
-    "circular": {
-      "type": "Boolean",
-      "defaultValue": false
-    },
-    "title": {
+    "size": {
       "type": "String",
+      "allowed": "iconSize",
       "defaults": [
-        null
+        "small"
       ]
     },
-    "useCurrentColor": {
+    "solid": {
       "type": "Boolean",
-      "defaultValue": false
-    },
-    "backgroundColor": {
-      "type": "String",
-      "allowed": "cssColor",
-      "defaults": [
-        null
-      ]
+      "defaultValue": true
     },
     "foregroundColor": {
       "type": "String",
@@ -503,10 +486,6 @@
         null
       ]
     },
-    "solid": {
-      "type": "Boolean",
-      "defaultValue": true
-    },
     "cssClass": {
       "type": "String",
       "defaults": [
@@ -514,9 +493,6 @@
       ],
       "clientOnly": true
     }
-  },
-  "sample": {
-    "count": 20
   },
   "escapeDynamicHtml": false
 }

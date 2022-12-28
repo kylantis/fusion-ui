@@ -341,12 +341,12 @@ class RootCtxRenderer extends BaseRenderer {
         assert(name !== 'constructor');
 
         if (Reflect.ownKeys(component).includes(name)) {
-          methods.push(component[name].bind(this));
+          methods.unshift(component[name].bind(this));
         }
       });
     }
 
-    return methods.reverse();
+    return methods;
   }
 
   getDefaultHookOrder() {
@@ -363,7 +363,7 @@ class RootCtxRenderer extends BaseRenderer {
       inverse: this.wrapFn(options.inverse),
     };
 
-    const { hook, hookOrder } = hash;
+    const { hook, hookOrder, transform } = hash;
 
     const nodeId = this.getSyntheticNodeId();
 
@@ -390,23 +390,29 @@ class RootCtxRenderer extends BaseRenderer {
       const b = this.analyzeConditionValue(value);
       let branch;
 
-      if (invert ? !b : b) {
+      let markup = (() => {
+        if (invert ? !b : b) {
 
-        if (hook) {
-          this.hooks[`#${nodeId}`] = {
-            hookName: hook,
-            order: hookOrder != undefined ? hookOrder : this.getDefaultHookOrder(),
-            blockData: clientUtils.deepClone(this.blockData)
-          };
+          if (hook) {
+            this.hooks[`#${nodeId}`] = {
+              hookName: hook,
+              order: hookOrder != undefined ? hookOrder : this.getDefaultHookOrder(),
+              blockData: clientUtils.deepClone(this.blockData)
+            };
+          }
+
+          branch = 'fn';
+          return this.lookupFnStore(fn)(ctx);
+
+        } else if (inverse) {
+
+          branch = 'inverse';
+          return this.lookupFnStore(inverse)(ctx);
         }
+      })();
 
-        branch = 'fn';
-        return this.lookupFnStore(fn)(ctx);
-
-      } else if (inverse) {
-
-        branch = 'inverse';
-        return this.lookupFnStore(inverse)(ctx);
+      if (transform) {
+        markup = this[transform](markup);
       }
 
       if (nodeId) {
@@ -415,6 +421,8 @@ class RootCtxRenderer extends BaseRenderer {
             .setAttribute('branch', branch);
         });
       }
+
+      return markup;
     }
 
     // Todo: If target is a logicGate, I can optimize space by having the blockData
@@ -437,9 +445,7 @@ class RootCtxRenderer extends BaseRenderer {
   forEach({ options, ctx, params }) {
 
     const { eachBlockHookName } = RootProxy;
-    const {
-      htmlWrapperCssClassname, getSyntheticAliasFromPath, getChildPathFromPath,
-    } = RootCtxRenderer;
+    const { htmlWrapperCssClassname, getSyntheticAliasFromPath } = RootCtxRenderer;
 
     const { fn, inverse, hash } = {
       ...options,
@@ -447,7 +453,7 @@ class RootCtxRenderer extends BaseRenderer {
       inverse: this.wrapFn(options.inverse),
     };
 
-    const { hook, hookOrder } = hash;
+    const { hook, hookOrder, transform } = hash;
 
     const [{ path, value, canonicalPath }] = params;
 
@@ -490,6 +496,10 @@ class RootCtxRenderer extends BaseRenderer {
             // null collection members are always represented as an empty strings
             '' :
             this.lookupFnStore(fn)(this.rootProxy);
+
+          if (transform) {
+            markup = this[transform](markup);
+          }
 
           const elementNodeId = clientUtils.randomString();;
           const key = this.getBlockData({ path: blockKey, dataVariable: '@key' });

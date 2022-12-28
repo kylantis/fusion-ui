@@ -12,7 +12,12 @@
  {{disabled ? "disabled=\"\"" : ""}}
  >
 
-    {{> ButtonIconSvg iconName iconType cssClass=svgCssClass size=iconSize ref='iconSvg'}}
+    {{> ButtonIconSvg 
+            iconName iconType cssClass=svgCssClass 
+            foreground=(((not useCurrentColor) and svgForeground) ? svgForeground : null)
+            foregroundColor=(((not useCurrentColor) and svgForegroundColor) ? svgForegroundColor : null)
+            size=iconSize ref='iconSvg'
+    }}
     
     {{#if title}}
         <span class="slds-assistive-text">{{assistiveText}}</span>

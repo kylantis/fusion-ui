@@ -1,10 +1,7 @@
 
 class Icon extends components.TextCompanion {
-  
-    static SOLID_STATE_CHANGE_EVT = 'solidStateChange';
 
-    initCompile() {
-    }
+    static SOLID_STATE_CHANGE_EVT = 'solidStateChange';
 
     events() {
         const { SOLID_STATE_CHANGE_EVT } = Icon;
@@ -20,9 +17,9 @@ class Icon extends components.TextCompanion {
                     this.dispatchEvent(SOLID_STATE_CHANGE_EVT, this);
                 }
             },
-            ['beforeMount.textDefault']: (evt) => {
+            ['beforeMount.foreground']: (evt) => {
                 const { newValue } = evt;
-                if (this.#willChangeSolidState('textDefault', newValue)) {
+                if (this.#willChangeSolidState('foreground', newValue)) {
                     this.dispatchEvent(SOLID_STATE_CHANGE_EVT, this);
                 }
             },
@@ -36,7 +33,7 @@ class Icon extends components.TextCompanion {
     }
 
     /**
-     * This function checks if the solid state of this
+     * This function checks if the solid state of this icon is changed when the provided property chamges
      */
     #willChangeSolidState(property, value) {
         const { isSolid0 } = Icon;
@@ -44,40 +41,25 @@ class Icon extends components.TextCompanion {
         const input = { ...this.getInput() };
         input[property] = value;
 
-        const { type, textDefault, solid } = input;
-
-        return this.isSolid() !== isSolid0({ type, textDefault, solid });
-    }
-
-    beforeMount() {
-        this.#setDefaults();
-    }
-
-    #setDefaults() {
-        const input = this.getInput();
-        if (!input.size) {
-            input.size = "small";
-        }
-    }
-
-    toIconClassName(name) {
-        if (name == 'slds-icon-text-default') {
-            return name;
-        }
-
-        return name.replaceAll('_', '-');
+        const { type, solid } = input;
+        return this.isSolid() !== isSolid0({ type, solid });
     }
 
     isSolid() {
         const { isSolid0 } = Icon;
-        const { type, textDefault, solid } = this.getInput();
-        return isSolid0({ type, textDefault, solid });
+        const { type, solid } = this.getInput();
+        return isSolid0({ type, solid });
     }
 
-    static isSolid0({ type, textDefault, solid }) {
-        return type != 'utility' &&
-            !textDefault &&
-            (solid || solid === undefined);
+    static isSolid0({ type, solid }) {
+        return type != 'utility' && (solid || solid == undefined);
+    }
+
+    beforeMount() {
+        const input = this.getInput();
+        if (!input.size) {
+            input.size = "small";
+        }
     }
 }
 module.exports = Icon;

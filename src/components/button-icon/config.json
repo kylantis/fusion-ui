@@ -33,6 +33,20 @@
       ],
       "clientOnly": true
     },
+    "svgForeground": {
+      "type": "String",
+      "allowed": "iconColor",
+      "defaults": [
+        null
+      ]
+    },
+    "svgForegroundColor": {
+      "type": "String",
+      "allowed": "cssColor",
+      "defaults": [
+        null
+      ]
+    },
     "svgCssClass": {
       "type": "String",
       "defaults": [
