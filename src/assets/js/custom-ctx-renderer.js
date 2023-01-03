@@ -194,7 +194,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
   resolveMustacheInCustom({ options, params }) {
 
-    const { textNodeHookName } = RootProxy;
+    const { textNodeHookType } = RootProxy;
 
     const { hash: { hook, hookOrder, transform } } = options;
 
@@ -202,7 +202,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     const [value] = params;
 
-    if (bindContext && bindContext.type == textNodeHookName) {
+    if (bindContext && bindContext.type == textNodeHookType) {
       const { selector } = bindContext;
 
       if (value instanceof Promise || value instanceof BaseComponent) {

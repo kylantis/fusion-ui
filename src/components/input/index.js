@@ -51,16 +51,8 @@ class Input extends components.FormElement {
         return false;
     }
 
-    getInputNode() {
-        return this.node.querySelector('input');
-    }
-
     clearInput() {
-        // Todo: After data-binding has been fully implemented, we just need to update <this.getInput().value>
-        // but for now, do the below:
-
         this.getInput().value = null;
-        this.getInputNode().value = null;
     }
 
     onChange(evt) {

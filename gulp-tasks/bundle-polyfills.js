@@ -7,22 +7,30 @@ const uglify = require('gulp-uglify');
 // const sourcemaps = require('gulp-sourcemaps');
 const log = require('gulplog');
 const fs = require('fs');
-const path = require('path');
+const pathLib = require('path');
 
 const alwaysGeneratePolyfillBundle = true;
 
 gulp.task('bundle-polyfills', () => {
+
+  const destFile = pathLib.join('dist', 'assets', 'js', 'polyfills');
+
   if (!alwaysGeneratePolyfillBundle) {
-    const polyfillBundle = path.join(path.dirname(fs.realpathSync(__filename)), '../dist/assets/js/polyfills/index.min.js');
-    if (fs.existsSync(polyfillBundle)) {
+    if (fs.existsSync(pathLib.join(destFile, 'index.min.js'))) {
       // log.info('Skipping generation of polyfill bundle');
       return Promise.resolve();
     }
   }
 
+  const entrypointFile = pathLib.join('gulp-tasks', 'polyfills', 'index.js');
+
+  if (!fs.existsSync(entrypointFile)) {
+    throw Error('Could not find the entrypoint file for polyfills');
+  }
+
   // set up the browserify instance on a task basis
   const b = browserify({
-    entries: 'tasks/polyfills/index.js',
+    entries: entrypointFile,
     debug: true,
   });
 
@@ -34,5 +42,5 @@ gulp.task('bundle-polyfills', () => {
     .pipe(uglify())
     .on('error', log.error)
     // .pipe(sourcemaps.write('./'))
-    .pipe(gulp.dest('./dist/assets/js/polyfills'));
+    .pipe(gulp.dest(destFile));
 });

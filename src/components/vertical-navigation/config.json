@@ -1,7 +1,62 @@
 {
   "enableTypeMerging": false,
-  "collections": {},
-  "scalars": {},
+  "collections": {
+    "sections": {
+      "minLength": 2,
+      "singularType": "Section"
+    },
+    "sections_$.items": {
+      "minLength": 4,
+      "singularType": "Item"
+    }
+  },
+  "scalars": {
+    "sections_$.name": {
+      "type": "String",
+      "defaults": [
+        "Recent",
+        "Folders",
+        "Notes",
+        "Tasks"
+      ]
+    },
+    "sections_$.id": {
+      "type": "String",
+      "defaults": [
+        null
+      ]
+    },
+    "sections_$.items_$.active": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "sections_$.items_$.name": {
+      "type": "String",
+      "defaults": [
+        "Recent",
+        "Created by Me",
+        "Created by others",
+        "Recent Activity",
+        "Private Reports",
+        "Public Reports",
+        "All Reports",
+        "Merge Files",
+        "Shared with Me",
+        "Important Note",
+        "View Notes",
+        "Pending Tasks",
+        "Users"
+      ]
+    },
+    "truncateSize": {
+      "type": "Number",
+      "defaultValue": 4
+    },
+    "sections_$.items_$.id": {
+      "type": "String",
+      "defaults": []
+    }
+  },
   "sample": {
     "nullifyRandomly": []
   },

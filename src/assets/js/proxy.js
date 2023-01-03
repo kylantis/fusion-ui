@@ -51,17 +51,25 @@ class RootProxy {
 
   static mapKeyPrefixRegex = /^\$_/g;
 
-  // Todo: Rename from HookName to HookType
 
-  static conditionalBlockHookName = 'conditionalBlock';
+  static conditionalBlockHookType = 'conditionalBlock';
 
-  static eachBlockHookName = 'arrayBlock';
+  static eachBlockHookType = 'arrayBlock';
 
-  static textNodeHookName = 'textNode';
+  static textNodeHookType = 'textNode';
 
-  static gateParticipantHookName = 'gateParticipant';
+  static gateParticipantHookType = 'gateParticipant';
 
-  static arrayChildBlockHookName = 'arrayChildBlock';
+  static arrayChildBlockHookType = 'arrayChildBlock';
+
+  static nodeAttributeHookType = 'nodeAttribute';
+
+  static nodeAttributeKeyHookType = 'nodeAttributeKey';
+
+  static nodeAttributePartialValueHookType = 'nodeAttributePartialValue';
+
+  static nodeAttributeValueHookType = 'nodeAttributeValue';
+
 
   static validateInputSchema = false;
 
@@ -1022,7 +1030,7 @@ class RootProxy {
   resolveLogicPath({ prop }) {
 
     const {
-      logicGatePathRoot, pathSeparator, gateParticipantHookName,
+      logicGatePathRoot, pathSeparator, gateParticipantHookType,
     } = RootProxy;
 
     const includePath = prop.endsWith('!');
@@ -1060,7 +1068,7 @@ class RootProxy {
           }
 
           arr.push({
-            type: gateParticipantHookName,
+            type: gateParticipantHookType,
             gateId,
             canonicalPath,
           });
@@ -1238,8 +1246,8 @@ class RootProxy {
 
   triggerHooks(triggerInfo) {
     const {
-      logicGatePathRoot, pathSeparator, textNodeHookName, eachBlockHookName,
-      gateParticipantHookName, pathProperty, conditionalBlockHookName, dataPathPrefix,
+      logicGatePathRoot, pathSeparator, textNodeHookType, eachBlockHookType,
+      gateParticipantHookType, pathProperty, conditionalBlockHookType, dataPathPrefix,
       mapSizeProperty, isNullProperty,
     } = RootProxy;
 
@@ -1297,7 +1305,7 @@ class RootProxy {
           const selector = `#${this.component.getId()} ${hook.selector}`;
 
           switch (hook.type) {
-            case eachBlockHookName:
+            case eachBlockHookType:
 
               if (animate) {
                 // Todo: Add transition classes, see: https://cssanimation.rocks/list-items/
@@ -1460,9 +1468,22 @@ class RootProxy {
 
           const selector = `#${this.component.getId()} ${hook.selector}`;
 
+          const getRenderedValue = () => {
+            let computedValue = newValue;
+          }
+
           switch (hook.type) {
 
-            case textNodeHookName:
+            // Support attributes... note: always update this.component.mustacheStatements with the rendered value 
+
+            // Note: when passing in overrides to getRenderedAttributeSegment(...) we need to run transform and toHtml 
+            // against oldValue value before using - right??
+
+
+
+
+
+            case textNodeHookType:
               (() => {
                 let computedValue = newValue
 
@@ -1471,21 +1492,31 @@ class RootProxy {
                   computedValue = this.getLogicGateValue({ gate: this.#logicGates[gateId] });
                 }
 
-                const { hookMethod } = hook;
+                const { hookMethod, transform, blockData } = hook;
 
-                document.querySelector(selector).innerHTML = this.component.toHtml(
-                  hookMethod ? hookMethod(computedValue) : computedValue
-                );
+                if (transform) {
+                  computedValue = this.component[transform](computedValue);
+                }
+
+
+
+                const node = document.querySelector(selector);
+                node.innerHTML = this.component.toHtml(computedValue);
+
+                if (hookMethod) {
+                  this.component[hookMethod]({ node, blockData, initial: false });
+                }
+
               })();
               break;
 
-            case gateParticipantHookName:
+            case gateParticipantHookType:
               triggerHooks0(
                 `${logicGatePathRoot}${pathSeparator}${hook.gateId}`,
               );
               break;
 
-            case conditionalBlockHookName:
+            case conditionalBlockHookType:
               (() => {
                 let computedValue = newValue
 
@@ -1545,7 +1576,7 @@ class RootProxy {
               })();
               break;
 
-            case eachBlockHookName:
+            case eachBlockHookType:
 
               (() => {
 
@@ -1623,11 +1654,6 @@ class RootProxy {
 
               break;
 
-
-            // Add attribute context - 
-            // extensive work needs to be done above. First we need to
-            // add data to dataPathHooks... that's not being done at the moment
-
           }
         });
 
@@ -1649,7 +1675,7 @@ class RootProxy {
    */
   pruneHookIndex(parent, i) {
     const {
-      dataPathRoot, pathSeparator, arrayChildBlockHookName, logicGatePathRoot
+      dataPathRoot, pathSeparator, arrayChildBlockHookType, logicGatePathRoot
     } = RootProxy;
 
     const fqPath = `${dataPathRoot}${pathSeparator}${parent}[${i}]`;
@@ -1664,7 +1690,7 @@ class RootProxy {
     hookList
       .forEach(([k, v]) => {
         v.forEach(({ type, path }) => {
-          if (type == arrayChildBlockHookName && path.startsWith(logicGatePathRoot)) {
+          if (type == arrayChildBlockHookType && path.startsWith(logicGatePathRoot)) {
             const v = this.#dataPathHooks[path];
             assert(v);
             hookList.push([path, v])
@@ -1686,7 +1712,7 @@ class RootProxy {
 
   offsetHookIndex(parent, i, j, len) {
     const {
-      dataPathRoot, pathSeparator, arrayChildBlockHookName, logicGatePathPrefix,
+      dataPathRoot, pathSeparator, arrayChildBlockHookType, logicGatePathPrefix,
     } = RootProxy;
 
     const toFqPath = (n) => `${dataPathRoot}${pathSeparator}${parent}[${n}]`
@@ -1705,7 +1731,7 @@ class RootProxy {
 
         // Before, moving i to j, update associated blockData referenced in <arr>, if any
         arr
-          .filter(({ type }) => type == arrayChildBlockHookName)
+          .filter(({ type }) => type == arrayChildBlockHookType)
           .forEach(({ path, blockDataKey }) => {
 
             const blockDataList = (() => {
@@ -1728,7 +1754,7 @@ class RootProxy {
 
               if (o.index == j) {
                 // This blockData was already updated. This usually happens when
-                // multiple <arrayChildBlockHookName> entries exists for the same path
+                // multiple <arrayChildBlockHookType> entries exists for the same path
                 return;
               }
 
