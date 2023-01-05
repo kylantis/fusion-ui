@@ -1,7 +1,7 @@
 
 
 {{#*inline "render_input_element" id item eager=true}}
-    <input type="{{type}}" name="{{getItemInputName item}}" id="{{id}}_input" value="{{id}}_input"
+    <input {{type}}="{{type}}" type="{{type}}" name="{{getItemInputName item}}" id="{{id}}_input" value="{{id}}_input"
       {{item.checked ? "checked=\"\"" : "" }}
       {{(item.disabled or disabled) ? "disabled=\"\"" : "" }}
       {{message ? "aria-describedby=\"${@root.componentId}_message\"" : "" }}

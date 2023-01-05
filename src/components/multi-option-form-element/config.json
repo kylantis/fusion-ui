@@ -34,7 +34,7 @@
     },
     "items_$.disabled": {
       "type": "Boolean",
-      "defaultValue": true
+      "defaultValue": false
     },
     "items_$.name": {
       "type": "String",
@@ -42,6 +42,10 @@
     },
     "type": {
       "type": "String",
+      "allowed": [
+        "radio",
+        "checkbox"
+      ],
       "defaults": [
         null
       ],
@@ -59,8 +63,7 @@
     "nullifyRandomly": [
       "items_$.checked",
       "items_$.required",
-      "items_$.error",
-      "items_$.disabled"
+      "items_$.error"
     ]
   },
   "escapeDynamicHtml": false

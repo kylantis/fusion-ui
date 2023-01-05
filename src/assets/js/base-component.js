@@ -8,7 +8,7 @@ class BaseComponent extends WebRenderer {
   static #token;
 
   #parent;
-  
+
   // #API
   static CONSTANTS = {
     pathSeparator: RootProxy.pathSeparator,
@@ -191,7 +191,7 @@ class BaseComponent extends WebRenderer {
   }
   // #API
   events() {
-    return [];
+    return ['destroy'];
   }
   // #API
   hooks() {
@@ -212,7 +212,7 @@ class BaseComponent extends WebRenderer {
 
   ensureKnownEvent(event) {
     assert(
-      this.events().includes(event),
+      this.getEvents().includes(event),
       `Unknown event '${event}' for component: ${this.constructor.name}`
     );
   }
@@ -296,13 +296,22 @@ class BaseComponent extends WebRenderer {
   }
   // #API
   destroy() {
+    this.dispatchEvent('destroy');
 
-    // Detach from DOM
+    // TODO
+
     const node = document.getElementById(this.getId());
-    node.parentElement.removeChild(node)
 
-    // Todo: Prune resources
-    delete this.getInput();
+    if (node) {
+      // Detach from DOM
+      node.parentElement.removeChild(node)
+    }
+
+    // clear hooks;
+
+    // ask base renderer to clear input data
+
+    // remove from componentRefs in base renderer
   }
   // #API
   getGlobalVariables() {

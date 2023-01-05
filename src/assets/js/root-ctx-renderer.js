@@ -222,15 +222,36 @@ class RootCtxRenderer extends BaseRenderer {
 
     parentNode.appendChild(this.node);
 
+
+    if (!this.isHeadlessContext()) {
+      // Todo: Investigate why this MutationObserver's callback is not called when <parentNode> is mutated
+
+      new MutationObserver((mutations) => {
+        // Inline components can have their node removed from the DOM at any time - whether programatically by the dev
+        // or as a result of data bind mutations. If this 
+        const isDetached = mutations.some((mutation) => {
+          return mutation.removedNodes.indexOf(this.node) !== -1;
+        });
+        if (isDetached) {
+          // Wait for a few seonds to see if the elements is re-connected to the DOM
+          setTimeout(() => {
+            if (!this.node.parentNode) {
+              this.destroy();
+            }
+          }, 5000)
+        }
+      }).observe(this.node.parentNode, { childList: true });
+    }
+
     this.#resolve();
 
     return this.promise
 
-      // Even after all promises are resolved, we need to wait
-      // for this component to be fully mounted. This is
-      // especially important if there async custom blocks or
-      // sub-components inside this component
-      .then(() => Promise.all(this.futures))
+      // Even after all promises are resolved, we need to wait for this component to be fully mounted. This is
+      // especially important if there async custom blocks or sub-components inside this component or arbitrary
+      // functions that need to be called during finalize phase
+
+      .then(() => Promise.all(this.futures.map(f => typeof f == 'function' ? f() : f)))
 
       .then(() => {
 
@@ -361,7 +382,7 @@ class RootCtxRenderer extends BaseRenderer {
 
     const { conditionalBlockHookType } = RootProxy;
 
-    const { fn, inverse, hash } = {
+    const { fn, inverse, hash, loc } = {
       ...options,
       fn: this.wrapFn(options.fn),
       inverse: this.wrapFn(options.inverse),
@@ -387,7 +408,7 @@ class RootCtxRenderer extends BaseRenderer {
       !isSynthetic &&
       this.dataBindingEnabled() && nodeId &&
       // Disable for literals and components
-      Object(value) === value && !value instanceof BaseComponent;
+      !!path && !(value instanceof BaseComponent);
 
     const conditional0 = (value) => {
 
@@ -439,7 +460,7 @@ class RootCtxRenderer extends BaseRenderer {
           type: conditionalBlockHookType, selector: `#${nodeId}`,
           fn, inverse, hookMethod: hook, invert,
           blockData: this.getBlockDataSnapshot(path),
-          canonicalPath,
+          canonicalPath, loc,
         });
     }
 
@@ -451,7 +472,7 @@ class RootCtxRenderer extends BaseRenderer {
     const { eachBlockHookType } = RootProxy;
     const { htmlWrapperCssClassname, getSyntheticAliasFromPath } = RootCtxRenderer;
 
-    const { fn, inverse, hash } = {
+    const { fn, inverse, hash, loc } = {
       ...options,
       fn: this.wrapFn(options.fn),
       inverse: this.wrapFn(options.inverse),
@@ -545,7 +566,7 @@ class RootCtxRenderer extends BaseRenderer {
           type: eachBlockHookType, selector: `#${nodeId}`,
           fn, inverse, hookMethod: hook,
           blockData: this.getBlockDataSnapshot(path),
-          canonicalPath,
+          canonicalPath, loc,
         });
     }
 
@@ -735,163 +756,198 @@ class RootCtxRenderer extends BaseRenderer {
     return '';
   }
 
-  static getHtmlIntrinsicAttributes() {
+  static getHtmlIntrinsicAttributes(elementName) {
+    const { getHtmlIntrinsicAttributesMap } = RootCtxRenderer;
+    const attributes = getHtmlIntrinsicAttributesMap();
+
+    let o = {};
+    ['*', elementName]
+      .forEach(e => {
+        o = {
+          ...o,
+          ...(attributes[e] || {}),
+        }
+      })
+
+    return o;
+  }
+
+  // Todo: Update this map, it is incomplete
+  static getHtmlIntrinsicAttributesMap() {
     return {
-      'value': ['input'],
-      'readOnly': ['input'],
+      ['*']: {
+        autofocus: { type: 'boolean' },
+        inert: { type: 'boolean' },
+        itemscope: { type: 'boolean' },
+        readonly: { type: 'boolean' }
+      },
+      iframe: {
+        allowfullscreen: { type: 'boolean' }
+      },
+      script: {
+        async: { type: 'boolean' },
+        defer: { type: 'boolean' },
+        nomodule: { type: 'boolean' }
+      },
+      media: {
+        autoplay: { type: 'boolean' },
+        controls: { type: 'boolean' },
+        loop: { type: 'boolean' },
+        muted: { type: 'boolean' }
+      },
+      input: {
+        checked: { type: 'boolean' },
+        disabled: { type: 'boolean' },
+        formnovalidate: { type: 'boolean' },
+        multiple: { type: 'boolean' },
+        required: { type: 'boolean' },
+        readOnly: { type: 'boolean' },
+        value: { type: 'string' }
+      },
+      track: {
+        ['default']: { type: 'boolean' }
+      },
+      button: {
+        disabled: { type: 'boolean' }
+      },
+      select: {
+        disabled: { type: 'boolean' }
+      },
+      textarea: {
+        disabled: { type: 'boolean' },
+        required: { type: 'boolean' }
+      },
+      img: {
+        ismap: { type: 'boolean' }
+      },
+      form: {
+        novalidate: { type: 'boolean' }
+      },
+      dialog: {
+        open: { type: 'boolean' }
+      },
+      video: {
+        playsinline: { type: 'boolean' }
+      },
+      ol: {
+        reversed: { type: 'boolean' }
+      },
+      option: {
+        selected: { type: 'boolean' }
+      }
     }
   }
 
-  static getHtmlBooleanAttributes() {
-    return {
-      allowfullscreen: ['iframe'], async: ['script'], autofocus: ['*'], autoplay: ['media'],
-      checked: ['input'], controls: ['media'], default: ['track'], defer: ['script'],
-      disabled: ['button', 'input', 'select', 'textarea'], formnovalidate: ['input'],
-      inert: ['*'], ismap: ['img'], itemscope: ['*'], loop: ['media'], multiple: ['input'],
-      muted: ['media'], nomodule: ['script'], novalidate: ['form'], open: ['dialog'],
-      playsinline: ['video'], readonly: '*', required: ['textarea', 'input'], reversed: ['ol'],
-      selected: ['option'],
-    };
+  static getElementName(tokenList) {
+    return tokenList[0].content.replace('<', '');
   }
 
-  getRenderedAttributeSegment({ value, overrides }) {
+  getRenderedValue(value) {
     const rgx = /({{\w+}})/g;
     return value
       .split(rgx)
       .map(v => {
         if (v.match(rgx)) {
-          const ref = m.replace(/({{)|(}})/g, '');
-          if (overrides[ref] !== undefined) {
-            v = String(overrides[ref]);
-          } else {
-            v = this.mustacheStatements[ref].renderedValue;
-          }
+          const ref = v.replace(/({{)|(}})/g, '');
+          v = this.mustacheStatements[ref].renderedValue;
         }
         return v;
       })
       .join('');
   }
 
-  isBooleanAttribute(tokenList, keyIndex) {
-    const { getHtmlBooleanAttributes } = RootCtxRenderer;
+  setRenderedValue(ref, value) {
+    const mustacheInfo = this.mustacheStatements[ref];
+    const { renderedValue: previousValue } = mustacheInfo;
 
-    const tagName = tokenList[0].content.replace('<', '');
-    const keyToken = tokenList[keyIndex];
+    mustacheInfo.renderedValue = value;
 
-    assert(keyToken.type == 'token:attribute-key');
-
-    const attrKey = this.getRenderedAttributeSegment({ value: keyToken.content });
-
-    return (getHtmlBooleanAttributes()[attrKey] || []).includes(tagName);
+    return previousValue;
   }
 
-  endAttributeBindContext() {
+  getNodeIdFromTokenList({ tokenList, loc }) {
+    for (let i = 0; i < tokenList.length; i++) {
+      const { type, content } = tokenList[i];
 
+      if (type == 'token:attribute-key' && content == 'id') {
+        const valueToken = tokenList[i + 3];
+        if (!valueToken || valueToken.type != 'token:attribute-value') {
+          this.throwError(
+            `Unknown value "${valueToken ? valueToken.content : "<empty>"}" was assigned to the "id" attribute`, loc
+          );
+        }
+
+        return this.getRenderedValue(valueToken.content);
+      }
+    }
+    return null;
+  }
+
+  endAttributeBindContext({ options }) {
     const {
-      nodeAttributeHookType, nodeAttributeKeyHookType, nodeAttributePartialValueHookType, nodeAttributeValueHookType
+      nodeAttributeHookType, nodeAttributeKeyHookType, nodeAttributeValueHookType
     } = RootProxy;
 
-    const { randomString, isStringCoercible } = clientUtils;
-
-    const nodeId = randomString();
-
-    if (this.#attributeContext) {
-
-      const { tokenList } = this.#attributeContext;
-
-      for (let tokenIndex = 0; tokenIndex < tokenList.length; tokenIndex++) {
-        let { type, content } = tokenList[tokenIndex];
-
-        (content.match(/{{\w+}}/g) || [])
-          .forEach(m => {
-
-            const mustacheRef = m.replace(/({{)|(}})/g, '');
-            const { path, renderedValue, canonicalPath, transform, loc } = this.mustacheStatements[mustacheRef];
-          
-            const isSynthetic = this.isSynthetic(path);
-
-            // Todo: Support data-binding for synthetic invocations
-            const dataBinding = !isSynthetic;
-
-            let hookType;
-
-            // Todo: Instead of directly adding 
-            const hookInfo = { tokenList, tokenIndex };
-
-            switch (true) {
-              case type == 'token:attribute-key' && content == m:
-                if (tokenList[tokenIndex + 1].type == 'token:attribute-assignment') {
-                  hookType = nodeAttributeKeyHookType;
-                } else {
-                  hookType = nodeAttributeHookType;
-                }
-                break;
-
-              case type == 'token:attribute-value':
-                if (content == m) {
-                  hookType = nodeAttributeValueHookType;
-
-                  if (tokenList[tokenIndex - 1].type == 'token:attribute-value-wrapper-start') {
-                    assert(tokenList[tokenIndex + 1].type == 'token:attribute-value-wrapper-end');
-
-                    hookInfo.attributeType = 'string';
-                  } else {
-                    assert(tokenList[tokenIndex - 1].type == 'token:attribute-assignment');
-
-                    const keyIndex = tokenIndex - 2;
-
-                    if (this.isBooleanAttribute(tokenList, keyIndex)) {
-                      // This is a well-known boolean attribute
-                      hookInfo.attributeType = 'boolean';
-                    } else {
-                      hookInfo.attributeType = 'boolean|number';
-                    }
-
-                    if (
-                      typeof renderedValue == 'string' &&
-                      !isStringCoercible(renderedValue, hookInfo.attributeType)
-                    ) {
-                      this.throwError(
-                        `Attribute value resolved to a string instead of a ${hookInfo.attributeType}`,
-                        loc,
-                      );
-                    }
-                  }
-                } else {
-
-                  for (let i = tokenIndex; i >= 0; i--) {
-                    const { type } = tokenList[i];
-                    if (type == 'token:attribute-assignment') {
-                      this.throwError(
-                        `Attribute value should be wrapped in quotes, i.e. attributeName="value"`, loc
-                      );
-                    }
-                    if (type == 'token:attribute-value-wrapper-start') {
-                      break;
-                    }
-                  }
-
-                  hookType = nodeAttributePartialValueHookType;
-                }
-                break;
-            }
-
-            if (dataBinding && hookType) {
-              this.proxyInstance.getDataPathHooks()[path]
-                .push({
-                  type: hookType, nodeId, canonicalPath, mustacheRef, hookInfo, transform,
-                })
-            }
-          });
-      }
-
-      this.#attributeContext = null;
+    if (!this.#attributeContext) {
+      return '';
     }
 
-    return nodeId;
+    const { loc } = options;
+
+    const { randomString } = clientUtils;
+
+    const { tokenList } = this.#attributeContext;
+
+    const definedNodeId = this.getNodeIdFromTokenList({ tokenList, loc });
+    const nodeId = definedNodeId || randomString();
+
+    for (let tokenIndex = 0; tokenIndex < tokenList.length; tokenIndex++) {
+      let { type, content } = tokenList[tokenIndex];
+
+      (content.match(/{{\w+}}/g) || [])
+        .forEach(m => {
+
+          const mustacheRef = m.replace(/({{)|(}})/g, '');
+          const { path, canonicalPath, transform, loc } = this.mustacheStatements[mustacheRef];
+
+          const isSynthetic = this.isSynthetic(path);
+
+          // Todo: Support data-binding for synthetic invocations
+          const dataBinding = !isSynthetic;
+
+          let hookType;
+
+          const hookInfo = { tokenList, tokenIndex };
+
+          switch (true) {
+            case type == 'token:attribute-key' && content == m:
+              const nextToken = tokenList[tokenIndex + 1];
+              if (nextToken && nextToken.type == 'token:attribute-assignment') {
+                hookType = nodeAttributeKeyHookType;
+              } else {
+                hookType = nodeAttributeHookType;
+              }
+              break;
+
+            case type == 'token:attribute-value':
+              hookType = nodeAttributeValueHookType;
+              break;
+          }
+
+          if (dataBinding && hookType) {
+            this.proxyInstance.getDataPathHooks()[path]
+              .push({
+                type: hookType, selector: `#${nodeId}`, canonicalPath, mustacheRef, hookInfo, transform, loc,
+              })
+          }
+        });
+    }
+
+    this.#attributeContext = null;
+
+    return definedNodeId ? '' : ` id='${nodeId}'`;
   }
 
-  // Todo: "TextNode" is not a good name because it's misleading - not a text node!
   startTextNodeBindContext() {
     const { textNodeHookType } = RootProxy;
 
@@ -952,7 +1008,7 @@ class RootCtxRenderer extends BaseRenderer {
 
     if (!isTextNodeBindContext && value instanceof BaseComponent) {
       this.logger.warn(
-        `[${getLine(loc)}] Component "${value.getId()}" needs a bind context inorder to render properly`
+        `[${getLine({ loc })}] Component "${value.getId()}" needs a bind context inorder to render properly`
       );
     }
 
@@ -2062,6 +2118,10 @@ class RootCtxRenderer extends BaseRenderer {
 
     if (ref) {
       this.#inlineComponentInstances[ref] = component;
+
+      component.on('destroy', () => {
+        delete this.#inlineComponentInstances[ref];
+      })
     }
 
     return component;

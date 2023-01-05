@@ -24,7 +24,7 @@
 
   {{> render_input_element}}
 
-  {{#if not readonly and clearButton}}
+  {{#if not readonly and clearButton and not disabled}}
     {{> ButtonIcon 
         iconType='utility' iconName='clear' 
         cssClass="slds-input__icon slds-input__icon_right" 

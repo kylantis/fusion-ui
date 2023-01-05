@@ -109,7 +109,8 @@ class MultiOptionFormElement extends components.FormElement {
     }
 
     isMultiCheckable() {
-        return true;
+        const { type } = this.getInput();
+        return type == 'radio';
     }
 
     getItemInputName(item) {
@@ -163,7 +164,7 @@ class MultiOptionFormElement extends components.FormElement {
 
         if (checkeditem) {
             checkeditem.checked = false;
-            
+
             this.dispatchEvent('change', checkeditem.name, false);
         }
     }
@@ -172,7 +173,6 @@ class MultiOptionFormElement extends components.FormElement {
         const { checked, id } = evt.target;
 
         if (!this.isMultiCheckable()) {
-            assert(checked);
             this.uncheck();
         }
 

@@ -59,9 +59,6 @@ class VerticalNavigation extends components.LightningComponent {
     }
 
     onClick(evt) {
-
-        // 
-
         this.dispatchEvent(
             'click',
             evt.target.getAttribute("identifier")

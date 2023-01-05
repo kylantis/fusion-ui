@@ -7,10 +7,6 @@ class RadioGroup extends components.MultiOptionFormElement {
         input.readonly = true;
     }
 
-    isMultiCheckable() {
-        return false;
-    }
-
     isCompound() {
         return true;
     }

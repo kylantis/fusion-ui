@@ -66,8 +66,6 @@ class RootProxy {
 
   static nodeAttributeKeyHookType = 'nodeAttributeKey';
 
-  static nodeAttributePartialValueHookType = 'nodeAttributePartialValue';
-
   static nodeAttributeValueHookType = 'nodeAttributeValue';
 
 
@@ -783,6 +781,8 @@ class RootProxy {
 
   getLogicGateValue({ gate, useBlockData = true }) {
 
+    const { table } = this.component.getLogicGates()[gate.canonicalId];
+
     const MUST_GRP = 'MustacheGroup';
     const LOGIC_GATE = 'LogicGate';
     const BOOL_EXPR = 'BooleanExpression';
@@ -895,7 +895,15 @@ class RootProxy {
       const { invert } = item;
 
       while (item.type == LOGIC_GATE) {
-        const data = gate.table[item.original];
+        const data = clientUtils.deepClone(table[item.original]);
+
+        const { condition, left, right } = data;
+
+        data.condition = condition.map(c => this.toExecutablePath(c, true));
+
+        data.left = this.toExecutablePath(left);
+        data.right = this.toExecutablePath(right);
+
         item = analyzeCondition(data.condition, data.conditionInversions) ? data.left : data.right;
       }
 
@@ -912,19 +920,6 @@ class RootProxy {
 
     const value = this.executeWithBlockData(
       () => {
-
-        for (let i = 0; i < gate.table.length; i++) {
-
-          const item = gate.table[i];
-
-          const { condition, left, right } = item;
-
-          item.condition = condition.map(item => this.toExecutablePath(item, true));
-
-          item.left = this.toExecutablePath(left);
-          item.right = this.toExecutablePath(right);
-        }
-
         return analyzeGate({ type: LOGIC_GATE, original: 0 })
       },
       blockData
@@ -949,7 +944,7 @@ class RootProxy {
 
     const lenientMarker = /\?$/g;
 
-    const { type, original, left, right } = item;
+    const { type, original, operator, left, right, items } = item;
 
     const getExecPath = (fqPath) => {
       let execString = this.component.getExecPath0({
@@ -965,31 +960,42 @@ class RootProxy {
 
     switch (type) {
       case PATH_EXPR:
+        assert(original.startsWith(`${dataPathRoot}${pathSeparator}`));
         let p = original.replace(`${dataPathRoot}${pathSeparator}`, '');
 
         if (p.startsWith(literalPrefix)) {
-          item.type = 'StringLiteral';
-          item.original = parsePathExpressionLiteralValue(p);
+          return {
+            type: 'StringLiteral',
+            original: parsePathExpressionLiteralValue(p),
+          }
         } else {
           lenient = lenient || p.match(lenientMarker);
           if (lenient) {
             p = p.replace(lenientMarker, '');
           }
-          item.canonicalPath = p;
-          item.original = getExecPath(p);
+          return {
+            type,
+            canonicalPath: p,
+            original: getExecPath(p),
+          }
         }
-        break;
 
       case BOOL_EXPR:
-        item.left = this.toExecutablePath(left, lenient);
-        item.right = this.toExecutablePath(right, lenient);
-        break;
+        return {
+          type,
+          operator,
+          left: this.toExecutablePath(left, lenient),
+          right: this.toExecutablePath(right, lenient),
+        }
 
       case MUST_GRP:
-        item.items = item.items.map(item => this.toExecutablePath(item, lenient));
-        break;
+        return {
+          type,
+          items: items.map(item => this.toExecutablePath(item, lenient)),
+        }
     }
-    return item;
+
+    return { ...item };
   }
 
   getParticipantsFromLogicGate(gate) {
@@ -1074,18 +1080,15 @@ class RootProxy {
           });
         });
 
-      gate.id = gateId;
-      gate.canonicalId = prop;
-      gate.blockData = this.component.getBlockDataSnapshot(path);
-
-      this.#logicGates[gateId] = gate;
+      this.#logicGates[gateId] = {
+        id: gateId,
+        canonicalId: prop,
+        blockData: this.component.getBlockDataSnapshot(path),
+      };
       this.#dataPathHooks[path] = [];
     }
 
-    // This is no longer needed, because participants have been registered above
-    delete gate.participants;
-
-    const v = this.getLogicGateValue({ gate, useBlockData: false });
+    const v = this.getLogicGateValue({ gate: this.#logicGates[gateId], useBlockData: false });
 
     const rawValue = this.getRawValueWrapper(v);
 
@@ -1246,8 +1249,8 @@ class RootProxy {
 
   triggerHooks(triggerInfo) {
     const {
-      logicGatePathRoot, pathSeparator, textNodeHookType, eachBlockHookType,
-      gateParticipantHookType, pathProperty, conditionalBlockHookType, dataPathPrefix,
+      logicGatePathRoot, pathSeparator, textNodeHookType, eachBlockHookType, gateParticipantHookType, pathProperty,
+      conditionalBlockHookType, dataPathPrefix, nodeAttributeHookType, nodeAttributeKeyHookType, nodeAttributeValueHookType,
       mapSizeProperty, isNullProperty,
     } = RootProxy;
 
@@ -1470,43 +1473,202 @@ class RootProxy {
 
           const getRenderedValue = () => {
             let computedValue = newValue;
+
+            if (path.startsWith(`${logicGatePathRoot}${pathSeparator}`)) {
+              const gateId = path.replace(`${logicGatePathRoot}${pathSeparator}`, '')
+              computedValue = this.getLogicGateValue({ gate: this.#logicGates[gateId] });
+            }
+
+            const { transform } = hook;
+
+            if (transform) {
+              computedValue = this.component[transform](computedValue);
+            }
+
+            return this.component.toHtml(computedValue);
+          }
+
+          const getElementName = (node) => {
+            return node.tagName.toLowerCase();
+          }
+
+          const getNodeAttribute = ({ node, attrKey }) => {
+            const { getHtmlIntrinsicAttributes } = RootCtxRenderer;
+            const elementName = getElementName(node);
+
+            if (getHtmlIntrinsicAttributes(elementName)[attrKey]) {
+              return node[attrKey];
+            } else {
+              return node.getAttribute(attrKey);
+            }
+          }
+
+          const setNodeAttribute = ({ node, attrKey, attrValue }) => {
+            const { getHtmlIntrinsicAttributes } = RootCtxRenderer;
+            const elementName = node.tagName.toLowerCase();
+
+            if (getHtmlIntrinsicAttributes(elementName)[attrKey]) {
+              node[attrKey] = attrValue === undefined ? null : attrValue;
+            } else {
+              if (attrValue === undefined) {
+                node.removeAttribute(attrKey);
+              } else {
+                try {
+                  node.setAttribute(attrKey, attrValue);
+                } catch (ex) {
+                  assert(
+                    ex.message == `Failed to execute 'setAttribute' on 'Element': '${attrValue}' is not a valid attribute name.`
+                  );
+                }
+              }
+            }
+          }
+
+          const evalAttrValue = (elementName, attrKey, attrValue, loc) => {
+
+            const { unsafeEval } = AppContext;
+            const { getHtmlIntrinsicAttributes } = RootCtxRenderer;
+            const { getLine } = clientUtils;
+
+            const UNKNOWN_VALUE = null;
+
+            const isBoolAttr = (getHtmlIntrinsicAttributes(elementName)[attrKey] || {}).type == 'boolean';
+
+            if (isBoolAttr) {
+              return true;
+            }
+
+            if (attrValue) {
+              try {
+                attrValue = unsafeEval(attrValue);
+              } catch (e) {
+                this.component.logger.error(
+                  `[${getLine({ loc })}] Error while attempting to evaluate attribute value <${attrValue}>: ${e.message}`
+                );
+                attrValue = UNKNOWN_VALUE;
+              }
+            } else {
+              attrValue = "";
+            }
+
+            return attrValue;
+          }
+
+          const getAttrSegments = (elementName, attrString, loc) => {
+            let [key, value] = attrString.split('=');
+            return { key, value: evalAttrValue(elementName, key, value, loc) }
           }
 
           switch (hook.type) {
 
-            // Support attributes... note: always update this.component.mustacheStatements with the rendered value 
+            case nodeAttributeHookType:
+              (() => {
+                const { mustacheRef, loc } = hook;
+                const node = document.querySelector(selector);
+                const elementName = getElementName(node);
 
-            // Note: when passing in overrides to getRenderedAttributeSegment(...) we need to run transform and toHtml 
-            // against oldValue value before using - right??
+                const currentValue = getRenderedValue();
+                const previousValue = this.component.setRenderedValue(mustacheRef, currentValue);
 
+                if (previousValue) {
+                  setNodeAttribute({
+                    node,
+                    attrKey: getAttrSegments(elementName, previousValue, loc).key,
+                    attrValue: undefined
+                  });
+                }
 
+                if (currentValue) {
+                  const { key, value } = getAttrSegments(elementName, currentValue, loc);
+                  setNodeAttribute({
+                    node, attrKey: key, attrValue: value,
+                  });
+                }
+              })();
+              break;
 
+            case nodeAttributeKeyHookType:
+              (() => {
+                const { mustacheRef, hookInfo: { tokenList, tokenIndex } } = hook;
+                const node = document.querySelector(selector);
 
+                const currentValue = getRenderedValue();
+                const previousValue = this.component.setRenderedValue(mustacheRef, currentValue);
+
+                if (getNodeAttribute(previousValue) != null) {
+                  setNodeAttribute({
+                    node, attrKey: previousValue, attrValue: undefined,
+                  });
+                }
+
+                const attrKey = currentValue;
+
+                if (attrKey) {
+                  let valueToken = tokenList[tokenIndex + 2];
+
+                  if (valueToken.type == 'token:attribute-value-wrapper-start') {
+                    assert(tokenList[tokenIndex + 4].type == 'token:attribute-value-wrapper-end');
+
+                    valueToken = { ...tokenList[tokenIndex + 3] };
+                    valueToken.content = `"${valueToken.content}"`;
+                  }
+
+                  const attrValue = evalAttrValue(
+                    getElementName(node),
+                    attrKey,
+                    this.component.getRenderedValue(valueToken.content)
+                  );
+
+                  setNodeAttribute({ node, attrKey, attrValue });
+                }
+              })();
+              break;
+
+            case nodeAttributeValueHookType:
+              (() => {
+                const { mustacheRef, hookInfo: { tokenList, tokenIndex } } = hook;
+                const node = document.querySelector(selector);
+
+                this.component.setRenderedValue(mustacheRef, getRenderedValue());
+
+                let keyToken = tokenList[tokenIndex - 2];
+
+                const valueToken = { ...tokenList[tokenIndex] };
+
+                if (tokenList[tokenIndex - 1].type == 'token:attribute-value-wrapper-start') {
+                  assert(tokenList[tokenIndex + 1].type == 'token:attribute-value-wrapper-end');
+
+                  keyToken = tokenList[tokenIndex - 3];
+                  valueToken.content = `"${valueToken.content}"`;
+                }
+
+                assert(
+                  keyToken.type == 'token:attribute-key' && keyToken.content &&
+                  valueToken.type == 'token:attribute-value'
+                );
+
+                const attrKey = this.component.getRenderedValue(keyToken.content);
+
+                const attrValue = evalAttrValue(
+                  getElementName(node),
+                  attrKey,
+                  this.component.getRenderedValue(valueToken.content)
+                );
+
+                setNodeAttribute({ node, attrKey, attrValue });
+              })();
+              break;
 
             case textNodeHookType:
               (() => {
-                let computedValue = newValue
-
-                if (path.startsWith(`${logicGatePathRoot}${pathSeparator}`)) {
-                  const gateId = path.replace(`${logicGatePathRoot}${pathSeparator}`, '')
-                  computedValue = this.getLogicGateValue({ gate: this.#logicGates[gateId] });
-                }
-
-                const { hookMethod, transform, blockData } = hook;
-
-                if (transform) {
-                  computedValue = this.component[transform](computedValue);
-                }
-
-
-
                 const node = document.querySelector(selector);
-                node.innerHTML = this.component.toHtml(computedValue);
+                node.innerHTML = getRenderedValue();
+
+                const { hookMethod, blockData } = hook;
 
                 if (hookMethod) {
                   this.component[hookMethod]({ node, blockData, initial: false });
                 }
-
               })();
               break;
 
@@ -1656,7 +1818,6 @@ class RootProxy {
 
           }
         });
-
 
     }
 
