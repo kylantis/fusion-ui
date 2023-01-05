@@ -1,8 +1,5 @@
 
-{{#if container}}
-<div class="slds-spinner_container {{(container eq 'fixed') ? 'slds-is-fixed' : ''}}">
-{{/if}}
-
+{{#*inline "render_base"}}
 <div role="status" class="slds-spinner 
   {{size ? 'slds-spinner_${size}' : '' transform='sizeTransform'}}
   {{delayed ? 'slds-spinner_delayed' : ''}}
@@ -13,7 +10,16 @@
     <div class="slds-spinner__dot-a"></div>
     <div class="slds-spinner__dot-b"></div>
 </div>
+{{/inline}}
+
 
 {{#if container}}
-</div>
+  <div class="slds-spinner_container {{(container eq 'fixed') ? 'slds-is-fixed' : ''}}">
+    {{> render_base}}
+    {{#if backdropped}}
+      <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+    {{/if}}
+  </div>
+{{else}}
+  {{> render_base}}
 {{/if}}

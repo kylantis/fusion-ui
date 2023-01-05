@@ -18,7 +18,7 @@
 {{stretch ? 'slds-button_stretch' : ''}}
 {{fullWidth ? 'slds-button_full-width' : ''}}
 {{stateful ? 'slds-button_stateful' : ''}}
-{{stateful ? selectState ? 'slds-is-${selectState}' : 'slds-not-selected' : '' transform="selectStateTransform"}}
+{{stateful ? selectState ? 'slds-${selectState}' : 'slds-not-selected' : '' transform="selectStateTransform"}}
 "
  {{disabled ? "disabled=\"\"" : ""}}
 >

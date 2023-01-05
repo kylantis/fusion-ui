@@ -1,0 +1,27 @@
+{
+  "enableTypeMerging": false,
+  "collections": {},
+  "scalars": {
+    "gutters": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "nested": {
+      "type": "String",
+      "defaults": []
+    },
+    "wrap": {
+      "type": "String",
+      "defaults": []
+    },
+    "size": {
+      "type": "String",
+      "defaults": []
+    }
+  },
+  "sample": {
+    "nullifyRandomly": []
+  },
+  "useCollectionLengthProperty": false,
+  "escapeDynamicHtml": false
+}

@@ -1,0 +1,51 @@
+{
+  "enableTypeMerging": false,
+  "collections": {},
+  "scalars": {
+    "closeIcon": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "content": {
+      "type": "componentRef",
+      "defaults": [
+        null
+      ]
+    },
+    "title": {
+      "type": "Text",
+      "isNull": false
+    },
+    "position": {
+      "type": "String",
+      "allowed": "direction",
+      "defaults": [
+        "left"
+      ]
+    },
+    "showByDefault": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "size": {
+      "type": "String",
+      "allowed": "layoutSize",
+      "defaults": [
+        "large"
+      ]
+    },
+    "overlay": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "backdrop": {
+      "type": "Boolean",
+      "defaultValue": true
+    }
+  },
+  "sample": {
+    "nullifyRandomly": []
+  },
+  "useCollectionLengthProperty": false,
+  "escapeDynamicHtml": false
+}

@@ -81,6 +81,13 @@
     "tabs_$.closeable": {
       "type": "Boolean",
       "defaultValue": true
+    },
+    "tabs_$.contentPadding": {
+      "type": "String",
+      "allowed": "spacingType",
+      "defaults": [
+        "top_x-small"
+      ]
     }
   },
   "escapeDynamicHtml": false,

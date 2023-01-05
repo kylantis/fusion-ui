@@ -39,7 +39,7 @@ parts, and each part is either plain text or a link
         <div class="slds-media__figure">
 
           {{#if expandable}}
-            {{> ButtonIcon iconType='utility' iconName='switch' cssClass="slds-timeline__details-action-icon"}}
+            {{> ButtonIcon iconType='utility' iconName='switch' svgCssClass="slds-timeline__details-action-icon"}}
           {{/if}}
 
           {{> icon}}

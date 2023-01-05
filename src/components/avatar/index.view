@@ -1,0 +1,34 @@
+{{style url="/components/avatar/style.min.css"}}
+
+{{component Icon alias="icon"}}
+
+<span class="slds-avatar 
+{{groupRole ? 'slds-avatar-grouped slds-avatar-grouped__${groupRole}' : ''}}
+{{(size and (not groupRole)) ? icon ? 'slds-avatar_${size}' : 'slds-avatar__${size}' : ''}} 
+{{(circular and (not icon)) ? 'slds-avatar_circle' : ''}} 
+{{type ? 'slds-avatar_${type}-large' : ''}}
+{{(initials and initials.inverse and groupRole) ? 'slds-avatar-grouped_inverse' : ''}}
+">
+{{#if type}}
+  {{#if title}}
+    <span class="slds-assistive-text">{{title}}</span>
+  {{/if}}
+{{else}}
+  {{#if imageURL}}
+    <img alt="Person name" src="{{imageURL}}" {{title ? "title='${title}'" : ''}}/>
+  {{else}}
+    {{#if icon}}
+        {{> icon title cssClass=(groupRole ? 'slds-avatar-grouped__icon' : null)}}
+    {{else}}
+        {{#with initials}}
+            <abbr class="slds-avatar__initials slds-icon-standard-user
+            {{../groupRole ? 'slds-avatar-grouped__initials' : ''}}
+            {{inverse ? 'slds-avatar__initials_inverse' : ''}}"
+            {{../title ? "title='${../title}'" : ''}}>
+                {{name transform='verifyInitialsLength'}}
+            </abbr>
+        {{/with}}
+    {{/if}}
+  {{/if}}
+{{/if}}
+</span>

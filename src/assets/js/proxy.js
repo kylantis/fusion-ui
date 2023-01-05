@@ -51,17 +51,23 @@ class RootProxy {
 
   static mapKeyPrefixRegex = /^\$_/g;
 
-  // Todo: Rename from HookName to HookType
 
-  static conditionalBlockHookName = 'conditionalBlock';
+  static conditionalBlockHookType = 'conditionalBlock';
 
-  static eachBlockHookName = 'arrayBlock';
+  static eachBlockHookType = 'arrayBlock';
 
-  static textNodeHookName = 'textNode';
+  static textNodeHookType = 'textNode';
 
-  static gateParticipantHookName = 'gateParticipant';
+  static gateParticipantHookType = 'gateParticipant';
 
-  static arrayChildBlockHookName = 'arrayChildBlock';
+  static arrayChildBlockHookType = 'arrayChildBlock';
+
+  static nodeAttributeHookType = 'nodeAttribute';
+
+  static nodeAttributeKeyHookType = 'nodeAttributeKey';
+
+  static nodeAttributeValueHookType = 'nodeAttributeValue';
+
 
   static validateInputSchema = false;
 
@@ -101,8 +107,12 @@ class RootProxy {
   createDataPathHooksObject() {
 
     return new Proxy({}, {
-      set: function (object, key, value) {
+      set: (object, key, value) => {
         assert(Array.isArray(value));
+
+        if (!this.component.dataBindingEnabled()) {
+          return true;
+        }
 
         // Only set - if not set already
         return object[key] === undefined ? object[key] = value : true;
@@ -149,10 +159,10 @@ class RootProxy {
         proxy.validateInput();
       }
 
-      if (component.dataBindingEnabled()) {
-        // Add our observer, to orchestrate data binding operations
-        proxy.addDataObserver();
-      }
+      proxy.toCanonicalObject({ path: '', obj: component.getInput() });
+
+      // Add our observer, to orchestrate data binding operations
+      proxy.addDataObserver();
     }
 
     return proxy.handler;
@@ -161,7 +171,7 @@ class RootProxy {
   withSchema(schema) {
 
     const {
-      pathProperty, firstProperty, lastProperty, keyProperty, indexProperty, randomProperty, 
+      pathProperty, firstProperty, lastProperty, keyProperty, indexProperty, randomProperty,
       emptyString, enumsFile,
     } = RootProxy;
 
@@ -425,7 +435,42 @@ class RootProxy {
 
     const input = this.component.getInput();
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // DEGUB WHY AJV VALIDATION IS TOO SLOW, AND RE-ENABLE VALIATION
+
+
+
+
+
+
+
+
+
+
     if (!validate(input)) {
+
+
+
+
+
+
+
+
+
+
       const componentName = this.component.getComponentName();
       const msg = `Component "${this.component.getId()}" could not be loaded due to schema mismatch of input data`;
 
@@ -462,8 +507,6 @@ class RootProxy {
         'Input data already processed. You need to clone the data first before using it on a new component instance'
       );
     }
-
-    this.toCanonicalObject({ path: '', obj: this.component.getInput() });
 
     this.component.setInput(
       this.getObserverProxy(this.component.getInput())
@@ -521,6 +564,9 @@ class RootProxy {
             return prop.match(logicGatePathPrefix) ?
               this.resolveLogicPath({ prop: prop.replace(logicGatePathPrefix, '') }) :
               this.resolveDataPath({ prop: prop.replace(dataPathPrefix, '') });
+
+          case prop === 'data':
+            return this;
 
           case prop === 'getSyntheticNodeId':
             return this.component.getSyntheticNodeId();
@@ -735,6 +781,8 @@ class RootProxy {
 
   getLogicGateValue({ gate, useBlockData = true }) {
 
+    const { table } = this.component.getLogicGates()[gate.canonicalId];
+
     const MUST_GRP = 'MustacheGroup';
     const LOGIC_GATE = 'LogicGate';
     const BOOL_EXPR = 'BooleanExpression';
@@ -847,7 +895,15 @@ class RootProxy {
       const { invert } = item;
 
       while (item.type == LOGIC_GATE) {
-        const data = gate.table[item.original];
+        const data = clientUtils.deepClone(table[item.original]);
+
+        const { condition, left, right } = data;
+
+        data.condition = condition.map(c => this.toExecutablePath(c, true));
+
+        data.left = this.toExecutablePath(left);
+        data.right = this.toExecutablePath(right);
+
         item = analyzeCondition(data.condition, data.conditionInversions) ? data.left : data.right;
       }
 
@@ -864,19 +920,6 @@ class RootProxy {
 
     const value = this.executeWithBlockData(
       () => {
-
-        for (let i = 0; i < gate.table.length; i++) {
-
-          const item = gate.table[i];
-
-          const { condition, left, right } = item;
-
-          item.condition = condition.map(item => this.toExecutablePath(item, true));
-
-          item.left = this.toExecutablePath(left);
-          item.right = this.toExecutablePath(right);
-        }
-
         return analyzeGate({ type: LOGIC_GATE, original: 0 })
       },
       blockData
@@ -901,7 +944,7 @@ class RootProxy {
 
     const lenientMarker = /\?$/g;
 
-    const { type, original, left, right } = item;
+    const { type, original, operator, left, right, items } = item;
 
     const getExecPath = (fqPath) => {
       let execString = this.component.getExecPath0({
@@ -917,31 +960,42 @@ class RootProxy {
 
     switch (type) {
       case PATH_EXPR:
+        assert(original.startsWith(`${dataPathRoot}${pathSeparator}`));
         let p = original.replace(`${dataPathRoot}${pathSeparator}`, '');
 
         if (p.startsWith(literalPrefix)) {
-          item.type = 'StringLiteral';
-          item.original = parsePathExpressionLiteralValue(p);
+          return {
+            type: 'StringLiteral',
+            original: parsePathExpressionLiteralValue(p),
+          }
         } else {
           lenient = lenient || p.match(lenientMarker);
           if (lenient) {
             p = p.replace(lenientMarker, '');
           }
-          item.canonicalPath = p;
-          item.original = getExecPath(p);
+          return {
+            type,
+            canonicalPath: p,
+            original: getExecPath(p),
+          }
         }
-        break;
 
       case BOOL_EXPR:
-        item.left = this.toExecutablePath(left, lenient);
-        item.right = this.toExecutablePath(right, lenient);
-        break;
+        return {
+          type,
+          operator,
+          left: this.toExecutablePath(left, lenient),
+          right: this.toExecutablePath(right, lenient),
+        }
 
       case MUST_GRP:
-        item.items = item.items.map(item => this.toExecutablePath(item, lenient));
-        break;
+        return {
+          type,
+          items: items.map(item => this.toExecutablePath(item, lenient)),
+        }
     }
-    return item;
+
+    return { ...item };
   }
 
   getParticipantsFromLogicGate(gate) {
@@ -982,7 +1036,7 @@ class RootProxy {
   resolveLogicPath({ prop }) {
 
     const {
-      logicGatePathRoot, pathSeparator, gateParticipantHookName,
+      logicGatePathRoot, pathSeparator, gateParticipantHookType,
     } = RootProxy;
 
     const includePath = prop.endsWith('!');
@@ -1011,25 +1065,30 @@ class RootProxy {
       this.getParticipantsFromLogicGate(gate)
         .filter(({ synthetic }) => !synthetic)
         .forEach(({ original, canonicalPath }) => {
-          this.#dataPathHooks[original].push({
-            type: gateParticipantHookName,
+          let arr = this.#dataPathHooks[original];
+
+          if (!arr) {
+            // Todo: remove this block if createDataPathHooksObject(...) is updated to automatically
+            // create an empty hooks array if path not added... because in that case <arr> will be always true
+            arr = this.#dataPathHooks[original] = [];
+          }
+
+          arr.push({
+            type: gateParticipantHookType,
             gateId,
             canonicalPath,
           });
         });
 
-      gate.id = gateId;
-      gate.canonicalId = prop;
-      gate.blockData = this.component.getBlockDataSnapshot(path);
-
-      this.#logicGates[gateId] = gate;
+      this.#logicGates[gateId] = {
+        id: gateId,
+        canonicalId: prop,
+        blockData: this.component.getBlockDataSnapshot(path),
+      };
       this.#dataPathHooks[path] = [];
     }
 
-    // This is no longer needed, because participants have been registered above
-    delete gate.participants;
-
-    const v = this.getLogicGateValue({ gate, useBlockData: false });
+    const v = this.getLogicGateValue({ gate: this.#logicGates[gateId], useBlockData: false });
 
     const rawValue = this.getRawValueWrapper(v);
 
@@ -1190,9 +1249,9 @@ class RootProxy {
 
   triggerHooks(triggerInfo) {
     const {
-      logicGatePathRoot, pathSeparator, textNodeHookName, eachBlockHookName,
-      gateParticipantHookName, pathProperty, conditionalBlockHookName, dataPathPrefix,
-      mapSizeProperty, isNullProperty, getParentFromPath, getKeyFromIndexSegment,
+      logicGatePathRoot, pathSeparator, textNodeHookType, eachBlockHookType, gateParticipantHookType, pathProperty,
+      conditionalBlockHookType, dataPathPrefix, nodeAttributeHookType, nodeAttributeKeyHookType, nodeAttributeValueHookType,
+      mapSizeProperty, isNullProperty,
     } = RootProxy;
 
     const { fqPath, parentObject, oldValue, newValue, dataPathHooks, withParent, animate } = triggerInfo;
@@ -1249,7 +1308,7 @@ class RootProxy {
           const selector = `#${this.component.getId()} ${hook.selector}`;
 
           switch (hook.type) {
-            case eachBlockHookName:
+            case eachBlockHookType:
 
               if (animate) {
                 // Todo: Add transition classes, see: https://cssanimation.rocks/list-items/
@@ -1269,9 +1328,10 @@ class RootProxy {
 
                 const { collectionType: type } = collDef;
 
-                const key = getKeyFromIndexSegment(
-                  Path.replace(
-                    getParentFromPath(Path.split('.')), ''
+                const key = clientUtils.getKeyFromIndexSegment(
+                  path.replace(
+                    clientUtils.getParentFromPath(path.split('.')),
+                    ''
                   )
                 );
 
@@ -1411,32 +1471,214 @@ class RootProxy {
 
           const selector = `#${this.component.getId()} ${hook.selector}`;
 
+          const getRenderedValue = () => {
+            let computedValue = newValue;
+
+            if (path.startsWith(`${logicGatePathRoot}${pathSeparator}`)) {
+              const gateId = path.replace(`${logicGatePathRoot}${pathSeparator}`, '')
+              computedValue = this.getLogicGateValue({ gate: this.#logicGates[gateId] });
+            }
+
+            const { transform } = hook;
+
+            if (transform) {
+              computedValue = this.component[transform](computedValue);
+            }
+
+            return this.component.toHtml(computedValue);
+          }
+
+          const getElementName = (node) => {
+            return node.tagName.toLowerCase();
+          }
+
+          const getNodeAttribute = ({ node, attrKey }) => {
+            const { getHtmlIntrinsicAttributes } = RootCtxRenderer;
+            const elementName = getElementName(node);
+
+            if (getHtmlIntrinsicAttributes(elementName)[attrKey]) {
+              return node[attrKey];
+            } else {
+              return node.getAttribute(attrKey);
+            }
+          }
+
+          const setNodeAttribute = ({ node, attrKey, attrValue }) => {
+            const { getHtmlIntrinsicAttributes } = RootCtxRenderer;
+            const elementName = node.tagName.toLowerCase();
+
+            if (getHtmlIntrinsicAttributes(elementName)[attrKey]) {
+              node[attrKey] = attrValue === undefined ? null : attrValue;
+            } else {
+              if (attrValue === undefined) {
+                node.removeAttribute(attrKey);
+              } else {
+                try {
+                  node.setAttribute(attrKey, attrValue);
+                } catch (ex) {
+                  assert(
+                    ex.message == `Failed to execute 'setAttribute' on 'Element': '${attrValue}' is not a valid attribute name.`
+                  );
+                }
+              }
+            }
+          }
+
+          const evalAttrValue = (elementName, attrKey, attrValue, loc) => {
+
+            const { unsafeEval } = AppContext;
+            const { getHtmlIntrinsicAttributes } = RootCtxRenderer;
+            const { getLine } = clientUtils;
+
+            const UNKNOWN_VALUE = null;
+
+            const isBoolAttr = (getHtmlIntrinsicAttributes(elementName)[attrKey] || {}).type == 'boolean';
+
+            if (isBoolAttr) {
+              return true;
+            }
+
+            if (attrValue) {
+              try {
+                attrValue = unsafeEval(attrValue);
+              } catch (e) {
+                this.component.logger.error(
+                  `[${getLine({ loc })}] Error while attempting to evaluate attribute value <${attrValue}>: ${e.message}`
+                );
+                attrValue = UNKNOWN_VALUE;
+              }
+            } else {
+              attrValue = "";
+            }
+
+            return attrValue;
+          }
+
+          const getAttrSegments = (elementName, attrString, loc) => {
+            let [key, value] = attrString.split('=');
+            return { key, value: evalAttrValue(elementName, key, value, loc) }
+          }
+
           switch (hook.type) {
 
-            case textNodeHookName:
+            case nodeAttributeHookType:
               (() => {
-                let computedValue = newValue
+                const { mustacheRef, loc } = hook;
+                const node = document.querySelector(selector);
+                const elementName = getElementName(node);
 
-                if (path.startsWith(`${logicGatePathRoot}${pathSeparator}`)) {
-                  const gateId = path.replace(`${logicGatePathRoot}${pathSeparator}`, '')
-                  computedValue = this.getLogicGateValue({ gate: this.#logicGates[gateId] });
+                const currentValue = getRenderedValue();
+                const previousValue = this.component.setRenderedValue(mustacheRef, currentValue);
+
+                if (previousValue) {
+                  setNodeAttribute({
+                    node,
+                    attrKey: getAttrSegments(elementName, previousValue, loc).key,
+                    attrValue: undefined
+                  });
                 }
 
-                const { hookMethod } = hook;
-
-                document.querySelector(selector).innerHTML = this.component.toHtml(
-                  hookMethod ? hookMethod(computedValue) : computedValue
-                );
+                if (currentValue) {
+                  const { key, value } = getAttrSegments(elementName, currentValue, loc);
+                  setNodeAttribute({
+                    node, attrKey: key, attrValue: value,
+                  });
+                }
               })();
               break;
 
-            case gateParticipantHookName:
+            case nodeAttributeKeyHookType:
+              (() => {
+                const { mustacheRef, hookInfo: { tokenList, tokenIndex } } = hook;
+                const node = document.querySelector(selector);
+
+                const currentValue = getRenderedValue();
+                const previousValue = this.component.setRenderedValue(mustacheRef, currentValue);
+
+                if (getNodeAttribute(previousValue) != null) {
+                  setNodeAttribute({
+                    node, attrKey: previousValue, attrValue: undefined,
+                  });
+                }
+
+                const attrKey = currentValue;
+
+                if (attrKey) {
+                  let valueToken = tokenList[tokenIndex + 2];
+
+                  if (valueToken.type == 'token:attribute-value-wrapper-start') {
+                    assert(tokenList[tokenIndex + 4].type == 'token:attribute-value-wrapper-end');
+
+                    valueToken = { ...tokenList[tokenIndex + 3] };
+                    valueToken.content = `"${valueToken.content}"`;
+                  }
+
+                  const attrValue = evalAttrValue(
+                    getElementName(node),
+                    attrKey,
+                    this.component.getRenderedValue(valueToken.content)
+                  );
+
+                  setNodeAttribute({ node, attrKey, attrValue });
+                }
+              })();
+              break;
+
+            case nodeAttributeValueHookType:
+              (() => {
+                const { mustacheRef, hookInfo: { tokenList, tokenIndex } } = hook;
+                const node = document.querySelector(selector);
+
+                this.component.setRenderedValue(mustacheRef, getRenderedValue());
+
+                let keyToken = tokenList[tokenIndex - 2];
+
+                const valueToken = { ...tokenList[tokenIndex] };
+
+                if (tokenList[tokenIndex - 1].type == 'token:attribute-value-wrapper-start') {
+                  assert(tokenList[tokenIndex + 1].type == 'token:attribute-value-wrapper-end');
+
+                  keyToken = tokenList[tokenIndex - 3];
+                  valueToken.content = `"${valueToken.content}"`;
+                }
+
+                assert(
+                  keyToken.type == 'token:attribute-key' && keyToken.content &&
+                  valueToken.type == 'token:attribute-value'
+                );
+
+                const attrKey = this.component.getRenderedValue(keyToken.content);
+
+                const attrValue = evalAttrValue(
+                  getElementName(node),
+                  attrKey,
+                  this.component.getRenderedValue(valueToken.content)
+                );
+
+                setNodeAttribute({ node, attrKey, attrValue });
+              })();
+              break;
+
+            case textNodeHookType:
+              (() => {
+                const node = document.querySelector(selector);
+                node.innerHTML = getRenderedValue();
+
+                const { hookMethod, blockData } = hook;
+
+                if (hookMethod) {
+                  this.component[hookMethod]({ node, blockData, initial: false });
+                }
+              })();
+              break;
+
+            case gateParticipantHookType:
               triggerHooks0(
                 `${logicGatePathRoot}${pathSeparator}${hook.gateId}`,
               );
               break;
 
-            case conditionalBlockHookName:
+            case conditionalBlockHookType:
               (() => {
                 let computedValue = newValue
 
@@ -1496,7 +1738,7 @@ class RootProxy {
               })();
               break;
 
-            case eachBlockHookName:
+            case eachBlockHookType:
 
               (() => {
 
@@ -1574,14 +1816,8 @@ class RootProxy {
 
               break;
 
-
-            // Add attribute context - 
-            // extensive work needs to be done above. First we need to
-            // add data to dataPathHooks... that's not being done at the moment
-
           }
         });
-
 
     }
 
@@ -1600,7 +1836,7 @@ class RootProxy {
    */
   pruneHookIndex(parent, i) {
     const {
-      dataPathRoot, pathSeparator, arrayChildBlockHookName, logicGatePathRoot
+      dataPathRoot, pathSeparator, arrayChildBlockHookType, logicGatePathRoot
     } = RootProxy;
 
     const fqPath = `${dataPathRoot}${pathSeparator}${parent}[${i}]`;
@@ -1615,7 +1851,7 @@ class RootProxy {
     hookList
       .forEach(([k, v]) => {
         v.forEach(({ type, path }) => {
-          if (type == arrayChildBlockHookName && path.startsWith(logicGatePathRoot)) {
+          if (type == arrayChildBlockHookType && path.startsWith(logicGatePathRoot)) {
             const v = this.#dataPathHooks[path];
             assert(v);
             hookList.push([path, v])
@@ -1637,7 +1873,7 @@ class RootProxy {
 
   offsetHookIndex(parent, i, j, len) {
     const {
-      dataPathRoot, pathSeparator, arrayChildBlockHookName, logicGatePathPrefix,
+      dataPathRoot, pathSeparator, arrayChildBlockHookType, logicGatePathPrefix,
     } = RootProxy;
 
     const toFqPath = (n) => `${dataPathRoot}${pathSeparator}${parent}[${n}]`
@@ -1656,7 +1892,7 @@ class RootProxy {
 
         // Before, moving i to j, update associated blockData referenced in <arr>, if any
         arr
-          .filter(({ type }) => type == arrayChildBlockHookName)
+          .filter(({ type }) => type == arrayChildBlockHookType)
           .forEach(({ path, blockDataKey }) => {
 
             const blockDataList = (() => {
@@ -1679,7 +1915,7 @@ class RootProxy {
 
               if (o.index == j) {
                 // This blockData was already updated. This usually happens when
-                // multiple <arrayChildBlockHookName> entries exists for the same path
+                // multiple <arrayChildBlockHookType> entries exists for the same path
                 return;
               }
 
@@ -1773,7 +2009,7 @@ class RootProxy {
 
         // In toCanonicalObject(...), we always default missing object properties to null,
         // so oldValue === undefined it means that <prop> is invalid
-        `${parent ? `[${parent}] ` : ''}Property ${prop} does not exist`
+        `${parent ? `[${parent}] ` : ''}Property "${prop}" does not exist`
       );
     }
 
@@ -2110,6 +2346,10 @@ class RootProxy {
 
   getObserverProxy(object) {
 
+    if (!this.component.dataBindingEnabled()) {
+      return object;
+    }
+
     return new Proxy(object, {
 
       deleteProperty: (obj, prop) => {
@@ -2138,34 +2378,12 @@ class RootProxy {
     });
   }
 
-  static getParentFromPath(pathArray) {
-    const arr = [...pathArray];
-    const lastPart = arr[arr.length - 1];
-
-    const segments = clientUtils.getSegments({ original: lastPart });
-
-    if (segments.length > 1) {
-      segments.pop();
-      arr[arr.length - 1] = segments.join('');
-    } else {
-      arr.pop();
-    }
-    return arr.join('.');
-  }
-
-  static getKeyFromIndexSegment(segment) {
-    assert(segment.startsWith('['));
-    return segment.replace(/\["?/g, '').replace(/"?\]/g, '')
-  }
-
   getValueFromPath(path, noOpValue) {
     return this.component.evalPathLeniently(`this.getInput()${path.length ? '.' : ''}${path}`, noOpValue);
   }
 
   getInfoFromPath(path) {
-    const {
-      isMapProperty, getParentFromPath, getKeyFromIndexSegment, getValueFromPath,
-    } = RootProxy;
+    const { isMapProperty } = RootProxy;
     const { getDataVariableValue } = RootCtxRenderer;
 
     assert(path.length);
@@ -2188,7 +2406,7 @@ class RootProxy {
       };
 
       const coll = value(
-        getParentFromPath(arr)
+        clientUtils.getParentFromPath(arr)
       );
 
       if (!coll) {
@@ -2199,7 +2417,7 @@ class RootProxy {
         const parent = arr.join('.');
 
         const collKeys = Object.keys(coll);
-        const key = getKeyFromIndexSegment(
+        const key = clientUtils.getKeyFromIndexSegment(
           clientUtils.tailSegment(parent)
         );
         const index = collKeys.indexOf(key);
@@ -2224,7 +2442,7 @@ class RootProxy {
 
     return {
       parentObject: value(
-        getParentFromPath(pathArray)
+        clientUtils.getParentFromPath(pathArray)
       ) || null,
       value: value(path),
     };
@@ -2243,6 +2461,8 @@ class RootProxy {
     const changeSet = {};
 
     const b = fn(changeSet);
+
+    this.processingDataUpdate = false;
 
     if (b) {
 
@@ -2302,8 +2522,6 @@ class RootProxy {
           });
       }
     }
-
-    this.processingDataUpdate = false;
     return b;
   }
 

@@ -1,0 +1,15 @@
+{
+  "enableTypeMerging": false,
+  "collections": {},
+  "scalars": {
+    "directional": {
+      "type": "Boolean",
+      "defaultValue": false
+    }
+  },
+  "sample": {
+    "nullifyRandomly": []
+  },
+  "useCollectionLengthProperty": false,
+  "escapeDynamicHtml": false
+}

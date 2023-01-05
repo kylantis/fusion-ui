@@ -1,0 +1,104 @@
+{
+  "collections": {},
+  "useCollectionLengthProperty": false,
+  "scalars": {
+    "titleText": {
+      "type": "String",
+      "defaults": [
+        "My FormElement Label"
+      ]
+    },
+    "message": {
+      "type": "String",
+      "defaults": [
+        "This field is required"
+      ]
+    },
+    "titleIcon": {
+      "type": "ButtonIcon",
+      "isNull": true
+    },
+    "helperText": {
+      "type": "String",
+      "defaults": [
+        "Some helpful information"
+      ]
+    },
+    "title": {
+      "type": "Text",
+      "isNull": false
+    },
+    "disabled": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "required": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "readonly": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "error": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "editable": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "inEditMode": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "layoutType": {
+      "type": "String",
+      "allowed": [
+        "compound",
+        "stacked",
+        "horizontal"
+      ],
+      "defaults": [
+        "stacked"
+      ]
+    },
+    "controlCssClass": {
+      "type": "String",
+      "defaults": [
+        null
+      ],
+      "clientOnly": true
+    },
+    "padding": {
+      "type": "String",
+      "allowed": "spacingType",
+      "defaults": [
+        null
+      ]
+    },
+    "margin": {
+      "type": "String",
+      "allowed": "spacingType",
+      "defaults": [
+        null
+      ]
+    },
+    "displayOnlyControl": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "insideForm": {
+      "type": "Boolean",
+      "defaultValue": false,
+      "clientOnly": true
+    }
+  },
+  "sample": {
+    "nullifyRandomly": [
+      "error",
+      "readonly"
+    ]
+  },
+  "escapeDynamicHtml": false
+}

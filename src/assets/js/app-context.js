@@ -189,6 +189,7 @@ class AppContext {
 
   getDependencies() {
     return [
+      '/assets/js/client-bundle.min.js',
       { url: '/assets/js/client-utils.min.js', namespace: 'clientUtils' },
       { url: '/assets/js/custom-ctx-helpers.min.js', namespace: 'customCtxHelpers' },
       '/assets/js/proxy.min.js',
@@ -305,7 +306,14 @@ class AppContext {
   processScript({ contents, scope, namespace }) {
     const { evaluate, unsafeEval } = AppContext;
 
-    const result = unsafeEval(contents, scope);
+    let exports;
+    const result = unsafeEval(contents, scope, { mod: exports });
+
+
+    if (namespace == 'hyntaxStreamTokenizer') {
+      console.info(result, exports);
+    }
+
 
     // eslint-disable-next-line default-case
     switch (true) {

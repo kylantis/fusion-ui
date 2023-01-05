@@ -27,12 +27,7 @@ class ContextMenu extends components.OverlayComponent {
     }
 
     onMenuChange(newMenu) {
-
-        // Note: Hooks are eagerly called by RootProxy - even before the
-        // newValue is validated, transformed or saved, hence we need to 
-        // manually validate that <menu> is a Menu instance
         assert(newMenu instanceof components.Menu);
-
         this.setupMenus(newMenu);
     }
 
@@ -343,7 +338,7 @@ class ContextMenu extends components.OverlayComponent {
         // The reason we want to provide a container instead of have the menu
         // rendered in the document body is because we want it to be invisible
         const container = document.createElement('div');
-        container.id = global.clientUtils.randomString();
+        container.id = this.randomString();
 
         if (!this.testMode) {
             container.style.visibility = 'hidden';
@@ -457,8 +452,7 @@ class ContextMenu extends components.OverlayComponent {
 
     static cloneMenu(menu, x, y) {
 
-        const { cloneComponent } = BaseComponent;
-        const { randomString } = global.clientUtils;
+        const { cloneComponent, randomString } = BaseComponent;
 
         let x0 = x;
 

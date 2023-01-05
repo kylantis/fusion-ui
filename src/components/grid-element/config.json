@@ -1,0 +1,18 @@
+{
+  "enableTypeMerging": false,
+  "collections": {},
+  "scalars": {
+    "size": {
+      "type": "String",
+      "allowed": "columnSize",
+      "defaults": [
+        null
+      ]
+    }
+  },
+  "sample": {
+    "nullifyRandomly": []
+  },
+  "useCollectionLengthProperty": false,
+  "escapeDynamicHtml": false
+}

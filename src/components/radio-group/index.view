@@ -1,0 +1,6 @@
+
+{{#*inline "render_readonly" checked}}
+  {{> Icon type='utility' name=(checked ? 'choice' : 'steps') size="x-small"}}
+{{/inline}}
+
+{{> render_form_element}}

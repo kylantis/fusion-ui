@@ -30,7 +30,29 @@
       "type": "String",
       "defaults": [
         null
+      ],
+      "clientOnly": true
+    },
+    "svgForeground": {
+      "type": "String",
+      "allowed": "iconColor",
+      "defaults": [
+        null
       ]
+    },
+    "svgForegroundColor": {
+      "type": "String",
+      "allowed": "cssColor",
+      "defaults": [
+        null
+      ]
+    },
+    "svgCssClass": {
+      "type": "String",
+      "defaults": [
+        null
+      ],
+      "clientOnly": true
     },
     "size": {
       "type": "String",

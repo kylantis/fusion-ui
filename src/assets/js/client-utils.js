@@ -9,9 +9,31 @@ const segment = /(\[[0-9]+\])|(\["\$_.+?"\])/g;
 const segmentWithCanonical = /(\[[0-9]+\])|(\["\$_.+?"\])|(_\$)/g;
 
 module.exports = {
+
+  getParentFromPath(pathArray) {
+    const arr = [...pathArray];
+    const lastPart = arr[arr.length - 1];
+
+    const segments = clientUtils.getSegments({ original: lastPart });
+
+    if (segments.length > 1) {
+      segments.pop();
+      arr[arr.length - 1] = segments.join('');
+    } else {
+      arr.pop();
+    }
+    return arr.join('.');
+  },
+
+  getKeyFromIndexSegment(segment) {
+    assert(segment.startsWith('['));
+    return segment.replace(/\["?/g, '').replace(/"?\]/g, '')
+  },
+
   tailSegment: (part) => {
     return part.match(segment).pop();
   },
+
   flattenJson: (data) => {
     const result = {};
     function recurse(cur, prop) {
@@ -173,7 +195,7 @@ module.exports = {
     loop:
     for (let i = 0; i < fqPathArr.length; i++) {
 
-      const segments = clientUtils.getSegments0(fqPathArr[i],  canonicalArrayIndex);
+      const segments = clientUtils.getSegments0(fqPathArr[i], canonicalArrayIndex);
 
       // eslint-disable-next-line no-plusplus
       for (let j = 0; j < segments.length; j++) {
@@ -290,14 +312,46 @@ module.exports = {
     return results;
   },
 
-  getLine: (stmt) => {
-    const { loc: { start } = {} } = stmt;
-    return start ? `${start.line}:${start.column}` : '';
+  getLine: ({ loc }) => {
+    return loc ? `${loc.source} ${loc.start.line}:${loc.start.column}` : '';
   },
 
   getRandomInt: (min = 10000, max = 99999) => {
     min = Math.ceil(min);
     max = Math.floor(max);
     return Math.floor(Math.random() * (max - min + 1)) + min;
+  },
+
+  coerceString(value, type) {
+    assert(typeof value == 'string');
+
+    switch (type) {
+      case 'number':
+        return Number(value);
+      case 'boolean':
+        return Boolean(value);
+      default:
+        throw Error(`Unknown type "${type}"`);
+    }
+  },
+
+  isStringCoercible(value, types) {
+    for (const type of types.split('|')) {
+      switch (type) {
+        case 'number':
+          if (Number(value) != NaN) {
+            return true;
+          }
+        break;
+        case 'boolean':
+          if (['true', 'false'].includes(value)) {
+            return true;
+          }
+        break;
+        default:
+          throw Error(`Unknown type "${type}"`);;
+      }
+    }
+    return false;
   }
 };

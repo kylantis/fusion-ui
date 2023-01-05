@@ -12,7 +12,7 @@
 
 {{#if closeIcon}}
   <div class="slds-notify__close">
-    {{> ButtonIcon iconType='utility' iconName='close' size="small" type="inverse" on-click="onCloseIconClick"}}
+    {{> ButtonIcon iconType='utility' iconName='close' iconSize="small" type="inverse" on-click="onCloseIconClick"}}
   </div>
 {{/if}}
 

@@ -1,0 +1,49 @@
+{
+  "enableTypeMerging": false,
+  "collections": {},
+  "scalars": {
+    "showByDefault": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "bodyPadding": {
+      "type": "String",
+      "allowed": "spacingType",
+      "defaults": [
+        "around_medium"
+      ]
+    },
+    "size": {
+      "type": "String",
+      "allowed": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "defaults": [
+        "small"
+      ]
+    },
+    "cssClass": {
+      "type": "String",
+      "defaults": [
+        null
+      ],
+      "clientOnly": true
+    },
+    "tabIndex": {
+      "type": "Number",
+      "defaultValue": -1,
+      "clientOnly": true
+    },
+    "closeIcon": {
+      "type": "Boolean",
+      "defaultValue": true
+    }
+  },
+  "sample": {
+    "nullifyRandomly": []
+  },
+  "useCollectionLengthProperty": false,
+  "escapeDynamicHtml": false
+}

@@ -2,7 +2,7 @@
   "enableTypeMerging": false,
   "collections": {
     "states": {
-      "minLength": 3,
+      "minLength": 2,
       "keyType": "buttonState",
       "singularType": "State"
     }
@@ -19,7 +19,8 @@
         "success"
       ],
       "defaults": [
-        "neutral"
+        "neutral",
+        "brand"
       ]
     },
     "disabled": {
@@ -45,12 +46,31 @@
     "title": {
       "type": "String",
       "defaults": [
-        "Shop Apparel"
+        "Order now",
+        "Create Profile",
+        "Continue",
+        "Global settings",
+        "My Profile",
+        "Delete Account",
+        "Send gift",
+        "Refresh",
+        "Create Step",
+        "Order item",
+        "Preview",
+        "Send message",
+        "Detect language",
+        "Facilitate",
+        "Incorporate",
+        "Evaluate",
+        "Conceptualize",
+        "Enable feature",
+        "Generate",
+        "Implement"
       ]
     },
     "stateful": {
       "type": "Boolean",
-      "defaultValue": true
+      "defaultValue": false
     },
     "states.$_.leftIcon": {
       "type": "ButtonIconSvg",
@@ -63,21 +83,20 @@
     "states.$_.title": {
       "type": "String",
       "defaults": [
-        "Order now",
-        "Create Profile",
-        "Continue",
-        "Global settings",
-        "My Profile",
-        "Delete Account",
-        "Send gift",
-        "Refresh"
+        "Shop Apparel",
+        "Promote Shop",
+        "Orchestrate",
+        "Transform",
+        "Transition",
+        "Visualize"
       ]
     },
     "selectState": {
       "type": "String",
       "allowed": [
-        "selected",
-        "selected-click"
+        "not-selected",
+        "is-selected",
+        "is-selected-clicked"
       ],
       "defaults": [
         null
@@ -85,8 +104,9 @@
     }
   },
   "sample": {
+    "count": 15,
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": true,
+  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false
 }

@@ -550,11 +550,30 @@
         "utility"
       ]
     },
+    "foreground": {
+      "type": "String",
+      "allowed": "iconColor",
+      "defaults": [
+        null
+      ]
+    },
+    "foregroundColor": {
+      "type": "String",
+      "allowed": "cssColor",
+      "defaults": [
+        null
+      ]
+    },
     "cssClass": {
       "type": "String",
       "defaults": [
         null
-      ]
+      ],
+      "clientOnly": true
+    },
+    "focusable": {
+      "type": "Boolean",
+      "defaultValue": false
     }
   },
   "escapeDynamicHtml": false

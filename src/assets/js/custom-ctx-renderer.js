@@ -143,12 +143,11 @@ class CustomCtxRenderer extends RootCtxRenderer {
     };
   }
 
-  renderBlock({ options, ctx, scope, state }) {
+  renderBlock({ options, ctx, scope, state, nodeId }) {
+
     const { fn, hash } = options;
 
-    const { blockParam, hook, hookOrder } = hash;
-    
-    const nodeId = this.peekSyntheticNodeId();
+    const { blockParam, hook, hookOrder, transform } = hash;
 
     if (scope) {
       assert(blockParam);
@@ -164,7 +163,9 @@ class CustomCtxRenderer extends RootCtxRenderer {
         hash.state = state;
       }
 
-      if (hook) {
+      if (hook) { 
+        assert(nodeId);
+
         this.hooks[`#${nodeId}`] = {
           hookName: hook,
           order: hookOrder != undefined ? hookOrder : this.getDefaultHookOrder(),
@@ -179,17 +180,21 @@ class CustomCtxRenderer extends RootCtxRenderer {
       options.data[k] = this.wrapDataWithProxy(hash[k]);
     })
 
-    const output = fn(
+    let markup = fn(
       this.wrapDataWithProxy(ctx),
       { data: options.data },
     );
 
-    return output;
+    if (transform) {
+      markup = this[transform](markup);
+    }
+
+    return markup;
   }
 
   resolveMustacheInCustom({ options, params }) {
 
-    const { textNodeHookName } = RootProxy;
+    const { textNodeHookType } = RootProxy;
 
     const { hash: { hook, hookOrder, transform } } = options;
 
@@ -197,7 +202,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     const [value] = params;
 
-    if (bindContext && bindContext.type == textNodeHookName) {
+    if (bindContext && bindContext.type == textNodeHookType) {
       const { selector } = bindContext;
 
       if (value instanceof Promise || value instanceof BaseComponent) {

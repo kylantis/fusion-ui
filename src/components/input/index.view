@@ -1,1 +1,39 @@
 
+{{#*inline "render_input_element" eager=true}}
+    <input type="{{type}}" id="{{@root.componentId}}_input" class="slds-input"
+      {{value ? "value=\"${value}\"" : "" }}
+      {{required ? "required=\"\"" : "" }}
+      {{disabled ? "disabled=\"\"" : "" }}
+      {{readonly ? "readonly=\"\"" : "" }}
+      {{message ? "aria-describedby=\"${@root.componentId}_message\"" : "" }}
+      {{error ? "aria-invalid=\"true\"" : ""}}
+      {{(not readonly and placeholder) ? "placeholder=\"${placeholder}\"" : ""}}
+      onchange="{{fn "onChange"}}(event)"
+    >
+{{/inline}}
+
+{{#*inline "render_standalone_control" eager=true}}
+
+  {{#if not readonly and leftIcon}}
+    {{> IconSvg type="utility" name=leftIcon foreground="text-default" cssClass="slds-input__icon slds-input__icon_left"}}
+  {{/if}}
+
+  {{#if not readonly and rightIcon and (not clearButton)}}
+    {{> IconSvg type="utility" name=rightIcon foreground="text-default" cssClass="slds-input__icon slds-input__icon_right"}}
+  {{/if}}
+
+  {{> render_input_element}}
+
+  {{#if not readonly and clearButton and not disabled}}
+    {{> ButtonIcon 
+        iconType='utility' iconName='clear' 
+        cssClass="slds-input__icon slds-input__icon_right" 
+        svgForeground="text-light" 
+        on-click="clearInput" 
+        assistiveText="Clear" title="Clear"
+    }}
+  {{/if}}
+
+{{/inline}}
+
+{{> render_form_element}}

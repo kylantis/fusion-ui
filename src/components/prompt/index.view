@@ -1,0 +1,21 @@
+
+{{#*inline "modal-header"}}
+  <div class="slds-modal__header {{type ? "slds-theme_${type}" : ""}} slds-theme_alert-texture">
+    {{#if title}}
+      <h1 id="{{@random}}-header" class="slds-text-heading_medium">{{title}}</h1>
+    {{/if}}
+  </div>
+{{/inline}}
+
+{{#*inline "modal-content"}}
+  <p>{{body}}</p>
+{{/inline}}
+
+
+{{#*inline "modal-footer"}}
+  <div class="slds-modal__footer slds-theme_default">
+    {{> Button type="neutral" title="Close" on-click="closeModal"}}
+  </div>
+{{/inline}}
+
+{{> modal-dialog}}

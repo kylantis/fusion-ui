@@ -1,0 +1,96 @@
+
+
+{{#*inline "render_required_label"}}
+  <abbr class="slds-required" title="required">*</abbr>
+{{/inline}}
+
+{{#*inline "render_message" eager=true}}
+<div class="slds-form-element__help" id="{{@root.componentId}}_message">
+  {{message}}
+</div>
+{{/inline}}
+
+{{#*inline "render_title_icon" eager=true}}
+  {{component ButtonIcon alias="titleIcon"}}
+  <div class="slds-form-element__icon {{displayOnlyControl ? "slds-assistive-text" : ""}}">
+    {{#if titleIcon}}
+        {{> titleIcon}}
+    {{else}}
+      {{#if helperText}}
+        {{> ButtonIcon iconType='utility' iconName='info'}}
+      {{/if}}
+    {{/if}}
+  </div>
+{{/inline}}
+
+{{#*inline "render_title" eager=true}}
+  {{component Text alias="title"}}
+    {{#if required}}
+      {{> render_required_label}}
+    {{/if}}
+    {{#if titleText}}
+      {{titleText}}
+    {{else}}
+      {{#if title}}
+        {{> title}}
+      {{/if}}
+    {{/if}}
+{{/inline}}
+
+
+{{#*inline "render_standalone" eager=true}}
+  <div class="slds-form-element {{padding ? 'slds-p-${padding}' : ''}} {{margin ? 'slds-m-${margin}' : ''}}">
+
+    {{#block transform='transformFormElementLabel'}}
+      <label class="slds-form-element__label {{displayOnlyControl ? "slds-assistive-text" : ""}}" for="{{@root.componentId}}_input">
+        {{> render_title}}
+      </label>
+    {{/block}}
+
+    {{> render_title_icon}}
+
+    <div class="slds-form-element__control {{controlCssClass ? controlCssClass : ""}}">
+      {{#if readonly}}
+        <div class="slds-form-element__static">
+          {{> ?render_standalone_control}}
+        </div>
+      {{else}}
+        {{> ?render_standalone_control}}
+      {{/if}}
+    </div>
+    {{#if message}}
+      {{> render_message}}
+    {{/if}}
+  </div>
+{{/inline}}
+
+
+{{#*inline "render_compound" eager=true}}
+  <fieldset class="slds-form-element {{padding ? 'slds-p-${padding}' : ''}} {{margin ? 'slds-m-${margin}' : ''}}">
+    
+    <legend class="slds-form-element__legend slds-form-element__label {{displayOnlyControl ? "slds-assistive-text" : ""}}">
+      {{#if required}}
+        {{> render_required_label}}
+      {{/if}}
+      {{> render_title}}
+    </legend>
+
+    {{> render_title_icon}}
+    
+    <div class="slds-form-element__control {{controlCssClass ? controlCssClass : ""}}">
+      {{> ?render_compound_control}}
+      {{#if message}}
+        {{> render_message}}
+      {{/if}}
+    </div>
+  </fieldset>
+{{/inline}}
+
+
+{{#*inline "render_form_element" eager=true}}
+  {{#if isCompound}}
+    {{> render_compound}}
+  {{else}}
+    {{> render_standalone}}
+  {{/if}}
+{{/inline}}

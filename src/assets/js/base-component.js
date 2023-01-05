@@ -9,6 +9,17 @@ class BaseComponent extends WebRenderer {
 
   #parent;
 
+  // #API
+  static CONSTANTS = {
+    pathSeparator: RootProxy.pathSeparator,
+    pathProperty: RootProxy.pathProperty,
+    firstProperty: RootProxy.firstProperty,
+    lastProperty: RootProxy.lastProperty,
+    keyProperty: RootProxy.keyProperty,
+    indexProperty: RootProxy.indexProperty,
+    randomProperty: RootProxy.randomProperty,
+  };
+
   constructor({
     id, input, logger, parent
   } = {}) {
@@ -64,12 +75,17 @@ class BaseComponent extends WebRenderer {
 
     return this.analyzeConditionValue(value) ? Object(value) !== value ? `${value}` : JSON.stringify(value, replacer, null) : '';
   }
-
+  // #API
   load(opts = {}) {
     return super.load({
       token: BaseComponent.#token,
       ...opts,
     });
+  }
+
+  // #API
+  awaitPendingTasks() {
+    return Promise.all(this.futures);
   }
 
   render({ data, target, transform, options }) {
@@ -148,14 +164,10 @@ class BaseComponent extends WebRenderer {
 
     return future;
   }
-
+  // #API
   log(msg, level = 'info') {
     // Todo: verify level
     this.logger[level](`[${this.getId()}] ${msg}`);
-  }
-
-  throw(msg) {
-    throw Error(`[${this.getId()}] ${msg}`);
   }
 
   /**
@@ -169,19 +181,19 @@ class BaseComponent extends WebRenderer {
    */
   initCompile() {
   }
-
+  // #API
   validateInput() {
     return true;
   }
-
+  // #API
   behaviours() {
     return ['destroy'];
   }
-
+  // #API
   events() {
-    return [];
+    return ['destroy'];
   }
-
+  // #API
   hooks() {
     return {};
   }
@@ -200,11 +212,11 @@ class BaseComponent extends WebRenderer {
 
   ensureKnownEvent(event) {
     assert(
-      this.events().includes(event),
+      this.getEvents().includes(event),
       `Unknown event '${event}' for component: ${this.constructor.name}`
     );
   }
-
+  // #API
   on(event, handler) {
     this.ensureKnownEvent(event);
     assert(typeof handler == 'function');
@@ -213,7 +225,7 @@ class BaseComponent extends WebRenderer {
     handlers.push(handler);
     return this;
   }
-
+  // #API
   dispatchEvent(event, ...args) {
     this.ensureKnownEvent(event);
 
@@ -236,7 +248,7 @@ class BaseComponent extends WebRenderer {
 
     return this;
   }
-
+  // #API
   booleanOperators() {
     return {
       LT: (x, y) => x < y,
@@ -277,34 +289,38 @@ class BaseComponent extends WebRenderer {
     }
   }
 
-  hasSubComponent() {
-    return this.getSyntheticMethod({ name: 'hasSubComponent' })();
-  }
-
   beforeMount() {
   }
 
   onMount() {
   }
-
+  // #API
   destroy() {
+    this.dispatchEvent('destroy');
 
-    // Detach from DOM
+    // TODO
+
     const node = document.getElementById(this.getId());
-    node.parentElement.removeChild(node)
 
-    // Todo: Prune resources
-    delete this.getInput();
+    if (node) {
+      // Detach from DOM
+      node.parentElement.removeChild(node)
+    }
+
+    // clear hooks;
+
+    // ask base renderer to clear input data
+
+    // remove from componentRefs in base renderer
   }
-
+  // #API
   getGlobalVariables() {
     return {
       // ... User Global Variables
       ...self.appContext ? self.appContext.userGlobals : {},
       // ... Component Global Variables
-      ...{
-        componentId: this.getId(),
-      }
+      componentId: this.getId(),
+      random: this.randomString0 || (this.randomString0 = clientUtils.randomString())
     }
   }
 
@@ -315,9 +331,11 @@ class BaseComponent extends WebRenderer {
       rtl: literalType,
       // ... Component Global Variables
       componentId: literalType,
+      random: literalType,
     };
   }
 
+  // #API
   static getWrapperCssClass() {
     const { htmlWrapperCssClassname } = RootCtxRenderer;
     return htmlWrapperCssClassname;
@@ -341,8 +359,8 @@ class BaseComponent extends WebRenderer {
       )
     )
 
-    const o = new component.constructor({ 
-      input, 
+    const o = new component.constructor({
+      input,
       config: { ...component.getConfig() }
     });
 
@@ -353,5 +371,37 @@ class BaseComponent extends WebRenderer {
     return o;
   }
 
+  //  Utility methods
+
+  // #API
+  getKeyFromIndexSegment(s) {
+    return clientUtils.getKeyFromIndexSegment(s);
+  }
+
+  // #API
+  getParentFromPath(pathArray) {
+    return clientUtils.getParentFromPath(pathArray);
+  }
+  // #API
+  getMapKeyPrefix() {
+    return RootProxy.mapKeyPrefix;
+  }
+  // #API
+  getSharedEnum(enumName) {
+    return self.appContext ? self.appContext.enums[enumName] : null
+  }
+  // #API
+  isHeadlessContext() {
+    return global.isServer;
+  }
+  // #API
+  randomString() {
+    const { randomString } = BaseComponent;
+    return randomString();
+  }
+
+  static randomString() {
+    return clientUtils.randomString();
+  }
 }
 module.exports = BaseComponent;

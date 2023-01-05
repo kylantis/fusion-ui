@@ -1,10 +1,60 @@
 {
-  "enableTypeMerging": false,
   "collections": {},
-  "scalars": {},
-  "sample": {
-    "nullifyRandomly": []
-  },
   "useCollectionLengthProperty": false,
+  "scalars": {
+    "type": {
+      "type": "String",
+      "allowed": [
+        "text",
+        "password",
+        "datetime",
+        "datetime-local",
+        "date",
+        "month",
+        "time",
+        "week",
+        "number",
+        "email",
+        "url",
+        "search",
+        "tel",
+        "color"
+      ],
+      "defaults": [
+        "text"
+      ]
+    },
+    "placeholder": {
+      "type": "String",
+      "defaults": [
+        "Placeholder text…"
+      ]
+    },
+    "value": {
+      "type": "String",
+      "defaults": [
+        null
+      ]
+    },
+    "clearButton": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "leftIcon": {
+      "type": "String",
+      "allowed": "utilityIconName",
+      "defaults": [
+        "search"
+      ]
+    },
+    "rightIcon": {
+      "type": "String",
+      "allowed": "utilityIconName",
+      "defaults": [
+        null
+      ]
+    }
+  },
+  "sample": {},
   "escapeDynamicHtml": false
 }

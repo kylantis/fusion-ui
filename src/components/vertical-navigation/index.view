@@ -1,0 +1,49 @@
+<div class="demo-only" style="width:320px">
+    <nav class="slds-nav-vertical" aria-label="Sub page">
+        {{#each sections as |section sectionIndex|}}
+
+            <div class="slds-nav-vertical__section">
+                
+                {{#if name}}
+                    <h2 id="{{id}}-header" class="slds-nav-vertical__title">{{name}}</h2>
+                {{/if}}
+
+                <ul {{name ? "aria-describedby='${id}-header'" : ""}}>
+                {{#each items hook = "itemHook" as |item itemIndex|}}
+                    <li class="slds-nav-vertical__item {{active ? "slds-is-active" : ""}}">
+                        <a identifier="{{id}}" onclick="{{fn "onClick"}}(event)" class="slds-nav-vertical__action" aria-current="true">
+                            {{name}}
+                        </a>
+                    </li>
+                {{/each}}
+                </ul>
+        </div>
+        {{/each}}
+
+        {{!-- <div class="slds-nav-vertical__overflow">
+            <button class="slds-button slds-button_reset slds-nav-vertical__action slds-nav-vertical__action_overflow"
+                aria-controls="search-results" aria-expanded="true">
+                <svg class="slds-button__icon slds-button__icon_left" aria-hidden="true">
+                    <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#chevronright"></use>
+                </svg>
+                <span class="slds-nav-vertical__action-text">Show Less
+                    <span class="slds-assistive-text">Folders</span>
+                </span>
+            </button>
+            <div id="search-results" class="slds-show">
+                <ul aria-describedby="folder-header">
+                    <li class="slds-nav-vertical__item">
+                        <a href="#" class="slds-nav-vertical__action">Overflow Item One</a>
+                    </li>
+                    <li class="slds-nav-vertical__item">
+                        <a href="#" class="slds-nav-vertical__action">Overflow Item Two</a>
+                    </li>
+                    <li class="slds-nav-vertical__item">
+                        <a href="#" class="slds-nav-vertical__action">Overflow Item Three</a>
+                    </li>
+                </ul>
+            </div>
+        </div> --}}
+
+    </nav>
+</div>

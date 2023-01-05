@@ -1,0 +1,31 @@
+
+{{#*inline "modal-dialog" eager=true}}
+
+  <section role="dialog" tabindex="{{tabIndex ? tabIndex : -1}}" aria-modal="true" aria-labelledby="{{@random}}-header" 
+    aria-describedby="{{@random}}-content"
+    class="slds-modal {{size ? 'slds-modal_${size}' : ''}} {{cssClass ? cssClass : ''}}">
+    <div class="slds-modal__container">
+
+      {{#if closeIcon}}
+        {{> ButtonIcon iconType='utility' iconName='close' iconSize="large" cssClass="slds-modal__close" type="inverse" on-click="closeModal"}}
+      {{/if}}
+
+      {{!-- 
+        Note: subclasses should set the heading element should have an <h1 id="{{@random}}-header"></h1> to conform with the
+        "aria-labelledby" aria property specified above 
+       --}}
+      {{> ?modal-header}}
+
+      <div id="{{@random}}-content" class="slds-modal__content {{bodyPadding ? 'slds-p-${bodyPadding}' : ''}}">
+        {{> ?modal-content}}
+      </div>
+
+      {{> ?modal-footer}}
+
+    </div>
+  </section>
+  <div class="slds-backdrop" role="presentation"></div>
+
+{{/inline}}
+
+{{> modal-dialog}}

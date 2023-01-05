@@ -1,0 +1,52 @@
+{
+  "enableTypeMerging": false,
+  "collections": {},
+  "scalars": {
+    "value": {
+      "type": "String",
+      "defaults": [
+        "The quick brown fox jumps over the lazy dog."
+      ]
+    },
+    "type": {
+      "type": "String",
+      "allowed": "textType",
+      "defaults": [
+        "body_regular"
+      ]
+    },
+    "align": {
+      "type": "String",
+      "allowed": "alignType",
+      "defaults": [
+        null
+      ]
+    },
+    "cssClass": {
+      "type": "String",
+      "defaults": [
+        null
+      ],
+      "clientOnly": true
+    },
+    "color": {
+      "type": "String",
+      "allowed": "textColor",
+      "defaults": [
+        null
+      ]
+    },
+    "font": {
+      "type": "String",
+      "allowed": "textFont",
+      "defaults": [
+        null
+      ]
+    }
+  },
+  "sample": {
+    "nullifyRandomly": []
+  },
+  "useCollectionLengthProperty": false,
+  "escapeDynamicHtml": false
+}

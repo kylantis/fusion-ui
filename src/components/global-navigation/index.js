@@ -1,13 +1,13 @@
 
 class GlobalNavigation extends components.LightningComponent {
 
-    static contentTopPadding = 15;
-
     initCompile() {
         components.Illustration;
         components.OverlayComponent;
 
         this.getInput().tabs[0].isActive;
+        this.getInput().tabs[0].contentPadding;
+
         this.getInput().hideOnItemClick;
     }
 
@@ -31,7 +31,7 @@ class GlobalNavigation extends components.LightningComponent {
         const { tabs } = this.getInput();
         tabs.forEach(tab => {
             if (!tab.identifier) {
-                tab.identifier = clientUtils.randomString();
+                tab.identifier = this.randomString();
             }
         });
     }
@@ -352,7 +352,8 @@ class GlobalNavigation extends components.LightningComponent {
     }
 
     createTabContentContainer(identifier) {
-        const { contentTopPadding } = GlobalNavigation;
+        const { contentPadding } = this.getItems()[identifier];
+        
         const contentDiv = document.createElement('div');
 
         contentDiv.id = this.getContentId(identifier);
@@ -361,7 +362,10 @@ class GlobalNavigation extends components.LightningComponent {
         contentDiv.style.width = '100%';
         contentDiv.style.height = '100%';
         contentDiv.style.overflow = 'scroll';
-        contentDiv.style.paddingTop = `${contentTopPadding}px`;
+
+        if (contentPadding) {
+            contentDiv.classList.add(`slds-p-${contentPadding}`);
+        }
 
         contentDiv.style.zIndex = -1;
 
@@ -374,7 +378,7 @@ class GlobalNavigation extends components.LightningComponent {
 
         const { index = -1, length } = blockData[`tabs`] || {};
 
-        let { isActive, subMenu, content } = this.getInput()['tabs'][index]
+        let { isActive, subMenu, content, contentPadding } = this.getInput()['tabs'][index]
 
         const items = this.getItems();
 
@@ -389,7 +393,9 @@ class GlobalNavigation extends components.LightningComponent {
             throw Error(`Tab with identifier "${identifier}" already exists`);
         }
 
-        items[identifier] = { li, hasSubMenu: !!subMenu, content, subMenu };
+        items[identifier] = { 
+            li, hasSubMenu: !!subMenu, content, subMenu, contentPadding
+        };
 
         if (isActive && !this.getActive()) {
             // Set this item active, only if no tab is currently active. This means

@@ -1,7 +1,8 @@
 // The styles align with the positioning logic
-.slds-popover {
-    min-height: 1.8rem;
-    &__body {
-        padding: 0.3rem 0.65rem;
+.slds-popover_tooltip {
+    min-height: 0;
+
+    .slds-popover__body {
+        padding: 0.28rem 0.65rem;
     }
 }

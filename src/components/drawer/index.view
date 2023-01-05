@@ -1,0 +1,48 @@
+{{style url="/components/drawer/style.min.css"}}
+
+{{#*inline "render_panel"}}
+  <div class="slds-panel {{overlay ? "slds-c-overlay-drawer" : "slds-c-drawer"}} slds-size_{{size}} slds-panel_docked slds-panel_docked-{{position}}" aria-hidden="true">
+    <div class="slds-panel__header">
+        {{component Text alias="title"}}
+
+        {{#if title}}
+            {{> title cssClass="slds-panel__header-title slds-truncate"}}
+        {{/if}}
+        
+        <div class="slds-panel__header-actions">
+            {{!-- Todo: Add other actions here --}}
+            {{#if closeIcon}}
+                {{> ButtonIcon iconType='utility' iconName='close' size="small" on-click="closeDrawer" cssClass="slds-panel__close"}}
+            {{/if}}
+        </div>
+    </div>
+    <div class="slds-panel__body">
+        {{component alias="content"}}
+        {{> content}}
+    </div>
+  </div>
+    {{#if backdrop}}
+      <div class="slds-backdrop" role="presentation"></div>
+    {{/if}}
+{{/inline}}
+
+{{#*inline "render_content_container"}}
+    <div id="{{@random}}-content-container" class="slds-col slds-p-around_medium"></div>
+{{/inline}}
+
+{{#if overlay}}
+    {{> render_panel}}
+{{else}}
+    <div class="slds-c-drawer-container">
+      {{#if position eq 'right'}}
+         {{> render_content_container}}
+      {{/if}}
+
+      {{> render_panel}}
+
+      {{#if position eq 'left'}}
+         {{> render_content_container}}
+      {{/if}}
+    </div>
+
+{{/if}}

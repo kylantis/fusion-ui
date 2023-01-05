@@ -14,6 +14,11 @@ class Tooltip extends components.OverlayComponent {
     }
 
     setPosition() {
+
+        if (this.isHeadlessContext()) {
+            return;
+        }
+
         const { targetElement } = this.getInput();
 
         if (!targetElement) {
@@ -24,6 +29,11 @@ class Tooltip extends components.OverlayComponent {
 
         if (!target) {
             throw Error(`[${this.getId()}] Could not find targetElement: ${targetElement}`);
+        }
+
+        if (getComputedStyle(target).display == 'contents') {
+            this.throwError(
+                `"${targetElement}" cannot be used as the targetElement because it does not have a box`);
         }
 
         const rect = target.getBoundingClientRect();
@@ -54,6 +64,8 @@ class Tooltip extends components.OverlayComponent {
                 this.node.parentElement.removeChild(this.node)
             )
         }
+
+        this.setPosition();
     }
 
     addNubbinCssClass(position) {
@@ -95,7 +107,15 @@ class Tooltip extends components.OverlayComponent {
     }
 
     show() {
-        const node = this.getNode()
+        const node = this.getNode();
+
+        if (!node) {
+            this.throwError(
+                `Could not find tooltip node, did you forget to call .load(...) for this component?`
+            )
+        }
+
+        node.style.zIndex = 0;
 
         if (this.getHideToggleClass() && this.getHideToggleClass()) {
             node.style.visibility = 'unset';
@@ -115,15 +135,17 @@ class Tooltip extends components.OverlayComponent {
         } else {
             node.style.visibility = 'hidden';
         }
+
+        // After tooltip has been hidden, we want to have it stacked under (not just hidden)
+        setTimeout(() => node.style.zIndex = -1, 300)
     }
 
     getSupportedPositions() {
-        return [
+        return this.supportedPositions || [
             "right",
             "left",
             "top",
             "bottom",
-           
         ];
     }
 
@@ -157,4 +179,5 @@ class Tooltip extends components.OverlayComponent {
     }
 
 }
+
 module.exports = Tooltip;

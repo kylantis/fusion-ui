@@ -3,12 +3,7 @@
   "scalars": {
     "size": {
       "type": "String",
-      "allowed": [
-        "xx-small",
-        "x-small",
-        "small",
-        "large"
-      ],
+      "allowed": "iconSize",
       "defaults": [
         "small"
       ]
@@ -477,6 +472,12 @@
       "type": "Boolean",
       "defaultValue": false
     },
+    "title": {
+      "type": "String",
+      "defaults": [
+        null
+      ]
+    },
     "useCurrentColor": {
       "type": "Boolean",
       "defaultValue": false
@@ -488,26 +489,30 @@
         null
       ]
     },
-    "title": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
-    },
-    "cssColor": {
+    "foregroundColor": {
       "type": "String",
       "allowed": "cssColor",
       "defaults": [
         null
       ]
     },
-    "textDefault": {
-      "type": "Boolean",
-      "defaultValue": false
+    "foreground": {
+      "type": "String",
+      "allowed": "iconColor",
+      "defaults": [
+        null
+      ]
     },
     "solid": {
       "type": "Boolean",
       "defaultValue": true
+    },
+    "cssClass": {
+      "type": "String",
+      "defaults": [
+        null
+      ],
+      "clientOnly": true
     }
   },
   "sample": {
