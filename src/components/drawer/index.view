@@ -17,8 +17,7 @@
         </div>
     </div>
     <div class="slds-panel__body">
-        {{component alias="content"}}
-        {{> content}}
+        {{> ?render_panel_body}}
     </div>
   </div>
     {{#if backdrop}}
@@ -30,19 +29,22 @@
     <div id="{{@random}}-content-container" class="slds-col slds-p-around_medium"></div>
 {{/inline}}
 
-{{#if overlay}}
-    {{> render_panel}}
-{{else}}
-    <div class="slds-c-drawer-container">
-      {{#if position eq 'right'}}
-         {{> render_content_container}}
-      {{/if}}
+{{#*inline "render_drawer"}}
+    {{#if overlay}}
+        {{> render_panel}}
+    {{else}}
+        <div class="slds-c-drawer-container">
+        {{#if position eq 'right'}}
+            {{> render_content_container}}
+        {{/if}}
 
-      {{> render_panel}}
+        {{> render_panel}}
 
-      {{#if position eq 'left'}}
-         {{> render_content_container}}
-      {{/if}}
-    </div>
+        {{#if position eq 'left'}}
+            {{> render_content_container}}
+        {{/if}}
+        </div>
+    {{/if}}
+{{/inline}}
 
-{{/if}}
+{{> render_drawer}}

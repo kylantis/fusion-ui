@@ -33,19 +33,18 @@ class MultiOptionFormElement extends components.FormElement {
                 input.required = true;
             }
         }
+
+        // input.readonly = true;
     }
 
     isLoadable() {
         const { type, items } = this.getInput();
 
-        if (this.getComponentName() == MultiOptionFormElement.name) {
-            return false;
-        }
-
         if (!type) {
             this.logger.warn(`[${this.getId()}] A type needs to be specified`);
             return false;
         }
+
         if (!items.length) {
             this.logger.warn(`[${this.getId()}] At least one option needs to be provided`);
             return false;
@@ -55,25 +54,9 @@ class MultiOptionFormElement extends components.FormElement {
     }
 
     onMount() {
-        const { type, required } = this.getInput();
+        const { required } = this.getInput();
         if (required) {
             this.toggleRequiredClass(true);
-        }
-
-        if (this.isCompound()) {
-
-            // We need to place the <input> element immediately before <label> (as a direct sibling)
-            this.getFormElementNode()
-                .querySelectorAll(`.slds-${type}`)
-                .forEach(node => {
-                    const input = node.querySelector('input');
-                    if (input) {
-                        const label = node.querySelector(`.slds-${type}__label`);
-
-                        input.parentNode.remove();
-                        label.parentNode.insertBefore(input, label);
-                    }
-                });
         }
     }
 
@@ -110,7 +93,7 @@ class MultiOptionFormElement extends components.FormElement {
 
     isMultiCheckable() {
         const { type } = this.getInput();
-        return type == 'radio';
+        return type == 'checkbox';
     }
 
     getItemInputName(item) {

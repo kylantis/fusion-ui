@@ -202,52 +202,109 @@ class BaseComponent extends WebRenderer {
     return {};
   }
 
-  /**
-   * This indicates that this component requires a container
-   * @returns true | false
-   */
-  requiresContainer() {
-    return true;
-  }
-
-  ensureKnownEvent(event) {
+  #ensureKnownEvent(event) {
     assert(
       this.getEvents().includes(event),
       `Unknown event '${event}' for component: ${this.constructor.name}`
     );
   }
+
+  static getNodeId(node) {
+    assert(node.id);
+    return node.id;
+  }
+
+  static #toNodeUpdateEventName(node) {
+    const { getNodeId } = BaseComponent;
+    return `nodeUpdate-${node instanceof window.Node ? `#${getNodeId(node)}` : node}`;
+  }
+
+  static #toNodeDetachEventName(node) {
+    const { getNodeId } = BaseComponent;
+    return `nodeDetach-${node instanceof window.Node ? `#${getNodeId(node)}` : node}`;
+  }
+
+    // #API
+    triggerNodeDetachEvent(node) {
+      this.#dispatchEvent0(
+        BaseComponent.#toNodeDetachEventName(node)
+      );
+    }
+  
+    // #API
+    onNodeDetachEvent(handler, nodes) {
+      this.one(
+        handler, nodes
+          .map(s => BaseComponent.#toNodeDetachEventName(s)
+          ))
+    }
+
   // #API
-  on(event, handler) {
-    this.ensureKnownEvent(event);
+  triggerNodeUpdateEvent(node) {
+    this.#dispatchEvent0(
+      BaseComponent.#toNodeUpdateEventName(node)
+    );
+  }
+
+  // #API
+  onNodeUpdateEvent(handler, nodes) {
+    this.one(
+      handler, nodes
+        .map(s => BaseComponent.#toNodeUpdateEventName(s)
+        ))
+  }
+
+  // #API
+  one(handler, ...events) {
+    const handler0 = (...args) => {
+      handler(...args);
+
+      events.forEach(evt => {
+        const idx = this.handlers[evt].indexOf(handler0);
+        assert(idx >= 0);
+
+        this.handlers[evt].splice(idx, 1);
+      });
+    }
+
+    events.forEach(evt => {
+      this.#on0(evt, handler0);
+    });
+  }
+
+  #on0(event, handler) {
     assert(typeof handler == 'function');
 
     const handlers = this.handlers[event] || (this.handlers[event] = []);
     handlers.push(handler);
     return this;
   }
+
   // #API
-  dispatchEvent(event, ...args) {
-    this.ensureKnownEvent(event);
+  on(event, handler) {
+    this.#ensureKnownEvent(event);
+    return this.#on0(event, handler);
+  }
 
+  #dispatchEvent0(event, ...args) {
     let defaultHandler = this.defaultHandlers()[event]
-
     if (defaultHandler) {
-
       if (typeof defaultHandler == 'string') {
         defaultHandler = this[defaultHandler].bind(this);
       }
-
       assert(typeof defaultHandler == 'function');
     }
-
-    let handlers = this.handlers[event] || (defaultHandler ? [defaultHandler] : null);
-
-    if (handlers && handlers.length) {
-      handlers.forEach(handler => handler(...args));
-    }
-
+    [...this.handlers[event] || (defaultHandler ? [defaultHandler] : [])]
+      .forEach(handler => handler(...args));
     return this;
   }
+
+  // #API
+  dispatchEvent(event, ...args) {
+    this.#ensureKnownEvent(event);
+    return this.#dispatchEvent0(event, ...args);
+  }
+
   // #API
   booleanOperators() {
     return {
@@ -294,6 +351,7 @@ class BaseComponent extends WebRenderer {
 
   onMount() {
   }
+
   // #API
   destroy() {
     this.dispatchEvent('destroy');
@@ -313,6 +371,7 @@ class BaseComponent extends WebRenderer {
 
     // remove from componentRefs in base renderer
   }
+
   // #API
   getGlobalVariables() {
     return {
@@ -377,7 +436,6 @@ class BaseComponent extends WebRenderer {
   getKeyFromIndexSegment(s) {
     return clientUtils.getKeyFromIndexSegment(s);
   }
-
   // #API
   getParentFromPath(pathArray) {
     return clientUtils.getParentFromPath(pathArray);
@@ -399,7 +457,7 @@ class BaseComponent extends WebRenderer {
     const { randomString } = BaseComponent;
     return randomString();
   }
-
+  // #API
   static randomString() {
     return clientUtils.randomString();
   }

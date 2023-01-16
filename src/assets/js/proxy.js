@@ -1301,6 +1301,20 @@ class RootProxy {
 
       const parentHooks = withParent ? dataPathHooks[parent] : null;
 
+      const triggerNodeUpdateEvt = (selector) => {
+        const { getWrapperCssClass } = BaseComponent;
+
+        const node = document.querySelector(
+          `#${this.component.getId()} ${selector}`
+        );
+
+        this.component.triggerNodeUpdateEvent(node);
+
+        node
+          .querySelectorAll(`.${getWrapperCssClass()}`)
+          .forEach(node => this.component.triggerNodeUpdateEvent(node));
+      }
+
       (parentHooks || [])
         .filter(hooksFilter)
         .forEach(hook => {
@@ -1356,6 +1370,8 @@ class RootProxy {
                       node.setAttribute('key', `${i}`);
                     }
                   }
+
+                  this.component.triggerNodeDetachEvent(childNode);
                   return;
                 }
 
@@ -1447,6 +1463,8 @@ class RootProxy {
                     if (Array.isArray(parentObject)) {
                       this.component.backfillArrayChildBlocks(`${parent}[${index}]`, `#${elementNodeId}`);
                     }
+
+                    triggerNodeUpdateEvt(`#${elementNodeId}`);
 
                     break;
                 }
@@ -1694,8 +1712,15 @@ class RootProxy {
 
                 const b = this.component.analyzeConditionValue(computedValue);
 
-                let branch = document.querySelector(selector)
-                  .getAttribute('branch');
+                const node = document.querySelector(selector);
+
+                let branch = node.getAttribute('branch');
+
+                if (!branch) {
+                  console.info(node);
+                  console.info(inverse);
+                  console.info({ fqPath, newValue, oldValue });
+                }
 
                 assert(branch);
 
@@ -1721,16 +1746,14 @@ class RootProxy {
                     blockData0,
                   )
 
-                  document.querySelector(selector).innerHTML = html;
-                  document.querySelector(selector).setAttribute('branch', branch)
+                  node.innerHTML = html;
+                  node.setAttribute('branch', branch)
 
                   if (hookMethod) {
                     const hook = this.component[hookMethod].bind(this.component);
 
                     hook({
-                      node: document.querySelector(selector),
-                      blockData: blockData0,
-                      initial: false,
+                      node, blockData: blockData0, initial: false,
                     })
                   }
                 }
@@ -1816,6 +1839,10 @@ class RootProxy {
 
               break;
 
+          }
+
+          if (hook.selector) {
+            triggerNodeUpdateEvt(hook.selector);
           }
         });
 

@@ -6,11 +6,27 @@
       "singularType": "Section"
     },
     "sections_$.items": {
-      "minLength": 4,
+      "minLength": 6,
       "singularType": "Item"
     }
   },
   "scalars": {
+    "truncateSize": {
+      "type": "Number",
+      "defaultValue": 3
+    },
+    "label": {
+      "type": "String",
+      "defaults": [
+        "Vertical Nav"
+      ]
+    },
+    "sections_$.id": {
+      "type": "String",
+      "defaults": [
+        null
+      ]
+    },
     "sections_$.name": {
       "type": "String",
       "defaults": [
@@ -20,15 +36,17 @@
         "Tasks"
       ]
     },
-    "sections_$.id": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
+    "sections_$.overflow.expanded": {
+      "type": "Boolean",
+      "defaultValue": true
     },
     "sections_$.items_$.active": {
       "type": "Boolean",
       "defaultValue": false
+    },
+    "sections_$.items_$.id": {
+      "type": "String",
+      "defaults": []
     },
     "sections_$.items_$.name": {
       "type": "String",
@@ -48,18 +66,17 @@
         "Users"
       ]
     },
-    "truncateSize": {
-      "type": "Number",
-      "defaultValue": 4
-    },
-    "sections_$.items_$.id": {
+    "sections_$.items_$.sectionId": {
       "type": "String",
-      "defaults": []
+      "defaults": [
+        null
+      ],
+      "clientOnly": true
     }
   },
   "sample": {
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": false,
+  "useCollectionLengthProperty": true,
   "escapeDynamicHtml": false
 }

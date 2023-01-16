@@ -1,7 +1,11 @@
 {
   "enableTypeMerging": false,
   "collections": {},
-  "scalars": {},
+  "scalars": {
+    "content": {
+      "type": "componentRef"
+    }
+  },
   "sample": {
     "nullifyRandomly": []
   },

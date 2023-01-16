@@ -107,6 +107,6 @@
     "count": 15,
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": false,
+  "useCollectionLengthProperty": true,
   "escapeDynamicHtml": false
 }
