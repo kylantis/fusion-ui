@@ -6,12 +6,6 @@
       "type": "Boolean",
       "defaultValue": true
     },
-    "content": {
-      "type": "componentRef",
-      "defaults": [
-        null
-      ]
-    },
     "title": {
       "type": "Text",
       "isNull": false
@@ -46,6 +40,6 @@
   "sample": {
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": false,
+  "useCollectionLengthProperty": true,
   "escapeDynamicHtml": false
 }

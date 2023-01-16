@@ -1,49 +1,70 @@
 <div class="demo-only" style="width:320px">
-    <nav class="slds-nav-vertical" aria-label="Sub page">
+    <nav class="slds-nav-vertical" {{label ? "aria-label=\" ${label}\"" : "" }}>
         {{#each sections as |section sectionIndex|}}
 
-            <div class="slds-nav-vertical__section">
-                
-                {{#if name}}
-                    <h2 id="{{id}}-header" class="slds-nav-vertical__title">{{name}}</h2>
-                {{/if}}
+        {{#*inline "render_item" item}}
+            <li class="slds-nav-vertical__item {{item.active ? " slds-is-active" : "" }}">
+                <a onclick="{{fn "onClick"}}('{{item.id}}')" class="slds-nav-vertical__action"
+                    aria-current="true">
+                    {{item.name}}
+                </a>
+            </li>
+        {{/inline}}
 
-                <ul {{name ? "aria-describedby='${id}-header'" : ""}}>
-                {{#each items hook = "itemHook" as |item itemIndex|}}
-                    <li class="slds-nav-vertical__item {{active ? "slds-is-active" : ""}}">
-                        <a identifier="{{id}}" onclick="{{fn "onClick"}}(event)" class="slds-nav-vertical__action" aria-current="true">
-                            {{name}}
-                        </a>
-                    </li>
-                {{/each}}
-                </ul>
-        </div>
-        {{/each}}
+        <div class="slds-nav-vertical__section">
 
-        {{!-- <div class="slds-nav-vertical__overflow">
-            <button class="slds-button slds-button_reset slds-nav-vertical__action slds-nav-vertical__action_overflow"
-                aria-controls="search-results" aria-expanded="true">
-                <svg class="slds-button__icon slds-button__icon_left" aria-hidden="true">
-                    <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#chevronright"></use>
-                </svg>
-                <span class="slds-nav-vertical__action-text">Show Less
-                    <span class="slds-assistive-text">Folders</span>
-                </span>
-            </button>
-            <div id="search-results" class="slds-show">
-                <ul aria-describedby="folder-header">
-                    <li class="slds-nav-vertical__item">
-                        <a href="#" class="slds-nav-vertical__action">Overflow Item One</a>
-                    </li>
-                    <li class="slds-nav-vertical__item">
-                        <a href="#" class="slds-nav-vertical__action">Overflow Item Two</a>
-                    </li>
-                    <li class="slds-nav-vertical__item">
-                        <a href="#" class="slds-nav-vertical__action">Overflow Item Three</a>
-                    </li>
+            {{#if name}}
+                <h2 id="{{id}}-header" class="slds-nav-vertical__title">{{name}}</h2>
+            {{/if}}
+
+            {{!-- Main Pane--}}
+            <div>
+                <ul aria-describedby="{{id}}-header">
+                    {{#each items hook = "itemHook" as |item itemIndex|~}}
+                        {{#if itemIndex lt @root.truncateSize}}
+                            {{> render_item item}}
+                        {{/if}}
+                    {{~/each}}
                 </ul>
             </div>
-        </div> --}}
+
+            {{#if items.length gt @root.truncateSize}}
+
+            {{!-- Overflow Pane--}}
+            <div class="slds-nav-vertical__overflow">
+
+                {{#with overflow}}
+                <button
+                    class="slds-button slds-button_reset slds-nav-vertical__action slds-nav-vertical__action_overflow"
+                    aria-controls="{{../id}}-overflow" aria-expanded="{{expanded ? true : false}}" onclick="{{fn "toggleOverflowArea"}}('{{@../index}}')">
+
+                    {{> ButtonIconSvg iconType='utility' iconName='chevronright' cssClass='slds-button__icon_left'}}
+
+                    <span class="slds-nav-vertical__action-text">
+                        {{var label = (expanded ? "Show Less" : "Show More")}}
+
+
+                        {{label}}
+                        <span class="slds-assistive-text">{{label}}</span>
+                    </span>
+                </button>
+                {{/with}}
+
+                <div id="{{id}}-overflow" class="slds-{{overflow.expanded ? "show" : "hide"}}">
+                    <ul aria-describedby="{{id}}-header">
+                    {{#each items hook = "itemHook" as |item itemIndex|~}}
+                        {{#if itemIndex gte @root.truncateSize}}
+                            {{> render_item item}}
+                        {{/if}}
+                    {{~/each}}
+                    </ul>
+                </div>
+            </div>
+
+            {{/if}}
+
+        </div>
+        {{/each}}
 
     </nav>
 </div>

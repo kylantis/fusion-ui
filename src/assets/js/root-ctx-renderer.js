@@ -225,12 +225,13 @@ class RootCtxRenderer extends BaseRenderer {
 
     if (!this.isHeadlessContext()) {
       // Todo: Investigate why this MutationObserver's callback is not called when <parentNode> is mutated
+      // ?? Verify if the above issue still happens
 
       new MutationObserver((mutations) => {
         // Inline components can have their node removed from the DOM at any time - whether programatically by the dev
         // or as a result of data bind mutations. If this 
         const isDetached = mutations.some((mutation) => {
-          return mutation.removedNodes.indexOf(this.node) !== -1;
+          return [...mutation.removedNodes || []].indexOf(this.node) !== -1;
         });
         if (isDetached) {
           // Wait for a few seonds to see if the elements is re-connected to the DOM
@@ -240,7 +241,7 @@ class RootCtxRenderer extends BaseRenderer {
             }
           }, 5000)
         }
-      }).observe(this.node.parentNode, { childList: true });
+      }).observe(this.node.parentNode, { childList: true, });
     }
 
     this.#resolve();
@@ -297,6 +298,8 @@ class RootCtxRenderer extends BaseRenderer {
           // with any extra promises, including the loading of sub components. hence
           // we need to await futures again, in case it was updated by any of the hooks
           await Promise.all(this.futures);
+
+          this.triggerNodeUpdateEvent(this.node);
 
           self.appContext.components[this.getId()] = this;
 
@@ -378,6 +381,19 @@ class RootCtxRenderer extends BaseRenderer {
     return this.config.defaultHookOrder || RootCtxRenderer.#defaultHookOrder;
   }
 
+  var({ options }) {
+    const contextIdHashKeyPrefix = '--ctx_id-';
+
+    const { data, hash } = options;
+
+    Object.entries(hash).forEach(([k, v]) => {
+      const contextId = hash[`${contextIdHashKeyPrefix}${k}`];
+      data[contextId] = v;
+    });
+
+    return '';
+  }
+
   conditional({ options, ctx, params }) {
 
     const { conditionalBlockHookType } = RootProxy;
@@ -441,10 +457,12 @@ class RootCtxRenderer extends BaseRenderer {
       }
 
       if (nodeId) {
-        this.futures.push(async () => {
-          document.querySelector(`#${this.getId()} #${nodeId}`)
-            .setAttribute('branch', branch);
-        });
+        this.onNodeUpdateEvent(() => {
+
+          document.querySelector(`#${this.getElementId()} #${nodeId}`)
+          .setAttribute('branch', branch);
+
+        }, [this.isMounted() ? `#${nodeId}` : `#${this.getElementId()}`]);
       }
 
       return markup;
@@ -710,7 +728,7 @@ class RootCtxRenderer extends BaseRenderer {
     return [
       'storeContext', 'loadContext', 'forEach', 'conditional', 'startAttributeBindContext',
       'endAttributeBindContext', 'startTextNodeBindContext', 'setSyntheticNodeId', 'resolveMustacheInRoot',
-      'resolveMustacheInCustom', 'contentHelper'
+      'resolveMustacheInCustom', 'c', 'var'
     ];
   }
 
@@ -772,7 +790,7 @@ class RootCtxRenderer extends BaseRenderer {
     return o;
   }
 
-  // Todo: Update this map, it is incomplete
+  // Todo: Update this map, it may be incomplete
   static getHtmlIntrinsicAttributesMap() {
     return {
       ['*']: {
@@ -969,7 +987,7 @@ class RootCtxRenderer extends BaseRenderer {
     return this.#currentBindContext.pop();
   }
 
-  contentHelper({ params }) {
+  c({ params }) {
     const [value] = params;
 
     if (this.#attributeContext) {
@@ -1706,13 +1724,11 @@ class RootCtxRenderer extends BaseRenderer {
               this.resolver.resolve({ path: `${path}[0]` })
             }
 
-            // <syntheticMethodName> is only used on initial rendering, hence cleanup after 
-            // component is rendered
-            this.futures.push(
-              this.promise.then(() => {
-                delete this[syntheticMethodName];
-              })
-            );
+            // <syntheticMethodName> is a temporarily function used to get the value, prune later
+            // Todo: Instead of using setTimeout(...), find a better alternative
+            setTimeout(() => {
+              delete this[syntheticMethodName];
+            }, 5000)
 
             // In startTextNodeBindContext(), we may have performed a push to this.#currentBindContext
             // Since this is transformed to a synthetic method and data-binding will never 

@@ -36,6 +36,6 @@
     "nullifyRandomly": [],
     "nullify": []
   },
-  "useCollectionLengthProperty": false,
+  "useCollectionLengthProperty": true,
   "escapeDynamicHtml": false
 }

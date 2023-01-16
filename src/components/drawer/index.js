@@ -36,8 +36,16 @@ class Drawer extends components.LightningComponent {
 
     getDrawerNode() {
         const { overlay } = this.getInput();
-        return overlay ? this.node.querySelector(':scope .slds-c-overlay-drawer') :
-            this.node.querySelector(':scope .slds-c-drawer-container .slds-c-drawer');
+        const selector =  overlay ? ':scope .slds-c-overlay-drawer' :
+            ':scope .slds-c-drawer-container .slds-c-drawer';
+
+        const node = this.node.querySelector(selector);
+
+        if (!node) {
+            this.throwError(`Could not find main drawer node "${selector}"`);
+        }
+
+        return node;
     }
 
     openDrawer() {

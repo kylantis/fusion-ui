@@ -1,7 +1,12 @@
 {
   "enableTypeMerging": false,
   "collections": {},
-  "scalars": {},
+  "scalars": {
+    "navigation": {
+      "type": "VerticalNavigation",
+      "isNull": false
+    }
+  },
   "sample": {
     "nullifyRandomly": []
   },

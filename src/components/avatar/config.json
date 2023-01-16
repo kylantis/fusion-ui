@@ -90,6 +90,6 @@
       "initials"
     ]
   },
-  "useCollectionLengthProperty": false,
+  "useCollectionLengthProperty": true,
   "escapeDynamicHtml": false
 }

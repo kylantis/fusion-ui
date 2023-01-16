@@ -122,22 +122,11 @@ The compiler will make best effort to perform ahead of time partial inlining. Th
 
 
 ## Variables
-- Can be inlined or not
-
-## Inline Blocks
-
-- @root is never resolved inside a decorator block, If you need to access the root inside a decorator block, use a variable, and set inline=false, i.e. 
-{{var myRootVariable = @root inline-false}}
-
-{{#*inline myBlock}}
-    {{myRootVariable.xyz}}
-{{/inline}}
+Variables cannot be accessed like ../../x
 
 ## Transform
+A transform is the name of a component method that receives the resolved value of a mustache or block expression, and returns the new value you want to transform it to.
 
-- Mustache Transform - A mustache transform is the name of a component method that receives the resolved value of a mustache expression, and returns the new value you want to transform it to.
-
-- Block Transform -  A block transform is the name of a component method that receives the rendered DOM Element of a block context. Unlike mustache transforms, this is a terminal operation, and is used to plug-in external DOM manipulation logic
 
 
 ## Component Class

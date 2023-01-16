@@ -1,7 +1,7 @@
 
 
 {{#*inline "render_input_element" id item eager=true}}
-    <input {{type}}="{{type}}" type="{{type}}" name="{{getItemInputName item}}" id="{{id}}_input" value="{{id}}_input"
+    <input type="{{type}}" name="{{getItemInputName item}}" id="{{id}}_input" value="{{id}}_input"
       {{item.checked ? "checked=\"\"" : "" }}
       {{(item.disabled or disabled) ? "disabled=\"\"" : "" }}
       {{message ? "aria-describedby=\"${@root.componentId}_message\"" : "" }}
@@ -27,7 +27,7 @@
 {{/inline}}
 
 
-{{#*inline "render_compound_control" eager=true}}  
+{{#*inline "render_compound_control" eager=true}}
   {{#each items hook = "itemHook" as |item itemIndex|}}
     <div class="mst-w {{error ? 'slds-has-error' : ''}}">
       
@@ -37,30 +37,37 @@
             {{> render_required_label}}
         {{/if}}
 
+        {{#*inline "render_label"}}
+          <label class="slds-{{../type}}__label" for="{{@root.componentId}}-{{@random}}_input">
+
+            {{#unless ../readonly}}
+              <span class="slds-{{../type}}_faux"></span>
+            {{/unless}}
+
+            <span class="slds-form-element__label">
+              {{label}}
+
+              {{!-- Note: If there are mutiple items, we are placing the required label on the right rather 
+              than the left inorder to ensure that all elements are aligned uniformly --}}
+
+              {{#if required and (../items.length gt 1)}}
+                {{> render_required_label}}
+              {{/if}}
+            </span>
+          </label>
+        {{/inline}}
+
         {{#if ../readonly}}
           {{> ?render_readonly checked=item.checked}}
+          {{> render_label}}
         {{else}}
           {{> render_input_element item id=("${@root.componentId}-${@random}")}}
+          {{> render_label}}
         {{/if}}
 
-        <label class="slds-{{../type}}__label" for="{{@root.componentId}}-{{@random}}_input">
-
-          {{#unless ../readonly}}
-            <span class="slds-{{../type}}_faux"></span>
-          {{/unless}}
-
-          <span class="slds-form-element__label">
-            {{label}}
-
-            {{!-- Note: If there are mutiple items, we are placing the required label on the right rather 
-            than the left inorder to ensure that all elements are aligned uniformly --}}
-
-            {{#if required and (../items.length gt 1)}}
-              {{> render_required_label}}
-            {{/if}}
-          </span>
-        </label>
       </div>
     </div>
   {{/each}}
 {{/inline}}
+
+{{> render_form_element}}

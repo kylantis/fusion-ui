@@ -1,0 +1,7 @@
+
+{{#*inline "render_panel_body"}}
+    {{component alias="content"}}
+    {{> content}}
+{{/inline}}
+
+{{> render_drawer}}
