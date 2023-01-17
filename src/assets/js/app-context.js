@@ -148,14 +148,19 @@ class AppContext {
 
     await this.loadEnums();
 
-    await this.loadComponentClasses({ rootComponent });
+    await this.loadComponentClasses();
 
     let id;
 
     if (testMode) {
-      data = self.Samples[
-        self.clientUtils.getRandomInt(0, self.Samples.length - 1)
+      const samples = self.Samples[rootComponent];
+
+      data = samples[
+        self.clientUtils.getRandomInt(0, samples.length - 1)
       ];
+
+      self.SampleData = data;
+
     } else {
       assert(!!data && data instanceof Function);
       data = data();
@@ -213,7 +218,7 @@ class AppContext {
     });
   }
 
-  async loadComponentClasses({ rootComponent }) {
+  async loadComponentClasses() {
 
     const { lazyLoadComponentTemplates } = AppContext;
 
@@ -221,8 +226,6 @@ class AppContext {
       url: '/components/list.json',
       asJson: true,
     });
-
-    let rootAssetId;
 
     self.components = {};
     self.templates = {};
@@ -257,10 +260,6 @@ class AppContext {
       }
 
       self.components[name].schema = config.schema;
-
-      if (name === rootComponent) {
-        rootAssetId = assetId;
-      }
     }
 
     return Promise.all(
@@ -288,18 +287,18 @@ class AppContext {
         ]);
       }))
       .then(async (components) => {
+        self.Samples = {};
 
-        for (const [name, assetId, tpl, componentSrc, testComponentSrc, config] of components) {
-          loadComponentClass(name, assetId, tpl, componentSrc, testComponentSrc, config);
-        }
+        await Promise.all(
+          components.map(async (args) => {
+            loadComponentClass(...args);
 
-        assert(!!rootAssetId, `Unknown root component: ${rootComponent}`);
-
-        if (!this.testMode) {
-          return;
-        }
-
-        self.Samples = await this.fetch(`/components/${rootAssetId}/samples.js`);
+            if (this.testMode) {
+              const [name, assetId] = args;
+              self.Samples[name] = await this.fetch(`/components/${assetId}/samples.js`);
+            }
+          })
+        )
       });
   }
 
@@ -308,12 +307,6 @@ class AppContext {
 
     let exports;
     const result = unsafeEval(contents, scope, { mod: exports });
-
-
-    if (namespace == 'hyntaxStreamTokenizer') {
-      console.info(result, exports);
-    }
-
 
     // eslint-disable-next-line default-case
     switch (true) {

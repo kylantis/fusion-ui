@@ -62,6 +62,6 @@
     "count": 20,
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": true,
+  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false
 }

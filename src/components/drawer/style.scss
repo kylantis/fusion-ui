@@ -1,4 +1,9 @@
 .slds-c-drawer-container {
+
+    .slds-button_icon-circular {
+        position: absolute;
+    }
+
     position: relative;
     overflow: hidden;
     display: flex;
@@ -13,9 +18,16 @@
 
         min-width: unset;
         width: 0;
-        transition: width .3s ease;
+        opacity: 0;
+
+        // opacity .4s ease-in-out, opacity .1s ease-out, 
+        transition: opacity .1s ease-out, width .3s ease;
 
         &.slds-is-open {
+
+            transition: opacity .4s ease-in, width .3s ease;
+            opacity: 1;
+
             &.slds-size_xx-large {
                 width: 60rem;
             }
@@ -47,7 +59,21 @@
     }
 }
 
+.slds-panel_docked-right {
+    // box-shadow: -1px 0 3px 0 rgb(0 0 0 / 25%);
+    box-shadow: 0 0 3px 0 rgb(0 0 0 / 25%);
+}
+
+.slds-panel_docked-left {
+    // box-shadow: 1px 0 3px rgb(0 0 0 / 25%);
+    box-shadow: 0 0 3px rgb(0 0 0 / 25%);
+}
+
 .slds-c-overlay-drawer {
+
+    .slds-button_icon-circular {
+        position: absolute;
+    }
 
     z-index: 9001;
     display: block;
@@ -57,12 +83,15 @@
     left: 0;
     bottom: 0;
     right: 0;
-    transition: transform .3s ease;
+    opacity: 0;
+    transition: opacity .1s ease-in-out,
+    transform .4s ease;
 
     &.slds-panel_docked-left {
         transform: translate3d(-120%, 0, 0);
 
         &.slds-is-open {
+            opacity: 1;
             transform: translate3d(0, 0, 0);
         }
     }
@@ -71,6 +100,7 @@
         transform: translate3d(120%, 0, 0);
 
         &.slds-is-open {
+            opacity: 1;
             transform: translate3d(0, 0, 0);
         }
     }

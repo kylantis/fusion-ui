@@ -5,14 +5,23 @@
     "value": {
       "type": "String",
       "defaults": [
-        "The quick brown fox jumps over the lazy dog."
+        "Recent",
+        "Folders",
+        "Notes",
+        "Tasks",
+        "Profile",
+        "Settings",
+        "Infrastructure",
+        "Users",
+        "Catalog",
+        "Prospects"
       ]
     },
     "type": {
       "type": "String",
       "allowed": "textType",
       "defaults": [
-        "body_regular"
+        "title_caps"
       ]
     },
     "align": {
@@ -47,6 +56,6 @@
   "sample": {
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": true,
+  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false
 }

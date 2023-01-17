@@ -30,9 +30,13 @@
     },
     "overlay": {
       "type": "Boolean",
-      "defaultValue": true
+      "defaultValue": false
     },
     "backdrop": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "toggleButton": {
       "type": "Boolean",
       "defaultValue": true
     }
@@ -40,6 +44,6 @@
   "sample": {
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": true,
+  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false
 }

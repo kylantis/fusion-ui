@@ -5,11 +5,28 @@
     "navigation": {
       "type": "VerticalNavigation",
       "isNull": false
+    },
+    "headerBackgroundURL": {
+      "type": "String",
+      "defaults": [
+        "/assets/images/placeholder-img@16x9.jpg",
+        "/assets/images/einstein-headers/einstein-header-background.svg"
+      ]
+    },
+    "headerImageURL": {
+      "type": "String",
+      "defaults": [
+        "/assets/images/welcome-mat/bg-info@2x.png"
+      ]
+    },
+    "searchBar": {
+      "type": "Boolean",
+      "defaultValue": true
     }
   },
   "sample": {
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": true,
+  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false
 }

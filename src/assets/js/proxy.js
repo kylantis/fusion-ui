@@ -779,6 +779,10 @@ class RootProxy {
     return result;
   }
 
+  getLogicGates() {
+    return this.#logicGates;
+  }
+
   getLogicGateValue({ gate, useBlockData = true }) {
 
     const { table } = this.component.getLogicGates()[gate.canonicalId];
@@ -1080,13 +1084,14 @@ class RootProxy {
           });
         });
 
-      this.#logicGates[gateId] = {
-        id: gateId,
-        canonicalId: prop,
-        blockData: this.component.getBlockDataSnapshot(path),
-      };
       this.#dataPathHooks[path] = [];
     }
+
+    this.#logicGates[gateId] = {
+      id: gateId,
+      canonicalId: prop,
+      blockData: this.component.getBlockDataSnapshot(path),
+    };
 
     const v = this.getLogicGateValue({ gate: this.#logicGates[gateId], useBlockData: false });
 
@@ -1561,7 +1566,7 @@ class RootProxy {
                 attrValue = unsafeEval(attrValue);
               } catch (e) {
                 this.component.logger.error(
-                  `[${getLine({ loc })}] Error while attempting to evaluate attribute value <${attrValue}>: ${e.message}`
+                  `[${getLine({ loc })}] Error while attempting to evaluate attribute value (${attrValue}): ${e.message}`
                 );
                 attrValue = UNKNOWN_VALUE;
               }
@@ -1657,7 +1662,7 @@ class RootProxy {
                   assert(tokenList[tokenIndex + 1].type == 'token:attribute-value-wrapper-end');
 
                   keyToken = tokenList[tokenIndex - 3];
-                  valueToken.content = `"${valueToken.content}"`;
+                  valueToken.content = `\`${valueToken.content}\``;
                 }
 
                 assert(
@@ -1715,12 +1720,6 @@ class RootProxy {
                 const node = document.querySelector(selector);
 
                 let branch = node.getAttribute('branch');
-
-                if (!branch) {
-                  console.info(node);
-                  console.info(inverse);
-                  console.info({ fqPath, newValue, oldValue });
-                }
 
                 assert(branch);
 
@@ -1991,19 +1990,22 @@ class RootProxy {
         if (!global.clientUtils.isNumber(prop) &&
           ![...getDataVariables(), pathProperty].includes(prop)
         ) {
-          this.component.throwError(`Invalid index: ${prop} for array: ${obj[pathProperty]}`);
+          this.component.logger.error(`Invalid index: ${prop} for array: ${obj[pathProperty]}`);
+          return false;
         }
         break;
       case isMap:
         if (!prop || !prop.length || !['String', 'Number', 'Boolean'].includes(prop.constructor.name)) {
-          this.component.throwError(`Invalid key: ${prop} for map: ${obj[pathProperty]}`);
+          this.component.logger.error(`Invalid key: ${prop} for map: ${obj[pathProperty]}`);
+          return false;
         }
         if (!prop.startsWith(mapKeyPrefix)) {
           prop = `${mapKeyPrefix}${prop}`
         }
       default:
         if (!prop || !prop.length || prop.constructor.name !== 'String') {
-          this.component.throwError(`Invalid key: ${prop} for object: ${obj[pathProperty]}`);
+          this.component.logger.error(`Invalid key: ${prop} for object: ${obj[pathProperty]}`);
+          return false;
         }
 
 
@@ -2020,7 +2022,8 @@ class RootProxy {
 
           // Meta properties can only be modified in privilegedMode
           if (this.component.isInitialized() && !RootProxy.#isPriviledgedMode()) {
-            this.component.throwError(`Permission denied to modify ${prop}`);
+            this.component.logger.error(`Permission denied to modify ${prop}`);
+            return false;
           }
           return obj[prop] = newValue;
         }
@@ -2079,7 +2082,8 @@ class RootProxy {
 
 
 
-      this.component.throwError(`Path: ${fqPath} cannot be mutated`);
+      this.component.logger.error(`Path: ${fqPath} cannot be mutated`);
+      return false;
     }
 
     if (!this.#dataPathHooks[fqPath]) {
@@ -2091,23 +2095,26 @@ class RootProxy {
       // add an entry to dataPathHooks), which will not provide
       // a descriptive error
 
-      this.component.throwError(`Unknown path: ${fqPath}`);
+      this.component.logger.error(`Unknown path: ${fqPath}`);
+      return false;
     }
 
     // Perform schema validation for <newValue>
     if (newValue != undefined) {
-      const validate = (() => {
-        try {
-          return this.component.constructor.ajv.getSchema(
-            `#/definitions/${clientUtils.toCanonicalPath(fqPath0)}`
-          )
-        } catch (e) {
-          this.component.throwError(`Unknown path: ${fqPath}`);
-        }
-      })();
+      try {
 
-      if (!validate(newValue)) {
-        this.component.throwError(`${fqPath} could not be mutated due to schema mismatch`);
+        const validator = this.component.constructor.ajv.getSchema(
+          `#/definitions/${clientUtils.toCanonicalPath(fqPath0)}`
+        )
+
+        if (!validator(newValue)) {
+          this.component.logger.error(`${fqPath} could not be mutated due to schema mismatch`);
+          return false;
+        }
+
+      } catch (e) {
+        this.component.logger.error(`Unknown path: ${fqPath}`);
+        return false;
       }
     }
 

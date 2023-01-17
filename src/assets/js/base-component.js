@@ -18,6 +18,11 @@ class BaseComponent extends WebRenderer {
     keyProperty: RootProxy.keyProperty,
     indexProperty: RootProxy.indexProperty,
     randomProperty: RootProxy.randomProperty,
+    literalType: RootProxy.literalType,
+    arrayType: RootProxy.arrayType,
+    objectType: RootProxy.objectType,
+    mapType: RootProxy.mapType,
+    componentRefType: RootProxy.componentRefType,
   };
 
   constructor({

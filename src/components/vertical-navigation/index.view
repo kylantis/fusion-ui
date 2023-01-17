@@ -1,12 +1,25 @@
-<div class="demo-only" style="width:320px">
-    <nav class="slds-nav-vertical" {{label ? "aria-label=\" ${label}\"" : "" }}>
+<nav class="slds-nav-vertical" {{label ? "aria-label=\" ${label}\"" : "" }}>
         {{#each sections as |section sectionIndex|}}
 
         {{#*inline "render_item" item}}
+            {{component Badge alias="item.badge"}}
+
             <li class="slds-nav-vertical__item {{item.active ? " slds-is-active" : "" }}">
                 <a onclick="{{fn "onClick"}}('{{item.id}}')" class="slds-nav-vertical__action"
                     aria-current="true">
+
+                    {{#if item.icon}}
+                        {{> Icon 
+                                name=item.icon type='utility' size="x-small" 
+                                cssClass="slds-line-height_reset" marginRight="x-small"
+                        }}
+                    {{/if}}
+
                     {{item.name}}
+
+                    {{#if item.badge}}
+                        {{> item.badge cssClass="slds-col_bump-left" }}
+                    {{/if}}
                 </a>
             </li>
         {{/inline}}
@@ -41,8 +54,7 @@
                     {{> ButtonIconSvg iconType='utility' iconName='chevronright' cssClass='slds-button__icon_left'}}
 
                     <span class="slds-nav-vertical__action-text">
-                        {{var label = (expanded ? "Show Less" : "Show More")}}
-
+                        {{var label = (expanded ? "Show Less" : "Show More") inline=true}}
 
                         {{label}}
                         <span class="slds-assistive-text">{{label}}</span>
@@ -67,4 +79,3 @@
         {{/each}}
 
     </nav>
-</div>

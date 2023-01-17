@@ -1,0 +1,26 @@
+{{style url="/components/badge/style.min.css"}}
+
+<span class="
+    slds-badge 
+    {{color ? "slds-theme_${color}" : "" }} 
+    {{(color eq 'default') ? 'filled-border' : '' }}
+    {{cssClass ? cssClass : ''}}
+    ">
+
+    {{#*inline "render_icon" name position}}
+        <span class="slds-badge__icon slds-badge__icon_{{position}} {{(nonInverseColors includes color) ? '' : 'slds-badge__icon_inverse'}}">
+            {{> Icon name type='utility' size="xx-small" useCurrentColor=true}}
+        </span>
+    {{/inline}}
+
+    {{#if leftIcon}}
+       {{> render_icon position='left' name=leftIcon}}
+    {{/if}}
+        
+    {{label}}
+
+    {{#if rightIcon}}
+        {{> render_icon position='right' name=rightIcon}}
+    {{/if}}
+
+</span>

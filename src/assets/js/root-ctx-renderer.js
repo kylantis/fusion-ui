@@ -460,7 +460,7 @@ class RootCtxRenderer extends BaseRenderer {
         this.onNodeUpdateEvent(() => {
 
           document.querySelector(`#${this.getElementId()} #${nodeId}`)
-          .setAttribute('branch', branch);
+            .setAttribute('branch', branch);
 
         }, [this.isMounted() ? `#${nodeId}` : `#${this.getElementId()}`]);
       }
@@ -926,7 +926,14 @@ class RootCtxRenderer extends BaseRenderer {
         .forEach(m => {
 
           const mustacheRef = m.replace(/({{)|(}})/g, '');
-          const { path, canonicalPath, transform, loc } = this.mustacheStatements[mustacheRef];
+
+          const mustacheInfo = this.mustacheStatements[mustacheRef];
+
+          if (!mustacheInfo) {
+            return;
+          }
+
+          const { path, canonicalPath, transform, loc } = mustacheInfo;
 
           const isSynthetic = this.isSynthetic(path);
 
@@ -953,6 +960,8 @@ class RootCtxRenderer extends BaseRenderer {
           }
 
           if (dataBinding && hookType) {
+            // console.info(this.mustacheStatements[mustacheRef]);
+
             this.proxyInstance.getDataPathHooks()[path]
               .push({
                 type: hookType, selector: `#${nodeId}`, canonicalPath, mustacheRef, hookInfo, transform, loc,
@@ -1020,8 +1029,10 @@ class RootCtxRenderer extends BaseRenderer {
     const isSynthetic = this.isSynthetic(path);
 
     // Todo: Support data-binding for synthetic invocations
-    const dataBinding = !isSynthetic && this.dataBindingEnabled() && bindContext;
-
+    const dataBinding = !isSynthetic && this.dataBindingEnabled() &&
+      // Disable for literals
+      !!path;
+      
     const isTextNodeBindContext = bindContext && bindContext.type == textNodeHookType;
 
     if (!isTextNodeBindContext && value instanceof BaseComponent) {
@@ -1035,15 +1046,22 @@ class RootCtxRenderer extends BaseRenderer {
     switch (true) {
 
       case !!this.#attributeContext:
-        const mustacheRef = clientUtils.randomString();
 
-        this.mustacheStatements[mustacheRef] = {
-          path, canonicalPath, transform, loc,
-        }
-        this.#attributeContext.write(`{{${mustacheRef}}}`);
+        if (dataBinding) {
+          const mustacheRef = clientUtils.randomString();
 
-        renderedValueListener = (renderedValue) => {
-          this.mustacheStatements[mustacheRef].renderedValue = renderedValue;
+          this.mustacheStatements[mustacheRef] = {
+            path, canonicalPath, transform, loc,
+          }
+          this.#attributeContext.write(`{{${mustacheRef}}}`);
+
+          renderedValueListener = (renderedValue) => {
+            this.mustacheStatements[mustacheRef].renderedValue = renderedValue;
+          }
+        } else {
+          renderedValueListener = (renderedValue) => {
+            this.#attributeContext.write(renderedValue);
+          }
         }
 
         if (hook) {

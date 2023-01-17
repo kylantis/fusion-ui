@@ -1,11 +1,33 @@
 
+{{#*inline "sidebar-top"}}
+    {{#if headerImageURL}}
+        <div style="height: 8em;">
+                <img alt="" src="{{headerImageURL}}">
+        </div>
+    {{else}}
+        {{#if headerBackgroundURL}}
+            <div style="height: 8em; {{headerBackgroundURL ? "background: url('${headerBackgroundURL}')" : ""}}">
+            </div>
+        {{/if}}
+    {{/if}}
+{{/inline}}
+
+
 {{#*inline "render_panel_body"}}
     {{component VerticalNavigation alias="navigation"}}
-    
+
+    {{#if searchBar}}
+        <div style="margin-bottom: 1em;">
+            {{> Input 
+                type="text" leftIcon="search" clearButton=true placeholder="Search"
+                ref="searchBar"
+            }}
+        </div>
+    {{/if}}
+
     {{> ?sidebar-top}}
     {{> navigation}}
 {{/inline}}
 
 
 {{> render_drawer}}
-

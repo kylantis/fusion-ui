@@ -15,17 +15,40 @@ class SidebarLayout extends components.Drawer {
             this.throwError('A "vertival navigation" needs to be provided');
         }
 
-        input.showByDefault = true;
+        const isMobile = this.isMobile();
 
-        navigation.on('beforeItemRegistered', item => {
-            if (item.active) {
-                const activeItem = this.getActiveNavigationItem();
+        input.showByDefault = !isMobile;
+        input.overlay = false;
+        input.backdrop = false;
+        input.size = 'medium';
+        input.closeIcon = !!isMobile;
+        input.toggleButton = !!isMobile;
 
-                if (activeItem) {
-                    activeItem.active = false;
+
+        navigation
+            .on('beforeItemRegistered', item => {
+                if (item.active) {
+                    const activeItem = this.getActiveNavigationItem();
+
+                    if (activeItem) {
+                        activeItem.active = false;
+                    }
                 }
-            }
-        });
+            });
+    }
+
+    onMount() {
+        if (!this.getActiveNavigationItem()) {
+            this.setActive(
+                this.getNavigationItems()[0]
+            );
+        }
+    }
+
+    setActive(item) {
+        if (!item) return;
+
+        item.active = true;
     }
 
     loadView(identifier) {
@@ -39,12 +62,20 @@ class SidebarLayout extends components.Drawer {
     }
 
     setView() {
-        
+
+    }
+
+    getSearchBar() {
+        return this.getInlineComponent('searchBar');
+    }
+
+    getNavigationItems() {
+        const { navigation } = this.getInput();
+        return Object.values(navigation.getItems());
     }
 
     getActiveNavigationItem() {
-        const { navigation } = input;
-        return Object.values(navigation.getItems())
+        this.getNavigationItems()
             .filter(({ active: c }) => c);
     }
 
