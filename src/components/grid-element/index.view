@@ -1,3 +1,19 @@
-<div class="slds-{{size}}">
-    <div class="slds-box slds-box_x-small slds-text-align_center slds-m-around_x-small">.slds-size_1-of-2</div>
+
+{{#*inline "grid_element_attributes"}}
+    {{size ? size : "" transform='concatTranform'}}
+    {{order ? order : "" transform='concatTranform'}}
+    {{padding ? 'slds-p-${padding}' : ''}}
+    {{margin ? 'slds-m-${margin}' : ''}}
+    {{variableWidth ? 'slds-${variableWidth}' : ''}}
+    {{bump ? 'slds-col_bump-${bump}' : ''}}
+    {{col ? "slds-col" : ""}}
+    {{columnAlignment ? "slds-align-${columnAlignment}" : ""}}
+{{/inline}}
+
+{{component alias="content"}}
+
+<div class="{{> grid_element_attributes}}">
+    {{#if content}}
+        {{> content}}
+    {{/if}}
 </div>

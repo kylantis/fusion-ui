@@ -143,7 +143,7 @@ class RootCtxRenderer extends BaseRenderer {
     const functionNames = {};
     const noOpHelper = 'noOp';
 
-    const __helpers = global.__helpers || (global.__helpers = {});
+    const __helpers = window.__helpers || (window.__helpers = {});
 
     for (const helperName of this.getGlobalHelpers()) {
       let helperFn = componentHelpers[helperName];
@@ -378,7 +378,8 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   getDefaultHookOrder() {
-    return this.config.defaultHookOrder || RootCtxRenderer.#defaultHookOrder;
+    const { defaultHookOrder } = this.getConfig();
+    return defaultHookOrder || RootCtxRenderer.#defaultHookOrder;
   }
 
   var({ options }) {
@@ -435,6 +436,8 @@ class RootCtxRenderer extends BaseRenderer {
         if (invert ? !b : b) {
 
           if (hook) {
+            assert(nodeId);
+
             this.hooks[`#${nodeId}`] = {
               hookName: hook,
               order: hookOrder != undefined ? hookOrder : this.getDefaultHookOrder(),
@@ -482,12 +485,19 @@ class RootCtxRenderer extends BaseRenderer {
         });
     }
 
-    return conditional0(value);
+    const html = conditional0(value);
+
+    if (this.#attributeContext) {
+      assert(!nodeId);
+      this.#attributeContext.write(html);
+    }
+
+    return html;
   }
 
   forEach({ options, ctx, params }) {
 
-    const { eachBlockHookType } = RootProxy;
+    const { dataPathRoot, pathSeparator, eachBlockHookType } = RootProxy;
     const { htmlWrapperCssClassname, getSyntheticAliasFromPath } = RootCtxRenderer;
 
     const { fn, inverse, hash, loc } = {
@@ -544,21 +554,28 @@ class RootCtxRenderer extends BaseRenderer {
             markup = this[transform](markup);
           }
 
-          const elementNodeId = clientUtils.randomString();;
           const key = this.getBlockData({ path: blockKey, dataVariable: '@key' });
 
-          markup = `<div id="${elementNodeId}" class="${htmlWrapperCssClassname}" key="${key}">
-                        ${markup}
+          let elementNodeId;
+
+          if (nodeId) {
+            elementNodeId = clientUtils.randomString();
+            markup = `<div id="${elementNodeId}" class="${htmlWrapperCssClassname}" key="${key}">
+                          ${markup}
                       </div>`;
+          }
 
           if (isArray && !isSynthetic) {
+
             // arrayChildBlock hooks are only added to non-synthetic array paths
-            this.backfillArrayChildBlocks(`${path}[${i}]`, `#${elementNodeId}`);
+            this.backfillArrayChildBlocks(`${path}[${i}]`, nodeId ? `#${elementNodeId}` : null);
           }
 
           this.pruneSyntheticCache();
 
           if (hook) {
+            assert(nodeId);
+
             this.hooks[`#${nodeId} > div[key='${key}']`] = {
               hookName: hook,
               order: hookOrder != undefined ? hookOrder : this.getDefaultHookOrder(),
@@ -588,7 +605,14 @@ class RootCtxRenderer extends BaseRenderer {
         });
     }
 
-    return forEach0(value);
+    const html = forEach0(value);
+
+    if (this.#attributeContext) {
+      assert(!nodeId);
+      this.#attributeContext.write(html);
+    }
+
+    return html;
   }
 
   lookupFnStore(id) {
@@ -682,6 +706,7 @@ class RootCtxRenderer extends BaseRenderer {
 
     // In ES-2015+, insertion order is preserved, so we know the
     // last index is the most recent, and vice-versa
+
     const blockDataKeys = Object.keys(this.blockData)
       // If this is called by forEach(...), we need to skip the blockData entry created
       // in doBlockInit(...)
@@ -960,7 +985,6 @@ class RootCtxRenderer extends BaseRenderer {
           }
 
           if (dataBinding && hookType) {
-            // console.info(this.mustacheStatements[mustacheRef]);
 
             this.proxyInstance.getDataPathHooks()[path]
               .push({
@@ -1032,7 +1056,7 @@ class RootCtxRenderer extends BaseRenderer {
     const dataBinding = !isSynthetic && this.dataBindingEnabled() &&
       // Disable for literals
       !!path;
-      
+
     const isTextNodeBindContext = bindContext && bindContext.type == textNodeHookType;
 
     if (!isTextNodeBindContext && value instanceof BaseComponent) {
@@ -2096,7 +2120,8 @@ class RootCtxRenderer extends BaseRenderer {
 
     delete hash.ctx;
 
-    const ref = hash.ref;
+    const { ref } = hash;
+
     delete hash.ref;
 
     let component;
@@ -2128,7 +2153,6 @@ class RootCtxRenderer extends BaseRenderer {
           component = new componentSpec.constructor({
             input: input || inputProducer(),
             config,
-            parent: this,
           });
         } else {
           // We don't have to clone the component, because there is no override
@@ -2157,6 +2181,8 @@ class RootCtxRenderer extends BaseRenderer {
         delete this.#inlineComponentInstances[ref];
       })
     }
+
+    component.setInlineParent(this);
 
     return component;
   }

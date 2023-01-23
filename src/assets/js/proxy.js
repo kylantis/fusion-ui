@@ -68,9 +68,6 @@ class RootProxy {
 
   static nodeAttributeValueHookType = 'nodeAttributeValue';
 
-
-  static validateInputSchema = false;
-
   static globalsBasePath = 'globals';
 
   static isMapProperty = '$isMap';
@@ -91,9 +88,13 @@ class RootProxy {
 
   #htmlCache;
 
+  #disableHooks;
+
   static #dataReferences = [];
 
   static #privilegedMode = false;
+
+  static pathSchemaDefPrefix = '__pathSchema';
 
   constructor({ component }) {
     this.component = component;
@@ -141,7 +142,7 @@ class RootProxy {
 
   static create(component) {
 
-    const { validateInputSchema } = RootProxy;
+    const { getGlobalSchemasObject } = RootProxy;
     const proxy = new RootProxy({ component });
 
     proxy.component.proxyInstance = proxy;
@@ -149,23 +150,53 @@ class RootProxy {
 
     if (self.appContext) {
 
-      if (!component.constructor.schemaDefinitions) {
-        // register input schema
-        proxy.withSchema(proxy.component.constructor.schema);
-      }
+      const { validateInputSchema } = component.getConfig();
 
-      if (validateInputSchema && component.validateInput()) {
-        // perform input validation
-        proxy.validateInput();
+      if (!proxy.getSchemaDefinitions()) {
+        // register input schema
+        proxy.withSchema(
+          getGlobalSchemasObject()[component.getComponentName()]
+        );
       }
 
       proxy.toCanonicalObject({ path: '', obj: component.getInput() });
+
+      if (validateInputSchema) {
+        // perform input validation
+        proxy.validateInput();
+      }
 
       // Add our observer, to orchestrate data binding operations
       proxy.addDataObserver();
     }
 
     return proxy.handler;
+  }
+
+  static getGlobalSchemasObject() {
+    return window.__schemas || (window.__schemas = {});
+  }
+
+  static getGlobalSChemaDefinitionsObject() {
+    return window.__schemaDefinitions || (window.__schemaDefinitions = {});
+  }
+
+  #setSchemaDefinitions(s) {
+    const { getGlobalSChemaDefinitionsObject } = RootProxy;
+
+    const o = getGlobalSChemaDefinitionsObject();
+    const componentName = this.component.getComponentName();
+
+    o[componentName] = s;
+  }
+
+  getSchemaDefinitions() {
+    const { getGlobalSChemaDefinitionsObject } = RootProxy;
+
+    const o = getGlobalSChemaDefinitionsObject();
+    const componentName = this.component.getComponentName();
+
+    return o[componentName];
   }
 
   withSchema(schema) {
@@ -176,8 +207,7 @@ class RootProxy {
     } = RootProxy;
 
     const syntheticProperties = [
-      pathProperty, firstProperty, lastProperty,
-      keyProperty, indexProperty, randomProperty,
+      pathProperty, firstProperty, lastProperty, keyProperty, indexProperty, randomProperty,
     ];
 
     const { definitions } = schema;
@@ -334,12 +364,15 @@ class RootProxy {
           definition.type = [definition.type, "null"]
           definition.properties[pathProperty] = { type: 'string' }
         }
+
         definition.required.push(pathProperty);
 
         // Register schema, per path
         Object.keys(definition.properties)
           .filter(k => !syntheticProperties.includes(k))
           .forEach(k => {
+
+            const { toDefinitionName } = RootProxy;
 
             const addSchema = (v) => {
 
@@ -348,12 +381,14 @@ class RootProxy {
 
               delete v[pathProperty];
 
-              path.forEach((p, index) => {
-                if (!definitions[p]) {
+              path.forEach((p) => {
+                const _p = toDefinitionName(p);
 
-                  definitions[p] = {
+                if (!definitions[_p]) {
+
+                  definitions[_p] = {
                     ...v,
-                    $id: `${defPrefx}${p}`
+                    $id: `${defPrefx}${_p}`
                   };
 
                   if (
@@ -361,11 +396,13 @@ class RootProxy {
                     definitions[v.$ref.replace(defPrefx, '')].shared
                   ) {
                     // If the object this definition references is shared, indicate
-                    definitions[p].referencesShared = true;
+                    definitions[_p].referencesShared = true;
                   }
 
                 } else {
-                  assert(definitions[p].shared || definitions[p].referencesShared);
+                  assert(
+                    definitions[_p].referencesShared || definitions[p].shared
+                  );
                 }
               });
 
@@ -382,8 +419,8 @@ class RootProxy {
 
             addSchema(definition.properties[k])
           });
-
       }
+
     }
 
     // Cleanup definitions
@@ -399,17 +436,26 @@ class RootProxy {
       }
     }
 
-    this.component.constructor.schemaDefinitions = new Proxy(definitions, {
-      // For paths that reference shared types, we want to automatically return
-      // the referenced shared type
-      get: (obj, prop) => {
-        let v = obj[prop];
-        if (v.referencesShared) {
-          v = obj[v.$ref.replace(defPrefx, '')];
-        }
-        return v;
-      },
-    });
+    this.#setSchemaDefinitions(
+      new Proxy(definitions, {
+        // For paths that reference shared types, we want to automatically return
+        // the referenced shared type
+        get: (obj, prop) => {
+          switch (true) {
+            case prop === 'toJSON':
+              return () => obj;
+
+            default:
+              let v = obj[prop];
+
+              if (v.referencesShared) {
+                v = obj[v.$ref.replace(defPrefx, '')];
+              }
+              return v;
+          }
+        },
+      })
+    );
 
     const ajv = new ajv7.default({
       schemas: Object.values(definitions),
@@ -425,6 +471,10 @@ class RootProxy {
       errors: true,
     });
 
+    // Definitions for shared types have a property "shared: true", register this keyword
+    // so that ajv recognizes it in strict mode
+    ajv.addKeyword('shared');
+
     this.component.constructor.ajv = ajv;
   }
 
@@ -435,44 +485,10 @@ class RootProxy {
 
     const input = this.component.getInput();
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // DEGUB WHY AJV VALIDATION IS TOO SLOW, AND RE-ENABLE VALIATION
-
-
-
-
-
-
-
-
-
-
     if (!validate(input)) {
 
-
-
-
-
-
-
-
-
-
       const componentName = this.component.getComponentName();
-      const msg = `Component "${this.component.getId()}" could not be loaded due to schema mismatch of input data`;
+      let msg = `Component "${this.component.getId()}" could not be loaded due to schema mismatch of input data`;
 
       if (global.isServer) {
         assert(global.rootComponent != componentName);
@@ -521,6 +537,8 @@ class RootProxy {
       });
 
     if (false && !global.isServer) {
+      const { hookCleanupInterval } = this.component.getConfig();
+
       // Setup task to cleanup dead hooks
       setInterval(
         () => {
@@ -530,7 +548,7 @@ class RootProxy {
 
           this.pruneHooks();
         },
-        this.component.config.hookCleanupInterval
+        hookCleanupInterval
       );
     }
   }
@@ -938,7 +956,7 @@ class RootProxy {
    */
   toExecutablePath(item, lenient, allowSynthetic = true) {
     const {
-      dataPathRoot, literalPrefix, pathSeparator, parsePathExpressionLiteralValue,
+      dataPathRoot, literalPrefix, pathSeparator, syntheticMethodPrefix, parsePathExpressionLiteralValue,
     } = RootProxy;
     const { wrapExecStringForLeniency } = RootCtxRenderer;
 
@@ -964,7 +982,12 @@ class RootProxy {
 
     switch (type) {
       case PATH_EXPR:
-        assert(original.startsWith(`${dataPathRoot}${pathSeparator}`));
+
+        assert(
+          original.startsWith(`${dataPathRoot}${pathSeparator}`) ||
+          original.startsWith(syntheticMethodPrefix)
+        );
+
         let p = original.replace(`${dataPathRoot}${pathSeparator}`, '');
 
         if (p.startsWith(literalPrefix)) {
@@ -1252,7 +1275,22 @@ class RootProxy {
     })
   }
 
+  // Todo: Investigate if we need to support disabling hooks for only one-more paths as opposed
+  // to a component-wide approach
+  suspendHooks() {
+    this.#disableHooks = true;
+  }
+
+  resumeHooks() {
+    this.#disableHooks = false;
+  }
+
   triggerHooks(triggerInfo) {
+
+    if (this.#disableHooks) {
+      return;
+    }
+
     const {
       logicGatePathRoot, pathSeparator, textNodeHookType, eachBlockHookType, gateParticipantHookType, pathProperty,
       conditionalBlockHookType, dataPathPrefix, nodeAttributeHookType, nodeAttributeKeyHookType, nodeAttributeValueHookType,
@@ -2103,8 +2141,13 @@ class RootProxy {
     if (newValue != undefined) {
       try {
 
+        const { toDefinitionName } = RootProxy;
+
+        const defPrefx = '#/definitions/';
+        const canonicalPath = clientUtils.toCanonicalPath(fqPath0);
+
         const validator = this.component.constructor.ajv.getSchema(
-          `#/definitions/${clientUtils.toCanonicalPath(fqPath0)}`
+          `${defPrefx}${toDefinitionName(canonicalPath)}`
         )
 
         if (!validator(newValue)) {
@@ -2559,16 +2602,23 @@ class RootProxy {
     return b;
   }
 
+  static toDefinitionName(path) {
+    const { pathSchemaDefPrefix } = RootProxy;
+    return `${pathSchemaDefPrefix}.${path}`;
+  }
+
   getObjectDefiniton(path) {
 
-    const defPrefx = '#/definitions/';
-    const { schemaDefinitions } = this.component.constructor;
+    const { toDefinitionName } = RootProxy;
 
-    let def = schemaDefinitions[
-      path.length ?
-        clientUtils.toCanonicalPath(path) :
-        this.component.getComponentName()
-    ];
+    const defPrefx = '#/definitions/';
+    const schemaDefinitions = this.getSchemaDefinitions();
+
+    const k = path.length ?
+      toDefinitionName(clientUtils.toCanonicalPath(path)) :
+      this.component.getComponentName();
+
+    let def = schemaDefinitions[k];
 
     if (def.$ref) {
       def = schemaDefinitions[def.$ref.replace(defPrefx, '')];
@@ -2585,8 +2635,12 @@ class RootProxy {
   getMapDefinition(path) {
     if (!path.length) return false;
 
+    const { toDefinitionName } = RootProxy;
+
     const canonicalPath = global.clientUtils.toCanonicalPath(path);
-    const { additionalProperties } = this.component.constructor.schemaDefinitions[canonicalPath];
+    const { additionalProperties } = this.getSchemaDefinitions()[
+      toDefinitionName(canonicalPath)
+    ];
 
     return additionalProperties ? {
       collectionType: 'map',
@@ -2597,8 +2651,12 @@ class RootProxy {
   getArrayDefinition(path) {
     if (!path.length) return false;
 
+    const { toDefinitionName } = RootProxy;
+
     const canonicalPath = global.clientUtils.toCanonicalPath(path);
-    const { items } = this.component.constructor.schemaDefinitions[canonicalPath];
+    const { items } = this.getSchemaDefinitions()[
+      toDefinitionName(canonicalPath)
+    ];
 
     return items ? {
       collectionType: 'array',
@@ -2790,7 +2848,6 @@ class RootProxy {
         continue;
       }
 
-
       // If property is null, and this is a collection of objects, 
       if (obj[prop] === null && isCollection && isCollection.$ref) {
         obj[prop] = createNullObject();
@@ -2977,7 +3034,7 @@ class RootProxy {
             ? '' : mapKeyPrefix}${prop}`
         ] = newValue;
 
-        // Note: according to https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy/Proxy/set,
+        // Note: according to the JS spec, (see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy/Proxy/set),
         // proxy.set() should return a boolean value, hence instead of returning <newValue> which
         // is the default behaviour, we will always return true
 

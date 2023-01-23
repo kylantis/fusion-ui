@@ -1,19 +1,18 @@
+
 <div class="
-slds-grid 
-{{gutters ? "slds-gutters" : ""}}
-{{nested ? "slds-col" : ""}}
-{{(nested and size) ? "slds-${size}" : ""}}
-{{wrap ? "slds-wrap" : ""}}
-"
->
-  <div class="slds-col">
-    <span>1</span>
-  </div>
-  <div class="slds-col">
-    <span>2</span>
-  </div>
-  <div class="slds-col">
-    <span>3</span>
-  </div>
+    slds-grid
+    {{gutterSize ? "slds-gutters_${gutterSize}" : "" }}     
+    {{wrap ? "slds-wrap" : "" }} 
+    {{horizontalAlignment ? "slds-grid_align-${horizontalAlignment}" : ""}}
+    {{verticalAlignment ? "slds-grid_vertical-align-${verticalAlignment}" : ""}}
+    {{pullPadded ? "slds-grid_pull-padded-${pullPadded}" : ""}}
+    {{(gridFlow and (gridFlow neq "default")) ? "slds-grid_${gridFlow}" : ""}}
+    {{> grid_element_attributes}}
+    ">
+
+    {{#each columns as |column column|}}
+      {{component GridElement alias="."}}
+      {{> .}}
+    {{/each}}
 
 </div>

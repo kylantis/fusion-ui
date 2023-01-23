@@ -7,7 +7,7 @@ class BaseComponent extends WebRenderer {
 
   static #token;
 
-  #parent;
+  #inlineParent;
 
   // #API
   static CONSTANTS = {
@@ -25,12 +25,9 @@ class BaseComponent extends WebRenderer {
     componentRefType: RootProxy.componentRefType,
   };
 
-  constructor({
-    id, input, logger, parent
-  } = {}) {
-    super({
-      id, input, logger,
-    });
+  constructor({ id, input, logger } = {}) {
+
+    super({ id, input, logger });
 
     if (!BaseComponent.#token) {
       // eslint-disable-next-line no-undef
@@ -39,8 +36,20 @@ class BaseComponent extends WebRenderer {
       RootCtxRenderer.setToken(BaseComponent.#token);
     }
 
-    this.#parent = parent;
     this.handlers = {};
+  }
+
+  setInlineParent(inlineParent) {
+    assert(
+      this.#inlineParent === undefined ||
+      // Component instances may be re-used at compile-time
+      !self.appContext
+    );
+    this.#inlineParent = inlineParent;
+  }
+
+  getInlineParent() {
+    return this.#inlineParent;
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -187,10 +196,6 @@ class BaseComponent extends WebRenderer {
   initCompile() {
   }
   // #API
-  validateInput() {
-    return true;
-  }
-  // #API
   behaviours() {
     return ['destroy'];
   }
@@ -221,28 +226,28 @@ class BaseComponent extends WebRenderer {
 
   static #toNodeUpdateEventName(node) {
     const { getNodeId } = BaseComponent;
-    return `nodeUpdate-${node instanceof window.Node ? `#${getNodeId(node)}` : node}`;
+    return `nodeUpdate-${node instanceof Node ? `#${getNodeId(node)}` : node}`;
   }
 
   static #toNodeDetachEventName(node) {
     const { getNodeId } = BaseComponent;
-    return `nodeDetach-${node instanceof window.Node ? `#${getNodeId(node)}` : node}`;
+    return `nodeDetach-${node instanceof Node ? `#${getNodeId(node)}` : node}`;
   }
 
-    // #API
-    triggerNodeDetachEvent(node) {
-      this.#dispatchEvent0(
-        BaseComponent.#toNodeDetachEventName(node)
-      );
-    }
-  
-    // #API
-    onNodeDetachEvent(handler, nodes) {
-      this.one(
-        handler, nodes
-          .map(s => BaseComponent.#toNodeDetachEventName(s)
-          ))
-    }
+  // #API
+  triggerNodeDetachEvent(node) {
+    this.#dispatchEvent0(
+      BaseComponent.#toNodeDetachEventName(node)
+    );
+  }
+
+  // #API
+  onNodeDetachEvent(handler, nodes) {
+    this.one(
+      handler, nodes
+        .map(s => BaseComponent.#toNodeDetachEventName(s)
+        ))
+  }
 
   // #API
   triggerNodeUpdateEvent(node) {
@@ -435,6 +440,10 @@ class BaseComponent extends WebRenderer {
     return o;
   }
 
+  loadAfterCompile() {
+    return true;
+  }
+
   //  Utility methods
 
   // #API
@@ -465,6 +474,14 @@ class BaseComponent extends WebRenderer {
   // #API
   static randomString() {
     return clientUtils.randomString();
+  }
+  // #API
+  suspendHooks() {
+    this.proxyInstance.suspendHooks();
+  }
+  // #API
+  resumeHooks() {
+    this.proxyInstance.resumeHooks();
   }
 }
 module.exports = BaseComponent;

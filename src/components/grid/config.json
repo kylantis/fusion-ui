@@ -1,22 +1,88 @@
 {
   "enableTypeMerging": false,
-  "collections": {},
+  "collections": {
+    "columns": {
+      "minLength": 1,
+      "keyType": "String"
+    }
+  },
   "scalars": {
-    "gutters": {
+    "wrap": {
       "type": "Boolean",
       "defaultValue": false
     },
-    "nested": {
-      "type": "String",
-      "defaults": []
+    "columns_$": {
+      "type": "GridElement",
+      "isNull": false
     },
-    "wrap": {
+    "pullPadded": {
       "type": "String",
-      "defaults": []
+      "allowed": [
+        "xxx-small",
+        "xx-small",
+        "x-small",
+        "small",
+        "medium",
+        "large",
+        "x-large",
+        "xx-large"
+      ],
+      "defaults": [
+        null
+      ]
     },
-    "size": {
+    "gutterSize": {
       "type": "String",
-      "defaults": []
+      "allowed": [
+        "x-small",
+        "small",
+        "medium",
+        "large",
+        "x-large",
+        "direct-x-small",
+        "direct-small",
+        "direct-medium",
+        "direct-large",
+        "direct-x-large"
+      ],
+      "defaults": [
+        "small"
+      ]
+    },
+    "gridFlow": {
+      "type": "String",
+      "allowed": [
+        "default",
+        "vertical",
+        "reverse",
+        "vertical-reverse"
+      ],
+      "defaults": [
+        "default"
+      ]
+    },
+    "horizontalAlignment": {
+      "type": "String",
+      "allowed": [
+        "center",
+        "end",
+        "space",
+        "spread"
+      ],
+      "defaults": [
+        null
+      ]
+    },
+    "verticalAlignment": {
+      "type": "String",
+      "allowed": [
+        "center",
+        "end",
+        "start"
+      ],
+      "defaults": [
+        null
+      ]
     }
   },
   "sample": {

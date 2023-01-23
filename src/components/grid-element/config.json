@@ -1,10 +1,75 @@
 {
   "enableTypeMerging": false,
-  "collections": {},
-  "scalars": {
+  "collections": {
     "size": {
+      "minLength": 0
+    },
+    "order": {
+      "minLength": 0
+    }
+  },
+  "scalars": {
+    "padding": {
+      "type": "String",
+      "allowed": "spacingType",
+      "defaults": [
+        null
+      ]
+    },
+    "margin": {
+      "type": "String",
+      "allowed": "spacingType",
+      "defaults": [
+        null
+      ]
+    },
+    "content": {
+      "type": "componentRef",
+      "isNull": true
+    },
+    "variableWidth": {
+      "type": "String",
+      "allowed": [
+        "shrink-none",
+        "grow-none"
+      ],
+      "defaults": [
+        null
+      ]
+    },
+    "col": {
+      "type": "Boolean",
+      "defaultValue": false,
+      "clientOnly": true
+    },
+    "bump": {
+      "type": "String",
+      "allowed": "positionX",
+      "defaults": [
+        null
+      ]
+    },
+    "columnAlignment": {
+      "type": "String",
+      "allowed": [
+        "top",
+        "middle",
+        "bottom"
+      ],
+      "defaults": [
+        null
+      ]
+    },
+    "size_$": {
       "type": "String",
       "allowed": "columnSize",
+      "defaults": [
+        null
+      ]
+    },
+    "order_$": {
+      "type": "String",
+      "allowed": "columnOrder",
       "defaults": [
         null
       ]

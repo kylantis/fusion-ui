@@ -7,7 +7,7 @@ const gulp = require('gulp');
 const through = require('through2');
 
 const { processFile } = require('../lib/template-processor');
-const { getAllComponentNames } = require('../lib/utils');
+const { getAllComponentNames, peek } = require('../lib/utils');
 
 
 const componentArgPrefix = '--component=';
@@ -21,6 +21,7 @@ const componentList = componentName ? [componentName] : getAllComponentNames();
 const srcFolder = 'src/components';
 const distFolder = 'dist/components';
 
+const __cpq = global.__cpq || (global.__cpq = []);
 
 // eslint-disable-next-line func-names
 const gulpTransform = ({ fromWatch, componentList, beforeHook } = {}) => {
@@ -28,6 +29,13 @@ const gulpTransform = ({ fromWatch, componentList, beforeHook } = {}) => {
     const file = vinylFile.clone();
 
     const dir = pathLib.dirname(file.path);
+
+    if (__cpq.length) {
+      const dir = peek(__cpq);
+      console.info(`Currently processing ${dir} - please try again shortly`);
+
+      return callback(null, file);
+    }
 
     if (fs.existsSync(pathLib.join(dir, '.skip'))) {
       return callback(null, file);
@@ -37,12 +45,16 @@ const gulpTransform = ({ fromWatch, componentList, beforeHook } = {}) => {
       await beforeHook();
     }
 
+    __cpq.push(dir);
+
     const { assetId, metadata, error = null } = await processFile({
       dir,
       fromGulp: true,
       fromWatch,
       srcComponentList: componentList,
     });
+
+    __cpq.pop();
 
     // write precompiled template
     file.basename = 'metadata.min.js';

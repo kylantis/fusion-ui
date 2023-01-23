@@ -1,8 +1,8 @@
 
-const ChartComponent = require('./index');
+const Box = require('./index');
 
-class ChartComponentTest extends ChartComponent {
+class BoxTest extends Box {
 
 }
 
-module.exports = ChartComponentTest;
+module.exports = BoxTest;

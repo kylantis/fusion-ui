@@ -59,29 +59,18 @@ class AppContext {
     });
   }
 
-  /**
-   * Note: Unlike evaluate(...), only a well known scope property can be
-   * be used here because top-level variables will be defined for them
-   */
   static unsafeEval(code, scope = {}) {
     const { require } = scope;
-    return eval(code);
+
+    const exports = {};
+    const module = { exports };
+
+    const r = eval(code);
+
+    return module.exports.__esModule ? module.exports : r;
   }
 
   static evaluate(code, scope = {}, thisObject) {
-
-    // this.getInput...
-    // module.exports = ...
-    // {...} ?
-    // ""
-    // const x...
-
-    // Todo: Add proxy support
-    const module = {
-      exports: undefined,
-    }
-
-    scope.module = module;
 
     const args = { names: [], values: [] };
 
@@ -96,9 +85,7 @@ class AppContext {
       fn = fn.bind(thisObject);
     }
 
-    let r = fn(...args.values);
-
-    return module.exports !== undefined ? module.exports : r;
+    return fn(...args.values);
   }
 
   setupSessionSocket() {
@@ -196,6 +183,10 @@ class AppContext {
     return [
       '/assets/js/client-bundle.min.js',
       { url: '/assets/js/client-utils.min.js', namespace: 'clientUtils' },
+      // https://cdnjs.cloudflare.com/ajax/libs/ajv/8.12.0/ajv7.min.js
+      { url: '/assets/js/cdn/ajv.min.js', namespace: 'ajv7' },
+      // 'https://cdn.jsdelivr.net/npm/handlebars@4.7.6/dist/handlebars.runtime.min.js',
+      { url: '/assets/js/cdn/handlebars.runtime.min.js', namespace: 'Handlebars' },
       { url: '/assets/js/custom-ctx-helpers.min.js', namespace: 'customCtxHelpers' },
       '/assets/js/proxy.min.js',
       '/assets/js/base-renderer.min.js',
@@ -247,7 +238,8 @@ class AppContext {
                 case './index':
                   return self.components[name];
                 default:
-                  throw Error('Cannot load module: ${module}');
+                  this.logger.warn(`Unable to load module "${module}" in the browser, returning null`);
+                  return null;
               }
             }
           },
@@ -259,7 +251,7 @@ class AppContext {
         self.components[name] = componentTestClass;
       }
 
-      self.components[name].schema = config.schema;
+      RootProxy.getGlobalSchemasObject()[name] = config.schema;
     }
 
     return Promise.all(
@@ -305,8 +297,7 @@ class AppContext {
   processScript({ contents, scope, namespace }) {
     const { evaluate, unsafeEval } = AppContext;
 
-    let exports;
-    const result = unsafeEval(contents, scope, { mod: exports });
+    const result = unsafeEval(contents, scope);
 
     // eslint-disable-next-line default-case
     switch (true) {
