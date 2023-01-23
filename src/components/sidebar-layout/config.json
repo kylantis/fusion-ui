@@ -5,11 +5,15 @@
     "navigation": {
       "type": "VerticalNavigation",
       "isNull": false
+    },
+    "searchBar": {
+      "type": "Boolean",
+      "defaultValue": true
     }
   },
   "sample": {
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": true,
+  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false
 }

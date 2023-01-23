@@ -19,7 +19,7 @@
     "tabs_$.content": {
       "type": "componentRef",
       "defaults": [
-        null
+        "SidebarLayout"
       ]
     },
     "useDivider": {

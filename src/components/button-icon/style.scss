@@ -1,0 +1,16 @@
+.slds-button_icon {
+
+    &.slds-button_icon-circular {
+        border-radius: 10em;
+        
+        border: 1px solid lightgray;
+        transition: border-color 1s ease;  
+
+        box-shadow: none;
+        transition: box-shadow 0.3s ease-in-out;
+
+        &:hover {
+            box-shadow: 0 0 1em 0.2em rgb(0 0 0 / 25%);
+        }
+    }
+}

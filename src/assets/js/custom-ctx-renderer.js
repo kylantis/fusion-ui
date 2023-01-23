@@ -362,7 +362,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     const currentType = getValueType(value);
 
-    let err = `${path} must resolve to the type : [${validType}]${nameQualifier ? ` (${nameQualifier}) ` : ''} instead of ${currentType}`;
+    let err = `${path} must resolve to the type : ${validType}${nameQualifier ? ` (${nameQualifier}) ` : ''} instead of ${currentType}`;
 
     // eslint-disable-next-line default-case
     switch (true) {

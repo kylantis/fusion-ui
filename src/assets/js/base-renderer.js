@@ -11,6 +11,8 @@ class BaseRenderer {
 
   #initialized;
 
+  #config;
+
   constructor({ id, input, logger, config={} } = {}) {
     if (!id) {
       // eslint-disable-next-line no-param-reassign
@@ -38,7 +40,7 @@ class BaseRenderer {
 
     this.setInput(input);
 
-    this.config = {
+    this.#config = {
       ...BaseRenderer.getDefaultConfig(),
       ...config,
     };
@@ -54,11 +56,12 @@ class BaseRenderer {
     return {
       hookCleanupInterval: 300,
       allowHooksForNonExistentPaths: true,
+      validateInputSchema: false,
     }
   }
 
   getConfig() {
-    return this.config;
+    return this.#config;
   }
 
   static getComponentIds() {

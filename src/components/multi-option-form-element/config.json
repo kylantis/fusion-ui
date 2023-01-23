@@ -5,7 +5,6 @@
       "singularType": "Item"
     }
   },
-  "useCollectionLengthProperty": true,
   "scalars": {
     "items_$.label": {
       "type": "String",
@@ -66,5 +65,6 @@
       "items_$.error"
     ]
   },
+  "useCollectionLengthProperty": true,
   "escapeDynamicHtml": false
 }

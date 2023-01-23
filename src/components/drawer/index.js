@@ -5,6 +5,13 @@ class Drawer extends components.LightningComponent {
         this.getInput().showByDefault;
     }
 
+    cssDependencies() {
+        return [
+            ...super.cssDependencies(),
+            '/components/drawer/style.min.css',
+        ];
+    }
+
     beforeMount() {
         const input = this.getInput();
 
@@ -36,7 +43,7 @@ class Drawer extends components.LightningComponent {
 
     getDrawerNode() {
         const { overlay } = this.getInput();
-        const selector =  overlay ? ':scope .slds-c-overlay-drawer' :
+        const selector = overlay ? ':scope .slds-c-overlay-drawer' :
             ':scope .slds-c-drawer-container .slds-c-drawer';
 
         const node = this.node.querySelector(selector);
@@ -48,22 +55,35 @@ class Drawer extends components.LightningComponent {
         return node;
     }
 
+    toggleDrawer() {
+        if (this.getDrawerNode().classList.contains('slds-is-open')) {
+            this.closeDrawer();
+        } else {
+            this.openDrawer();
+        }
+    }
+
     openDrawer() {
-        const { backdrop } = this.getInput();
+        const { overlay, backdrop, toggleButton } = this.getInput();
 
         this.getDrawerNode().setAttribute('aria-hidden', false);
 
         this.getDrawerNode().classList.add('slds-is-open');
 
-        if (backdrop) {
+        if (overlay && backdrop) {
             this.node.querySelector(':scope .slds-backdrop').classList.add('slds-backdrop_open');
+        }
+
+        if (toggleButton) {
+            this.getInlineComponent('toggleButton').node
+                .setAttribute("style", "display: none");
         }
 
         this.dispatchEvent('drawerOpen');
     }
 
     closeDrawer() {
-        const { backdrop } = this.getInput();
+        const { backdrop, toggleButton } = this.getInput();
 
         this.getDrawerNode().setAttribute('aria-hidden', true);
 
@@ -71,6 +91,13 @@ class Drawer extends components.LightningComponent {
 
         if (backdrop) {
             this.node.querySelector(':scope .slds-backdrop').classList.remove('slds-backdrop_open');
+        }
+
+        if (toggleButton) {
+            setTimeout(() => {
+                this.getInlineComponent('toggleButton').node
+                    .removeAttribute("style");
+            }, 200);
         }
 
         this.dispatchEvent('drawerClose');

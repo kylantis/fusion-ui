@@ -1,3 +1,5 @@
+{{style url="/components/button_icon/style.min.css"}}
+
 <button class="slds-button slds-button_icon
  {{type ? 'slds-button_icon-${type}' : ''}}
  {{useCurrentColor ? 'slds-button_icon-current-color' : ''}}

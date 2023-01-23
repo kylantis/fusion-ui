@@ -108,7 +108,6 @@ parts, and each part is either plain text or a link
             <div>
               <span class="slds-text-title">Description</span>
               <p class="slds-p-top_x-small">
-                {{!-- Need to finalize proposals and brand details before the meeting --}}
                 {{> render_sentence sentence=description }}
                 </p>
             </div>

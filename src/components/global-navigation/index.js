@@ -2,8 +2,13 @@
 class GlobalNavigation extends components.LightningComponent {
 
     initCompile() {
+
+        // DEV PURPOSE ONLY - PLEASE REMOVE
+        components.SidebarLayout;
         components.Illustration;
+
         components.OverlayComponent;
+        
 
         this.getInput().tabs[0].isActive;
         this.getInput().tabs[0].contentPadding;

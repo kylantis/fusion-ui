@@ -1,6 +1,6 @@
 {
   "collections": {},
-  "useCollectionLengthProperty": true,
+  "useCollectionLengthProperty": false,
   "scalars": {},
   "sample": {},
   "escapeDynamicHtml": false

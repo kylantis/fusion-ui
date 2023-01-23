@@ -36,7 +36,7 @@
         "brand"
       ],
       "defaults": [
-        "inverse"
+        "brand"
       ]
     },
     "inlined": {
@@ -45,12 +45,12 @@
     },
     "backdropped": {
       "type": "Boolean",
-      "defaultValue": true
+      "defaultValue": false
     }
   },
   "sample": {
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": true,
+  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false
 }

@@ -9,14 +9,7 @@
         "large"
       ],
       "defaults": [
-        "small"
-      ]
-    },
-    "iconName": {
-      "type": "String",
-      "allowed": "iconName",
-      "defaults": [
-        "settings"
+        "large"
       ]
     },
     "iconType": {
@@ -24,6 +17,13 @@
       "allowed": "iconType",
       "defaults": [
         "utility"
+      ]
+    },
+    "iconName": {
+      "type": "String",
+      "allowed": "utilityIconName",
+      "defaults": [
+        "justify_text"
       ]
     },
     "cssClass": {
@@ -63,7 +63,7 @@
         "large"
       ],
       "defaults": [
-        null
+        "large"
       ]
     },
     "title": {
@@ -79,10 +79,11 @@
         "inverse",
         "border",
         "border-filled",
-        "border-inverse"
+        "border-inverse",
+        "circular"
       ],
       "defaults": [
-        null
+        "circular"
       ]
     },
     "container": {

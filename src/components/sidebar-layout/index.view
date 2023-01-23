@@ -1,11 +1,18 @@
 
 {{#*inline "render_panel_body"}}
     {{component VerticalNavigation alias="navigation"}}
-    
-    {{> ?sidebar-top}}
+
+    {{#if searchBar}}
+        <div style="margin-bottom: 1em;">
+            {{> Input 
+                type="text" leftIcon="search" clearButton=true placeholder="Search"
+                ref="searchBar"
+            }}
+        </div>
+    {{/if}}
+
     {{> navigation}}
 {{/inline}}
 
 
 {{> render_drawer}}
-
