@@ -9,7 +9,7 @@
         "large"
       ],
       "defaults": [
-        "large"
+        null
       ]
     },
     "iconType": {
@@ -63,7 +63,7 @@
         "large"
       ],
       "defaults": [
-        "large"
+        null
       ]
     },
     "title": {
@@ -83,7 +83,7 @@
         "circular"
       ],
       "defaults": [
-        "circular"
+        null
       ]
     },
     "container": {

@@ -2,34 +2,235 @@
 /**
  * Charts is powered by https://frappe.io/
  */
+
+// Todo: Create HeatMap component
+// Todo: Add data binding capability via hooks
+
 class ChartComponent extends components.LightningComponent {
+
+    initCompile() {
+        this.getInput().title;
+        this.getInput().type;
+        this.getInput().height;
+        this.getInput().truncateLegends;
+        this.getInput().colors[0];
+        this.getInput().labels[0];
+        this.getInput().datasets[0].name;
+        this.getInput().datasets[0].chartType;
+        this.getInput().datasets[0].values[0];
+        this.getInput().yMarkers[0].label;
+        this.getInput().yMarkers[0].value;
+        this.getInput().yMarkers[0].options.labelPos;
+
+        this.getInput().yRegions[0].label;
+        this.getInput().yRegions[0].start;
+        this.getInput().yRegions[0].end;
+        this.getInput().yRegions[0].options.labelPos;
+
+        this.getInput().axisOptions.xAxisMode;
+        this.getInput().axisOptions.yAxisMode;
+        this.getInput().axisOptions.xIsSeries;
+        this.getInput().barOptions.spaceRatio;
+        this.getInput().barOptions.stacked;
+        this.getInput().barOptions.height;
+        this.getInput().lineOptions.regionFill;
+        this.getInput().lineOptions.hideDots;
+        this.getInput().lineOptions.hideLine;
+        this.getInput().lineOptions.heatline;
+        this.getInput().lineOptions.spline;
+        this.getInput().lineOptions.dotSize;
+        this.getInput().isNavigable;
+        this.getInput().valuesOverPoints;
+        this.getInput().maxSlices;
+        this.getInput().animate;
+    }
+
+    static getDefaultColors() {
+        const DEFAULT_COLORS_A = [
+            "#318ad8",
+            "#BFDDF7",
+            "rgb(47, 162, 91)"
+        ];
+
+        const DEFAULT_COLORS_B = [
+            "#4169e1",
+            "#7cd6fd",
+            "#00bdff",
+            "rgb(246, 131, 174)",
+            "rgb(49, 138, 216)",
+            "rgb(72, 187, 116)",
+            "rgb(166, 177, 185)",
+            "rgb(245, 107, 107)",
+            "rgb(250, 207, 122)",
+            "rgb(68, 66, 123)",
+            "rgb(95, 216, 196)"
+        ];
+
+        return [
+            ...clientUtils.fisherYatesShuffle(DEFAULT_COLORS_A),
+            ...clientUtils.fisherYatesShuffle(DEFAULT_COLORS_B),
+        ];
+    }
+
+    beforeMount() {
+        const { getDefaultColors } = ChartComponent;
+        const input = this.getInput();
+        const { colors } = input;
+
+        if (!colors || !colors.length) {
+            input.colors = getDefaultColors();
+        }
+    }
 
     jsDependencies() {
         return [
             ...super.jsDependencies(),
             {
-                // 'https://cdn.jsdelivr.net/npm/frappe-charts@1/dist/frappe-charts.min.cjs.min.js'
+                // url: 'https://cdn.jsdelivr.net/npm/frappe-charts@1/dist/frappe-charts.min.cjs.min.js',
                 url: '/assets/js/cdn/frappe-charts.min.js',
-                namespace: 'frappe'
+                namespace: 'frappe',
             }
         ];
     }
 
-    static isAbstract() {
-        return true;
+    getData() {
+        const { labels, datasets, yMarkers, yRegions } = this.getInput();
+        return clientUtils.deepClone({ labels, datasets, yMarkers, yRegions });
     }
 
     onMount() {
-       
+        const { getWrapperCssClass } = BaseComponent;
+        const {
+            type, title, height, colors, truncateLegends, maxSlices, animate,
+            axisOptions, barOptions, lineOptions, isNavigable, valuesOverPoints,
+        } = this.getInput();
+
+        this.node.classList.remove(getWrapperCssClass());
+
+        this.chart = new frappe.Chart(this.node,
+            {
+                title, type, height, colors, truncateLegends, maxSlices, axisOptions,
+                barOptions, lineOptions, isNavigable, valuesOverPoints, animate,
+                data: this.getData(),
+            }
+        );
+
+        this.chart.parent.addEventListener('data-select', (e) => {
+            this.dispatchEvent('select', e.label, e.index, e.values);
+        });
     }
 
-    /**
-     * Charts use a third-party library so there's no need to attempt to load them after 
-     * compile - which is mostly for test purposes. Moreover, even if we wanted to - Frappe 
-     * does not have a way to callback after chart has been fully rendered
-     */
-    loadAfterCompile() {
-        return false;
+    events() {
+        return ['select'];
+    }
+
+    behaviours() {
+        return [
+            'push', 'addDataPoint', 'removeDataPoint', 'update', 'export', 'startPulsateCurrentDataPoint', 'stopPulsateCurrentDataPoint', 
+            'setCurrentDataPoint'
+        ];
+    }
+
+    setCurrentDataPoint(index) {
+        this.chart.setCurrentDataPoint(index)
+    }
+
+    getCurrentDataPointCircle() {
+        return this.node.querySelector(
+            ':scope > .chart-container > svg > .chart-draw-area > circle'
+        );
+    }
+
+    startPulsateCurrentDataPoint() {
+        this.pulsateSelectionIntervalId = setInterval(() => {
+            if (this.isCurrentDataPointVisible()) {
+                this.hideCurrentDataPoint0();
+            } else {
+                this.showCurrentDataPoint0();
+            };
+        }, 250);
+    }
+
+    stopPulsateCurrentDataPoint() {
+        clearInterval(this.pulsateSelectionIntervalId);
+        this.pulsateSelectionIntervalId = null;
+        this.showCurrentDataPoint0();
+    }
+
+    isCurrentDataPointVisible() {
+        const { visibility } = this.getCurrentDataPointCircle().style;
+        return !visibility || visibility == 'visible';
+    }
+
+    hideCurrentDataPoint() {
+        this.hideCurrentDataPoint0();
+    }
+
+    hideCurrentDataPoint0(useDisplay) {
+        if (this.getCurrentDataPointCircle()) {
+            if (useDisplay) {
+                this.getCurrentDataPointCircle().style.display = 'none';
+            } else {
+                this.getCurrentDataPointCircle().style.visibility = 'hidden';
+            }
+        }
+    }
+
+    showCurrentDataPoint() {
+        this.showCurrentDataPoint0();
+    }
+
+    showCurrentDataPoint0(useDisplay) {
+        if (this.getCurrentDataPointCircle()) {
+            if (useDisplay) {
+                this.getCurrentDataPointCircle().style.display = 'inline';
+            } else {
+                this.getCurrentDataPointCircle().style.visibility = 'visible';
+            }
+        }
+    }
+
+    push(label, valueFromEachDataset) {
+
+        const input = this.getInput();
+        const { labels, datasets } = input;
+
+        input.labels = [...labels.slice(1), label];
+
+        valueFromEachDataset.forEach((v, i) => {
+            if (!datasets[i]) return;
+
+            datasets[i].values = [
+                ...datasets[i].values.slice(1),
+                v,
+            ];
+        });
+
+        this.hideCurrentDataPoint0(true);
+
+        this.update();
+
+        if (!this.pulsateSelectionIntervalId) {
+            setTimeout(() => {
+                this.showCurrentDataPoint0(true);
+            }, 500)
+        }
+    }
+
+    addDataPoint(label, index, valueFromEachDataset) {
+        this.chart.addDataPoint(label, valueFromEachDataset, index)
+    }
+
+    removeDataPoint(index) {
+        this.chart.removeDataPoint(index);
+    }
+
+    export() {
+        this.chart.export();
+    }
+
+    update() {
+        this.chart.update(this.getData());
     }
 }
 module.exports = ChartComponent;

@@ -83,6 +83,17 @@
       "defaults": [
         null
       ]
+    },
+    "boxPadding": {
+      "type": "String",
+      "allowed": [
+        "xx-small",
+        "x-small",
+        "small"
+      ],
+      "defaults": [
+        "x-small"
+      ]
     }
   },
   "sample": {

@@ -1,4 +1,6 @@
 
+
+// Todo: Update this component is old and uses a deprectaed approach
 class Accordion extends components.LightningComponent {
 
     /**

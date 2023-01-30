@@ -56,6 +56,11 @@ const gulpTransform = ({ fromWatch, componentList, beforeHook } = {}) => {
 
     __cpq.pop();
 
+    if (global.gc) {
+      // Run the garbage collector, if node flag: --expose-gc is present
+      global.gc();
+    }
+
     // write precompiled template
     file.basename = 'metadata.min.js';
     file.path = pathLib.join(pathLib.dirname(dir), assetId, file.basename);

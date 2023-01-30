@@ -2,13 +2,13 @@
   "enableTypeMerging": false,
   "collections": {},
   "scalars": {},
-  "behaviourTypings": {
-    "showTooltip": {
-      "parameters": [
-        "String",
-        "Number"
-      ],
-      "return": "String"
+  "behaviours": {
+    "setTooltip": {
+      "parameters": {
+        "title": {
+          "type": "string"
+        }
+      }
     }
   },
   "sample": {

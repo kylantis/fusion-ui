@@ -29,17 +29,6 @@ class FormElement extends components.LightningComponent {
 
     hooks() {
         return {
-            ['beforeMount.helperText']: async (evt) => {
-                const { newValue: helperText, parentObject: obj } = evt;
-                if (helperText) {
-                    if (!obj.titleIcon) {
-                        await this.setHelperTooltip(helperText);
-                    }
-                } else if (this.helperTooltip) {
-                    this.helperTooltip.destroy();
-                    delete this.helperTooltip;
-                }
-            },
             ['onMount.readonly']: (evt) => {
                 const { newValue: readonly } = evt;
                 this.toggleReadOnlyClass(readonly);
@@ -67,74 +56,24 @@ class FormElement extends components.LightningComponent {
         return ['refreshTooltip'];
     }
 
-    async refreshTooltip() {
-        if (this.helperTooltip) {
-            await this.helperTooltip.refresh();
-        }
+    getTooltipTarget() {
+        const { titleIcon } = this.getInput();
+        return titleIcon ? titleIcon.getTooltipTarget() : super.getTooltipTarget();
     }
 
-    async setHelperTooltip(helperText) {
+    getTooltipHoverTarget() {
+        const { titleIcon } = this.getInput();
+        return titleIcon ? titleIcon.getTooltipHoverTarget() : super.getTooltipHoverTarget();
+    }
 
-        if (this.isHeadlessContext()) {
-            return;
-        }
-
-        if (!this.helperTooltip) {
-
-            const { rtl } = this.getGlobalVariables();
-
-            const btn = `#${this.getElementId()} button.slds-button_icon`;
-            const hoverTarget = document.querySelector(btn);
-
-            if (!hoverTarget) {
-                return;
-            }
-
-            const svg = `${btn} svg`;
-
-            this.helperTooltip = new components.Tooltip({
-                input: {
-
-                    targetElement: svg,
-                    parts: [{
-                        text: helperText,
-                    }],
-                },
-            });
-
-            // We don't want our tooltip to block the user's view of the checkbox
-            this.helperTooltip.supportedPositions = [
-                "top",
-                "bottom",
-                ...rtl ? ["left", "right"] : ["right", "left"],
-            ]
-
-            await this.helperTooltip.load();
-
-            this.helperTooltip.setPosition();
-
-
-            let isMouseHover = false;
-
-            hoverTarget.addEventListener('mouseenter', () => {
-                isMouseHover = true;
-                setTimeout(() => {
-                    if (isMouseHover) {
-                        this.helperTooltip.show();
-                    }
-                }, 200);
-            });
-
-            hoverTarget.addEventListener('mouseleave', () => {
-                isMouseHover = false;
-                this.helperTooltip.hide();
-            });
-
-        } else {
-            this.helperTooltip.getInput().parts = [{
-                text: helperText,
-            }];
-        }
+    getTooltipPositions() {
+        const { rtl } = this.getGlobalVariables();
+        // If we have a tooltip, we don't want it to block the user's view of the checkbox
+        return [
+            "top",
+            "bottom",
+            ...rtl ? ["left", "right"] : ["right", "left"],
+        ];
     }
 
     getFormElementNode() {
@@ -211,9 +150,7 @@ class FormElement extends components.LightningComponent {
     }
 
     async onMount() {
-        const {
-            helperText, icon, readonly, error, editable, inEditMode,
-        } = this.getInput();
+        const { readonly, error, editable, inEditMode } = this.getInput();
 
         if (readonly) {
             this.toggleReadOnlyClass(readonly);
@@ -226,13 +163,6 @@ class FormElement extends components.LightningComponent {
         if (editable) {
             this.toggleEditableClass(true);
             this.toggleEditModeClass(inEditMode);
-        }
-
-        // Todo: setHelperTooltip(...) contains logic that should be integrated into the tooltip
-        // component, this needs to be done
-
-        if (helperText && !icon) {
-            await this.setHelperTooltip(helperText);
         }
     }
 }

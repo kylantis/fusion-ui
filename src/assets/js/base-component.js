@@ -129,6 +129,11 @@ class BaseComponent extends WebRenderer {
     // eslint-disable-next-line no-plusplus
     this.renderOffset++;
 
+
+
+
+    
+
     const future = this.promise
       // eslint-disable-next-line no-shadow
       .then(() => Promise.resolve(data)
@@ -243,7 +248,7 @@ class BaseComponent extends WebRenderer {
 
   // #API
   onNodeDetachEvent(handler, nodes) {
-    this.one(
+    this.once(
       handler, nodes
         .map(s => BaseComponent.#toNodeDetachEventName(s)
         ))
@@ -258,14 +263,14 @@ class BaseComponent extends WebRenderer {
 
   // #API
   onNodeUpdateEvent(handler, nodes) {
-    this.one(
+    this.once(
       handler, nodes
         .map(s => BaseComponent.#toNodeUpdateEventName(s)
         ))
   }
 
   // #API
-  one(handler, ...events) {
+  once(handler, ...events) {
     const handler0 = (...args) => {
       handler(...args);
 
@@ -438,10 +443,6 @@ class BaseComponent extends WebRenderer {
     });
 
     return o;
-  }
-
-  loadAfterCompile() {
-    return true;
   }
 
   //  Utility methods

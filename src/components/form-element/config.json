@@ -16,13 +16,7 @@
     },
     "titleIcon": {
       "type": "ButtonIcon",
-      "isNull": true
-    },
-    "helperText": {
-      "type": "String",
-      "defaults": [
-        "Some helpful information"
-      ]
+      "isNull": false
     },
     "title": {
       "type": "Text",

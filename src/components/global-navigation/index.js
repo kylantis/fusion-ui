@@ -8,7 +8,7 @@ class GlobalNavigation extends components.LightningComponent {
         components.Illustration;
 
         components.OverlayComponent;
-        
+
 
         this.getInput().tabs[0].isActive;
         this.getInput().tabs[0].contentPadding;
@@ -111,7 +111,6 @@ class GlobalNavigation extends components.LightningComponent {
 
     events() {
         return [
-            ...super.events(),
             'tabActive', 'tabInactive', 'tabItemClick', 'tabClose'
         ]
     }
@@ -157,7 +156,7 @@ class GlobalNavigation extends components.LightningComponent {
                     }
 
                     this.visibleSubMenuHover = null;
-                    
+
                     if (subMenu) {
                         li.querySelector('.trigger-submenu').style.visibility = 'visible';
                     }
@@ -298,6 +297,7 @@ class GlobalNavigation extends components.LightningComponent {
         // If tab context is not yet loaded, load it.
         if (!item.isLoaded) {
             this.loading = true;
+            // Todo: Use spinner instead
             showLoader();
 
             let { content } = item;
@@ -325,6 +325,7 @@ class GlobalNavigation extends components.LightningComponent {
 
                     item.isLoaded = true;
 
+                    // Todo: Use spinner instead
                     hideLoader();
                     this.loading = false;
                 });
@@ -358,7 +359,7 @@ class GlobalNavigation extends components.LightningComponent {
 
     createTabContentContainer(identifier) {
         const { contentPadding } = this.getItems()[identifier];
-        
+
         const contentDiv = document.createElement('div');
 
         contentDiv.id = this.getContentId(identifier);
@@ -398,7 +399,7 @@ class GlobalNavigation extends components.LightningComponent {
             throw Error(`Tab with identifier "${identifier}" already exists`);
         }
 
-        items[identifier] = { 
+        items[identifier] = {
             li, hasSubMenu: !!subMenu, content, subMenu, contentPadding
         };
 

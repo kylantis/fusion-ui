@@ -231,6 +231,13 @@ class RootProxy {
         definition.$id = `${defPrefx}${id}`;
 
         const addDataVariables = (def) => {
+
+          if (def.properties && def.properties[firstProperty]) {
+            assert(def.shared);
+            // Data variables has been already been registered
+            return;
+          }
+          
           const dataVariables = {
             [firstProperty]: { type: 'boolean' },
             [lastProperty]: { type: 'boolean' },
@@ -458,11 +465,11 @@ class RootProxy {
     );
 
     const ajv = new ajv7.default({
-      schemas: Object.values(definitions),
-      allErrors: true,
-      allowUnionTypes: true,
-      inlineRefs: false,
-    });
+        schemas: Object.values(definitions),
+        allErrors: true,
+        allowUnionTypes: true,
+        inlineRefs: false,
+      });
 
     // Add custom validator for component instances
     ajv.addKeyword({
@@ -2603,8 +2610,8 @@ class RootProxy {
   }
 
   static toDefinitionName(path) {
-    const { pathSchemaDefPrefix } = RootProxy;
-    return `${pathSchemaDefPrefix}.${path}`;
+    const { dataPathRoot, pathSeparator, pathSchemaDefPrefix } = RootProxy;
+    return `${pathSchemaDefPrefix}.${path.replace(`${dataPathRoot}${pathSeparator}`, '')}`;
   }
 
   getObjectDefiniton(path) {

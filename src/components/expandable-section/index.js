@@ -3,14 +3,6 @@ class ExpandableSection extends components.LightningComponent {
 
     hooks() {
         return {
-            ['expanded']: ({ newValue: expanded }) => {
-                const node = this.node.querySelector(':scope > .slds-section');
-                if (expanded) {
-                    node.classList.add('slds-is-open');
-                } else {
-                    node.classList.remove('slds-is-open');
-                }
-            },
             ['collapsible']: ({ newValue: collapsible }) => {
                 if (collapsible && !this.hasClickListener) {
                     this.addClickListener();
