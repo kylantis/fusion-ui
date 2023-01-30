@@ -37,33 +37,10 @@ class ActivityTimeline extends components.LightningComponent {
                 this.setExpandButtonVisibility(identifier);
             },
             ['beforeMount.items.$_.expanded']: (evt) => {
-                const { oldValue, newValue, parentObject: { ["@key"]: identifier } } = evt;
-
-                // Todo: remove condition??
-                if (oldValue == newValue) {
-                    return;
-                }
-
-                this.expandOrCollapseItem(identifier);
+                const { parentObject: { ["@key"]: identifier }, newValue } = evt;
+                this.getExpandButton(identifier).setAttribute("aria-expanded", !newValue);
             }
         }
-    }
-
-    expandOrCollapseItem(identifier) {
-        const node = this.node.querySelector(`li[identifier='${identifier}'] > div.slds-timeline__item_expandable`);
-        const className = 'slds-is-open';
-        const { classList } = node;
-
-        const collapse = classList.contains(className);
-
-        if (collapse) {
-            classList.remove(className);
-        } else {
-            classList.add(className);
-        }
-
-        // Note: this is optional
-        this.getExpandButton(identifier).setAttribute("aria-expanded", !collapse);
     }
 
     async addContextMenu(identifier, actions) {

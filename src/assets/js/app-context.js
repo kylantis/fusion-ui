@@ -33,7 +33,10 @@ class AppContext {
     }
 
     this.components = {};
+
     this.setGlobals();
+
+    this.addPolyfills();
   }
 
   // Todo: Replace XHR object with a custom api as urgent security measure
@@ -57,6 +60,17 @@ class AppContext {
     Object.defineProperty(self, 'appContext', {
       value: this, configurable: false, writable: false,
     });
+  }
+
+  addPolyfills() {
+
+    // Todo: remove all polyfills after upgrade necessary components to stop using deprecated API
+
+    if (!Event.prototype.hasOwnProperty('path')) {
+      Object.defineProperty(Event.prototype, 'path', {
+        get() { return this.composedPath(); }
+      });
+    }
   }
 
   static unsafeEval(code, scope = {}) {
@@ -238,7 +252,7 @@ class AppContext {
                 case './index':
                   return self.components[name];
                 default:
-                  this.logger.warn(`Unable to load module "${module}" in the browser, returning null`);
+                  // this.logger.warn(`Unable to load module "${module}" in the browser, returning null`);
                   return null;
               }
             }

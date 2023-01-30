@@ -11,13 +11,8 @@ class ButtonIcon extends components.LightningComponent {
     beforeMount() {
         this.#setDefaults();
 
-        // Todo: 
-        
-        // 1. Ensure that the attribute "aria-pressed" is set to true or false, 
-        // depending on its state. This is applicable to the types:
-        // border, border-filled, border-inverse
-
-        // 2. Implement - Hint on hover
+        // Todo: Ensure that the attribute "aria-pressed" is set to true or false, depending on its 
+        // state. This is applicable to the types: border, border-filled, border-inverse
     }
 
     events() {
@@ -28,6 +23,14 @@ class ButtonIcon extends components.LightningComponent {
         this.node.querySelector(':scope > button').addEventListener("click", () => {
             this.dispatchEvent('click');;
         });
+    }
+
+    getTooltipTarget() {
+        return this.isMounted() ? `#${this.getElementId()} svg` : null;
+    }
+
+    getTooltipHoverTarget() {
+        return super.getTooltipTarget();
     }
 
     getIconSvg() {

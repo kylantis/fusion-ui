@@ -12,15 +12,9 @@
 
 {{#*inline "render_title_icon" eager=true}}
   {{component ButtonIcon alias="titleIcon"}}
-  {{#if titleIcon or helperText}}
+  {{#if titleIcon}}
     <div class="slds-form-element__icon {{displayOnlyControl ? "slds-assistive-text" : ""}}">
-    {{#if titleIcon}}
-        {{> titleIcon}}
-    {{else}}
-      {{#if helperText}}
-        {{> ButtonIcon iconType='utility' iconName='info'}}
-      {{/if}}
-    {{/if}}
+        {{> titleIcon }}
     </div>
   {{/if}}
 {{/inline}}

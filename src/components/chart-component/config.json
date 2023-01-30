@@ -1,10 +1,288 @@
 {
-  "enableTypeMerging": false,
-  "collections": {},
-  "scalars": {},
+  "enableTypeMerging": true,
+  "collections": {
+    "labels": {
+      "minLength": 7
+    },
+    "colors": {
+      "minLength": 0
+    },
+    "datasets": {
+      "minLength": 1,
+      "singularType": "Dataset"
+    },
+    "datasets_$.values": {
+      "minLength": 7
+    },
+    "yMarkers": {
+      "minLength": 1,
+      "singularType": "YMarker"
+    },
+    "yRegions": {
+      "minLength": 1,
+      "singularType": "YRegion"
+    }
+  },
+  "scalars": {
+    "title": {
+      "type": "String",
+      "defaults": [
+        "My Awesome Chart"
+      ]
+    },
+    "type": {
+      "type": "String",
+      "allowed": [
+        "axis-mixed",
+        "bar",
+        "line",
+        "pie",
+        "percentage",
+        "donut"
+      ],
+      "defaults": [
+        "bar"
+      ]
+    },
+    "colors_$": {
+      "type": "string",
+      "defaults": [
+        null
+      ]
+    },
+    "labels_$": {
+      "type": "String",
+      "defaults": [
+        "Sun",
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat"
+      ]
+    },
+    "datasets_$.values_$": {
+      "type": "number",
+      "min": 5,
+      "max": 30
+    },
+    "datasets_$.name": {
+      "type": "String",
+      "defaults": [
+        "Some Data",
+        "Yet Another",
+        "Some More",
+        "And Another"
+      ]
+    },
+    "datasets_$.chartType": {
+      "type": "String",
+      "allowed": [
+        "line",
+        "bar"
+      ],
+      "defaults": [
+        null
+      ]
+    },
+    "yMarkers_$.label": {
+      "type": "String",
+      "defaults": [
+        "Marker"
+      ]
+    },
+    "yMarkers_$.value": {
+      "type": "Number",
+      "defaultValue": 70
+    },
+    "yRegions_$.label": {
+      "type": "String",
+      "defaults": [
+        "Region"
+      ]
+    },
+    "yRegions_$.start": {
+      "type": "Number",
+      "defaultValue": -10
+    },
+    "yRegions_$.end": {
+      "type": "Number",
+      "defaultValue": 50
+    },
+    "truncateLegends": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "axisOptions.xAxisMode": {
+      "type": "String",
+      "allowed": [
+        "span",
+        "tick"
+      ],
+      "defaults": [
+        "span"
+      ]
+    },
+    "axisOptions.yAxisMode": {
+      "type": "String",
+      "allowed": [
+        "span",
+        "tick"
+      ],
+      "defaults": [
+        "span"
+      ]
+    },
+    "axisOptions.xIsSeries": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "barOptions.spaceRatio": {
+      "type": "Number",
+      "defaultValue": 0.7
+    },
+    "barOptions.stacked": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "barOptions.height": {
+      "type": "Number",
+      "defaultValue": 15
+    },
+    "lineOptions.regionFill": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "lineOptions.hideDots": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "lineOptions.hideLine": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "lineOptions.heatline": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "lineOptions.spline": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "lineOptions.dotSize": {
+      "type": "Number",
+      "defaultValue": 5
+    },
+    "isNavigable": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "valuesOverPoints": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "animate": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "height": {
+      "type": "Number",
+      "defaultValue": 300
+    },
+    "maxSlices": {
+      "type": "Number",
+      "defaultValue": 8
+    },
+    "YOption.labelPos": {
+      "type": "String",
+      "allowed": [
+        "left",
+        "right"
+      ]
+    },
+    "yMarkers_$.options.labelPos": {
+      "type": {
+        "$ref": "YOption.labelPos"
+      },
+      "defaults": []
+    },
+    "yRegions_$.options.labelPos": {
+      "type": {
+        "$ref": "YOption.labelPos"
+      },
+      "defaults": []
+    }
+  },
+  "clientOnlyPaths": [],
+  "events": {
+    "select": {
+      "parameters": {
+        "label": {
+          "type": "string"
+        },
+        "index": {
+          "type": "number"
+        },
+        "valueFromEachDataset": {
+          "type": "number",
+          "spread": true
+        }
+      }
+    }
+  },
+  "behaviours": {
+    "setCurrentDataPoint": {
+      "parameters": {
+        "index": {
+          "type": "number"
+        }
+      }
+    },
+    "push": {
+      "parameters": {
+        "label": {
+          "type": "string"
+        },
+        "valueFromEachDataset": {
+          "type": "number",
+          "spread": true
+        }
+      }
+    },
+    "addDataPoint": {
+      "parameters": {
+        "label": {
+          "type": "string"
+        },
+        "index": {
+          "type": "number"
+        },
+        "valueFromEachDataset": {
+          "type": "number",
+          "spread": true
+        }
+      }
+    },
+    "removeDataPoint": {
+      "parameters": {
+        "index": {
+          "type": "number"
+        }
+      }
+    }
+  },
   "sample": {
-    "nullifyRandomly": []
+    "nullifyRandomly": [],
+    "nullify": [
+      "yRegions",
+      "yMarkers"
+    ]
   },
   "useCollectionLengthProperty": false,
-  "escapeDynamicHtml": false
+  "escapeDynamicHtml": false,
+  "loadAfterCompile": false,
+  "sharedTypeNames": {
+    "SharedType0": "YOption"
+  }
 }

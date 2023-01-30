@@ -10,6 +10,142 @@ class LightningComponent extends BaseComponent {
         ];
     }
 
+    onMount() {
+    }
+
+    event() {
+        return [];
+    }
+
+    behaviours() {
+        return [
+            'setTooltip', 'showTooltip', 'hideTooltip', 'refreshTooltip', 'removeTooltip',
+            'resetTooltipHover', 'showTooltipOnHover',
+        ];
+    }
+
+    async setTooltip(title) {
+        if (this.isHeadlessContext() || !title) {
+            return;
+        }
+
+        if (this.tooltip) {
+
+            this.tooltip.getInput().parts = [{
+                text: title,
+            }];
+
+        } else {
+
+            const target = this.getTooltipTarget();
+
+            if (!target) {
+                return;
+            }
+
+            this.tooltip = new components.Tooltip({
+                input: {
+                    targetElement: target,
+                    parts: [{
+                        text: title,
+                    }],
+                },
+            });
+
+            this.tooltip.supportedPositions = this.getTooltipPositions();
+
+            await this.tooltip.load();
+
+            this.tooltip.setPosition();
+        }
+    }
+
+    getTooltip() {
+        return this.tooltip;
+    }
+
+    showTooltip() {
+        if (this.tooltip) {
+            this.tooltip.show();
+        }
+    }
+
+    hideTooltip() {
+        if (this.tooltip) {
+            this.tooltip.hide();
+        }
+    }
+
+    async refreshTooltip() {
+        if (this.tooltip) {
+            await this.tooltip.refresh();
+        }
+    }
+
+    removeTooltip() {
+        if (this.tooltip) {
+            this.tooltip.destroy();
+            delete this.tooltip;
+        }
+    }
+
+    resetTooltipHover() {
+
+        if (!this.tooltipHoverInfo) {
+            return;
+        }
+
+        const { targetNode, onMouseEnter, onMouseLeave } = this.tooltipHoverInfo;
+
+        targetNode.removeEventListener('mouseenter', onMouseEnter);
+        targetNode.removeEventListener('mouseleave', onMouseLeave);
+
+        delete this.tooltipHoverInfo;
+    }
+
+    showTooltipOnHover() {
+
+        const target = this.getTooltipHoverTarget();
+
+        if (!target || this.tooltipHoverInfo) {
+            return;
+        }
+
+        const targetNode = document.querySelector(target);
+        let isMouseHover = false;
+
+        const onMouseEnter = () => {
+            isMouseHover = true;
+            setTimeout(() => {
+                if (isMouseHover) {
+                    this.showTooltip();
+                }
+            }, 200);
+        };
+
+        const onMouseLeave = () => {
+            isMouseHover = false;
+            this.hideTooltip();
+        }
+
+        targetNode.addEventListener('mouseenter', onMouseEnter);
+        targetNode.addEventListener('mouseleave', onMouseLeave);
+
+        this.tooltipHoverInfo = { targetNode, onMouseEnter, onMouseLeave };
+    }
+
+    getTooltipPositions() {
+        return ["top", "bottom", "right", "left"];
+    }
+
+    getTooltipTarget() {
+        return this.isMounted() ? `#${this.getElementId()}` : null;
+    }
+
+    getTooltipHoverTarget() {
+        return this.getTooltipTarget();
+    }
+
     cssDependencies() {
         return [
             '/assets/styles/salesforce-lightning-design-system.min.css',

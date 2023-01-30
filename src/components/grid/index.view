@@ -12,7 +12,13 @@
 
     {{#each columns as |column column|}}
       {{component GridElement alias="."}}
-      {{> .}}
+      {{#if ../boxPadding}}
+        <div class="slds-box slds-box_{{../boxPadding}}">
+            {{> .}}
+        </div>
+      {{else}}
+        {{> .}}
+      {{/if}}
     {{/each}}
 
 </div>

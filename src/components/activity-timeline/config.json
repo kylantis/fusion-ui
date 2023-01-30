@@ -9,16 +9,10 @@
       "singularType": "Item"
     },
     "items.$_.summary.parts": {
-      "minLength": 5,
-      "singularType": {
-        "$ref": "Sentence.parts"
-      }
+      "minLength": 5
     },
     "items.$_.description.parts": {
-      "minLength": 1,
-      "singularType": {
-        "$ref": "Sentence.parts"
-      }
+      "minLength": 1
     },
     "items.$_.title.left": {
       "minLength": 1

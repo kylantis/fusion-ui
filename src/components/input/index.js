@@ -2,10 +2,6 @@
 class Input extends components.FormElement {
 
     beforeMount() {
-        const input = this.getInput();
-
-        // input.readonly = true;
-
         this.setControlCssClass();
     }
 
