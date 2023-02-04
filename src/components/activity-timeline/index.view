@@ -9,7 +9,7 @@ parts, and each part is either plain text or a link
   {{#each sentence.parts as |part partIndex|}}
     {{component Link alias="link"}}
     {{#if link}}
-        {{> link}}
+        {{> link cssClass="slds-truncate"}}
     {{else}}
         {{text}}
     {{/if}}
@@ -59,7 +59,7 @@ parts, and each part is either plain text or a link
 
               <h3 class="slds-truncate">
                   <strong>
-                    {{> main}}
+                    {{> main cssClass="slds-truncate"}}
                   </strong>
               </h3>
               <div class="slds-no-flex">
@@ -98,7 +98,7 @@ parts, and each part is either plain text or a link
                 <li class="slds-grid slds-grid_vertical slds-size_1-of-2 slds-p-bottom_small">
                   <span class="slds-text-title slds-p-bottom_x-small">{{@key}}</span>
                   <span class="slds-text-body_medium slds-truncate">
-                    {{> .}}
+                    {{> . cssClass="slds-truncate"}}
                   </span>
                 </li>
               {{/each}}

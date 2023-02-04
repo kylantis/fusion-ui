@@ -6,7 +6,7 @@
 // Todo: Create HeatMap component
 // Todo: Add data binding capability via hooks
 
-class ChartComponent extends components.LightningComponent {
+class Chart extends components.LightningComponent {
 
     initCompile() {
         this.getInput().title;
@@ -47,12 +47,13 @@ class ChartComponent extends components.LightningComponent {
 
     static getDefaultColors() {
         const DEFAULT_COLORS_A = [
+            '#F56B6B',
             "#318ad8",
-            "#BFDDF7",
             "rgb(47, 162, 91)"
         ];
 
         const DEFAULT_COLORS_B = [
+            "#BFDDF7",
             "#4169e1",
             "#7cd6fd",
             "#00bdff",
@@ -63,7 +64,10 @@ class ChartComponent extends components.LightningComponent {
             "rgb(245, 107, 107)",
             "rgb(250, 207, 122)",
             "rgb(68, 66, 123)",
-            "rgb(95, 216, 196)"
+            "rgb(95, 216, 196)",
+            "rgb(68, 66, 123)",
+            "rgb(250, 207, 122)",
+            "rgb(166, 177, 185)"
         ];
 
         return [
@@ -73,7 +77,7 @@ class ChartComponent extends components.LightningComponent {
     }
 
     beforeMount() {
-        const { getDefaultColors } = ChartComponent;
+        const { getDefaultColors } = Chart;
         const input = this.getInput();
         const { colors } = input;
 
@@ -131,7 +135,7 @@ class ChartComponent extends components.LightningComponent {
         ];
     }
 
-    setCurrentDataPoint(index) {
+    setCurrentDataPoint(index=0) {
         this.chart.setCurrentDataPoint(index)
     }
 
@@ -158,8 +162,12 @@ class ChartComponent extends components.LightningComponent {
     }
 
     isCurrentDataPointVisible() {
-        const { visibility } = this.getCurrentDataPointCircle().style;
-        return !visibility || visibility == 'visible';
+        const node = this.getCurrentDataPointCircle();
+        if (node) {
+            const { visibility } = node.style;
+            return !visibility || visibility == 'visible';
+        }
+        return false;
     }
 
     hideCurrentDataPoint() {
@@ -233,4 +241,4 @@ class ChartComponent extends components.LightningComponent {
         this.chart.update(this.getData());
     }
 }
-module.exports = ChartComponent;
+module.exports = Chart;

@@ -1,0 +1,39 @@
+
+{{#*inline "modal-header"}}
+  {{#with header}}
+    <div class="slds-modal__header {{theme ? "slds-theme_${theme}" : ""}} slds-theme_alert-texture">
+      {{#if title}}
+        <h1 id="{{@random}}-header" class="slds-text-heading_medium">{{title}}</h1>
+      {{/if}}
+    </div>
+  {{/with}}
+{{/inline}}
+
+{{#*inline "modal-content"}}
+  {{component alias="body"}}
+  {{> body}}
+{{/inline}}
+
+
+{{#*inline "modal-footer"}}
+  {{#with footer}}
+    <div class="slds-modal__footer {{theme ? "slds-theme_${theme}" : ""}} slds-modal__footer_directional">
+      
+      {{component Button alias="leftButton"}}
+      {{component Button alias="rightButton"}}
+
+      {{#if leftButton}}
+        {{> leftButton}}
+      {{/if}}
+
+      {{#if rightButton}}
+        <div style="float: right">
+          {{> rightButton}}
+        </div>
+      {{/if}}
+    </div>
+  {{/with}}
+{{/inline}}
+
+
+{{> modal-dialog}}

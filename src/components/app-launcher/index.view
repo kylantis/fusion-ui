@@ -18,7 +18,7 @@
 {{/inline}}
 
 {{#*inline "modal-footer"}}
-  <div class="slds-modal__footer {{directional ? 'slds-modal__footer_directional"' : ''}}">
+  <div class="slds-modal__footer slds-modal__footer_directional">
     <button style="float: left;" class="slds-button slds-button_neutral" aria-label="Cancel and close">Cancel</button>
     <button class="slds-button slds-button_brand">Save</button>
   </div>

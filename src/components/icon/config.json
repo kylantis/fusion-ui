@@ -507,6 +507,10 @@
       "type": "Boolean",
       "defaultValue": true
     },
+    "textDefault": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
     "cssClass": {
       "type": "String",
       "defaults": [

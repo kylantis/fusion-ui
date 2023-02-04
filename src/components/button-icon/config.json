@@ -23,7 +23,7 @@
       "type": "String",
       "allowed": "utilityIconName",
       "defaults": [
-        "justify_text"
+        "info"
       ]
     },
     "cssClass": {
@@ -81,7 +81,7 @@
         "border-filled",
         "border-inverse",
         "circular"
-      ],
+    ],
       "defaults": [
         null
       ]

@@ -1,12 +1,7 @@
 {
   "enableTypeMerging": false,
   "collections": {},
-  "scalars": {
-    "directional": {
-      "type": "Boolean",
-      "defaultValue": false
-    }
-  },
+  "scalars": {},
   "sample": {
     "nullifyRandomly": []
   },

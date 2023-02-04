@@ -2,7 +2,7 @@
 class Button extends components.LightningComponent {
 
     events() {
-        return ['click', 'mouseleave'];
+        return ['click', 'mouse_leave'];
     }
 
     /**
@@ -155,8 +155,8 @@ class Button extends components.LightningComponent {
             this.dispatchEvent('click');
         });
 
-        this.node.addEventListener('mouseleave', () => {
-            this.dispatchEvent('mouseleave');
+        this.node.addEventListener('mouse_leave', () => {
+            this.dispatchEvent('mouse_leave');
         })
     }
 

@@ -41,7 +41,7 @@
         "donut"
       ],
       "defaults": [
-        "bar"
+        "axis-mixed"
       ]
     },
     "colors_$": {
@@ -214,7 +214,6 @@
       "defaults": []
     }
   },
-  "clientOnlyPaths": [],
   "events": {
     "select": {
       "parameters": {

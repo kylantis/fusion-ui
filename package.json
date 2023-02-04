@@ -32,7 +32,6 @@
         "@handlebars/parser": "^2.1.0",
         "acorn": "^8.8.2",
         "acorn-walk": "^8.2.0",
-        "ajv": "^8.6.3",
         "astring": "^1.8.4",
         "csso": "^4.0.3",
         "fs-extra": "^10.0.0",

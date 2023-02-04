@@ -149,7 +149,7 @@ class AppContext {
 
     await this.loadEnums();
 
-    await this.loadComponentClasses();
+    await this.loadComponentClasses(rootComponent);
 
     let id;
 
@@ -197,8 +197,6 @@ class AppContext {
     return [
       '/assets/js/client-bundle.min.js',
       { url: '/assets/js/client-utils.min.js', namespace: 'clientUtils' },
-      // https://cdnjs.cloudflare.com/ajax/libs/ajv/8.12.0/ajv7.min.js
-      { url: '/assets/js/cdn/ajv.min.js', namespace: 'ajv7' },
       // 'https://cdn.jsdelivr.net/npm/handlebars@4.7.6/dist/handlebars.runtime.min.js',
       { url: '/assets/js/cdn/handlebars.runtime.min.js', namespace: 'Handlebars' },
       { url: '/assets/js/custom-ctx-helpers.min.js', namespace: 'customCtxHelpers' },
@@ -223,7 +221,7 @@ class AppContext {
     });
   }
 
-  async loadComponentClasses() {
+  async loadComponentClasses(rootComponent) {
 
     const { lazyLoadComponentTemplates } = AppContext;
 
@@ -299,8 +297,9 @@ class AppContext {
           components.map(async (args) => {
             loadComponentClass(...args);
 
-            if (this.testMode) {
-              const [name, assetId] = args;
+            const [name, assetId] = args;
+
+            if (this.testMode && name == rootComponent) {
               self.Samples[name] = await this.fetch(`/components/${assetId}/samples.js`);
             }
           })

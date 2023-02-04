@@ -1,0 +1,63 @@
+{
+  "collections": {},
+  "scalars": {
+    "targetElement": {
+      "type": "String",
+      "defaults": [
+        null
+      ]
+    },
+    "cssClass": {
+      "type": "String",
+      "defaults": [
+        null
+      ],
+      "clientOnly": true
+    },
+    "role": {
+      "type": "String",
+      "defaults": [
+        null
+      ],
+      "clientOnly": true
+    },
+    "label": {
+      "type": "String",
+      "defaults": [
+        null
+      ]
+    },
+    "closeIcon": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "scrollable": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "width": {
+      "type": "String",
+      "allowed": [
+        "small",
+        "medium",
+        "large",
+        "full-width"
+      ],
+      "defaults": [
+        "large"
+      ]
+    },
+    "dark": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "brand": {
+      "type": "String",
+      "allowed": "position",
+      "defaults": [
+        null
+      ]
+    }
+  },
+  "escapeDynamicHtml": false
+}

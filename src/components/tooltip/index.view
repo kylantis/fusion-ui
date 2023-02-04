@@ -1,7 +1,6 @@
 {{style url="/components/tooltip/style.min.css"}}
 
-<div class="slds-popover slds-popover_tooltip" role="tooltip">
-    <div class="slds-popover__body">
+{{#*inline "popover-body"}}
     {{#each parts as |i j|}}
         {{component alias="component"}}
         {{#if component}}
@@ -10,5 +9,6 @@
             {{text}}
         {{/if}}
     {{/each}}
-    </div>
-</div>
+{{/inline}}
+
+{{> render_popover}}

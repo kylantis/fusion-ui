@@ -472,6 +472,10 @@
       "type": "Boolean",
       "defaultValue": true
     },
+    "textDefault": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
     "foregroundColor": {
       "type": "String",
       "allowed": "cssColor",

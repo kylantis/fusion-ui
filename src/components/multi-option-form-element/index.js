@@ -50,7 +50,7 @@ class MultiOptionFormElement extends components.FormElement {
             return false;
         }
 
-        return true;
+        return super.isLoadable();
     }
 
     onMount() {

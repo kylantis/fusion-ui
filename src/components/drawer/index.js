@@ -4,6 +4,10 @@ class Drawer extends components.LightningComponent {
     initCompile() {
         this.getInput().showByDefault;
     }
+    
+    static isAbstract() {
+        return true;
+    }
 
     cssDependencies() {
         return [

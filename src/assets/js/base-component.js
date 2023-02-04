@@ -89,6 +89,13 @@ class BaseComponent extends WebRenderer {
 
     return this.analyzeConditionValue(value) ? Object(value) !== value ? `${value}` : JSON.stringify(value, replacer, null) : '';
   }
+
+  getRenderedHtml() {
+    return super.getRenderedHtml({
+      token: BaseComponent.#token,
+    });
+  }
+
   // #API
   load(opts = {}) {
     return super.load({
@@ -129,60 +136,43 @@ class BaseComponent extends WebRenderer {
     // eslint-disable-next-line no-plusplus
     this.renderOffset++;
 
-
-
-
-    
-
-    const future = this.promise
+    const future = Promise.resolve(data)
       // eslint-disable-next-line no-shadow
-      .then(() => Promise.resolve(data)
-        // eslint-disable-next-line no-shadow
-        .then((data) => {
-          if (data === undefined) {
-            // eslint-disable-next-line no-param-reassign
-            data = '';
-          }
+      .then((data) => {
 
-          let promise = Promise.resolve();
-          const node = document.getElementById(target);
+        if (data === undefined) {
+          // eslint-disable-next-line no-param-reassign
+          data = '';
+        }
 
-          // Clear loader
-          node.innerHTML = '';
+        let html = data instanceof BaseComponent ? data.getRenderedHtml() : this.toHtml(data);
 
-          switch (true) {
+        if (transform) {
+          html = this[transform](html);
+        }
 
-            case data instanceof BaseComponent:
-              promise = data.load({
-                container: target,
-                transform,
-              });
-              break;
+        return this.getPromise()
+          .then(() => {
 
-            case data instanceof Function:
-              promise = promise.then(() => {
-                data({ target, transform });
-              });
-              break;
+            const node = document.getElementById(target);
+            // clear loader, if any
+            node.innerHTML = '';
 
-            default:
-              promise = promise.then(() => {
-                node.innerHTML = this.toHtml(
-                  transform ? this[transform](data) : data,
-                );
-              });
-              break;
-          }
-          return promise.then(() => {
-            // eslint-disable-next-line no-plusplus
+            return data instanceof BaseComponent ? data.load({
+              container: target,
+              html
+            }) : (node.innerHTML = html);
+          })
+          .then(() => {
             this.renderOffset--;
           });
-        }));
+      });
 
     this.futures.push(future);
 
     return future;
   }
+
   // #API
   log(msg, level = 'info') {
     // Todo: verify level

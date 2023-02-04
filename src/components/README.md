@@ -95,7 +95,6 @@ The compiler will make best effort to perform ahead of time partial inlining. Th
  - `CustomCtxRenderer`
  - `WebRenderer`
  - `BaseComponent`
- - `ajv7`
  - `Handlebars`
  - `appContext`
  - `isServer`

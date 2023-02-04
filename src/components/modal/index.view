@@ -11,12 +11,15 @@
       {{/if}}
 
       {{!-- 
-        Note: subclasses should set the heading element should have an <h1 id="{{@random}}-header"></h1> to conform with the
-        "aria-labelledby" aria property specified above 
+        Note: subclasses should set the "id" attribute of heading element to conform with the "aria-labelledby" aria property 
+        specified above, e.g. <h1 id="{{@random}}-header"></id>
        --}}
       {{> ?modal-header}}
 
-      <div id="{{@random}}-content" class="slds-modal__content {{bodyPadding ? 'slds-p-${bodyPadding}' : ''}}">
+      <div 
+        id="{{@random}}-content" 
+        class="slds-modal__content {{bodyPadding ? 'slds-p-${bodyPadding}' : ''}} {{bodyCssClass ? bodyCssClass : ""}}"
+        >
         {{> ?modal-content}}
       </div>
 

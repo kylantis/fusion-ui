@@ -158,6 +158,12 @@
         "x-large",
         "xx-large"
     ],
+    "position": [
+        "top",
+        "bottom",
+        "left",
+        "right"
+    ],
     "positionX": [
         "left",
         "right"
@@ -2177,10 +2183,6 @@
     ],
     "textFont": [
         "monospace"
-    ],
-    "direction": [
-        "left",
-        "right"
     ],
     "layoutSize": [
         "small",
