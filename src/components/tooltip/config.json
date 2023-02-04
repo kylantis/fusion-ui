@@ -17,12 +17,6 @@
       "defaults": [
         "Hello from Kylantis"
       ]
-    },
-    "targetElement": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
     }
   },
   "escapeDynamicHtml": false

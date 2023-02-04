@@ -1,0 +1,56 @@
+
+{{#*inline "popover-header"}}
+    {{#if feedbackState}}
+        <header class="slds-popover__header">
+            <div class="slds-media slds-media_center slds-has-flexi-truncate">
+                <div class="slds-media__figure">
+                    {{> Icon type='utility' name=feedbackState size="x-small"}}
+                </div>
+                {{#if feedbackTitle}}
+                    <div class="slds-media__body">
+                        <h2 class="slds-truncate slds-text-heading_medium" title="{{feedbackTitle}}">
+                            {{feedbackTitle}}
+                        </h2>
+                    </div>
+                {{/if}}
+             </div>
+        </header>
+    {{/if}}
+{{/inline}}
+
+{{#*inline "popover-body"}}
+  {{component alias="body"}}
+  {{> body}}
+{{/inline}}
+
+{{#*inline "popover-footer"}}
+    {{#with footer}}
+        <footer class="slds-popover__footer {{theme ? "slds-theme_${theme}" : ""}}">
+          <div class="slds-grid slds-grid_vertical-align-center">
+
+            {{component Button alias="leftButton"}}
+            {{component Link alias="actionLink"}}
+            {{component Button alias="rightButton"}}
+
+            <div class="slds-col_bump-right">
+                {{#if leftButton}}
+                    {{> leftButton}}
+                {{/if}}
+            </div>
+
+            {{#if actionLink}}
+                <span class="slds-popover_prompt__action-link">
+                    {{> actionLink cssClass="slds-button"}}
+                </span>
+            {{/if}}
+
+            {{#if rightButton}}
+                {{> rightButton}}
+            {{/if}}
+
+          </div>
+        </footer>
+    {{/with}}
+{{/inline}}
+
+{{> render_popover}}

@@ -26,7 +26,7 @@
         title="{{title ? title : ""}}">
 
     {{> IconSvg
-            type name solid size 
+            type name solid size textDefault
             foreground=(((not useCurrentColor) and foreground) ? foreground : null) 
             foregroundColor=(((not useCurrentColor) and foregroundColor) ? foregroundColor : null) 
             ref="svg"

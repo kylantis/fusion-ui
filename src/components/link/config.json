@@ -2,12 +2,6 @@
   "enableTypeMerging": false,
   "collections": {},
   "scalars": {
-    "href": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
-    },
     "title": {
       "type": "String",
       "defaults": [
@@ -53,9 +47,9 @@
         "competently recaptiualize functionalized users"
       ]
     },
-    "pointer": {
-      "type": "Boolean",
-      "defaultValue": true
+    "cssClass": {
+      "type": "String",
+      "defaults": []
     }
   },
   "sample": {

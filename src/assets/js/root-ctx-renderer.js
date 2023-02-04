@@ -19,10 +19,6 @@ class RootCtxRenderer extends BaseRenderer {
 
   static #token;
 
-  #resolve;
-
-  #mounted;
-
   #currentBindContext;
 
   #attributeContext;
@@ -37,6 +33,10 @@ class RootCtxRenderer extends BaseRenderer {
 
   #handlebarsOptions;
 
+  #promise; 
+  
+  #resolve;
+
   constructor({
     id, input, logger,
   } = {}) {
@@ -48,12 +48,11 @@ class RootCtxRenderer extends BaseRenderer {
 
     this.syntheticContext = {};
 
-    this.promise = new Promise((resolve) => {
+    this.#promise = new Promise((resolve) => {
       this.#resolve = resolve;
     });
 
     this.futures = [];
-    this.#mounted = false;
 
     this.renderOffset = 0;
 
@@ -69,8 +68,12 @@ class RootCtxRenderer extends BaseRenderer {
     this.mustacheStatements = {};
   }
 
+  getPromise() {
+    return this.#promise;
+  }
+
   isMounted() {
-    return this.#mounted;
+    return document.querySelector(`#${this.getElementId()}`);;
   }
 
   static setToken(token) {
@@ -91,27 +94,19 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   isLoadable() {
-    return true;
+    return this.getConfig().loadable;
   }
 
-  async load({ container, token, transform }) {
-
-    if (this.isMounted()) {
-      throw Error(`${this.getId()} is already mounted`);
-    }
+  getRenderedHtml({ token }) {
+    const { getMetaHelpers } = RootCtxRenderer;
 
     if (token !== RootCtxRenderer.#token && !this.isRoot()) {
       throw Error(`Invalid token: ${token}`);
     }
 
-    await this.invokeLifeCycleMethod('beforeLoad');
-
-    if (!this.isLoadable()) {
-      return { id: this.getId(), html: '' };
+    if (this.htmlRendered) {
+      throw Error(`${this.getId()} is already rendered`);
     }
-
-    const { htmlWrapperCssClassname, getMetaHelpers } = RootCtxRenderer;
-    super.load();
 
     const componentHelpers = {};
 
@@ -189,25 +184,50 @@ class RootCtxRenderer extends BaseRenderer {
       },
     };
 
-    await this.invokeLifeCycleMethod('beforeMount');
-
     const { template } = this.getMetadata(this.getAssetId());
 
     this.#handlebars = Handlebars.create();
 
     // eslint-disable-next-line no-undef
-    let html = this.#handlebars.template(template)(
+    const html = this.#handlebars.template(template)(
       {
         data: this.rootProxy,
       },
       this.#handlebarsOptions,
     );
 
-    if (transform) {
-      html = transform(html);
+    assert(this.syntheticNodeId.length == 0);
+
+    this.htmlRendered = true;
+
+    return html;
+  }
+
+  async load({ container, token, html }) {
+
+    const { htmlWrapperCssClassname } = RootCtxRenderer;
+
+    if (this.isMounted()) {
+      throw Error(`${this.getId()} is already mounted`);
     }
 
-    assert(this.syntheticNodeId.length == 0);
+    if (token !== RootCtxRenderer.#token && !this.isRoot()) {
+      throw Error(`Invalid token: ${token}`);
+    }
+
+    await this.invokeLifeCycleMethod('beforeLoad');
+
+    if (!this.isLoadable()) {
+      return { id: this.getId(), html: '' };
+    }
+
+    super.load();
+
+    await this.invokeLifeCycleMethod('beforeMount');
+
+    if (!html) {
+      html = this.getRenderedHtml({ token });
+    }
 
     const parentNode = container ? document.getElementById(container) : document.body;
 
@@ -246,7 +266,7 @@ class RootCtxRenderer extends BaseRenderer {
 
     this.#resolve();
 
-    return this.promise
+    return this.#promise
 
       // Even after all promises are resolved, we need to wait for this component to be fully mounted. This is
       // especially important if there async custom blocks or sub-components inside this component or arbitrary
@@ -302,8 +322,6 @@ class RootCtxRenderer extends BaseRenderer {
           this.triggerNodeUpdateEvent(this.node);
 
           self.appContext.components[this.getId()] = this;
-
-          this.#mounted = true;
 
           return { id: this.getId(), html: this.node.outerHTML };
         }
@@ -2019,7 +2037,7 @@ class RootCtxRenderer extends BaseRenderer {
     // Add config
 
     Object.keys(getDefaultConfig())
-      .filter(k => !!hash[k])
+      .filter(k => hash[k] !== undefined)
       .forEach(k => {
         if (!config) { config = {} };
 
@@ -2124,75 +2142,75 @@ class RootCtxRenderer extends BaseRenderer {
 
     delete hash.ref;
 
-    let component;
+    return this.getPromise()
+      .then(() => {
 
-    switch (true) {
-      case componentSpec && componentSpec.constructor.name === 'String':
+        let component;
 
-        const componentClass = components[componentSpec];
+        switch (true) {
+          case componentSpec && componentSpec.constructor.name === 'String':
 
-        if (componentClass && componentClass.prototype instanceof BaseComponent) {
-          component = this.createComponent({
-            hash,
-            componentClass,
-          });
+            const componentClass = components[componentSpec];
+
+            if (componentClass && componentClass.prototype instanceof BaseComponent) {
+              component = this.createComponent({
+                hash,
+                componentClass,
+              });
+            }
+
+            break;
+
+          case componentSpec && componentSpec instanceof BaseComponent:
+
+            const inputProducer = () => cloneInputData(componentSpec.getInput());
+
+            const { handlers, config, input } = this.buildInputData({
+              inputProducer, hash,
+            });
+
+            if (input || config || handlers) {
+              component = new componentSpec.constructor({
+                input: input || inputProducer(),
+                config,
+              });
+            } else {
+              // We don't have to clone the component, because there is no override
+              component = componentSpec;
+            }
+
+            if (handlers) {
+              this.addEventHandlers({ handlers, component });
+            }
+
+            break;
+
+          case componentSpec == null:
+            // We need to return undefined so that BaseComponent.render(...) will render an empty string
+            return undefined;
         }
 
-        break;
-
-      case componentSpec && componentSpec instanceof BaseComponent:
-
-        // Note: we need to clone inorder to un-proxify componentSpec.getInput()
-        const inputProducer = () => cloneInputData(componentSpec.getInput());
-
-        const { handlers, config, input } = this.buildInputData({
-          inputProducer, hash,
-        });
-
-        if (input || config) {
-          component = new componentSpec.constructor({
-            input: input || inputProducer(),
-            config,
-          });
-        } else {
-          // We don't have to clone the component, because there is no override
-          component = componentSpec;
+        if (!component) {
+          this.throwError(`Unknown target specified in PartialStatement`, loc);
         }
 
-        if (handlers) {
-          this.addEventHandlers({ handlers, component });
+        if (ref) {
+          this.#inlineComponentInstances[ref] = component;
+
+          component.on('destroy', () => {
+            delete this.#inlineComponentInstances[ref];
+          })
         }
 
-        break;
+        component.setInlineParent(this);
 
-      case componentSpec == null:
-        // We need to return undefined so that BaseComponent.render(...) will render an empty string
-        return undefined;
-    }
-
-    if (!component) {
-      this.throwError(`Unknown target specified in PartialStatement`, loc);
-    }
-
-    if (ref) {
-      this.#inlineComponentInstances[ref] = component;
-
-      component.on('destroy', () => {
-        delete this.#inlineComponentInstances[ref];
-      })
-    }
-
-    component.setInlineParent(this);
-
-    return component;
-  }
-
-  getInlineComponents() {
-    return this.#inlineComponentInstances;
+        return component;
+      });
   }
 
   getInlineComponent(ref) {
-    return this.#inlineComponentInstances[ref];
+    const c = this.#inlineComponentInstances[ref];
+    return c.isMounted() ? c : null;
   }
 
   getComponentName() {

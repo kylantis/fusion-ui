@@ -66,13 +66,13 @@ class LightningComponent extends BaseComponent {
 
     showTooltip() {
         if (this.tooltip) {
-            this.tooltip.show();
+            this.tooltip.showPopover();
         }
     }
 
     hideTooltip() {
         if (this.tooltip) {
-            this.tooltip.hide();
+            this.tooltip.closePopover();
         }
     }
 

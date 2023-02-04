@@ -40,10 +40,10 @@ class BaseRenderer {
 
     this.setInput(input);
 
-    this.#config = {
+    this.#config = Object.seal({
       ...BaseRenderer.getDefaultConfig(),
       ...config,
-    };
+    });
 
     // Create root proxy
     // eslint-disable-next-line no-undef
@@ -54,9 +54,9 @@ class BaseRenderer {
 
   static getDefaultConfig() {
     return {
+      loadable: true,
       hookCleanupInterval: 300,
       allowHooksForNonExistentPaths: true,
-      validateInputSchema: false,
     }
   }
 

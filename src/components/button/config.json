@@ -101,6 +101,13 @@
       "defaults": [
         null
       ]
+    },
+    "cssClass": {
+      "type": "String",
+      "defaults": [
+        null
+      ],
+      "clientOnly": true
     }
   },
   "sample": {

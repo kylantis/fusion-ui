@@ -155,6 +155,7 @@
     }
   },
   "sample": {
+    "count": 1,
     "nullifyRandomly": [
       "items.$_.summary.parts_$.link"
     ]

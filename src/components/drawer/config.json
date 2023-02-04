@@ -12,7 +12,7 @@
     },
     "position": {
       "type": "String",
-      "allowed": "direction",
+      "allowed": "positionX",
       "defaults": [
         "left"
       ]

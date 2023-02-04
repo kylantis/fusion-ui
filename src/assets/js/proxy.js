@@ -150,8 +150,6 @@ class RootProxy {
 
     if (self.appContext) {
 
-      const { validateInputSchema } = component.getConfig();
-
       if (!proxy.getSchemaDefinitions()) {
         // register input schema
         proxy.withSchema(
@@ -159,15 +157,12 @@ class RootProxy {
         );
       }
 
-      proxy.toCanonicalObject({ path: '', obj: component.getInput() });
+      if (proxy.component.isLoadable()) {
+        proxy.#toCanonicalObject({ path: '', obj: component.getInput() });
 
-      if (validateInputSchema) {
-        // perform input validation
-        proxy.validateInput();
+        // Add our observer, to orchestrate data binding operations
+        proxy.#addDataObserver();
       }
-
-      // Add our observer, to orchestrate data binding operations
-      proxy.addDataObserver();
     }
 
     return proxy.handler;
@@ -237,7 +232,7 @@ class RootProxy {
             // Data variables has been already been registered
             return;
           }
-          
+
           const dataVariables = {
             [firstProperty]: { type: 'boolean' },
             [lastProperty]: { type: 'boolean' },
@@ -464,68 +459,38 @@ class RootProxy {
       })
     );
 
-    const ajv = new ajv7.default({
-        schemas: Object.values(definitions),
-        allErrors: true,
-        allowUnionTypes: true,
-        inlineRefs: false,
-      });
+    // Though, we do not use ajv for schema validation, our definitions are designed to be fully
+    // compatible with the library. Below are the keywords required by our schemas
 
-    // Add custom validator for component instances
-    ajv.addKeyword({
-      keyword: 'component',
-      validate: ({ className }, data) => !data || data instanceof components[className],
-      errors: true,
-    });
+    // // Add custom validator for component instances
+    // ajv.addKeyword({
+    //   keyword: 'component',
+    //   validate: ({ className }, data) => !data || data instanceof components[className],
+    //   errors: true,
+    // });
 
-    // Definitions for shared types have a property "shared: true", register this keyword
-    // so that ajv recognizes it in strict mode
-    ajv.addKeyword('shared');
-
-    this.component.constructor.ajv = ajv;
-  }
-
-  validateInput() {
-    // Perform schema validation on input data
-    const validate = this.component.constructor.ajv.getSchema(`#/definitions/${this.component.getComponentName()
-      }`)
-
-    const input = this.component.getInput();
-
-    if (!validate(input)) {
-
-      const componentName = this.component.getComponentName();
-      let msg = `Component "${this.component.getId()}" could not be loaded due to schema mismatch of input data`;
-
-      if (global.isServer) {
-        assert(global.rootComponent != componentName);
-
-        msg += `. ${global.rootComponent} may contain outdated sample data for ${componentName}. Re-compile ${global.rootComponent} to fix this problem`;
-      } else {
-        msg += `; ${this.component.constructor.ajv.errorsText(validate.errors)}`;
-      }
-
-      this.component.throwError(msg);
-    }
+    // // Definitions for shared types have a property "shared: true", register this keyword
+    // // so that ajv recognizes it in strict mode
+    // ajv.addKeyword('shared');
   }
 
   getDataPathHooks() {
     return this.#dataPathHooks;
   }
 
-  addDataObserver() {
+  #addDataObserver() {
 
-    const {
-      dataPathRoot, pathSeparator, globalsBasePath,
-    } = RootProxy;
+    const { dataPathRoot, pathSeparator, globalsBasePath } = RootProxy;
 
     if (RootProxy.#dataReferences.includes(this.component.getInput())) {
+
       // The reason we have to throw this error is because the input in question
       // has previously been transformed such that data variables are created as 
       // immutable, and this operation will attempt re-set those prop, hence resulting
       // in an error.
       // It is understandable that the developer may want to re-use input data
       // without giving much thought to it, so in the error message - add a useful hint
+
       this.component.throwError(
         'Input data already processed. You need to clone the data first before using it on a new component instance'
       );
@@ -670,6 +635,7 @@ class RootProxy {
       // eslint-disable-next-line no-undef
       case value instanceof BaseComponent:
       case value instanceof Map:
+      case value instanceof Promise:
         return value;
       default:
         assert(['Array', 'Object'].includes(value.constructor.name));
@@ -2144,30 +2110,6 @@ class RootProxy {
       return false;
     }
 
-    // Perform schema validation for <newValue>
-    if (newValue != undefined) {
-      try {
-
-        const { toDefinitionName } = RootProxy;
-
-        const defPrefx = '#/definitions/';
-        const canonicalPath = clientUtils.toCanonicalPath(fqPath0);
-
-        const validator = this.component.constructor.ajv.getSchema(
-          `${defPrefx}${toDefinitionName(canonicalPath)}`
-        )
-
-        if (!validator(newValue)) {
-          this.component.logger.error(`${fqPath} could not be mutated due to schema mismatch`);
-          return false;
-        }
-
-      } catch (e) {
-        this.component.logger.error(`Unknown path: ${fqPath}`);
-        return false;
-      }
-    }
-
     const addToChangeSet = (path, primary) => {
       let o = {
         primary,
@@ -2270,13 +2212,36 @@ class RootProxy {
       return o;
     })();
 
-    const setValue0 = (object, key, value) => {
-      object[key] = value;
+    const setValue0 = () => {
+      obj[prop] = newValue;
+    }
+
+    // To ensure that our proxy is not discarded, we must not throw error, so we need
+    // to route functions that can throw user-generated error through this function
+    const tryOrLogError = (fn) => {
+      try {
+        fn();
+        return true;
+      } catch (e) {
+        this.component.logger.error(e.message);
+        return false;
+      }
     }
 
     if (newValue != undefined) {
 
       if (typeof newValue == 'object') {
+
+        const b = tryOrLogError(
+          () => this.#toCanonicalObject({
+            path: fqPath,
+            obj: newValue
+          })
+        );
+
+        if (!b) {
+          return false;
+        }
 
         if (collDef) {
           addDataVariablesToObject(
@@ -2285,19 +2250,24 @@ class RootProxy {
           )
         }
 
-        this.toCanonicalObject({
-          path: fqPath,
-          obj: newValue
-        });
-
         if (newValue[typeProperty] == mapType) {
           newValue = getMapWrapper(newValue);
         }
 
-        newValue = this.getObserverProxy(newValue)
+        newValue = this.getObserverProxy(newValue);
+
+      } else {
+
+        const b = tryOrLogError(
+          () => this.validateSchema(fqPath, newValue)
+        );
+
+        if (!b) {
+          return false;
+        }
       }
 
-      setValue0(obj, prop, newValue);
+      setValue0();
 
     } else {
 
@@ -2366,7 +2336,7 @@ class RootProxy {
           newValue = null;
         }
 
-        setValue0(obj, prop, newValue);
+        setValue0();
       }
     }
 
@@ -2395,7 +2365,7 @@ class RootProxy {
       assert(dataVariables);
       addDataVariablesToObject(o, dataVariables);
 
-      this.toCanonicalObject({
+      this.#toCanonicalObject({
         path: p,
         obj: o
       });
@@ -2692,6 +2662,10 @@ class RootProxy {
     Object.defineProperty(obj, keyProperty, { value: key, enumerable: false, configurable: true, });
     Object.defineProperty(obj, indexProperty, { value: index, enumerable: false, configurable: true, });
     Object.defineProperty(obj, randomProperty, { value: random, enumerable: false, configurable: true, });
+
+    return [
+      firstProperty, lastProperty, keyProperty, indexProperty, randomProperty,
+    ];
   }
 
   /**
@@ -2733,12 +2707,110 @@ class RootProxy {
     this.#dataPathHooks[k] = this.createHooksArray();
   }
 
-  toCanonicalObject({ path, obj }) {
+  validateSchema(path, value) {
+
+    if (value === null) {
+      return;
+    }
+
+    const { toDefinitionName } = RootProxy;
+
+    const schemaDefinitions = this.getSchemaDefinitions();
+    const k = toDefinitionName(clientUtils.toCanonicalPath(path))
 
     const {
-      dataPathRoot, pathSeparator, pathProperty, typeProperty, mapType, mapKeyPrefix,
-      isNullProperty, mapKeyPrefixRegex, getMapWrapper, addDataVariables, getDataVariables,
-      getReservedObjectKeys, toFqPath, getReservedMapKeys, createNullObject,
+      $ref, type, additionalProperties, items, component, enum: enum0
+    } = schemaDefinitions[k];
+
+    const ensureType = (constructorName) => {
+      if (value.constructor.name != constructorName) {
+        this.component.throwError(
+          `ValidationError - Expected ${path} to be of type "${constructorName}" instead of "${value.constructor.name}"`
+        );
+      }
+    }
+
+    const ensureObject = () => {
+      ensureType('Object');
+    }
+
+    const ensureComponent = (className) => {
+      const componentClass = components[className];
+
+      assert(componentClass || className == 'BaseComponent');
+
+      if (!(value instanceof (componentClass || BaseComponent))) {
+        this.component.throwError(
+          `ValidationError - Expected ${path} to be an instance of "${className}" component`
+        );
+      }
+    }
+
+    const ensureArray = () => {
+      ensureType('Array');
+    }
+
+    const ensureMap = () => {
+      ensureType('Object');
+    }
+
+    const ensureString = () => {
+      ensureType('String');
+    }
+
+    const ensureNumber = () => {
+      ensureType('Number');
+    }
+
+    const ensureBoolean = () => {
+      ensureType('Boolean');
+    }
+
+    const ensureEnum = (allowed) => {
+      ensureType('String');
+
+      if (!allowed.includes(value)) {
+        this.component.throwError(
+          `ValidationError - Expected ${path} to have one of it's enum values instead of "${value}"`
+        );
+      }
+    }
+
+    switch (true) {
+      case !!additionalProperties:
+        ensureMap();
+        break;
+      case !!items:
+        ensureArray()
+        break;
+      case !!component:
+        ensureComponent(component.className);
+        break;
+      case !!enum0:
+        ensureEnum(enum0);
+        break;
+      case !!$ref || type[0] == 'object':
+        ensureObject();
+        break;
+      case type[0] == 'string':
+        ensureString();
+        break;
+      case type[0] == 'number':
+        ensureNumber();
+        break;
+      case type[0] == 'boolean':
+        ensureBoolean();
+        break;
+      default:
+        throw Error(`Unknown schema type "${type[0]}"`);
+    }
+  }
+
+  #toCanonicalObject({ path, obj }) {
+
+    const {
+      dataPathRoot, pathSeparator, pathProperty, typeProperty, mapType, mapKeyPrefix, mapKeyPrefixRegex, getMapWrapper,
+      addDataVariables, getReservedObjectKeys, toFqPath, getReservedMapKeys, createNullObject,
     } = RootProxy;
 
     const reservedObjectKeys = getReservedObjectKeys();
@@ -2758,13 +2830,8 @@ class RootProxy {
     this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${path}`] = this.createHooksArray();
 
     switch (true) {
-      case !!this.getArrayDefinition(path):
-        assert(obj.constructor.name == 'Array');
-        break;
 
       case !!this.getMapDefinition(path):
-        assert(obj.constructor.name == 'Object', `${path}, ${obj.constructor.name}`);
-
         const reservedMapKeys = getReservedMapKeys();
 
         // If this is a map path, add set @type to Map, and trasform the keys
@@ -2786,10 +2853,7 @@ class RootProxy {
 
         break;
 
-      default:
-
-        assert(obj.constructor.name == 'Object');
-
+      case obj.constructor.name == 'Object':
         const def = this.getObjectDefiniton(path);
 
         const keys = Object.keys(obj);
@@ -2828,41 +2892,28 @@ class RootProxy {
 
     const isMap = !isArray && obj[typeProperty] === mapType;
 
-    // Todo: Remove
-    Object.keys(obj).forEach(k => {
-      assert(![typeProperty, pathProperty, isNullProperty].includes(k));
-    });
+    const isCollection = isArray || isMap;
 
-    const isCollection = this.getCollectionDefinition(path)
+    const keys = Object.keys(obj);;
 
-    const keys = [
-      ...Object.keys(obj),
-      // Since our data variables are non-enumerable, we want to eagerly add them here
-      ...getDataVariables(),
-    ];
-
-    if (isMap) {
+    if (isCollection) {
       this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${path}.length`] = this.createHooksArray();
     }
 
     for (let i = 0; i < keys.length; i++) {
       const prop = keys[i];
 
-      if (obj[prop] === undefined) {
-        assert(getDataVariables().includes(prop));
-        // This happened because we added data variables to the keys list anf obj is not
-        // a collection member
-        continue;
-      }
-
-      // If property is null, and this is a collection of objects, 
-      if (obj[prop] === null && isCollection && isCollection.$ref) {
-        obj[prop] = createNullObject();
-      }
+      assert(obj[prop] !== undefined);
 
       const p = toFqPath({ isArray, isMap, parent: path, prop });
 
-      if (isMap) {
+      this.validateSchema(p, obj[prop]);
+
+      if (isCollection) {
+
+        if (obj[prop] === null && isCollection.$ref) {
+          obj[prop] = createNullObject();
+        }
 
         switch (true) {
           case obj[prop] !== Object(obj[prop]):
@@ -2872,7 +2923,8 @@ class RootProxy {
 
           default:
             assert(obj[prop] === Object(obj[prop]));
-            // Inject data variables, if this is a map of objects
+
+            // Inject data variables, if this is a collection of objects
             addDataVariables(
               obj[prop],
               i == 0,
@@ -2881,21 +2933,20 @@ class RootProxy {
               i,
               global.clientUtils.randomString()
             )
+              .forEach(k => {
+                this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${toFqPath({ parent: p, prop: k })}`] = this.createHooksArray();
+              })
+
             break;
         }
       }
 
-      if (isArray) {
-        assert(global.clientUtils.isNumber(prop) || prop.startsWith('@'));
-      }
-
       const isEmpty = obj[prop] === null;
-      // || obj[prop] === undefined;
 
       // eslint-disable-next-line default-case
       switch (true) {
-        case !isEmpty && obj[prop].constructor.name === 'Object':
-          this.toCanonicalObject({ path: p, obj: obj[prop] });
+        case !isEmpty && ['Object', 'Array'].includes(obj[prop].constructor.name):
+          this.#toCanonicalObject({ path: p, obj: obj[prop] });
 
           if (obj[prop][typeProperty] == mapType) {
             obj[prop] = getMapWrapper(obj[prop]);
@@ -2905,65 +2956,9 @@ class RootProxy {
 
           break;
 
-        case !isEmpty && obj[prop].constructor.name === 'Array':
-          // eslint-disable-next-line no-plusplus
-
-          const isCollection = this.getCollectionDefinition(p);
-
-          for (let i = 0; i < obj[prop].length; i++) {
-
-            let o = obj[prop][i];
-
-            assert(o !== undefined);
-
-            // If property is null, and this is a collection of objects, 
-            if (o === null && isCollection.$ref) {
-              o = obj[prop][i] = createNullObject();
-            }
-
-            switch (true) {
-
-              case o !== Object(o):
-              case o instanceof BaseComponent:
-                this.addHookForScalarCollectionMember(`${p}[${i}]`)
-                break;
-
-              default:
-                assert(o === Object(o));
-
-                // Inject data variables
-                addDataVariables(
-                  o,
-                  i == 0,
-                  i == obj[prop].length - 1,
-                  i,
-                  i,
-                  global.clientUtils.randomString()
-                )
-
-                this.toCanonicalObject({ path: `${p}[${i}]`, obj: o });
-
-                if (o[typeProperty] == mapType) {
-                  obj[prop][i] = getMapWrapper(o);
-                }
-
-                obj[prop][i] = this.getObserverProxy(o);
-
-                break;
-            }
-          }
-
-          Object.defineProperty(obj[prop], pathProperty, { value: p, configurable: false, writable: false });
-
-          this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}`] = this.createHooksArray();
-          this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}.length`] = this.createHooksArray();
-
-          obj[prop] = this.getObserverProxy(obj[prop]);
-
-          break;
-
-        // case obj[prop] !== undefined:
         default:
+
+          // Note: If isCollection, entry would have been created
           this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}`] = this.createHooksArray();
           break;
       }

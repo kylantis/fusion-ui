@@ -39,6 +39,13 @@
     "closeIcon": {
       "type": "Boolean",
       "defaultValue": true
+    },
+    "bodyCssClass": {
+      "type": "String",
+      "defaults": [
+        null
+      ],
+      "clietOnly": true
     }
   },
   "sample": {

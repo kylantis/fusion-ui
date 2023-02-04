@@ -1,0 +1,44 @@
+{
+  "collections": {},
+  "scalars": {
+    "feedbackTitle": {
+      "type": "String",
+      "defaults": [
+        "Just a heads up…"
+      ]
+    },
+    "feedbackState": {
+      "type": "String",
+      "allowed": [
+        "warning",
+        "error"
+      ],
+      "defaults": [
+        null
+      ]
+    },
+    "body": {
+      "type": "componentRef"
+    },
+    "footer.theme": {
+      "type": "String",
+      "allowed": "colorTheme",
+      "defaults": [
+        null
+      ]
+    },
+    "footer.leftButton": {
+      "type": "Button",
+      "isNull": false
+    },
+    "footer.actionLink": {
+      "type": "Link",
+      "isNull": true
+    },
+    "footer.rightButton": {
+      "type": "Button",
+      "isNull": false
+    }
+  },
+  "escapeDynamicHtml": false
+}

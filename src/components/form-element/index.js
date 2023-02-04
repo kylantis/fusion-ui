@@ -19,7 +19,7 @@ class FormElement extends components.LightningComponent {
     }
 
     isLoadable() {
-        return this.getComponentName() != FormElement.name;
+        return (this.getComponentName() == FormElement.name) ? false : super.isLoadable();;
     }
 
     isCompound() {
