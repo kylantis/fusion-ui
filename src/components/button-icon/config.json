@@ -81,7 +81,7 @@
         "border-filled",
         "border-inverse",
         "circular"
-    ],
+      ],
       "defaults": [
         null
       ]

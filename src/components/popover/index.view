@@ -8,6 +8,7 @@
             {{width ? "slds-popover_${width}" : ""}}
             {{dark ? "slds-popover_dark" : ""}}
             {{brand ? "slds-popover_brand slds-popover_brand-${brand}" : ""}}
+            {{position ? "slds-popover_prompt_${position}" : ""}}
             "
         role="{{role ? role : 'dialog'}}"
         style="display: none;"

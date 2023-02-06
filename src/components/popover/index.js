@@ -100,6 +100,10 @@ class Popover extends components.OverlayComponent {
         classList.add(`${nubbinClassPrefix}${nubbinPosition}`);
     }
 
+    // getCssPosition(containerRect, position, area) {
+    //     Try 24 Pixels as the offset
+    // }
+
     getNode() {
         return this.node.querySelector(`:scope > .slds-popover`);
     }
@@ -117,7 +121,7 @@ class Popover extends components.OverlayComponent {
 
         if (!node) {
             this.throwError(
-                `Could not find tooltip node, did you forget to call .load(...) for this component?`
+                `Could not find popover node, did you forget to call .load(...) for this component?`
             )
         }
 
@@ -142,7 +146,7 @@ class Popover extends components.OverlayComponent {
             node.style.visibility = 'hidden';
         }
 
-        // After tooltip has been hidden, we want to have it stacked under (not just hidden)
+        // After popover has been hidden, we want to have it stacked under (not just hidden)
         setTimeout(() => node.style.zIndex = -1, 300)
     }
 

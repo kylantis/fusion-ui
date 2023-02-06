@@ -2,6 +2,7 @@
 /* eslint-disable class-methods-use-this */
 class BaseRenderer {
   static #componentIds = [];
+  static #components = [];
 
   #id;
 
@@ -36,6 +37,7 @@ class BaseRenderer {
 
     if (self.appContext) {
       BaseRenderer.#componentIds.push(this.#id);
+      BaseRenderer.#components[this.#id] = this;
     }
 
     this.setInput(input);
@@ -62,6 +64,10 @@ class BaseRenderer {
 
   getConfig() {
     return this.#config;
+  }
+
+  static getComponent(id) {
+    return BaseRenderer.#components[id];
   }
 
   static getComponentIds() {

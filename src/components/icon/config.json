@@ -500,16 +500,12 @@
       "type": "String",
       "allowed": "iconColor",
       "defaults": [
-        null
+        "undefined"
       ]
     },
     "solid": {
       "type": "Boolean",
-      "defaultValue": true
-    },
-    "textDefault": {
-      "type": "Boolean",
-      "defaultValue": true
+      "defaultValue": "undefined"
     },
     "cssClass": {
       "type": "String",

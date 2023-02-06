@@ -2,8 +2,7 @@
     <svg class="
         slds-icon
         slds-icon_{{size ? size : (type eq 'utility') ? 'x-small' : 'small' }}
-        {{(type eq 'utility') ? ((textDefault eq undefined) or textDefault) ? 'slds-icon-text-default' : '' : ''}}
-        {{(solid or (solid eq undefined) or (type eq 'utility')) ? 'slds-icon-${type}-${name}' : '' transform='toIconClassName'}}
+        {{solid ? 'slds-icon-${type}-${name}' : '' transform='toIconClassName'}}
         {{foreground ? "slds-icon-${foreground}" : ''}}
         {{cssClass ? cssClass : ""}}"
             aria-hidden="true"

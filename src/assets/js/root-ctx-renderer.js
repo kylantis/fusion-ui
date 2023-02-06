@@ -33,8 +33,8 @@ class RootCtxRenderer extends BaseRenderer {
 
   #handlebarsOptions;
 
-  #promise; 
-  
+  #promise;
+
   #resolve;
 
   constructor({
@@ -73,7 +73,7 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   isMounted() {
-    return document.querySelector(`#${this.getElementId()}`);;
+    return !!document.querySelector(`#${this.getElementId()}`);
   }
 
   static setToken(token) {
@@ -93,11 +93,15 @@ class RootCtxRenderer extends BaseRenderer {
     );
   }
 
-  isLoadable() {
+  isLoadable0() {
     return this.getConfig().loadable;
   }
 
-  getRenderedHtml({ token }) {
+  isLoadable() {
+    return this.isLoadable0();
+  }
+
+  async getRenderedHtml({ token }) {
     const { getMetaHelpers } = RootCtxRenderer;
 
     if (token !== RootCtxRenderer.#token && !this.isRoot()) {
@@ -107,6 +111,8 @@ class RootCtxRenderer extends BaseRenderer {
     if (this.htmlRendered) {
       throw Error(`${this.getId()} is already rendered`);
     }
+
+    await this.invokeLifeCycleMethod('beforeMount');
 
     const componentHelpers = {};
 
@@ -223,10 +229,8 @@ class RootCtxRenderer extends BaseRenderer {
 
     super.load();
 
-    await this.invokeLifeCycleMethod('beforeMount');
-
     if (!html) {
-      html = this.getRenderedHtml({ token });
+      html = await this.getRenderedHtml({ token });
     }
 
     const parentNode = container ? document.getElementById(container) : document.body;
@@ -1060,7 +1064,6 @@ class RootCtxRenderer extends BaseRenderer {
     let [target] = params;
 
     if (Object(target) !== target) {
-      assert(!bindContext);
 
       // <target> resolved to a literal
       target = { value: target };

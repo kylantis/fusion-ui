@@ -31,6 +31,14 @@ class Icon extends components.TextCompanion {
             }
         }
     }
+    
+    getDefaultValues() {
+        const { type } = this.getInput();
+        return {
+            foreground: type == 'utility' ? 'text-default' : null,
+            solid: true,
+        };
+    }
 
     /**
      * This function checks if the solid state of this icon is changed when the provided property chamges

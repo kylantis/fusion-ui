@@ -15,11 +15,11 @@
 {{#*inline "render_standalone_control" eager=true}}
 
   {{#if not readonly and leftIcon}}
-    {{> IconSvg type="utility" name=leftIcon foreground="text-default" cssClass="slds-input__icon slds-input__icon_left"}}
+    {{> IconSvg type="utility" name=leftIcon cssClass="slds-input__icon slds-input__icon_left"}}
   {{/if}}
 
   {{#if not readonly and rightIcon and (not clearButton)}}
-    {{> IconSvg type="utility" name=rightIcon foreground="text-default" cssClass="slds-input__icon slds-input__icon_right"}}
+    {{> IconSvg type="utility" name=rightIcon cssClass="slds-input__icon slds-input__icon_right"}}
   {{/if}}
 
   {{> render_input_element}}
