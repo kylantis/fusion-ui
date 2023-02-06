@@ -19,12 +19,12 @@ class LightningComponent extends BaseComponent {
 
     behaviours() {
         return [
-            'setTooltip', 'showTooltip', 'hideTooltip', 'refreshTooltip', 'removeTooltip',
+            'setTooltipText', 'showTooltip', 'hideTooltip', 'refreshTooltip', 'removeTooltip',
             'resetTooltipHover', 'showTooltipOnHover',
         ];
     }
 
-    async setTooltip(title) {
+    async setTooltipText(title) {
         if (this.isHeadlessContext() || !title) {
             return;
         }

@@ -44,7 +44,7 @@
         "full-width"
       ],
       "defaults": [
-        "large"
+        "undefined"
       ]
     },
     "dark": {
@@ -53,9 +53,28 @@
     },
     "brand": {
       "type": "String",
-      "allowed": "position",
+      "allowed": [
+        "top",
+        "bottom",
+        "left",
+        "right"
+      ],
       "defaults": [
         null
+      ]
+    },
+    "position": {
+      "type": "String",
+      "allowed": [
+        "top-left",
+        "top",
+        "top-right",
+        "bottom-right",
+        "bottom",
+        "bottom-left"
+      ],
+      "defaults": [
+        "top"
       ]
     }
   },

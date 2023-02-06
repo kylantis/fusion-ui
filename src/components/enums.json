@@ -158,12 +158,6 @@
         "x-large",
         "xx-large"
     ],
-    "position": [
-        "top",
-        "bottom",
-        "left",
-        "right"
-    ],
     "positionX": [
         "left",
         "right"

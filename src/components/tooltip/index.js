@@ -9,6 +9,15 @@ class Tooltip extends components.Popover {
         input.closeIcon = false;
         input.scrollable = false;
     }
+
+    getSupportedPositions() {
+        return this.supportedPositions || [
+            "right",
+            "left",
+            "top",
+            "bottom",
+        ];
+    }
 }
 
 module.exports = Tooltip;

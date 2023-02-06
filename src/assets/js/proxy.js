@@ -157,7 +157,7 @@ class RootProxy {
         );
       }
 
-      if (proxy.component.isLoadable()) {
+      if (proxy.component.isLoadable0()) {
         proxy.#toCanonicalObject({ path: '', obj: component.getInput() });
 
         // Add our observer, to orchestrate data binding operations
@@ -271,13 +271,12 @@ class RootProxy {
 
                     // Inline enum reference
                     case definitions[refName].isEnumRef:
-                      const enum0 = self.appContext.enums[
-                        definitions[refName].originalName
-                      ];
+                      const enumName = definitions[refName].originalName;
+                      const enum0 = self.appContext.enums[enumName];
 
                       if (!enum0) {
                         this.component.throwError(
-                          `Ensure that ${enumsFile} contains the latest changes`
+                          `Could not find eunm "${enumName}". Ensure that ${enumsFile} contains the latest changes`
                         );
                       }
 
@@ -2872,6 +2871,12 @@ class RootProxy {
             obj[p] = (() => {
               // Assign a default value based on the data type
               const { type } = def.properties[p];
+
+              const defaultValue = this.component.getDefaultValues()[toFqPath({ parent: path, prop: p })];
+
+              if (defaultValue !== undefined) {
+                return defaultValue;
+              }
 
               if (!type || ['array', 'string', 'object'].includes(type[0])) {
                 return null;

@@ -470,11 +470,7 @@
     },
     "solid": {
       "type": "Boolean",
-      "defaultValue": true
-    },
-    "textDefault": {
-      "type": "Boolean",
-      "defaultValue": true
+      "defaultValue": "undefined"
     },
     "foregroundColor": {
       "type": "String",
@@ -487,7 +483,7 @@
       "type": "String",
       "allowed": "iconColor",
       "defaults": [
-        null
+        "undefined"
       ]
     },
     "cssClass": {

@@ -97,6 +97,11 @@ class BaseComponent extends WebRenderer {
   }
 
   // #API
+  getDefaultValues() {
+    return {};
+  }
+
+  // #API
   load(opts = {}) {
     return super.load({
       token: BaseComponent.#token,
@@ -138,34 +143,35 @@ class BaseComponent extends WebRenderer {
 
     const future = Promise.resolve(data)
       // eslint-disable-next-line no-shadow
-      .then((data) => {
+      .then(async (data) => {
 
         if (data === undefined) {
           // eslint-disable-next-line no-param-reassign
           data = '';
         }
 
-        let html = data instanceof BaseComponent ? data.getRenderedHtml() : this.toHtml(data);
+        let html = data instanceof BaseComponent ? await data.getRenderedHtml() : this.toHtml(data);
 
         if (transform) {
           html = this[transform](html);
         }
 
-        return this.getPromise()
-          .then(() => {
+        await this.getPromise();
 
-            const node = document.getElementById(target);
-            // clear loader, if any
-            node.innerHTML = '';
+        const node = document.getElementById(target);
+        // clear loader, if any
+        node.innerHTML = '';
 
-            return data instanceof BaseComponent ? data.load({
-              container: target,
-              html
-            }) : (node.innerHTML = html);
-          })
-          .then(() => {
-            this.renderOffset--;
+        if (data instanceof BaseComponent) {
+          await data.load({
+            container: target,
+            html
           });
+        } else {
+          node.innerHTML = html
+        }
+
+        this.renderOffset--;
       });
 
     this.futures.push(future);
