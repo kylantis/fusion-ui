@@ -26,8 +26,12 @@
 
         {{> ?popover-header}}
 
-        <div class="slds-popover__body {{scrollable ? "slds-popover__body_small" : ""}}" id="dialog-body-{{@random}}">
-            {{> ?popover-body}}
+        <div 
+            class="slds-popover__body" 
+            id="dialog-body-{{@random}}"
+            style="{{maxHeight ? "max-height: ${maxHeight}rem; overflow-y: auto;" : ""}}"
+            >
+                {{> ?popover-body}}
         </div>
 
         {{> ?popover-footer}}

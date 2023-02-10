@@ -14,6 +14,8 @@ class BaseRenderer {
 
   #config;
 
+  #internalMeta;
+
   constructor({ id, input, logger, config={} } = {}) {
     if (!id) {
       // eslint-disable-next-line no-param-reassign
@@ -51,7 +53,13 @@ class BaseRenderer {
     // eslint-disable-next-line no-undef
     RootProxy.create(this);
 
+    this.#internalMeta = {};
+
     this.#initialized = true;
+  }
+
+  getInternalMeta() {
+    return this.#internalMeta;
   }
 
   static getDefaultConfig() {

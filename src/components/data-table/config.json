@@ -1,7 +1,114 @@
 {
   "enableTypeMerging": false,
-  "collections": {},
-  "scalars": {},
+  "collections": {
+    "columns": {
+      "minLength": 7,
+      "keyType": "String",
+      "defaultKeys": [
+        "Name",
+        "Related To",
+        "From Address",
+        "To Address",
+        "Location",
+        "Attendees",
+        "When",
+        "Opportunity Name",
+        "Account Name",
+        "Close Date",
+        "Stage",
+        "Confidence",
+        "Amount",
+        "Contact"
+      ],
+      "singularType": "ColumnConfig"
+    },
+    "rows": {
+      "minLength": 10,
+      "singularType": "RowsElement"
+    },
+    "rows.$_.cells": {
+      "minLength": 10,
+      "singularType": "CellsElement"
+    }
+  },
+  "scalars": {
+    "editable": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "resizableColumns": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "rowsSelectable": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "label": {
+      "type": "String",
+      "defaults": [
+        null
+      ]
+    },
+    "bordered": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "labelledBy": {
+      "type": "String",
+      "defaults": [
+        null
+      ],
+      "clientOnly": true
+    },
+    "columns.$_.resizable": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "columns.$_.sortable": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "rows.$_.selected": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "rows.$_.rowsSelectable": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "rows.$_.cells_$.editable": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "rows.$_.actions": {
+      "type": "Menu",
+      "isNull": false
+    }
+  },
+  "behaviours": {
+    "sortAscending": {
+      "parameters": {
+        "columnIndex": {
+          "type": "number"
+        }
+      }
+    },
+    "sortDescending": {
+      "parameters": {
+        "columnIndex": {
+          "type": "number"
+        }
+      }
+    },
+    "selectRow": {
+      "parameters": {
+        "rowIndex": {
+          "type": "number"
+        }
+      }
+    }
+  },
   "sample": {
     "nullifyRandomly": []
   },

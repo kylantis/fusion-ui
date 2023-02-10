@@ -1,6 +1,8 @@
 class LightningComponent extends BaseComponent {
 
     initCompile() {
+        this.getInput().cssStyle;
+        this.getInput().cssClass;
     }
 
     jsDependencies() {
@@ -8,13 +10,6 @@ class LightningComponent extends BaseComponent {
             ...super.jsDependencies(),
             // Todo: Add extra js files to be used across all lightning components
         ];
-    }
-
-    onMount() {
-    }
-
-    event() {
-        return [];
     }
 
     behaviours() {

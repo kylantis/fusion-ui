@@ -564,13 +564,6 @@
         null
       ]
     },
-    "cssClass": {
-      "type": "String",
-      "defaults": [
-        null
-      ],
-      "clientOnly": true
-    },
     "focusable": {
       "type": "Boolean",
       "defaultValue": false

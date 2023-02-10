@@ -1,0 +1,13 @@
+{
+  "collections": {},
+  "scalars": {
+    "name": {
+      "type": "String",
+      "allowed": "illustrationName",
+      "defaults": [
+        "going_camping"
+      ]
+    }
+  },
+  "escapeDynamicHtml": false
+}

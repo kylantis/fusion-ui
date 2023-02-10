@@ -21,7 +21,7 @@
             size=iconSize ref='iconSvg'
     }}
     
-    {{#if title}}
+    {{#if assistiveText}}
         <span class="slds-assistive-text">{{assistiveText}}</span>
     {{/if}}
 </button>

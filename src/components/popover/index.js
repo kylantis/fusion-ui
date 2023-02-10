@@ -3,6 +3,13 @@ class Popover extends components.OverlayComponent {
 
     initCompile() {
         this.getInput().targetElement;
+        this.getInput().nubbin;
+    }
+
+    getDefaultValues() {
+        return {
+            nubbin: true,
+        }
     }
 
     static isAbstract() {
@@ -23,7 +30,7 @@ class Popover extends components.OverlayComponent {
             return;
         }
 
-        const { targetElement } = this.getInput();
+        const { targetElement, nubbin } = this.getInput();
 
         if (!targetElement) {
             return;
@@ -48,14 +55,16 @@ class Popover extends components.OverlayComponent {
 
         fn(this.getNode());
 
-        this.addNubbinCssClass(position);
+        if (nubbin) {
+            this.addNubbinCssClass(position);
+        }
     }
 
     onMount() {
         this.closePopover();
 
         const node = this.getNode();
-        
+
         node.style.display = 'block';
         node.style.position = 'absolute';
 
@@ -102,6 +111,8 @@ class Popover extends components.OverlayComponent {
 
     // getCssPosition(containerRect, position, area) {
     //     Try 24 Pixels as the offset
+
+    
     // }
 
     getNode() {
@@ -160,7 +171,8 @@ class Popover extends components.OverlayComponent {
     }
 
     getPadding() {
-        return 12;
+        const { nubbin } = this.getInput();
+        return nubbin ? 12 : 0;
     }
 
     getRequiredArea(position) {

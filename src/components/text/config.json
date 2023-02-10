@@ -31,13 +31,6 @@
         null
       ]
     },
-    "cssClass": {
-      "type": "String",
-      "defaults": [
-        null
-      ],
-      "clientOnly": true
-    },
     "color": {
       "type": "String",
       "allowed": "textColor",

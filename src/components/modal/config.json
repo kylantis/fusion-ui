@@ -24,13 +24,6 @@
         "small"
       ]
     },
-    "cssClass": {
-      "type": "String",
-      "defaults": [
-        null
-      ],
-      "clientOnly": true
-    },
     "tabIndex": {
       "type": "Number",
       "defaultValue": -1,

@@ -1,0 +1,87 @@
+
+{{#*inline "going_camping_svg" runtime=true}}
+    {{> partials/going_camping }}
+{{/inline}}
+
+{{#*inline "maintenance_svg" runtime=true}}
+    {{> partials/maintenance }}
+{{/inline}}
+
+{{#*inline "desert_svg" runtime=true}}
+    {{> partials/desert }}
+{{/inline}}
+
+{{#*inline "open_road_svg" runtime=true}}
+    {{> partials/open_road }}
+{{/inline}}
+
+{{#*inline "no_access_svg" runtime=true}}
+    {{> partials/no_access }}
+{{/inline}}
+
+{{#*inline "no_connection_svg" runtime=true}}
+    {{> partials/no_connection }}
+{{/inline}}
+
+{{#*inline "not_available_in_lightning_svg" runtime=true}}
+    {{> partials/not_available_in_lightning }}
+{{/inline}}
+
+{{#*inline "page_not_available_svg" runtime=true}}
+    {{> partials/page_not_available }}
+{{/inline}}
+
+{{#*inline "walkthrough_not_available_svg" runtime=true}}
+    {{> partials/walkthrough_not_available }}
+{{/inline}}
+
+{{#*inline "fishing_deals_svg" runtime=true}}
+    {{> partials/fishing_deals }}
+{{/inline}}
+
+{{#*inline "lake_mountain_svg" runtime=true}}
+    {{> partials/lake_mountain }}
+{{/inline}}
+
+{{#*inline "no_events_svg" runtime=true}}
+    {{> partials/no_events }}
+{{/inline}}
+
+{{#*inline "no_task_svg" runtime=true}}
+    {{> partials/no_task }}
+{{/inline}}
+
+{{#*inline "setup_svg" runtime=true}}
+    {{> partials/setup }}
+{{/inline}}
+
+{{#*inline "gone_fishing_svg" runtime=true}}
+    {{> partials/gone_fishing }}
+{{/inline}}
+
+{{#*inline "no_access_2_svg" runtime=true}}
+    {{> partials/no_access_2 }}
+{{/inline}}
+
+{{#*inline "no_content_svg" runtime=true}}
+    {{> partials/no_content }}
+{{/inline}}
+
+{{#*inline "no_preview_svg" runtime=true}}
+    {{> partials/no_preview }}
+{{/inline}}
+
+{{#*inline "preview_svg" runtime=true}}
+    {{> partials/preview }}
+{{/inline}}
+
+{{#*inline "research_svg" runtime=true}}
+    {{> partials/research }}
+{{/inline}}
+
+
+<div 
+    class="slds-illustration {{cssClass ? cssClass : ''}}"
+    {{cssStyle ? "style=\"${cssStyle};\"" : ""}}
+    >
+</div>

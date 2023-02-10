@@ -26,13 +26,6 @@
         "info"
       ]
     },
-    "cssClass": {
-      "type": "String",
-      "defaults": [
-        null
-      ],
-      "clientOnly": true
-    },
     "svgForeground": {
       "type": "String",
       "allowed": "iconColor",

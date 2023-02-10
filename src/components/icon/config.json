@@ -507,7 +507,7 @@
       "type": "Boolean",
       "defaultValue": "undefined"
     },
-    "cssClass": {
+    "svgCssClass": {
       "type": "String",
       "defaults": [
         null

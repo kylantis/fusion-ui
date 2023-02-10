@@ -9,20 +9,43 @@ class ActivityTimeline extends components.LightningComponent {
     hooks() {
         return {
             ['beforeMount.items.$_.actions']: (evt) => {
-                const { newValue: menu, parentObject: { ["@key"]: identifier } } = evt;
+                const { newValue: actions, parentObject: { ["@key"]: identifier } } = evt;
 
                 const contextMenu = (this.contextMenus || {})[identifier];
 
-                if (menu) {
+                if (actions) {
                     if (contextMenu) {
-                        contextMenu.onMenuChange(menu)
+                        contextMenu.onMenuChange(actions)
                     } else {
-                        this.addContextMenu(identifier, menu);
+                        this.addContextMenu(identifier, actions);
                     }
                 } else {
                     assert(!!contextMenu);
 
                     contextMenu.destroy();
+                    delete this.contextMenus[identifier];
+                }
+            },
+            ['beforeMount.items.$_']: (evt) => {
+                const { getKeyFromIndexSegment, getParentFromPath, getMapKeyPrefix } = this;
+                const { path, newValue, oldValue } = evt;
+
+                if (!newValue && oldValue.actions) {
+
+                    const key = getKeyFromIndexSegment(
+                        path.replace(
+                            getParentFromPath(path.split('.')),
+                            ''
+                        )
+                    );
+
+                    const identifier = key.replace(getMapKeyPrefix(), '');
+
+                    const contextMenu = this.contextMenus[identifier];
+                    assert(contextMenu);
+
+                    contextMenu.destroy();
+
                     delete this.contextMenus[identifier];
                 }
             },
@@ -32,13 +55,12 @@ class ActivityTimeline extends components.LightningComponent {
                 this.node.querySelector(`.slds-timeline li style[identifier='${identifier}']`)
                     .innerHTML = this.getItemStyle0(identifier, lineColor);
             },
-            ['beforeMount.items.$_.expandable']: (evt) => {
-                const { parentObject: { ["@key"]: identifier } } = evt;
-                this.setExpandButtonVisibility(identifier);
-            },
             ['beforeMount.items.$_.expanded']: (evt) => {
                 const { parentObject: { ["@key"]: identifier }, newValue } = evt;
-                this.getExpandButton(identifier).setAttribute("aria-expanded", !newValue);
+                
+                this.getExpandButton(identifier)
+                    .getButton()
+                    .setAttribute("aria-expanded", !newValue);
             }
         }
     }
@@ -57,10 +79,9 @@ class ActivityTimeline extends components.LightningComponent {
 
         await contextMenu.load();
 
-        contextMenu
-            .addNode(this.node.querySelector(
-                `#${this.getElementId()} li[identifier='${identifier}'] .slds-timeline__actions button`
-            ));
+        contextMenu.addNode(
+            this.getActionsTriggerButton(identifier).getButton()
+        );
 
         contextMenus[identifier] = contextMenu;
     }
@@ -78,35 +99,22 @@ class ActivityTimeline extends components.LightningComponent {
 
         const expandBtn = this.getExpandButton(identifier);
 
-        expandBtn.addEventListener('click', () => { item.expanded = !item.expanded; });
-
-        // Note: this is optional
-        expandBtn.setAttribute("aria-controls", this.getArticle(identifier).id);
+        expandBtn.on('click', () => {
+            item.expanded = !item.expanded;
+        });
+        expandBtn.getButton().setAttribute("aria-controls", this.getArticle(identifier).id);
     }
 
     getArticle(identifier) {
         return this.node.querySelector(`#${this.getElementId()} li${identifier ? `[identifier='${identifier}']` : ''} > div.slds-timeline__item_expandable .slds-media > .slds-media__body > article`);
     }
 
-    /**
-     * Note: this function assumes that the ButtonIcon component renders a button html elemeent
-     * @returns 
-     */
     getExpandButton(identifier) {
-        return this.node.querySelector(`#${this.getElementId()} li${identifier ? `[identifier='${identifier}']` : ''} > div.slds-timeline__item_expandable > .slds-media > .slds-media__figure button`);
+        return this.getInlineComponent(`${identifier}-expand-button`);
     }
 
-    setExpandButtonVisibility(identifier) {
-
-        const node = this.getExpandButton(identifier);
-        const { items } = this.getInput();
-        const item = items[identifier];
-
-        if (item.expandable) {
-            node.style.visibility = 'visible';
-        } else {
-            node.style.visibility = 'hidden';
-        }
+    getActionsTriggerButton(identifier) {
+        return this.getInlineComponent(`${identifier}-actions-trigger-button`);
     }
 
     /**

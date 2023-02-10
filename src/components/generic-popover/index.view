@@ -19,8 +19,25 @@
 {{/inline}}
 
 {{#*inline "popover-body"}}
-  {{component alias="body"}}
-  {{> body}}
+    <div class="slds-media">
+        <div class="slds-media__figure">
+            {{component Icon alias="icon"}}
+            {{#if icon}}
+                {{> icon size="small" svgCssClass="slds-popover__icon"}}
+            {{/if}}
+        </div>
+        <div class="slds-media__body">
+            {{#if title}}
+                <h2 class="slds-popover_prompt__heading"> {{title}} </h2>
+            {{/if}}
+            
+            {{component alias="body"}}
+
+            {{#if body}}
+                {{> body cssClass="slds-p-vertical_medium"}}
+            {{/if}}
+        </div>
+    </div>
 {{/inline}}
 
 {{#*inline "popover-footer"}}

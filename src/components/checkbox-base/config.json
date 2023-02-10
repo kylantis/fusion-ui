@@ -15,6 +15,22 @@
     "disabled": {
       "type": "Boolean",
       "defaultValue": false
+    },
+    "assistiveText": {
+      "type": "String",
+      "defaults": []
+    },
+    "labelledBy": {
+      "type": "String",
+      "defaults": [
+        null
+      ],
+      "clientOnly": true
+    },
+    "tabIndex": {
+      "type": "Number",
+      "defaultValue": "undefined",
+      "clientOnly": true
     }
   },
   "sample": {

@@ -5,6 +5,12 @@ class Input extends components.FormElement {
         this.setControlCssClass();
     }
 
+    onMount() {
+
+        // Todo: Configure Popover, i.e. set width and position
+
+    }
+
     hooks() {
         return {
             ['onMount.leftIcon']: () => {
@@ -21,6 +27,20 @@ class Input extends components.FormElement {
             },
         }
     };
+
+    behaviours() {
+        return [
+            'showPopover', 'hidePopover'
+        ];
+    }
+
+    showPopover() {
+
+    }
+
+    hidePopover() {
+        
+    }
 
     setControlCssClass() {
         const input = this.getInput();

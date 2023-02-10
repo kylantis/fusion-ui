@@ -480,5 +480,10 @@ class BaseComponent extends WebRenderer {
   resumeHooks() {
     this.proxyInstance.resumeHooks();
   }
+  // #API
+  getDataVariableValue(dataVariable, index, keys) {
+    const { getDataVariableValue } = RootCtxRenderer;
+    return getDataVariableValue(dataVariable, index, keys);
+  }
 }
 module.exports = BaseComponent;
