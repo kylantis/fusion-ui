@@ -7,13 +7,6 @@
         null
       ]
     },
-    "cssClass": {
-      "type": "String",
-      "defaults": [
-        null
-      ],
-      "clientOnly": true
-    },
     "role": {
       "type": "String",
       "defaults": [
@@ -31,10 +24,6 @@
       "type": "Boolean",
       "defaultValue": true
     },
-    "scrollable": {
-      "type": "Boolean",
-      "defaultValue": false
-    },
     "width": {
       "type": "String",
       "allowed": [
@@ -44,8 +33,12 @@
         "full-width"
       ],
       "defaults": [
-        "undefined"
+        "large"
       ]
+    },
+    "maxHeight": {
+      "type": "number",
+      "defaultValue": 0
     },
     "dark": {
       "type": "Boolean",
@@ -76,6 +69,10 @@
       "defaults": [
         "top"
       ]
+    },
+    "nubbin": {
+      "type": "Boolean",
+      "defaultValue": true
     }
   },
   "escapeDynamicHtml": false

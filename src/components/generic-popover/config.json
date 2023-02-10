@@ -17,8 +17,21 @@
         null
       ]
     },
+    "icon": {
+      "type": "Icon",
+      "isNull": false
+    },
+    "title": {
+      "type": "String",
+      "defaults": [
+        "Prompt title"
+      ]
+    },
     "body": {
-      "type": "componentRef"
+      "type": "componentRef",
+      "defaults": [
+        "Illustration"
+      ]
     },
     "footer.theme": {
       "type": "String",
@@ -33,12 +46,19 @@
     },
     "footer.actionLink": {
       "type": "Link",
-      "isNull": true
+      "isNull": false
     },
     "footer.rightButton": {
       "type": "Button",
       "isNull": false
     }
+  },
+  "sample": {
+    "nullifyRandomly": [
+      "footer.leftButton",
+      "footer.actionLink",
+      "footer.rightButton"
+    ]
   },
   "escapeDynamicHtml": false
 }

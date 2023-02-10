@@ -2480,6 +2480,7 @@ class RootProxy {
         }
 
         // Todo: Fix to support @random, adding a mock here for now
+        
         if (dataVariable == '@random') {
           return clientUtils.randomString();
         }
@@ -2724,7 +2725,7 @@ class RootProxy {
     const ensureType = (constructorName) => {
       if (value.constructor.name != constructorName) {
         this.component.throwError(
-          `ValidationError - Expected ${path} to be of type "${constructorName}" instead of "${value.constructor.name}"`
+          `ValidationError - Expected "${path}" to be of type "${constructorName}" instead of "${value.constructor.name}"`
         );
       }
     }
@@ -2872,10 +2873,12 @@ class RootProxy {
               // Assign a default value based on the data type
               const { type } = def.properties[p];
 
-              const defaultValue = this.component.getDefaultValues()[toFqPath({ parent: path, prop: p })];
+              const defaultValue = this.component.getDefaultValues()[
+                clientUtils.toCanonicalPath(toFqPath({ parent: path, prop: p }))
+              ];
 
               if (defaultValue !== undefined) {
-                return defaultValue;
+                return typeof defaultValue == 'function' ? defaultValue() : defaultValue;
               }
 
               if (!type || ['array', 'string', 'object'].includes(type[0])) {

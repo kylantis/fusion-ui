@@ -46,10 +46,6 @@
         "progressively transform empowered web-readiness",
         "competently recaptiualize functionalized users"
       ]
-    },
-    "cssClass": {
-      "type": "String",
-      "defaults": []
     }
   },
   "sample": {

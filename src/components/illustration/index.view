@@ -1,139 +1,29 @@
-{{#*inline "illustration_svg" name}}
+{{style url="/components/illustration/style.min.css"}}
 
-    {{#if name eq 'going_camping'}}
-        {{> partials/going_camping }}
+<div  class="
+        {{size ? "slds-illustration-container_${size}" : ""}} 
+        {{cssClass ? cssClass : ""}}
+        " 
+     style="text-align: center; {{verticallyAlign ? "display: flex; height: 100%;" : ''}}">
+
+    {{#*inline "render_illustration"}}
+        {{> IllustrationBase name }}
+
+        <div class="slds-text-longform">
+            {{#if title}}
+                <h3 class="slds-text-heading_medium slds-illustration__header">{{title}}</h3>
+            {{/if}}
+            {{#if description}}
+                <p class="slds-text-body_regular">{{description}}</p>
+            {{/if}}
+        </div>
+    {{/inline}}
+
+    {{#if verticallyAlign}}
+        <div style="margin: auto;">
+            {{> render_illustration}}
+        </div>
     {{else}}
-
-    {{#if name eq 'maintenance'}}
-    {{> partials/maintenance }}
-    {{else}}
-
-    {{#if name eq 'desert'}}
-    {{> partials/desert }}
-    {{else}}
-
-    {{#if name eq 'open_road'}}
-    {{> partials/open_road }}
-    {{else}}
-
-    {{#if name eq 'no_access'}}
-    {{> partials/no_access }}
-    {{else}}
-
-    {{#if name eq 'no_connection'}}
-    {{> partials/no_connection }}
-    {{else}}
-
-    {{#if name eq 'not_available_in_lightning'}}
-    {{> partials/not_available_in_lightning }}
-    {{else}}
-
-    {{#if name eq 'page_not_available'}}
-    {{> partials/page_not_available }}
-    {{else}}
-
-    {{#if name eq 'walkthrough_not_available'}}
-    {{> partials/walkthrough_not_available }}
-    {{else}}
-
-    {{#if name eq 'fishing_deals'}}
-    {{> partials/fishing_deals }}
-    {{else}}
-
-    {{#if name eq 'lake_mountain'}}
-    {{> partials/lake_mountain }}
-    {{else}}
-
-    {{#if name eq 'no_events'}}
-    {{> partials/no_events }}
-    {{else}}
-
-    {{#if name eq 'no_task'}}
-    {{> partials/no_task }}
-    {{else}}
-
-    {{#if name eq 'setup'}}
-    {{> partials/setup }}
-    {{else}}
-
-    {{#if name eq 'gone_fishing'}}
-    {{> partials/gone_fishing }}
-    {{else}}
-
-    {{#if name eq 'no_access_2'}}
-    {{> partials/no_access_2 }}
-    {{else}}
-
-    {{#if name eq 'no_content'}}
-    {{> partials/no_content }}
-    {{else}}
-
-    {{#if name eq 'no_preview'}}
-    {{> partials/no_preview }}
-    {{else}}
-
-    {{#if name eq 'preview'}}
-    {{> partials/preview }}
-    {{else}}
-
-    {{#if name eq 'research'}}
-    {{> partials/research }}
-    {{else}}
-
+        {{> render_illustration}}
     {{/if}}
-
-    {{/if}}
-
-    {{/if}}
-
-    {{/if}}
-
-    {{/if}}
-
-    {{/if}}
-
-    {{/if}}
-
-    {{/if}}
-
-    {{/if}}
-
-    {{/if}}
-
-    {{/if}}
-
-    {{/if}}
-
-    {{/if}}
-
-    {{/if}}
-
-    {{/if}}
-
-    {{/if}}
-
-    {{/if}}
-
-    {{/if}}
-
-    {{/if}}
-
-    {{/if}}
-
-{{/inline}}
-
-
-<div class="slds-illustration {{(size eq "x-large") ? "" : "slds-illustration_${size}"}}" 
-     style="{{verticallyAlign ? 'position: relative; left: 50%; top: 50%; transform: translate(-50%, -50%);' : ''}}">
-
-    {{> illustration_svg name}}
-
-    <div class="slds-text-longform">
-        {{#if title}}
-            <h3 class="slds-text-heading_medium">{{title}}</h3>
-        {{/if}}
-        {{#if description}}
-            <p class="slds-text-body_regular">{{description}}</p>
-        {{/if}}
-    </div>
 </div>

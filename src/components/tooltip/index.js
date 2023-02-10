@@ -7,7 +7,6 @@ class Tooltip extends components.Popover {
         input.cssClass = "slds-popover_tooltip";
         input.role = "tooltip";
         input.closeIcon = false;
-        input.scrollable = false;
     }
 
     getSupportedPositions() {

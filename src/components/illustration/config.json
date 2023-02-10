@@ -9,28 +9,30 @@
       "type": "String",
       "allowed": [
         "small",
-        "large",
-        "x-large"
+        "large"
       ],
       "defaults": [
-        "large"
+        "small"
       ]
     },
     "title": {
       "type": "String",
       "defaults": [
-        "Title"
+        "Current State"
       ]
     },
     "description": {
       "type": "String",
       "defaults": [
-        "Description"
+        "All operations are norminal"
       ]
     },
     "name": {
       "type": "String",
-      "defaults": []
+      "allowed": "illustrationName",
+      "defaults": [
+        "going_camping"
+      ]
     }
   },
   "escapeDynamicHtml": false

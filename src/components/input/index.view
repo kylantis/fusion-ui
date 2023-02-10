@@ -36,4 +36,6 @@
 
 {{/inline}}
 
+{{component Popover alias="popover"}}
+
 {{> render_form_element}}

@@ -27,6 +27,7 @@ parts, and each part is either plain text or a link
 
 
   <li identifier="{{@key}}">
+
     {{!-- Use a helper function to get the stylesheet declarations for this block, if any --}}
     {{getItemStyle @key lineColor}}
 
@@ -39,7 +40,11 @@ parts, and each part is either plain text or a link
         <div class="slds-media__figure">
 
           {{#if expandable}}
-            {{> ButtonIcon iconType='utility' iconName='switch' svgCssClass="slds-timeline__details-action-icon"}}
+            {{> ButtonIcon 
+                  iconType='utility' iconName='switch' 
+                  svgCssClass="slds-timeline__details-action-icon"
+                  ref="${@key}-expand-button"
+            }}
           {{/if}}
 
           {{> icon}}
@@ -76,7 +81,11 @@ parts, and each part is either plain text or a link
               <p class="slds-timeline__date">{{date}}</p>
 
               {{#if actions}}
-                {{> ButtonIcon iconType='utility' iconName='down' size="x-small" type="border-filled"}}
+                {{> ButtonIcon 
+                      iconType='utility' iconName='down' 
+                      size="x-small" type="border-filled"
+                      ref="${@key}-actions-trigger-button"
+                }}
               {{/if}}
 
             </div>

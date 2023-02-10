@@ -3,9 +3,7 @@ class GenericPopover extends components.Popover {
 
     beforeMount() {
         const input = this.getInput();
-
         input.closeIcon = true;
-        input.scrollable = true;
     }
 
     onMount() {

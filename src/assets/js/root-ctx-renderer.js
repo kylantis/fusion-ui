@@ -37,6 +37,8 @@ class RootCtxRenderer extends BaseRenderer {
 
   #resolve;
 
+  #rendered;
+
   constructor({
     id, input, logger,
   } = {}) {
@@ -87,8 +89,20 @@ class RootCtxRenderer extends BaseRenderer {
     return global.templates[`metadata_${assetId}`];
   }
 
-  renderDecorator(decorator) {
-    return this.#handlebars.template(decorator)(
+  getDecorator(decoratorName) {
+    const { decorators } = this.getMetadata(this.getAssetId());
+
+    const decorator = decorators[decoratorName];
+
+    if (!decorator) {
+      this.throwError(`Could not find runtime decorator "${decoratorName}"`);
+    }
+
+    return decorator;
+  }
+
+  renderDecorator({ program }) {
+    return this.#handlebars.template(program)(
       this.rootProxy, this.#handlebarsOptions,
     );
   }
@@ -108,7 +122,7 @@ class RootCtxRenderer extends BaseRenderer {
       throw Error(`Invalid token: ${token}`);
     }
 
-    if (this.htmlRendered) {
+    if (this.#rendered) {
       throw Error(`${this.getId()} is already rendered`);
     }
 
@@ -178,9 +192,18 @@ class RootCtxRenderer extends BaseRenderer {
       allowedProtoProperties[path] = true;
     }
 
+    // Create new handlebars environment
+    this.#handlebars = Handlebars.create();
+
+    // Add a custom partial resolver, inorder to expose runtime decorators as partials
+    this.#handlebars.VM.invokePartial = (partial, context, options) => {
+      return this.renderDecorator(
+        this.getDecorator(options.name)
+      );
+    };
+    
     this.#handlebarsOptions = {
       helpers,
-      partials: {},
       allowedProtoProperties: {
 
         // Todo: Stop passing in everthing, we only need the paths prefixed with "data__r$_"
@@ -192,8 +215,6 @@ class RootCtxRenderer extends BaseRenderer {
 
     const { template } = this.getMetadata(this.getAssetId());
 
-    this.#handlebars = Handlebars.create();
-
     // eslint-disable-next-line no-undef
     const html = this.#handlebars.template(template)(
       {
@@ -204,7 +225,7 @@ class RootCtxRenderer extends BaseRenderer {
 
     assert(this.syntheticNodeId.length == 0);
 
-    this.htmlRendered = true;
+    this.#rendered = true;
 
     return html;
   }
@@ -2172,14 +2193,15 @@ class RootCtxRenderer extends BaseRenderer {
               inputProducer, hash,
             });
 
-            if (input || config || handlers) {
+            if (input || config || handlers || componentSpec.getInternalMeta().loaded) {
               component = new componentSpec.constructor({
                 input: input || inputProducer(),
                 config,
               });
             } else {
-              // We don't have to clone the component, because there is no override
+              // We don't have to clone the component
               component = componentSpec;
+              component.getInternalMeta().loaded = true;
             }
 
             if (handlers) {
@@ -2213,7 +2235,7 @@ class RootCtxRenderer extends BaseRenderer {
 
   getInlineComponent(ref) {
     const c = this.#inlineComponentInstances[ref];
-    return c.isMounted() ? c : null;
+    return (c && c.isMounted()) ? c : null;
   }
 
   getComponentName() {

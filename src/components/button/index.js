@@ -95,6 +95,7 @@ class Button extends components.LightningComponent {
                         )
                     );
                     const state = key.replace(getMapKeyPrefix(), '');
+                    
                     const throwErr = () => this.throwError(
                         `Curent selectState "${selectState}" depends on the removed state "${state}"`
                     );

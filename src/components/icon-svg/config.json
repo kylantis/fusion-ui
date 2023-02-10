@@ -485,13 +485,6 @@
       "defaults": [
         "undefined"
       ]
-    },
-    "cssClass": {
-      "type": "String",
-      "defaults": [
-        null
-      ],
-      "clientOnly": true
     }
   },
   "escapeDynamicHtml": false

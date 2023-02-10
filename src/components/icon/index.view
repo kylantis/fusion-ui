@@ -29,6 +29,7 @@
             type name solid size
             foreground=(((not useCurrentColor) and foreground) ? foreground : null) 
             foregroundColor=(((not useCurrentColor) and foregroundColor) ? foregroundColor : null) 
+            cssClass=svgCssClass
             ref="svg"
     }}
 
