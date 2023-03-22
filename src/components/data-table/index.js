@@ -1,7 +1,192 @@
 
 class DataTable extends components.LightningComponent {
 
-    getDefaaultValues() {
+    beforeMount() {
+        this.setHasActions();
+    }
+
+    setHasActions() {
+        const input = this.getInput();
+        const { rows } = input;
+
+        if (
+            Object.values(rows)
+                .filter(row => row)
+                .filter(({ actions }) => actions).length
+        ) {
+            input.hasActions = true;
+        }
+    }
+
+    renameTagVisitor({ content }) {
+        const rgx = /^tag-/g;
+        if (content.name.match(rgx)) {
+            content.name = content.name.replace(rgx, '');
+        }
+    }
+
+    renameTagsTransform({ node }) {
+        this.visitHtmlAst({
+            ast: node, tagVisitor: this.renameTagVisitor
+        })
+    }
+
+    thOuterTransform({ node }) {
+
+        this.moveWrapperToParent({ node });
+
+        node.content.children
+            .filter(({ nodeType }) => nodeType == 'tag')
+            .forEach(node => {
+                this.thInnerTransform({ node, initial: true });
+            });
+    }
+
+    thInnerTransform({ node, initial }) {
+        if (!node.content.children) {
+
+            // This cell is null, add an empty cell element as it's child. This is needed for moveWrapperToFirstChild(...)
+            node.content.children = [
+                this.createEmptyCellElement('th')
+            ];
+
+        } else if (!initial) {
+            this.renameTagsTransform({ node });
+        }
+
+        this.moveWrapperToFirstChild({ node, attributes: ['key'] });
+    }
+
+    tdOuterTransform({ node }) {
+
+        this.moveWrapperToParent({ node });
+
+        node.content.children
+            .filter(({ nodeType }) => nodeType == 'tag')
+            .forEach(node => {
+                this.tdInnerTransform({ node, initial: true });
+            });
+    }
+
+    tdInnerTransform({ node, initial }) {
+        if (!node.content.children) {
+
+            // This cell is null, add an empty cell element as it's child. This is needed for moveWrapperToFirstChild(...)
+            node.content.children = [
+                this.createEmptyCellElement()
+            ];
+
+        } else if (!initial) {
+            this.renameTagsTransform({ node });
+        }
+
+        this.moveWrapperToFirstChild({ node, attributes: ['key'] });
+    }
+
+    rowOuterTransform({ node }) {
+
+        this.moveWrapperToParent({ node });
+
+        node.content.children
+            .filter(({ nodeType }) => nodeType == 'tag')
+            .forEach(node => {
+                this.rowInnerTransform({ node, initial: true });
+            });
+    }
+
+    rowInnerTransform({ node, initial }) {
+
+        if (!node.content.children) {
+
+            // This row is null, add an empty row element as it's child. This is needed for moveWrapperToFirstChild(...)
+            node.content.children = [
+                this.createEmptyRowElement(),
+            ];
+
+        } else if (!initial) {
+            this.renameTagsTransform({ node });
+        }
+
+        this.moveWrapperToFirstChild({ node, attributes: ['key'] });
+    }
+
+    createEmptyCellElement(tagName = 'td') {
+        return this.createTag(
+            tagName,
+            [{
+                nodeType: 'text',
+                content: {
+                    value: {
+                        type: 'token:text',
+                        content: '&nbsp;',
+                    }
+                }
+            }],
+            [{
+                key: {
+                    type: 'token:attribute-key',
+                    content: this.getEmptyNodeAttributeKey(),
+                }
+            }]
+        );
+    }
+
+    createEmptyRowElement() {
+        const { columns, rowsSelectable, hasActions } = this.getInput();
+
+        // This is an array used to determine the number of blank columns we will generate
+        const columnList = Object.keys(columns);
+
+        if (rowsSelectable) {
+            columnList.push('');
+        }
+
+        if (hasActions) {
+            columnList.push('');
+        }
+
+        return this.createTag(
+            'tr',
+            columnList.map(() => this.createEmptyCellElement()),
+            [{
+                key: {
+                    type: 'token:attribute-key',
+                    content: this.getEmptyNodeAttributeKey(),
+                }
+            }]
+        );
+    }
+
+    createTag(nodeName, children = [], attributes = []) {
+        return {
+            nodeType: 'tag',
+            content: {
+                openStart: {
+                    type: 'token:open-tag-start',
+                    content: `<${nodeName}`,
+                },
+                name: nodeName,
+                attributes,
+                openEnd: {
+                    type: 'token:open-tag-end',
+                    content: '>',
+                },
+                selfClosing: false,
+                children,
+                close: {
+                    type: 'token:close-tag',
+                    content: `</${nodeName}>`,
+                }
+            }
+        }
+    };
+
+    hasRequiredCells(row) {
+        const { columns } = this.getInput();
+        return row.cells && (row.cells.length == columns.size);
+    }
+
+    getDefaultValues() {
         return {
             bordered: true,
             rowsSelectable: true,
@@ -14,6 +199,7 @@ class DataTable extends components.LightningComponent {
             ['beforeMount.rows.$_.actions']: (evt) => {
                 const { newValue: actions, parentObject: { ["@key"]: identifier } } = evt;
 
+                const input = this.getInput();
                 const contextMenu = (this.contextMenus || {})[identifier];
 
                 if (actions) {
@@ -22,11 +208,18 @@ class DataTable extends components.LightningComponent {
                     } else {
                         this.addContextMenu(identifier, actions);
                     }
+
+                    if (!input.hasActions) {
+                        input.hasActions = true;
+                    }
+
                 } else {
                     assert(!!contextMenu);
 
                     contextMenu.destroy();
                     delete this.contextMenus[identifier];
+
+                    this.setHasActions();
                 }
             },
             ['beforeMount.rows.$_']: (evt) => {
@@ -84,8 +277,6 @@ class DataTable extends components.LightningComponent {
 
     async rowHook({ node, blockData, initial }) {
 
-        console.info(node.outerHTML);
-
         const identifier = node.querySelector(':scope > tr').getAttribute('identifier');
         const { rows } = this.getInput();
 
@@ -104,7 +295,7 @@ class DataTable extends components.LightningComponent {
         return this.node ? this.node.querySelector(`${this.getId()}-resize-handle-${index}`) : null;
     }
 
-    isURL(val) {
+    cellValueTranform(val) {
 
     }
 

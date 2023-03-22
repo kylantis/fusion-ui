@@ -1,5 +1,6 @@
 
 const StreamTokenizer = require('hyntax/lib/stream-tokenizer');
+const constructTree = require('hyntax/lib/construct-tree');
 var Buffer = require('buffer/').Buffer;
 
 global.Buffer = Buffer;
@@ -8,4 +9,4 @@ global.process = {
         fn(...args);
     }),
 };
-global.hyntaxStreamTokenizerClass = StreamTokenizer;
+global.hyntax = { StreamTokenizer, constructTree };

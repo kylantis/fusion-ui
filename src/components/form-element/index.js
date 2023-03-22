@@ -97,12 +97,18 @@ class FormElement extends components.LightningComponent {
         return false;
     }
 
-    transformFormElementLabel(markup) {
+    formElementLabelTransform({ node }) {
         const { readonly } = this.getInput();
-        return readonly ? markup
-            .replace(/^\s*<label/g, '<span')
-            .replace(/<\/label>\s*$/g, '</span>')
-            : markup;
+
+        if (readonly) {
+            // Convert "label" tag to "span" tag
+            node.content.children
+                .filter(({ nodeType }) => nodeType == 'tag')
+                .forEach(({ content }) => {
+                    assert(content.name == 'label');
+                    content.name = 'span';
+                });
+        }
     }
 
     toggleReadOnlyClass(readonly) {

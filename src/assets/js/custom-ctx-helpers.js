@@ -4,11 +4,13 @@ module.exports = {
         const _this = this;
         return (value, invert, options, ctx) => {
 
-            const { hash: { hook, hookOrder, transform } } = options;
+            const { hash: { hook, hookOrder, outerTransform } } = options;
 
             const nodeId = _this.getSyntheticNodeId();
 
             if (hook) {
+                assert(nodeId);
+
                 _this.hooks[`#${nodeId}`] = {
                     hookName: hook,
                     order: hookOrder != undefined ? hookOrder : _this.getDefaultHookOrder(),
@@ -16,21 +18,21 @@ module.exports = {
                 };
             }
 
+            if (outerTransform) {
+                assert(nodeId);
+
+                _this.registerTransform(nodeId, outerTransform);
+            }
+
             const b = _this.analyzeConditionValue(value);
 
-            let markup = (() => {
+            return (() => {
                 if (invert ? !b : b) {
                     return options.fn(ctx);
                 } else {
                     return options.inverse(ctx);
                 }
             })();
-
-            if (transform) {
-                markup = _this[transform](markup);
-            }
-
-            return markup;
         };
     },
 
@@ -44,12 +46,14 @@ module.exports = {
             }
 
             const { loc, fn, inverse, hash } = options;
-            const { blockParam, hook, hookOrder, transform } = hash;
+            const { blockParam, hook, hookOrder, outerTransform } = hash;
             assert(blockParam);
 
             const nodeId = _this.getSyntheticNodeId();
 
             if (hook) {
+                assert(nodeId);
+
                 _this.hooks[`#${nodeId}`] = {
                     hookName: hook,
                     order: hookOrder != undefined ? hookOrder : _this.getDefaultHookOrder(),
@@ -57,11 +61,17 @@ module.exports = {
                 };
             }
 
+            if (outerTransform) {
+                assert(nodeId);
+
+                _this.registerTransform(nodeId, outerTransform);
+            }
+
             if (clientUtils.isFunction(context)) {
                 context = context.call(this);
             }
 
-            let markup = (() => {
+            return (() => {
                 if (!clientUtils.isEmpty(context)) {
                     let data;
 
@@ -74,12 +84,6 @@ module.exports = {
                     return inverse(this);
                 }
             })();
-
-            if (transform) {
-                markup = _this[transform](markup);
-            }
-
-            return markup;
         }
     },
 
@@ -91,10 +95,16 @@ module.exports = {
             }
 
             const { fn, inverse, hash } = options;
-            const { blockParam, hook, hookOrder, transform } = hash;
+            const { blockParam, hook, hookOrder, outerTransform } = hash;
             assert(blockParam);
 
             const nodeId = _this.getSyntheticNodeId();
+
+            if (outerTransform) {
+                assert(nodeId);
+
+                _this.registerTransform(nodeId, outerTransform);
+            }
 
             let i = 0,
                 ret = '',
@@ -127,13 +137,11 @@ module.exports = {
                         blockParams: [context[field], field]
                     })
 
-                if (transform) {
-                    markup = _this[transform](markup);
-                }
-
                 ret = ret + markup;
 
                 if (hook) {
+                    assert(nodeId);
+                    
                     _this.hooks[`#${nodeId} > :nth-child(${index + 1})`] = {
                         hookName: hook,
                         order: hookOrder != undefined ? hookOrder : _this.getDefaultHookOrder(),

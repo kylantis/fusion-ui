@@ -51,6 +51,7 @@ class RootProxy {
 
   static mapKeyPrefixRegex = /^\$_/g;
 
+  static predicateHookType = 'predicate';
 
   static conditionalBlockHookType = 'conditionalBlock';
 
@@ -614,6 +615,9 @@ class RootProxy {
             obj[prop];
 
             return this.createObjectProxy();
+
+          case prop === 'toJSON':
+            return () => array;
 
           default:
             return obj[prop];
@@ -1190,16 +1194,19 @@ class RootProxy {
     }
   }
 
+  getHookFilter({ selector }) {
+    // Note: HookType "gateParticipant" do not store a selector, and are usually 
+    // pruned when the parent logic gate is being pruned
+    return !selector ||
+      document.querySelector(
+        `#${this.component.getId()} ${selector}`
+      )
+  }
+
   pruneHooks() {
     this.pruneHooks0(
       Object.entries(this.#dataPathHooks),
-      ({ selector }) =>
-        // HookType "gateParticipant" do not store a selector, and are usually 
-        // pruned when the parent logic gate is being pruned
-        !selector ||
-        document.querySelector(
-          `#${this.component.getId()} ${selector}`
-        )
+      this.getHookFilter,
     )
   }
 
@@ -1266,10 +1273,10 @@ class RootProxy {
     const {
       logicGatePathRoot, pathSeparator, textNodeHookType, eachBlockHookType, gateParticipantHookType, pathProperty,
       conditionalBlockHookType, dataPathPrefix, nodeAttributeHookType, nodeAttributeKeyHookType, nodeAttributeValueHookType,
-      mapSizeProperty, isNullProperty,
+      mapSizeProperty, isNullProperty, predicateHookType, mapKeyPrefixRegex, emptyString, isMapProperty, toFqPath,
     } = RootProxy;
 
-    const { fqPath, parentObject, oldValue, newValue, dataPathHooks, withParent, animate } = triggerInfo;
+    const { fqPath, parentObject, oldValue, newValue, dataPathHooks, primary, animate } = triggerInfo;
 
     const fqPath0 = fqPath.replace(dataPathPrefix, '');
     const sPath = clientUtils.toCanonicalPath(fqPath0);
@@ -1297,10 +1304,11 @@ class RootProxy {
       }
     }
 
-    const triggerHooks0 = (path, withParent) => {
+    const triggerHooks0 = (path, withParent, parentObject, newValue, hookTypes, changeListener, filteredSelectors=[]) => {
 
       const hooksFilter = ({ selector }) => {
-        return !selector || document.querySelector(`#${this.component.getId()} ${selector}`)
+        return !selector ||
+          (!filteredSelectors.includes(selector) && document.querySelector(`#${this.component.getId()} ${selector}`))
       }
 
       const hooks = dataPathHooks[path];
@@ -1316,23 +1324,94 @@ class RootProxy {
 
       const parentHooks = withParent ? dataPathHooks[parent] : null;
 
-      const triggerNodeUpdateEvt = (selector) => {
+      const triggerNodeUpdateEvt0 = (selector) => {
         const { getWrapperCssClass } = BaseComponent;
 
-        const node = document.querySelector(
-          `#${this.component.getId()} ${selector}`
-        );
-
+        const node = document.querySelector(selector);
         this.component.triggerNodeUpdateEvent(node);
-
         node
           .querySelectorAll(`.${getWrapperCssClass()}`)
           .forEach(node => this.component.triggerNodeUpdateEvent(node));
       }
 
+      const triggerNodeUpdateEvt = (selector) => {
+        triggerNodeUpdateEvt0(
+          `#${this.component.getId()} ${selector}`
+        );
+      }
+
+      const renderBlock = (consumer, header, footer, markupPredicate, parentNode, transform) => {
+        this.component.startTokenizationContext();
+
+        const emitContext = this.component.getEmitContext();
+
+        if (header) {
+          emitContext.write(header);
+        }
+
+        emitContext.write(markupPredicate());
+
+        if (footer) {
+          emitContext.write(footer);
+        }
+
+        const { htmlString } = this.component.finalizeTokenizationContext({ transform });
+
+        let node;
+
+        if (htmlString == '') {
+
+          // createContextualFragment(...) does not handle empty strings well
+          node = document.createTextNode(htmlString);
+
+        } else {
+
+          const range = document.createRange();
+          range.selectNodeContents(parentNode);
+          node = range.createContextualFragment(htmlString);
+
+          if (!node || !node.childElementCount) {
+            this.component.logger.error({
+              parentNode,
+              htmlString
+            });
+            throw Error('Unable to create contextual fragment');
+          }
+        }
+
+        consumer(node);
+      }
+
+      const createCollChildNode = (consumer, key, id, markupPredicate, parentNode, transform) => {
+
+        const currentWrapperNodeId = id || clientUtils.randomString();
+
+        const header = this.component.getColElementWrapperHeader(currentWrapperNodeId, key);
+        const footer = this.component.getColElementWrapperFooter();
+
+        renderBlock(
+          consumer, header, footer, markupPredicate, parentNode, transform,
+        )
+
+        return currentWrapperNodeId;
+      }
+
+      const collKey = () => {
+        return clientUtils.getKeyFromIndexSegment(
+          path.replace(
+            clientUtils.getParentFromPath(path.split('.')),
+            ''
+          )
+        )
+          .replace(mapKeyPrefixRegex, emptyString);
+      }
+
       (parentHooks || [])
-        .filter(hooksFilter)
         .forEach(hook => {
+
+          if (!hooksFilter(hook)) {
+            return;
+          }
 
           const selector = `#${this.component.getId()} ${hook.selector}`;
 
@@ -1345,11 +1424,9 @@ class RootProxy {
 
               (() => {
 
-                const { htmlWrapperCssClassname } = RootCtxRenderer;
+                const fn = this.component.lookupFnStore(hook.fn);
 
-                hook.fn = this.component.lookupFnStore(hook.fn);
-
-                const { fn, hookMethod, canonicalPath, blockData } = hook;
+                const { hookMethod, canonicalPath, blockData, innerTransform, predicate } = hook;
 
                 const collDef = this.getCollectionDefinition(parent);
 
@@ -1357,17 +1434,14 @@ class RootProxy {
 
                 const { collectionType: type } = collDef;
 
-                const key = clientUtils.getKeyFromIndexSegment(
-                  path.replace(
-                    clientUtils.getParentFromPath(path.split('.')),
-                    ''
-                  )
-                );
+                const key = collKey();
 
-                const childNodeSelector = `${selector} > div[key='${key}']`;
+                const childNodeSelector = `${selector} > [key='${key}']`;
                 const childNode = document.querySelector(childNodeSelector)
 
                 const { index, length } = clientUtils.getCollectionIndexAndLength(parentObject, key);
+
+                blockData[canonicalPath].length = length;
 
                 if (newValue === undefined) {
                   assert((index >= 0 && index <= length) || type == 'map');
@@ -1379,9 +1453,7 @@ class RootProxy {
                     // Update the 'key' attribute to reflect their new positions in the array
 
                     for (let i = index; i < length; i++) {
-                      const node = document.querySelector(`${selector} > :nth-child(${i})`);
-                      assert(node.getAttribute('key') == `${i + 1}`);
-
+                      const node = document.querySelector(`${selector} > [key='${i + 1}']`);
                       node.setAttribute('key', `${i}`);
                     }
                   }
@@ -1392,52 +1464,88 @@ class RootProxy {
 
                 assert(index >= 0 && index < length);
 
-                const createAndAppendNode0 = (parent, key, content) => {
-                  const node = document.createElement('div');
-                  node.classList.add(htmlWrapperCssClassname);
-                  node.setAttribute('key', key);
-                  node.id = clientUtils.randomString();
-                  node.innerHTML = content;
+                const createAndAppendNode0 = (consumer, key, id, markupPredicate) =>
+                  createCollChildNode(
+                    consumer, key, id, markupPredicate, document.querySelector(selector), innerTransform
+                  );
 
-                  parent.appendChild(node);
-                  return node.id;
+                const getParentAppendConsumer = (parent) => {
+                  return (node) => parent.appendChild(node);
                 }
 
-                const createAndAppendNode = (content) => {
+                const getSiblingAppendConsumer = (parent, tailKey) => {
+                  const tailSibling = parent.querySelector(`:scope > [key='${tailKey}']`);
+                  return (node) => tailSibling.insertAdjacentElement("afterend", node);
+                }
+
+                const getNodeConsumer = (index) => {
                   const parent = document.querySelector(selector);
-                  assert(
-                    index == 0 ||
-                    (
-                      parent.lastElementChild.getAttribute('key') ==
+
+                  return index == 0 ?
+                    getParentAppendConsumer(parent) :
+                    getSiblingAppendConsumer(
+                      parent,
                       clientUtils.getCollectionKeys(parentObject)[index - 1]
-                    )
-                  )
-                  return createAndAppendNode0(parent, key, content);
+                    );
                 }
 
+                const doesChildExist = (key) => {
+                  return !!parent.querySelector(`:scope > [key='${key}']`)
+                }
 
-                const blockData0 = clientUtils.deepClone({
+                const backfillSparseElements = () => {
+                  if (type == 'array' && index > 0) {
+
+                    const parent = document.querySelector(selector);
+
+                    const len = parent.querySelectorAll(':scope > [key]').length;
+
+                    for (let i = len; i < index; i++) {
+
+                      assert(!doesChildExist(i));
+
+                      createAndAppendNode0(
+                        getNodeConsumer(i), `${i}`, null, () => ''
+                      );
+
+                      assert(doesChildExist(i));
+                    }
+                  }
+                }
+
+                const createAndAppendNode = (markupPredicate) => {
+
+                  assert(!doesChildExist(key));
+
+                  const elemId = createAndAppendNode0(
+                    getNodeConsumer(index),
+                    key, null, markupPredicate
+                  );
+
+                  assert(doesChildExist(key));
+
+                  triggerNodeUpdateEvt(`#${elemId}`);
+
+                  return elemId;
+                }
+
+                backfillSparseElements();
+
+                const isNull = newValue === null || newValue[isNullProperty] || (predicate ? !this.component[predicate].bind(this.component)() : false);
+
+                const blockData0 = {
                   ...blockData,
                   [canonicalPath]: {
                     ...blockData[canonicalPath],
-                    index
+                    index,
                   }
-                });
+                };
 
-                switch (true) {
-
-                  case newValue === null || newValue[isNullProperty]:
+                const markupPredicate =
+                  () => isNull ?
                     // null collection members are always represented as an empty strings
-                    if (childNode) {
-                      childNode.innerHTML = '';
-                    } else {
-                      createAndAppendNode('');
-                    }
-                    break;
-
-                  default:
-
-                    const markup = this.executeWithBlockData(
+                    '' :
+                    this.executeWithBlockData(
                       () => {
 
                         // We need to decrement <index> by 1 because: inside <fn>, index will
@@ -1447,60 +1555,60 @@ class RootProxy {
                         return fn(this.handler);
                       },
                       blockData0,
+
+                      // Note: <path> is not used currently, but will likely be used when data-binding support is added
+                      // for array manipulation methods like splice, shift, unshift, e.t.c
                       path,
                     );
 
-                    assert(blockData0[canonicalPath].index === index);
+                let elementNodeId;
 
-                    let elementNodeId;
+                if (childNode) {
 
-                    if (childNode) {
-                      childNode.innerHTML = markup;
-                      elementNodeId = childNode.id;
-                    } else {
+                  createAndAppendNode0(
+                    (node) => {
+                      childNode.insertAdjacentElement("afterend", node.childNodes[0]);
+                      childNode.remove();
+                    },
+                    key,
+                    childNode.id,
+                    markupPredicate
+                  );
 
-                      if (type == 'array' && index > 0) {
-                        // Backfill sparse indexes (if any)
-                        const parent = document.querySelector(selector);
+                  triggerNodeUpdateEvt(`#${childNode.id}`);
 
-                        for (let i = parent.childNodes.length; i < index; i++) {
-                          assert(
-                            !parent.querySelector(`:scope > div[key='${i}']`)
-                          )
-
-                          createAndAppendNode0(parent, `${i}`, '');
-                        }
-                      }
-
-                      elementNodeId = createAndAppendNode(markup);
-                    }
-
-                    if (Array.isArray(parentObject)) {
-                      this.component.backfillArrayChildBlocks(`${parent}[${index}]`, `#${elementNodeId}`);
-                    }
-
-                    triggerNodeUpdateEvt(`#${elementNodeId}`);
-
-                    break;
+                  elementNodeId = childNode.id;
+                } else {
+                  elementNodeId = createAndAppendNode(markupPredicate);
                 }
+
+                if (!isNull && Array.isArray(parentObject)) {
+                  this.component.backfillArrayChildBlocks(`${parent}[${index}]`, `#${elementNodeId}`);
+                }
+
+                assert(blockData0[canonicalPath].index === index);
 
                 if (hookMethod) {
                   const hook = this.component[hookMethod].bind(this.component);
 
                   hook({
                     node: document.querySelector(childNodeSelector),
-                    blockData: blockData0,
+                    blockData: clientUtils.deepClone(blockData0),
                     initial: false,
                   })
                 }
+
               })();
               break;
           }
         });
 
       [...hooks]
-        .filter(hooksFilter)
         .forEach(hook => {
+
+          if (!hooksFilter(hook)) {
+            return;
+          }
 
           const selector = `#${this.component.getId()} ${hook.selector}`;
 
@@ -1592,6 +1700,10 @@ class RootProxy {
             return { key, value: evalAttrValue(elementName, key, value, loc) }
           }
 
+          if (hookTypes && !hookTypes.includes(hook.type)) {
+            return;
+          }
+
           switch (hook.type) {
 
             case nodeAttributeHookType:
@@ -1617,6 +1729,8 @@ class RootProxy {
                     node, attrKey: key, attrValue: value,
                   });
                 }
+
+                triggerNodeUpdateEvt0(selector);
               })();
               break;
 
@@ -1654,6 +1768,8 @@ class RootProxy {
 
                   setNodeAttribute({ node, attrKey, attrValue });
                 }
+
+                triggerNodeUpdateEvt0(selector);
               })();
               break;
 
@@ -1689,6 +1805,8 @@ class RootProxy {
                 );
 
                 setNodeAttribute({ node, attrKey, attrValue });
+
+                triggerNodeUpdateEvt0(selector);
               })();
               break;
 
@@ -1702,6 +1820,8 @@ class RootProxy {
                 if (hookMethod) {
                   this.component[hookMethod]({ node, blockData, initial: false });
                 }
+
+                triggerNodeUpdateEvt0(selector);
               })();
               break;
 
@@ -1713,23 +1833,23 @@ class RootProxy {
 
             case conditionalBlockHookType:
               (() => {
-                let computedValue = newValue
+                let computedValue = newValue;
 
                 if (path.startsWith(`${logicGatePathRoot}${pathSeparator}`)) {
                   const gateId = path.replace(`${logicGatePathRoot}${pathSeparator}`, '')
                   computedValue = this.getLogicGateValue({ gate: this.#logicGates[gateId] });
                 }
 
-                hook.fn = this.component.lookupFnStore(hook.fn);
-                hook.inverse = hook.inverse ? this.component.lookupFnStore(hook.inverse) : null;
+                const fn = this.component.lookupFnStore(hook.fn);
+                const inverse = hook.inverse ? this.component.lookupFnStore(hook.inverse) : null;
 
-                const { invert, fn, inverse, hookMethod, blockData } = hook;
+                const { invert, hookMethod, blockData, innerTransform } = hook;
 
                 const b = this.component.analyzeConditionValue(computedValue);
 
-                const node = document.querySelector(selector);
+                const parentNode = document.querySelector(selector);
 
-                let branch = node.getAttribute('branch');
+                let branch = parentNode.getAttribute('branch');
 
                 assert(branch);
 
@@ -1747,25 +1867,35 @@ class RootProxy {
                   }
                 }
 
-                if (htmlFn) {
-                  const blockData0 = clientUtils.deepClone(blockData);
-
-                  const html = this.executeWithBlockData(
-                    htmlFn,
-                    blockData0,
-                  )
-
-                  node.innerHTML = html;
-                  node.setAttribute('branch', branch)
-
-                  if (hookMethod) {
-                    const hook = this.component[hookMethod].bind(this.component);
-
-                    hook({
-                      node, blockData: blockData0, initial: false,
-                    })
-                  }
+                if (!htmlFn) {
+                  // There is no update to render
+                  return;
                 }
+
+                const markupPredicate = () => this.executeWithBlockData(
+                  htmlFn,
+                  blockData,
+                )
+
+                renderBlock(
+                  (node) => {
+                    parentNode.innerHTML = '';
+                    parentNode.appendChild(node)
+                  },
+                  null, null, markupPredicate, parentNode, innerTransform,
+                )
+
+                parentNode.setAttribute('branch', branch)
+
+                if (hookMethod) {
+                  const hook = this.component[hookMethod].bind(this.component);
+
+                  hook({
+                    node: parentNode, blockData: clientUtils.deepClone(blockData), initial: false,
+                  })
+                }
+
+                triggerNodeUpdateEvt0(selector);
 
               })();
               break;
@@ -1774,111 +1904,380 @@ class RootProxy {
 
               (() => {
 
-                const { htmlWrapperCssClassname } = RootCtxRenderer;
+                const fn = this.component.lookupFnStore(hook.fn);
+                const inverse = hook.inverse ? this.component.lookupFnStore(hook.inverse) : null;
 
-                hook.fn = this.component.lookupFnStore(hook.fn);
-                hook.inverse = hook.inverse ? this.component.lookupFnStore(hook.inverse) : null;
+                const { hookMethod, canonicalPath, blockData, innerTransform, predicate } = hook;
 
-                const { fn, inverse, hookMethod, canonicalPath, blockData } = hook;
+                const computedValue = newValue;
 
-                const hookList = [];
+                const isArray = Array.isArray(computedValue);
+                const len = computedValue ? isArray ? computedValue.length : computedValue[mapSizeProperty] : -1;
 
-                const html = this.executeWithBlockData(
-                  () => {
-                    const computedValue = newValue;
-                    let ret = "";
+                const blockData0 = {
+                  ...blockData,
+                  [canonicalPath]: {
+                    type: isArray ? 'array' : 'map', length: len,
+                  }
+                };
 
-                    const len = computedValue ? computedValue.length || computedValue[mapSizeProperty] : -1;
+                const parentNode = document.querySelector(selector);
 
-                    if (len >= 0) {
+                const markerNode = (() => {
 
-                      this.component.blockData[canonicalPath] = {
-                        length: len, index: -1,
-                      };
+                  const keyChildNodes = parentNode.querySelectorAll(':scope > [key]');
+                  const inverseChildNodes = parentNode.querySelectorAll(':scope > [inverse]');
 
-                      for (let i = 0; i < len; i++) {
-
-                        let markup = fn(this.handler);
-
-                        const elementNodeId = clientUtils.randomString();
-                        const key = this.component.getBlockData({ path: canonicalPath, dataVariable: '@key' });
-
-                        markup = `<div id="${elementNodeId}" class="${htmlWrapperCssClassname}" key="${key}">
-                                    ${markup}
-                                  </div>`;
-
-                        if (Array.isArray(computedValue)) {
-                          this.component.backfillArrayChildBlocks(`${path}[${i}]`, `#${elementNodeId}`);
-                        }
-
-                        hookList.push({
-                          selector: `div[key='${key}']`,
-                          blockData: clientUtils.deepClone(this.component.blockData)
-                        });
-
-                        ret += markup;
+                  const removeNodes0 = (arr) => {
+                    arr.forEach((node, i) => {
+                      if (i == 0) {
+                        return;
                       }
+                      node.remove();
+                    });
+                  }
 
-                      delete this.component.blockData[canonicalPath];
+                  if (keyChildNodes.length) {
+                    assert(!inverseChildNodes.length);
+                    removeNodes0(keyChildNodes);
+                    return keyChildNodes[0];
+                  } else {
+                    removeNodes0(inverseChildNodes);
+                    return inverseChildNodes[0];
+                  }
+                })();
 
-                    } else {
-                      ret = inverse ? inverse(this.handler) : '';
+                if (len >= 0) {
+
+                  const hookList = [];
+
+                  let keyMarkerNode;
+
+                  const keys = Object.keys(computedValue);
+
+                  for (let i = 0; i < len; i++) {
+
+                    blockData0[canonicalPath].index = i;
+
+                    const currentWrapperNodeId = clientUtils.randomString();
+
+                    const p = toFqPath({ isArray, isMap: !isArray, parent: path, prop: keys[i] });
+
+                    if (predicate) {
+
+                      this.executeWithBlockData(
+                        () => {
+                          this.getDataPathHooks()[p]
+                            .push({
+                              type: predicateHookType, selector: `#${currentWrapperNodeId}`,
+                              fn, predicate, hookMethod, innerTransform,
+                              blockData: this.component.getBlockDataSnapshot(p),
+                              canonicalPath: `${canonicalPath}_$`,
+                            });
+                        },
+                        blockData0,
+                      )
                     }
 
-                    return ret;
-                  },
-                  clientUtils.deepClone(blockData),
-                )
+                    const key = this.component.getBlockData({ path: canonicalPath, dataVariable: '@key', blockDataProducer: () => blockData0 });
 
-                document.querySelector(selector).innerHTML = html;
+                    const childNodeSelector = `${selector} > [key='${key}']`;
 
-                if (hookMethod) {
-                  const hook = this.component[hookMethod].bind(this.component);
+                    const currentValue = computedValue[key];
+                    const isNull = currentValue === null || currentValue[isNullProperty] || (predicate ? !this.component[predicate].bind(this.component)() : false);
 
-                  hookList.forEach(({ selector: k, blockData }) => {
-                    hook({
-                      node: document.querySelector(`${selector} > ${k}`),
-                      blockData,
-                      initial: false,
-                    })
-                  });
+                    const markupPredicate =
+                      () => isNull ?
+                        // null collection members are always represented as an empty strings
+                        '' :
+                        this.executeWithBlockData(
+                          () => {
+
+                            // We need to decrement <index> by 1 because: inside <fn>, index will
+                            // be incremented by 1 through a call to doBlockUpdate(...)
+                            blockData0[canonicalPath].index--;
+
+                            return fn(this.handler)
+                          },
+                          blockData0
+                        )
+
+                    const consumer = (node) => {
+                      const n = node.childNodes[0];
+
+                      if (i == 0) {
+                        if (markerNode) {
+                          markerNode.insertAdjacentElement("afterend", n);
+                        } else {
+                          parentNode.innerHTML = '';
+                          parentNode.appendChild(n);
+                        }
+                      } else {
+                        keyMarkerNode.insertAdjacentElement("afterend", n);
+                      }
+
+                      keyMarkerNode = n;
+                    }
+
+                    createCollChildNode(
+                      consumer, key, currentWrapperNodeId, markupPredicate, parentNode, innerTransform
+                    );
+
+                    triggerNodeUpdateEvt0(childNodeSelector);
+
+                    if (!isNull && isArray) {
+                      this.component.backfillArrayChildBlocks(p, `#${currentWrapperNodeId}`);
+                    }
+
+                    assert(blockData0[canonicalPath].index === i);
+
+                    hookList.push({
+                      selector: childNodeSelector,
+                      blockData: clientUtils.deepClone(blockData0)
+                    });
+                  }
+
+                  if (hookMethod) {
+                    const hook = this.component[hookMethod].bind(this.component);
+
+                    hookList.forEach(({ selector, blockData }) => {
+                      hook({
+                        node: document.querySelector(selector),
+                        blockData,
+                        initial: false,
+                      })
+                    });
+                  }
+
+                } else if (inverse) {
+
+                  const toElementList = (node) => {
+
+                    const textNodeToElement = (n) => {
+                      const span = document.createElement('span');
+                      span.style.display = 'contents';
+                      span.innerHTML = n.textContent;
+                      return span;
+                    }
+
+                    const isTextNode = node instanceof Text;
+                    const isFragment = node instanceof DocumentFragment;
+
+                    assert(isTextNode || isFragment);
+
+                    switch (true) {
+                      case isTextNode:
+                        return [
+                          textNodeToElement(node)
+                        ];
+                      case isFragment:
+                        return [...node.childNodes]
+                          .map(n => {
+                            if (n instanceof Text) {
+                              n = textNodeToElement(n);
+                            }
+                            assert(n instanceof Element);
+                            return n;
+                          })
+                    }
+                  }
+
+                  const markupPredicate = () => this.executeWithBlockData(
+                    () => inverse(this.handler),
+                    blockData0,
+                  )
+
+                  const consumer = (node) => {
+
+                    const elemList = toElementList(node);
+
+                    elemList.forEach(n => {
+                      n.setAttribute('inverse', true);
+                    });
+
+                    if (markerNode) {
+                      elemList
+                        .reverse()
+                        .forEach(n => {
+                          markerNode.insertAdjacentElement("afterend", n);
+                        });
+
+                    } else {
+                      parentNode.innerHTML = '';
+
+                      elemList
+                        .forEach(n => {
+                          parentNode.appendChild(n);
+                        });
+                    }
+                  }
+
+                  renderBlock(
+                    consumer, null, null, markupPredicate, parentNode, innerTransform,
+                  )
+                }
+
+                if (markerNode) {
+                  markerNode.remove();
                 }
 
               })();
 
               break;
 
-          }
+            case predicateHookType:
 
-          if (hook.selector) {
-            triggerNodeUpdateEvt(hook.selector);
+              (() => {
+                const computedValue = newValue;
+
+                const fn = this.component.lookupFnStore(hook.fn);
+                const canonicalPath = hook.canonicalPath.replace(/_\$$/g, '');
+
+                const { blockData, predicate, hookMethod, innerTransform } = hook;
+
+                const childNode = document.querySelector(selector);
+                const isArray = Array.isArray(parentObject);
+
+                assert(isArray || parentObject[isMapProperty]);
+
+                const b = this.component[predicate].bind(this.component)(computedValue);
+
+                const isEmpty = !childNode.innerHTML || childNode.getAttribute(this.component.getEmptyNodeAttributeKey());
+
+                if (b) {
+                  if (!isEmpty) {
+                    return;
+                  }
+                } else if (isEmpty) {
+                  return;
+                }
+
+                if (changeListener) {
+                  // Indicate that <selector> was updated as a result of this predicate hook
+                  changeListener(hook.selector);
+                }
+
+                const key = collKey();
+
+                assert(key == childNode.getAttribute('key'));
+
+                const index = Object.keys(parentObject).indexOf(key);
+
+                assert(index >= 0);
+
+                const blockData0 = {
+                  ...blockData,
+                  [canonicalPath]: {
+                    ...blockData[canonicalPath],
+                    index,
+                  }
+                };
+
+                const markupPredicate =
+                  () => !b ?
+                    '' :
+                    this.executeWithBlockData(
+                      () => {
+
+                        // We need to decrement <index> by 1 because: inside <fn>, index will
+                        // be incremented by 1 through a call to doBlockUpdate(...)
+                        blockData0[canonicalPath].index--;
+
+                        return fn(this.handler);
+                      },
+                      blockData0,
+                    )
+
+                createCollChildNode(
+                  (node) => {
+                    childNode.insertAdjacentElement("afterend", node.childNodes[0]);
+                    childNode.remove();
+                  },
+                  key,
+                  childNode.id,
+                  markupPredicate,
+                  childNode.parentElement,
+                  innerTransform
+                );
+
+                triggerNodeUpdateEvt0(selector);
+
+                if (b && isArray) {
+                  this.component.backfillArrayChildBlocks(`${parent}[${index}]`, `#${childNode.id}`);
+                }
+
+                assert(blockData0[canonicalPath].index === index);
+
+                if (hookMethod) {
+                  const hook = this.component[hookMethod].bind(this.component);
+
+                  hook({
+                    node: childNode,
+                    blockData: clientUtils.deepClone(blockData0),
+                    initial: false,
+                  })
+                }
+
+              })();
+              break;
           }
         });
 
     }
 
+    const primaryHookTypes = [
+      nodeAttributeHookType, nodeAttributeKeyHookType, nodeAttributeValueHookType,
+      textNodeHookType, gateParticipantHookType, conditionalBlockHookType, eachBlockHookType
+    ];
+
+    const transitiveHookTypes = [
+      predicateHookType,
+    ]
+
     triggerComponentHooks('beforeMount');
 
-    triggerHooks0(fqPath, withParent);
+    const filteredSelectors = [];
+
+    if (primary) {
+      clientUtils.forEachPath(fqPath, (p) => {
+        if (p == fqPath) {
+          return;
+        }
+
+        const { parentObject, value } = this.getInfoFromPath(
+          p.replace(dataPathPrefix, emptyString)
+        );
+
+        triggerHooks0(p, false, parentObject, value, transitiveHookTypes, (selector) => {
+          filteredSelectors.push(selector);
+        });
+      });
+    }
+
+    triggerHooks0(fqPath, primary, parentObject, newValue, primaryHookTypes, null, filteredSelectors);
 
     triggerComponentHooks('onMount');
   }
 
   /**
    * The general contract when calling this method is that the HTML node
-   * representing the path: <parent[i]> will be detached from the DOM shortly
+   * representing the path: <parent[key]> will be detached from the DOM shortly
    * 
    * This function prunes hooks from the dynamic index <i> of the array <parent>
    */
-  pruneHookIndex(parent, i) {
+  pruneCollHooks({ parent, key }) {
     const {
-      dataPathRoot, pathSeparator, arrayChildBlockHookType, logicGatePathRoot
+      dataPathRoot, pathSeparator, arrayChildBlockHookType, logicGatePathRoot, toFqPath,
     } = RootProxy;
 
-    const fqPath = `${dataPathRoot}${pathSeparator}${parent}[${i}]`;
+    const isArray = clientUtils.isNumber(key);
+
+    const fqParent = `${dataPathRoot}${pathSeparator}${parent}`;
+
+    const fqPath = toFqPath({ isArray, isMap: !isArray, parent: fqParent, prop: key });
 
     const hookList = Object.entries(this.#dataPathHooks)
-      .filter(([k, v]) => k.startsWith(fqPath))
+      .filter(([k]) => k.startsWith(fqPath))
 
     // Also, add nested logicGates to <hookList>. The main reason we want to do
     // this is to clean up paticipants correlated to <fqPath>. Note: Doing this
@@ -1907,26 +2306,25 @@ class RootProxy {
     )
   }
 
-  offsetHookIndex(parent, i, j, len) {
+  updateBlockData({ parent, key, info }) {
     const {
-      dataPathRoot, pathSeparator, arrayChildBlockHookType, logicGatePathPrefix,
+      dataPathRoot, pathSeparator, arrayChildBlockHookType, logicGatePathPrefix, toFqPath,
     } = RootProxy;
 
-    const toFqPath = (n) => `${dataPathRoot}${pathSeparator}${parent}[${n}]`
+    const isArray = clientUtils.isNumber(key);
 
-    const i_FqPath = toFqPath(i);
-    const j_FqPath = toFqPath(j);
+    const fqParent = `${dataPathRoot}${pathSeparator}${parent}`;
 
-    assert(this.#dataPathHooks[i_FqPath]);
-    assert(j < len);
+    const fqPath = toFqPath({ isArray, isMap: !isArray, parent: fqParent, prop: key });
 
     Object.entries(this.#dataPathHooks)
-      .filter(([k, v]) => k.startsWith(i_FqPath))
+      .filter(([k]) => k.startsWith(fqPath))
       .forEach(([k, v]) => {
 
-        const arr = v.filter(({ canonicalPath }) => clientUtils.isCanonicalArrayIndex(canonicalPath, parent));
+        const arr = v
+          .filter(this.getHookFilter)
+          .filter(({ canonicalPath }) => clientUtils.isCanonicalArrayIndex(canonicalPath, parent));
 
-        // Before, moving i to j, update associated blockData referenced in <arr>, if any
         arr
           .filter(({ type }) => type == arrayChildBlockHookType)
           .forEach(({ path, blockDataKey }) => {
@@ -1949,29 +2347,28 @@ class RootProxy {
               const o = blockData[blockDataKey];
               assert(o);
 
-              if (o.index == j) {
-                // This blockData was already updated. This usually happens when
-                // multiple <arrayChildBlockHookType> entries exists for the same path
-                return;
+              if (info.index) {
+                o.index = info.index;
               }
 
-              assert(o.type == 'array' && o.index === i);
-
-              o.index = j;
-              o.length = len;
+              if (info.length) {
+                o.length = info.length;
+              }
             });
           });
 
-        const p = k.replace(i_FqPath, j_FqPath);
+        if (isArray && info.index) {
+          const p = k.replace(fqPath, toFqPath({ isArray: true, parent: fqParent, prop: info.index }));
 
-        if (this.#dataPathHooks[p]) {
-          arr.forEach(e => {
-            this.#dataPathHooks[p].push(e);
-          });
-        } else {
-          this.#dataPathHooks[p] = [
-            ...arr,
-          ]
+          if (this.#dataPathHooks[p]) {
+            arr.forEach(e => {
+              this.#dataPathHooks[p].push(e);
+            });
+          } else {
+            this.#dataPathHooks[p] = [
+              ...arr,
+            ]
+          }
         }
       });
   }
@@ -1979,9 +2376,8 @@ class RootProxy {
   simpleSetMutationHandler(obj, prop, newValue, changeSet) {
 
     const {
-      dataPathRoot, pathSeparator, pathProperty, typeProperty, mapType, isMapProperty,
-      mapKeyPrefix, isNullProperty, getMapWrapper, toFqPath, getDataVariables,
-      addDataVariablesToObject,
+      dataPathRoot, pathSeparator, pathProperty, typeProperty, mapType, isMapProperty, mapKeyPrefix,
+      isNullProperty, getMapWrapper, toFqPath, getDataVariables, addDataVariablesToObject,
     } = RootProxy;
 
     const parent = obj[pathProperty];
@@ -2141,6 +2537,7 @@ class RootProxy {
         ...clientUtils.getCollectionIndexAndLength(obj, prop),
         type: collDef.collectionType,
         prop,
+        keys: Object.keys(obj),
       };
 
       const { index, length, type } = o;
@@ -2275,21 +2672,12 @@ class RootProxy {
         switch (true) {
 
           case newValue === undefined:
+
             if (Array.isArray(obj)) {
               obj.splice(prop, 1);
-
-              for (let i = prop; i < obj.length - 1; i++) {
-                this.pruneHookIndex(parent, i);
-                this.offsetHookIndex(parent, i + 1, i, obj.length);
-              }
-              this.pruneHookIndex(parent, obj.length - 1);
-
             } else {
               delete obj[prop];
             }
-
-            // We expect that the size of <obj> should reduce by 1 since we last checked
-            assert(collInfo.length - 1 == clientUtils.getCollectionLength(obj));
 
             if (collDef.$ref) {
               // We need to run in a privileged context because we are attempting to modify data variables
@@ -2325,6 +2713,41 @@ class RootProxy {
             this.addHookForScalarCollectionMember(
               toFqPath({ isArray, isMap, parent, prop })
             )
+            break;
+        }
+
+        // Update hooks info
+        const { newElementAdded, elementRemoved, keys, index, length } = collInfo;
+
+        const newLength = clientUtils.getCollectionLength(obj);
+
+        switch (true) {
+          case newElementAdded:
+
+            for (let i = 0; i < length; i++) {
+              this.updateBlockData({
+                parent, key: keys[i], info: { length: newLength }
+              });
+            }
+            break;
+
+          case elementRemoved:
+
+            for (let i = 0; i < index; i++) {
+              this.updateBlockData({
+                parent, key: keys[i], info: { length: newLength }
+              });
+            }
+
+            for (let i = index; i < length - 1; i++) {
+              this.pruneCollHooks({ parent, key: keys[i] });
+
+              this.updateBlockData({
+                parent, key: keys[i + 1], info: { index: i, length: newLength }
+              });
+            }
+
+            this.pruneCollHooks({ parent, key: keys[length - 1] });
             break;
         }
 
@@ -2480,7 +2903,7 @@ class RootProxy {
         }
 
         // Todo: Fix to support @random, adding a mock here for now
-        
+
         if (dataVariable == '@random') {
           return clientUtils.randomString();
         }
@@ -2537,7 +2960,7 @@ class RootProxy {
             oldValue,
             newValue,
             dataPathHooks,
-            withParent: true,
+            primary: true,
             animate,
           });
         });
@@ -2564,7 +2987,6 @@ class RootProxy {
                 newValue: value,
                 dataPathHooks,
                 animate: false,
-                withParent: false,
               }
 
               if (path == changeInfo.path) {
@@ -2679,8 +3101,29 @@ class RootProxy {
     return `${parent}${isArray ? `[${prop}]` : isMap ? `["${prop}"]` : `${parent.length ? '.' : ''}${prop}`}`;
   }
 
-  createHooksArray() {
-    return [];
+  createHooksArray(path) {
+    const arr = new Proxy([], {
+      set: (object, key, value) => {
+
+        // Note: an opaque hook means that the path where it's registered does not exclusively own the selector. An
+        // example of opaque hooks are the attribute related hooks, because there may be multiple attribute-based
+        // hooks for the same selector
+
+        const { selector, opaque } = value;
+        const { nodeList } = this.component.getEmitContext();
+
+        if (clientUtils.isNumber(key) && selector && !opaque) {
+          assert(!nodeList[selector] || nodeList[selector] == path);
+
+          nodeList[selector] = path;
+        }
+
+        return object[key] = value;
+      }
+    });
+
+    this.#dataPathHooks[path] = arr;
+    return arr;
   }
 
   static createNullObject() {
@@ -2699,12 +3142,10 @@ class RootProxy {
 
     // Add hook keys for data variables
     getDataVariables().forEach((o) => {
-      this.#dataPathHooks[
-        `${toFqPath({ parent: k, prop: o })}`
-      ] = this.createHooksArray();
+      this.createHooksArray(`${toFqPath({ parent: k, prop: o })}`);
     })
 
-    this.#dataPathHooks[k] = this.createHooksArray();
+    this.createHooksArray(k);
   }
 
   validateSchema(path, value) {
@@ -2827,7 +3268,7 @@ class RootProxy {
 
     Object.defineProperty(obj, pathProperty, { value: path, configurable: false, writable: false, enumerable: false });
 
-    this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${path}`] = this.createHooksArray();
+    this.createHooksArray(`${dataPathRoot}${pathSeparator}${path}`);
 
     switch (true) {
 
@@ -2905,7 +3346,7 @@ class RootProxy {
     const keys = Object.keys(obj);;
 
     if (isCollection) {
-      this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${path}.length`] = this.createHooksArray();
+      this.createHooksArray(`${dataPathRoot}${pathSeparator}${path}.length`);
     }
 
     for (let i = 0; i < keys.length; i++) {
@@ -2942,7 +3383,7 @@ class RootProxy {
               global.clientUtils.randomString()
             )
               .forEach(k => {
-                this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${toFqPath({ parent: p, prop: k })}`] = this.createHooksArray();
+                this.createHooksArray(`${dataPathRoot}${pathSeparator}${toFqPath({ parent: p, prop: k })}`);
               })
 
             break;
@@ -2967,7 +3408,7 @@ class RootProxy {
         default:
 
           // Note: If isCollection, entry would have been created
-          this.#dataPathHooks[`${dataPathRoot}${pathSeparator}${p}`] = this.createHooksArray();
+          this.createHooksArray(`${dataPathRoot}${pathSeparator}${p}`);
           break;
       }
     }
@@ -3013,7 +3454,7 @@ class RootProxy {
             return true;
 
           case prop == mapSizeProperty:
-            return () => Object.keys(obj).length;
+            return Object.keys(obj).length;
 
           case prop == mapKeysProperty:
             return () => Reflect.ownKeys(obj)
@@ -3024,7 +3465,12 @@ class RootProxy {
                 return k;
               });
 
+          case typeof prop == 'symbol':
+            return obj[prop];
+
           default:
+            assert( typeof prop == 'string');
+            
             // Props can start with "@" if <obj> is also a collection
             // child, and the user wants to access data variable(s)
             return obj[

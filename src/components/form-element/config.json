@@ -32,7 +32,7 @@
     },
     "readonly": {
       "type": "Boolean",
-      "defaultValue": false
+      "defaultValue": true
     },
     "error": {
       "type": "Boolean",

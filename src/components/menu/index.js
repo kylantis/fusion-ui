@@ -128,7 +128,7 @@ class Menu extends components.LightningComponent {
      */
     async itemHook({ node, blockData }) {
 
-        const { htmlWrapperCssClassname: mstW } = RootCtxRenderer
+        const wrapperCssClass = BaseComponent.getWrapperCssClass();
         const { pathSeparator } = BaseComponent.CONSTANTS;
 
         const _this = this;
@@ -162,8 +162,8 @@ class Menu extends components.LightningComponent {
 
         const item = {
             group: { role, checkIconPosition, required },
-            leftIconContainer: li.querySelector(`:scope > a > span > .${mstW}`),
-            rightIconContainer: li.querySelector(`:scope > a > .${mstW}`),
+            leftIconContainer: li.querySelector(`:scope > a > span > .${wrapperCssClass}`),
+            rightIconContainer: li.querySelector(`:scope > a > .${wrapperCssClass}`),
             hasSubMenu: !!subMenu
         }
 
@@ -173,11 +173,11 @@ class Menu extends components.LightningComponent {
         // then re-insert in the container if the item is unselected at a later time
 
         if (item.leftIconContainer) {
-            item.leftIcon = item.leftIconContainer.querySelector(`:scope > div.${mstW}`)
+            item.leftIcon = item.leftIconContainer.querySelector(`:scope > div.${wrapperCssClass}`)
         }
 
         if (item.rightIconContainer) {
-            item.rightIcon = item.rightIconContainer.querySelector(`:scope > div.${mstW}`)
+            item.rightIcon = item.rightIconContainer.querySelector(`:scope > div.${wrapperCssClass}`)
         }
 
         items[identifier] = item;
@@ -185,7 +185,7 @@ class Menu extends components.LightningComponent {
         const createContainerDiv = () => {
             const elem = document.createElement('div');
             elem.id = this.randomString();
-            elem.className = mstW;
+            elem.className = wrapperCssClass;
 
             return elem;
         }
@@ -249,7 +249,7 @@ class Menu extends components.LightningComponent {
 
             // Move the sub-menu directly into <li>
 
-            const subMenuElement = li.querySelector(`:scope > :nth-child(2) > .${mstW} > .${mstW} > .slds-dropdown`);
+            const subMenuElement = li.querySelector(`:scope > :nth-child(2) > .${wrapperCssClass} > .${wrapperCssClass} > .slds-dropdown`);
             li.removeChild(
                 li.querySelector(':scope > :nth-child(2)')
             )

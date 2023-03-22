@@ -441,7 +441,93 @@ class BaseComponent extends WebRenderer {
     return o;
   }
 
-  //  Utility methods
+  getEmptyNodeAttributeKey() {
+    return 'empty';
+  }
+
+  updateHookSelector(from, to) {
+    const { nodeList } = this.getEmitContext();
+
+    const path = nodeList[from];
+
+    if (!path) {
+      // <from> not associated with any exists hooks
+      return;
+    }
+
+    this.proxyInstance.getDataPathHooks()[path]
+      .filter(({ selector }) => selector == from)
+      .forEach(hook => hook.selector = to);
+  }
+
+  // #API
+  moveWrapperToParent({ node }) {
+    const { parentRef, content } = node;
+
+    const idx = parentRef.content.children.indexOf(node);
+    assert(idx >= 0);
+
+    const getAttr = (k, attrs=content.attributes) => (attrs || []).filter(({ key: { content } }) => content == k)[0];
+
+    const parentAttributes = parentRef.content.attributes || (parentRef.content.attributes = []);
+
+    const idAttr = getAttr('id');
+    assert(idAttr);
+
+    const parentIdAttr = getAttr('id', parentAttributes);
+
+    if (parentIdAttr) {
+      this.updateHookSelector(`#${idAttr.value.content}`, `#${parentIdAttr.value.content}`);
+    } else {
+      parentAttributes.push(idAttr);
+    }
+
+    parentRef.content.children.splice(
+      idx, 1, ...content.children,
+    );
+
+    content.children.forEach(n => n.parentRef = parentRef);
+  }
+
+  // #API
+  moveWrapperToFirstChild({ node, attributes = [] }) {
+    const { parentRef, content } = node;
+
+    const [child] = content.children.filter(({ nodeType }) => nodeType == 'tag');
+    assert(child);
+
+    const getAttr = (k, attrs=content.attributes) => (attrs || []).filter(({ key: { content } }) => content == k)[0];
+    const clear = (o) => {
+      for (const key of Object.keys(o)) {
+        delete o[key];
+      }
+    }
+
+    const childAttributes = child.content.attributes || (child.content.attributes = []);
+
+    ['id', ...attributes]
+      .forEach(attrName => {
+
+        const attr = getAttr(attrName);
+        assert(attr);
+
+        const childAttr = getAttr(attrName, childAttributes);
+
+        if (childAttr) {
+          if (attrName == 'id') {
+            this.updateHookSelector(`#${attr.value.content}`, `#${childAttr.value.content}`);
+          }
+        } else {
+          childAttributes.push(attr);
+        }
+      })
+
+    clear(node);
+    Object.assign(node, {
+      ...child,
+      parentRef: parentRef ? parentRef : null,
+    });
+  }
 
   // #API
   getKeyFromIndexSegment(s) {
@@ -484,6 +570,11 @@ class BaseComponent extends WebRenderer {
   getDataVariableValue(dataVariable, index, keys) {
     const { getDataVariableValue } = RootCtxRenderer;
     return getDataVariableValue(dataVariable, index, keys);
+  }
+  // #API
+  visitHtmlAst({ ast, emitter, tagVisitor }) {
+    const { visitHtmlAst } = RootCtxRenderer;
+    return visitHtmlAst({ ast, emitter, tagVisitor });
   }
 }
 module.exports = BaseComponent;

@@ -37,7 +37,7 @@
 {{#*inline "render_standalone" eager=true}}
   <div class="slds-form-element {{padding ? 'slds-p-${padding}' : ''}} {{margin ? 'slds-m-${margin}' : ''}}">
 
-    {{#block transform='transformFormElementLabel'}}
+    {{#block outerTransform='formElementLabelTransform'}}
       <label class="slds-form-element__label {{displayOnlyControl ? "slds-assistive-text" : ""}}" for="{{@root.componentId}}_input">
         {{> render_title}}
       </label>
