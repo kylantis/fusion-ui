@@ -117,9 +117,14 @@ class Chart extends components.LightningComponent {
         ];
     }
 
+    static cloneData(data) {
+        return JSON.parse(JSON.stringify(data));
+    }
+
     getData() {
+        const { cloneData } = Chart;
         const { labels, datasets, yMarkers, yRegions } = this.getInput();
-        return clientUtils.deepClone({ labels, datasets, yMarkers, yRegions });
+        return cloneData({ labels, datasets, yMarkers, yRegions });
     }
 
     onMount() {

@@ -24,11 +24,11 @@
     },
     "rows": {
       "minLength": 10,
-      "singularType": "RowsElement"
+      "singularType": "Row"
     },
     "rows.$_.cells": {
-      "minLength": 10,
-      "singularType": "CellsElement"
+      "minLength": 7,
+      "singularType": "Cell"
     }
   },
   "scalars": {
@@ -84,6 +84,11 @@
     "rows.$_.actions": {
       "type": "Menu",
       "isNull": false
+    },
+    "hasActions": {
+      "type": "Boolean",
+      "defaultValue": false,
+      "clientOnly": true
     }
   },
   "behaviours": {
@@ -112,6 +117,6 @@
   "sample": {
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": false,
+  "useCollectionLengthProperty": true,
   "escapeDynamicHtml": false
 }

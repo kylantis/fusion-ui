@@ -130,6 +130,28 @@ module.exports = {
     ];
   },
 
+  forEachPath: (original, fn) => {
+    const arr = original.split('.');
+    let r = '';
+
+    for (let i = 0; i < arr.length; i++) {
+
+      const segments = clientUtils.getSegments({ original: arr[i] });
+      
+      segments.forEach(s => {
+        r += s;
+
+        fn(r);
+      });
+
+      if (i < arr.length - 1) {
+        r += '.';
+      }
+    }
+
+    assert(r == original);
+  },
+
   peek: (arr) => {
     if (arr.length > 0) {
       return arr[arr.length - 1];

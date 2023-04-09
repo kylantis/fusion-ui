@@ -18,7 +18,7 @@
         "build-archive": "APP_ID=platform node lib/model-factories/build-archive.js",
         "build": "APP_ID=platform gulp dist --expose-gc && npm run build-archive",
         "scripts": "gulp compile-scripts",
-        "watch": "APP_ID=platform gulp watch",
+        "watch": "APP_ID=platform gulp watch --expose-gc",
         "watch-build-archive": "BUILD_ARCHIVE=true npm run watch",
         "build-watch": "npm run build && npm run watch",
         "build-all": "APP_ID=platform gulp distAll --expose-gc && npm run build-archive",

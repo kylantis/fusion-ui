@@ -7,7 +7,10 @@ class Checkbox extends components.MultiOptionFormElement {
     }
 
     onMount() {
-        if (!this.isCompound()) {
+        const { readonly } = this.getInput();
+
+        if (!this.isCompound() && !readonly) {
+
             this.getFormElementNode()
                 .querySelector('.slds-checkbox')
                 .classList.add('slds-checkbox_standalone');

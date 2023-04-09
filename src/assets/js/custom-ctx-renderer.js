@@ -147,7 +147,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     const { fn, hash } = options;
 
-    const { blockParam, hook, hookOrder, transform } = hash;
+    const { blockParam, hook, hookOrder, outerTransform } = hash;
 
     if (scope) {
       assert(blockParam);
@@ -176,20 +176,20 @@ class CustomCtxRenderer extends RootCtxRenderer {
       options.data = clientUtils.createFrame(options.data);
     }
 
+    if (outerTransform) {
+      assert(nodeId);
+
+      this.registerTransform(nodeId, outerTransform);
+    }
+
     Object.keys(hash).forEach(k => {
       options.data[k] = this.wrapDataWithProxy(hash[k]);
     })
 
-    let markup = fn(
+    return fn(
       this.wrapDataWithProxy(ctx),
       { data: options.data },
     );
-
-    if (transform) {
-      markup = this[transform](markup);
-    }
-
-    return markup;
   }
 
   resolveMustacheInCustom({ options, params }) {
@@ -335,66 +335,6 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
   static getValueType(value) {
     return value === null ? 'null' : value === Object(value) ? value.constructor.name : typeof value;
-  }
-
-  // Todo: Move this method to the preprocessor class
-  // eslint-disable-next-line class-methods-use-this
-  validateType({ path, value, validType, nameQualifier, line, allowEmptyCollection=false }) {
-    const { isPrimitive, getValueType } = CustomCtxRenderer;
-    const { literalType, arrayType, objectType, mapType, componentRefType } = RootProxy;
-
-    const arr = path.split('%');
-
-    if (arr.length == 2) {
-      path = arr[0];
-      const metaArray = arr[1].split('/');
-
-      validType = metaArray[0];
-      // eslint-disable-next-line prefer-destructuring
-      nameQualifier = metaArray[1];
-    }
-
-    if (!validType) {
-      return value;
-    }
-
-    const emptyCollectionErrorMsg = () => `${path} must resolve to a non-empty [${validType}]${nameQualifier ? ` (${nameQualifier}) ` : ''}`;
-
-    const currentType = getValueType(value);
-
-    let err = `${path} must resolve to the type : ${validType}${nameQualifier ? ` (${nameQualifier}) ` : ''} instead of ${currentType}`;
-
-    // eslint-disable-next-line default-case
-    switch (true) {
-      case validType === arrayType && value != null && value.constructor.name === 'Array':
-        if (value.length || allowEmptyCollection) {
-          return value;
-        }
-        err = emptyCollectionErrorMsg();
-        break;
-
-      case validType === mapType && value != null && value.constructor.name === 'Map':
-        if (value.size || allowEmptyCollection) {
-          return value;
-        }
-        err = emptyCollectionErrorMsg();
-        break;
-
-      case validType === objectType && value != null && value.constructor.name === 'Object':
-        return value;
-
-      case validType === literalType && isPrimitive(value):
-        return value;
-
-      // eslint-disable-next-line no-undef
-      case validType === componentRefType &&
-        (value == null || (value instanceof BaseComponent && (!nameQualifier || value.constructor.className == nameQualifier))):
-        return value;
-    }
-
-    throw Error(
-      `${line ? `[${line}] ` : ''}${err}`
-    );
   }
 }
 
