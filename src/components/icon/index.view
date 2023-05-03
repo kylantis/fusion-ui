@@ -10,12 +10,8 @@
             ? ' slds-icon_container_circle' : ''
         }}
         {{useCurrentColor ? ' slds-current-color' : ''}}
-
-        {{!-- Margin --}}
-        {{marginLeft ? 'slds-m-left_${marginLeft}' : ''}}
-        {{marginRight ? 'slds-m-right_${marginRight}' : ''}}
-
         {{cssClass ? cssClass : ''}}
+        {{> add_margin_classes}}
         "
         {{!-- 
             Utility and doctype icons do not support background color

@@ -112,7 +112,7 @@
                   title="Show submenu" 
                   useCurrentColor=(not feedbackState or (feedbackState eq 'warning'))
                   type=((feedbackState and (not (feedbackState eq 'warning'))) ? 'inverse' : null)
-                  ref="tab-${identifier}-submenuTrigger-icon"
+                  ref="tab-${identifier}-submenuTrigger-button"
             }}
         </div>
 
@@ -130,7 +130,7 @@
                   title="Close Tab" 
                   useCurrentColor=(not feedbackState or (feedbackState eq 'warning'))
                   type=((feedbackState and (feedbackState neq 'warning')) ? 'inverse' : null)
-                  ref="tab-${identifier}-close-icon"
+                  ref="tab-${identifier}-close-button"
             }}
         </div>
         {{/if}}

@@ -4,16 +4,9 @@ class Drawer extends components.LightningComponent {
     initCompile() {
         this.getInput().showByDefault;
     }
-    
+
     static isAbstract() {
         return true;
-    }
-
-    cssDependencies() {
-        return [
-            ...super.cssDependencies(),
-            '/components/drawer/style.min.css',
-        ];
     }
 
     beforeMount() {
@@ -33,6 +26,14 @@ class Drawer extends components.LightningComponent {
 
         if (showByDefault) {
             this.openDrawer();
+        }
+    }
+
+    hooks() {
+        return {
+            ['onMount.size']: () => {
+                this.normalizeSize();
+            },
         }
     }
 
@@ -70,9 +71,11 @@ class Drawer extends components.LightningComponent {
     openDrawer() {
         const { overlay, backdrop, toggleButton } = this.getInput();
 
-        this.getDrawerNode().setAttribute('aria-hidden', false);
+        const drawer = this.getDrawerNode();
 
-        this.getDrawerNode().classList.add('slds-is-open');
+        drawer.setAttribute('aria-hidden', false);
+
+        drawer.classList.add('slds-is-open');
 
         if (overlay && backdrop) {
             this.node.querySelector(':scope .slds-backdrop').classList.add('slds-backdrop_open');
@@ -83,15 +86,31 @@ class Drawer extends components.LightningComponent {
                 .setAttribute("style", "display: none");
         }
 
+        const fn = ({ propertyName }) => {
+            if (propertyName === 'width') {
+                this.normalizeSize();
+                drawer.removeEventListener('transitionend', fn);
+            }
+        };
+
+        drawer.addEventListener('transitionend', fn);
+
         this.dispatchEvent('drawerOpen');
     }
 
     closeDrawer() {
         const { backdrop, toggleButton } = this.getInput();
 
-        this.getDrawerNode().setAttribute('aria-hidden', true);
+        const drawer = this.getDrawerNode();
 
-        this.getDrawerNode().classList.remove('slds-is-open');
+        drawer.setAttribute('aria-hidden', true);
+
+        drawer.classList.remove('slds-is-open');
+
+        if (this.isMobile()) {
+            // If necessary, undo the changes made in normalizeSize()
+            drawer.style.width = null;
+        }
 
         if (backdrop) {
             this.node.querySelector(':scope .slds-backdrop').classList.remove('slds-backdrop_open');
@@ -105,6 +124,20 @@ class Drawer extends components.LightningComponent {
         }
 
         this.dispatchEvent('drawerClose');
+    }
+
+    normalizeSize() {
+        const drawer = this.getDrawerNode();
+
+        if (this.isMobile() && drawer.classList.contains('slds-is-open')) {
+            // If the drawer width is wider than the viewport, add a width override
+
+            const { width } = getComputedStyle(drawer);
+
+            if (Number(width.replace('px', '')) > window.innerWidth) {
+                drawer.style.width = `${window.innerWidth}px`;
+            }
+        }
     }
 }
 

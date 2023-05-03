@@ -108,6 +108,10 @@
       "defaults": [
         null
       ]
+    },
+    "hint": {
+      "type": "Boolean",
+      "defaultValue": false
     }
   },
   "escapeDynamicHtml": false

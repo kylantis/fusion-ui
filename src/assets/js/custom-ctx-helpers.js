@@ -4,7 +4,7 @@ module.exports = {
         const _this = this;
         return (value, invert, options, ctx) => {
 
-            const { hash: { hook, hookOrder, outerTransform } } = options;
+            const { hash: { hook, hookOrder, outerTransform }, loc } = options;
 
             const nodeId = _this.getSyntheticNodeId();
 
@@ -26,13 +26,21 @@ module.exports = {
 
             const b = _this.analyzeConditionValue(value);
 
-            return (() => {
+            _this.getEmitContext().blockStack.push(loc);
+
+            const renderedValue = (() => {
                 if (invert ? !b : b) {
                     return options.fn(ctx);
                 } else {
                     return options.inverse(ctx);
                 }
             })();
+
+            _this.getEmitContext().blockStack.pop();
+
+            _this.getEmitContext().write(renderedValue);
+
+            return renderedValue;
         };
     },
 
@@ -71,7 +79,9 @@ module.exports = {
                 context = context.call(this);
             }
 
-            return (() => {
+            _this.getEmitContext().blockStack.push(loc);
+
+            const renderedValue = (() => {
                 if (!clientUtils.isEmpty(context)) {
                     let data;
 
@@ -79,11 +89,23 @@ module.exports = {
                         data = clientUtils.createFrame(options.data);
                         data[blockParam] = context;
                     }
-                    return fn(context, { data });
+                    return fn(context, {
+                        data,
+                        // Handlebars wants us to add "blockParams", so let's make the engine happy even though we
+                        // know calls to blockParams have been transformed at compile time to access the corresponding
+                        // data variables
+                        blockParams: [context]
+                    });
                 } else {
                     return inverse(this);
                 }
             })();
+
+            _this.getEmitContext().blockStack.pop();
+
+            _this.getEmitContext().write(renderedValue);
+
+            return renderedValue;
         }
     },
 
@@ -94,8 +116,8 @@ module.exports = {
                 _this.throwError('Must pass iterator to #each block');
             }
 
-            const { fn, inverse, hash } = options;
-            const { blockParam, hook, hookOrder, outerTransform } = hash;
+            const { fn, inverse, hash, loc } = options;
+            const { blockParam, hook, hookOrder, outerTransform, predicate } = hash;
             assert(blockParam);
 
             const nodeId = _this.getSyntheticNodeId();
@@ -118,40 +140,53 @@ module.exports = {
                 data = clientUtils.createFrame(options.data);
             }
 
-            function execIteration(field, index, last) {
-                if (data) {
-
-                    data.key = field;
-                    data.index = index;
-                    data.first = index === 0;
-                    data.last = !!last;
-                    data.random = clientUtils.randomString();
-
-                    data[blockParam] = context[field];
-                }
-
-                let markup = fn(
-                    context[field],
-                    {
-                        data,
-                        blockParams: [context[field], field]
-                    })
-
-                ret = ret + markup;
-
-                if (hook) {
-                    assert(nodeId);
-                    
-                    _this.hooks[`#${nodeId} > :nth-child(${index + 1})`] = {
-                        hookName: hook,
-                        order: hookOrder != undefined ? hookOrder : _this.getDefaultHookOrder(),
-                        blockData: options.data.state.blockData,
-                    };
-                }
-            }
+            _this.getEmitContext().blockStack.push(loc);
 
             if (context && typeof context === 'object') {
-                if (clientUtils.isArray(context)) {
+
+                function execIteration(field, index, last) {
+
+                    const currentValue = context[field];
+
+                    if (data) {
+
+                        data.key = field;
+                        data.index = index;
+                        data.first = index === 0;
+                        data.last = !!last;
+                        data.random = clientUtils.randomString();
+
+                        data[blockParam] = currentValue;
+                    }
+
+                    const isNull = currentValue == null || (predicate ? !_this[predicate].bind(_this)(currentValue) : false);
+
+                    const markup = isNull ?
+                        '' :
+                        fn(
+                            currentValue,
+                            {
+                                data,
+                                // Handlebars wants us to add "blockParams", so let's make the engine happy even though we
+                                // know calls to blockParams have been transformed at compile time to access the corresponding
+                                // data variables
+                                blockParams: [currentValue, field]
+                            })
+
+                    ret = ret + markup;
+
+                    if (hook) {
+                        assert(nodeId);
+
+                        _this.hooks[`#${nodeId} > :nth-child(${index + 1})`] = {
+                            hookName: hook,
+                            order: hookOrder != undefined ? hookOrder : _this.getDefaultHookOrder(),
+                            blockData: options.data.state.blockData,
+                        };
+                    }
+                }
+
+                if (Array.isArray(context)) {
                     for (let j = context.length; i < j; i++) {
                         if (i in context) {
                             execIteration(i, i, i === context.length - 1);
@@ -190,7 +225,13 @@ module.exports = {
                 ret = inverse(this);
             }
 
-            return ret;
+            const renderedValue = ret;
+
+            _this.getEmitContext().blockStack.pop();
+
+            _this.getEmitContext().write(renderedValue);
+
+            return renderedValue;
         }
     }
 };

@@ -1,66 +1,28 @@
 
 class Input extends components.FormElement {
 
-    beforeMount() {
-        this.setControlCssClass();
-    }
-
-    onMount() {
-
-        // Todo: Configure Popover, i.e. set width and position
-
+    loadStandaloneControl() {
+        this.getInputElement()
+            .addEventListener('click', () => {
+                this.dispatchEvent('click');
+            });
     }
 
     hooks() {
         return {
-            ['onMount.leftIcon']: () => {
-                this.setControlCssClass();
-            },
-            ['onMount.rightIcon']: () => {
-                this.setControlCssClass();
-            },
-            ['onMount.clearButton']: () => {
-                this.setControlCssClass();
-            },
-            ['onMount.readonly']: () => {
-                this.setControlCssClass();
-            },
-        }
-    };
-
-    behaviours() {
-        return [
-            'showPopover', 'hidePopover'
-        ];
-    }
-
-    showPopover() {
-
-    }
-
-    hidePopover() {
-        
-    }
-
-    setControlCssClass() {
-        const input = this.getInput();
-        let { leftIcon, rightIcon, clearButton, readonly } = input;
-
-        rightIcon = rightIcon || clearButton;
-
-        let controlCssClass = null;
-
-        if ((!readonly) && (leftIcon || rightIcon)) {
-            controlCssClass = 'slds-input-has-icon';
-
-            if (leftIcon && rightIcon) {
-                controlCssClass += ' slds-input-has-icon_left-right';
-            } else {
-                controlCssClass += ` slds-input-has-icon_${leftIcon ? 'left' : 'right'}`;
+            ['onMount.value']: (evt) => {
+                const { newValue: value } = evt;
+                this.dispatchEvent('change', value);
             }
-        }
+        };
+    }
 
-        input.controlCssClass = controlCssClass;
+    getInputElement() {
+        return this.getNode().querySelector('input');
+    }
+
+    events() {
+        return ['click'];
     }
 
     isCompound() {
@@ -73,9 +35,11 @@ class Input extends components.FormElement {
 
     onChange(evt) {
         const { value } = evt.target;
-        this.dispatchEvent('change', value);
+        this.getInput().value = value;
+    }
 
-        this.getInput().value =  value;
+    getWidgetElementId() {
+        return `${this.getId()}-widget`
     }
 }
 

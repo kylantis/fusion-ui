@@ -1,3 +1,4 @@
+{{style url="/components/sidebar_layout/style.min.css"}}
 
 {{#*inline "render_panel_body"}}
     {{component VerticalNavigation alias="navigation"}}
@@ -5,7 +6,7 @@
     {{#if searchBar}}
         <div style="margin-bottom: 1em;">
             {{> Input 
-                type="text" leftIcon="search" clearButton=true placeholder="Search"
+                type="text" leftIcon="search" rightButton='clear' placeholder="Search"
                 ref="searchBar"
             }}
         </div>

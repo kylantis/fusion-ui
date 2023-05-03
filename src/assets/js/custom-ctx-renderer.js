@@ -26,10 +26,10 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     return {
       if: function (ctx, options) {
-        conditionalFn(ctx, false, options, this)
+        return conditionalFn(ctx, false, options, this)
       },
       unless: function (ctx, options) {
-        conditionalFn(ctx, true, options, this)
+        return conditionalFn(ctx, true, options, this)
       },
       with: with0.bind(this)(),
       each: each.bind(this)(),
@@ -86,6 +86,14 @@ class CustomCtxRenderer extends RootCtxRenderer {
     });
   }
 
+  wrapInvocationWithProxy({ options, params }) {
+    const helperName = params.shift();
+
+    return this.wrapDataWithProxy(
+      this[helperName].bind(this)(...params, options)
+    );
+  }
+
   wrapDataWithProxy(data) {
     const { isRootPath, syntheticMethodPrefix } = RootProxy;
     switch (true) {
@@ -96,6 +104,9 @@ class CustomCtxRenderer extends RootCtxRenderer {
         return data.map(this.wrapDataWithProxy, this);
 
       case data instanceof BaseComponent:
+        return data;
+
+      case data.constructor.name != 'Object':
         return data;
 
       default:
@@ -109,25 +120,26 @@ class CustomCtxRenderer extends RootCtxRenderer {
           get: (obj, prop) => {
             switch (true) {
               case prop === Symbol.iterator:
-                // eslint-disable-next-line func-names
-                return function* () {
-                  const keys = Object.keys(obj);
-                  // eslint-disable-next-line no-plusplus
-                  for (let i = 0; i < keys.length; i++) {
-                    yield _this.wrapDataWithProxy(obj[keys[i]]);
-                  }
-                };
+                // We need to return undefined so that #each helper can invoke execIteration(...)
+                // using the actual object keys as the 'field' variable instead of the iteration index.
+                // In doing so, @key can work properly
+                return undefined;
 
               case !!Object.getPrototypeOf(obj)[prop]:
                 return obj[prop];
 
+              case prop === 'toJSON':
+                return () => data;
+
               case prop === 'toHTML':
               case prop === Symbol.toPrimitive:
                 return () => _this.toHtml(obj);
+
               case prop.startsWith(syntheticMethodPrefix):
                 // We need handlebars to invoke the helper itself, so that the params
                 // (including the options object) are passed in during invocation 
                 return undefined;
+
               default:
                 const value = isRootPath(prop) ? this.rootProxy[prop] : obj[prop];
                 return this.wrapDataWithProxy(value);
@@ -145,7 +157,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
   renderBlock({ options, ctx, scope, state, nodeId }) {
 
-    const { fn, hash } = options;
+    const { fn, hash, loc } = options;
 
     const { blockParam, hook, hookOrder, outerTransform } = hash;
 
@@ -163,7 +175,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
         hash.state = state;
       }
 
-      if (hook) { 
+      if (hook) {
         assert(nodeId);
 
         this.hooks[`#${nodeId}`] = {
@@ -186,23 +198,37 @@ class CustomCtxRenderer extends RootCtxRenderer {
       options.data[k] = this.wrapDataWithProxy(hash[k]);
     })
 
-    return fn(
-      this.wrapDataWithProxy(ctx),
-      { data: options.data },
+    this.getEmitContext().blockStack.push(loc);
+
+    const renderedValue = fn(
+      this.wrapDataWithProxy(ctx), { data: options.data },
     );
+
+    this.getEmitContext().blockStack.pop();
+
+    this.getEmitContext().write(renderedValue);
+
+    return renderedValue;
   }
 
   resolveMustacheInCustom({ options, params }) {
 
     const { textNodeHookType } = RootProxy;
 
-    const { hash: { hook, hookOrder, transform } } = options;
+    let { hash: { hook, hookOrder, transform }, loc } = options;
+
+    let [value] = params;
 
     const bindContext = this.getCurrentBindContext();
+    const isTextNodeBindContext = bindContext && bindContext.type == textNodeHookType;
 
-    const [value] = params;
+    if (!isTextNodeBindContext && value instanceof BaseComponent) {
+      this.logger.warn(
+        `[${getLine({ loc })}] Component "${value.getId()}" needs a bind context inorder to render properly`
+      );
+    }
 
-    if (bindContext && bindContext.type == textNodeHookType) {
+    if (isTextNodeBindContext) {
       const { selector } = bindContext;
 
       if (value instanceof Promise || value instanceof BaseComponent) {
@@ -210,6 +236,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
           data: value,
           target: selector.replace('#', ''),
           transform,
+          options,
         })
 
         transform = null;
@@ -228,7 +255,11 @@ class CustomCtxRenderer extends RootCtxRenderer {
       value = this[transform](value);
     }
 
-    return this.toHtml(value);
+    const renderedValue = this.toHtml(value);
+
+    this.getEmitContext().write(renderedValue);
+
+    return renderedValue;
   }
 
   concatenate() {
@@ -335,6 +366,64 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
   static getValueType(value) {
     return value === null ? 'null' : value === Object(value) ? value.constructor.name : typeof value;
+  }
+
+  validateType({ path, value, validType, nameQualifier, line, allowEmptyCollection = false }) {
+    const { isPrimitive, getValueType } = CustomCtxRenderer;
+    const { literalType, arrayType, objectType, mapType, componentRefType } = RootProxy;
+
+    const arr = path.split('%');
+
+    if (arr.length == 2) {
+      path = arr[0];
+      const metaArray = arr[1].split('/');
+
+      validType = metaArray[0];
+      // eslint-disable-next-line prefer-destructuring
+      nameQualifier = metaArray[1];
+    }
+
+    if (!validType) {
+      return value;
+    }
+
+    const emptyCollectionErrorMsg = () => `${path} must resolve to a non-empty [${validType}]${nameQualifier ? ` (${nameQualifier}) ` : ''}`;
+
+    const currentType = getValueType(value);
+
+    let err = `${path} must resolve to the type : ${validType}${nameQualifier ? ` (${nameQualifier}) ` : ''} instead of ${currentType}`;
+
+    // eslint-disable-next-line default-case
+    switch (true) {
+      case validType === arrayType && value != null && value.constructor.name === 'Array':
+        if (value.length || allowEmptyCollection) {
+          return value;
+        }
+        err = emptyCollectionErrorMsg();
+        break;
+
+      case validType === mapType && value != null && value.constructor.name === 'Map':
+        if (value.size || allowEmptyCollection) {
+          return value;
+        }
+        err = emptyCollectionErrorMsg();
+        break;
+
+      case validType === objectType && value != null && value.constructor.name === 'Object':
+        return value;
+
+      case validType === literalType && isPrimitive(value):
+        return value;
+
+      // eslint-disable-next-line no-undef
+      case validType === componentRefType &&
+        (value == null || (value instanceof BaseComponent && (!nameQualifier || value.constructor.className == nameQualifier))):
+        return value;
+    }
+
+    throw Error(
+      `${line ? `[${line}] ` : ''}${err}`
+    );
   }
 }
 

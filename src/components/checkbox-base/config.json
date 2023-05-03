@@ -29,7 +29,6 @@
     },
     "tabIndex": {
       "type": "Number",
-      "defaultValue": "undefined",
       "clientOnly": true
     }
   },

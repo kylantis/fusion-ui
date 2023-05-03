@@ -73,7 +73,6 @@ class ActivityTimeline extends components.LightningComponent {
                 menu: actions,
                 clickType: 'left',
                 useTargetPosition: true,
-                hideOnItemClick: true,
             }
         });
 

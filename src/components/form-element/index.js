@@ -10,8 +10,7 @@ class FormElement extends components.LightningComponent {
         this.getInput().layoutType;
 
         this.getInput().editable;
-        this.getInput().inEditMode;
-        this.getInput().insideForm;
+        this.getInput().inlineEdit;
     }
 
     static isAbstract() {
@@ -27,33 +26,31 @@ class FormElement extends components.LightningComponent {
         return layoutType == 'compound';
     }
 
+    setupFormElement() {  
+    }
+
+    loadStandaloneControl() {
+    }
+
     hooks() {
         return {
-            ['onMount.readonly']: (evt) => {
-                const { newValue: readonly } = evt;
-                this.toggleReadOnlyClass(readonly);
-            },
             ['onMount.error']: (evt) => {
                 const { newValue: error } = evt;
                 this.toggleErrorClass(!!error);
+            },
+            ['onMount.readonly']: (evt) => {
+                const { newValue: readonly } = evt;
+                this.toggleReadOnlyClass(readonly);
             },
             ['onMount.editable']: (evt) => {
                 const { newValue: editable } = evt;
                 this.toggleEditableClass(editable);
             },
-            ['onMount.inEditMode']: (evt) => {
-                const { newValue: inEditMode } = evt;
-                this.toggleEditModeClass(inEditMode);
-            }
         }
     }
 
     events() {
         return ['change'];
-    }
-
-    behaviours() {
-        return ['refreshTooltip'];
     }
 
     getTooltipTarget() {
@@ -76,100 +73,90 @@ class FormElement extends components.LightningComponent {
         ];
     }
 
-    getFormElementNode() {
+    getNode() {
         return this.node.querySelector(':scope .slds-form-element');
     }
 
-    toggleFormElementCssClass(predicate, className) {
-        const formElement = this.getFormElementNode();
-        if (!formElement) {
-            return;
-        }
-        const { classList } = formElement;
-        if (predicate) {
-            classList.add(className);
-        } else {
-            classList.remove(className);
-        }
-    }
-
-    supportsInlineEdits() {
-        return false;
-    }
-
-    formElementLabelTransform({ node }) {
+    labelTransform(nodes) {
         const { readonly } = this.getInput();
 
         if (readonly) {
-            // Convert "label" tag to "span" tag
-            node.content.children
+            nodes
                 .filter(({ nodeType }) => nodeType == 'tag')
                 .forEach(({ content }) => {
+                    // Convert "label" tag to "span" tag
                     assert(content.name == 'label');
                     content.name = 'span';
                 });
         }
     }
 
-    toggleReadOnlyClass(readonly) {
-        const { insideForm } = this.getInput();
-
-        if (insideForm) {
-            this.toggleFormElementCssClass(readonly, 'slds-form-element_readonly');
-        }
+    toggleErrorClass(error) {
+        this.toggleCssClass(error, 'slds-has-error');
     }
 
-    toggleErrorClass(error) {
-        this.toggleFormElementCssClass(error, 'slds-has-error');
+    toggleReadOnlyClass(readonly) {
+        this.toggleCssClass(readonly, 'slds-form-element_readonly');
+
+        if (readonly) {
+            this.toggleEditMode(false);
+        }
     }
 
     toggleEditableClass(editable) {
-        if (!this.supportsInlineEdits()) {
-            return;
-        }
-        this.toggleFormElementCssClass(editable, 'slds-form-element_edit');
+        this.toggleCssClass(editable, 'slds-form-element_edit');
     }
 
-    toggleEditModeClass(inEditMode) {
-        const { editable } = this.getInput();
+    onEditButtonClick() {
+        if (this.canEditInline()) {
 
-        if (!editable || !this.supportsInlineEdits()) {
-            return;
-        }
+            this.getInput().readonly = false;
+            this.toggleEditMode(true);
 
-        const formElement = this.getFormElementNode();
-        if (!formElement) {
-            return;
-        }
-
-        const { classList } = formElement;
-
-        if (inEditMode) {
-            classList.remove('slds-hint-parent')
-            classList.add('slds-is-editing');
         } else {
-            classList.add('slds-hint-parent')
-            classList.remove('slds-is-editing');
+            alert(`Todo: Load a popover to allow the user make edit ${this.getId()}`);
+        }
+    }
 
-            // Todo: Add "edit" icon on the right
+    supportsInlineEdits() {
+        return true;
+    }
+
+    canEditInline() {
+        const { inlineEdit } = this.getInput();
+        return this.supportsInlineEdits() && inlineEdit;
+    }
+
+    toggleEditMode(isEditing) {
+        if (isEditing) {
+            this.toggleCssClass(false, 'slds-hint-parent');
+            this.toggleCssClass(true, 'slds-is-editing');
+        } else {
+            this.toggleCssClass(true, 'slds-hint-parent');
+            this.toggleCssClass(false, 'slds-is-editing');
         }
     }
 
     async onMount() {
-        const { readonly, error, editable, inEditMode } = this.getInput();
-
-        if (readonly) {
-            this.toggleReadOnlyClass(readonly);
-        }
+        const { error, readonly, editable } = this.getInput();
 
         if (error) {
             this.toggleErrorClass(true);
         }
 
+        if (readonly) {
+            this.toggleReadOnlyClass(readonly);
+        }
+
         if (editable) {
             this.toggleEditableClass(true);
-            this.toggleEditModeClass(inEditMode);
         }
+    }
+
+    getPopupWidgetContainer() {
+        return !this.isCompound() ?
+            document.querySelector(`#${this.getId()}-popup-widget`) :
+            null;
     }
 }
 

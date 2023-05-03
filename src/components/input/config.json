@@ -4,30 +4,20 @@
   "scalars": {
     "type": {
       "type": "String",
-      "allowed": [
-        "text",
-        "password",
-        "datetime",
-        "datetime-local",
-        "date",
-        "month",
-        "time",
-        "week",
-        "number",
-        "email",
-        "url",
-        "search",
-        "tel",
-        "color"
-      ],
+      "allowed": "inputType",
       "defaults": [
         "text"
       ]
     },
+    "hasWidget": {
+      "type": "Boolean",
+      "defaultValue": false,
+      "clientOnly": true
+    },
     "placeholder": {
       "type": "String",
       "defaults": [
-        "Placeholder text…"
+        null
       ]
     },
     "value": {
@@ -35,10 +25,6 @@
       "defaults": [
         null
       ]
-    },
-    "clearButton": {
-      "type": "Boolean",
-      "defaultValue": true
     },
     "leftIcon": {
       "type": "String",
@@ -54,9 +40,12 @@
         null
       ]
     },
-    "popover": {
-      "type": "Popover",
-      "isNull": false
+    "rightButton": {
+      "type": "String",
+      "allowed": "utilityIconName",
+      "defaults": [
+        "clear"
+      ]
     }
   },
   "sample": {},

@@ -9,11 +9,8 @@ class GlobalNavigation extends components.LightningComponent {
 
         components.OverlayComponent;
 
-
         this.getInput().tabs[0].isActive;
         this.getInput().tabs[0].contentPadding;
-
-        this.getInput().hideOnItemClick;
     }
 
     destroy() {
@@ -37,20 +34,9 @@ class GlobalNavigation extends components.LightningComponent {
     onMount() {
         this.getContentContainer().style.visibility = 'visible';
 
-        document.querySelectorAll(
-            `#${this.getElementId()} .slds-dropdown li.slds-dropdown__item`
-        )
-            .forEach(node => {
-                node.addEventListener("click", (evt) => {
-                    this.selectedMenuItemArea = true;
-
-                    setTimeout(() => {
-                        this.selectedMenuItemArea = null;
-                    }, 200);
-                });
-            })
-
-        document.body.addEventListener('click', this.getBodyClickListener());
+        this.on('bodyClick', () => {
+            this.closeOpenSubMenu();
+        });
     }
 
     isSolidIcon(icon) {
@@ -61,46 +47,6 @@ class GlobalNavigation extends components.LightningComponent {
         const input = icon.getInput();
         input.marginRight = icon.isSolid() ? 'x-small' : null;
     }
-
-    getBodyClickListener() {
-        return this.bodyClickListener || (
-            this.bodyClickListener = ({ target, path }) => {
-
-                let { hideOnItemClick } = this.getInput();
-
-                if (hideOnItemClick == null) {
-                    hideOnItemClick = true;
-                }
-
-                if (target.matches(`#${this.getElementId()} li .trigger-submenu button`)) {
-                    // Clicks on submenu trigger buttons are handled in addListeners()
-                    return;
-                }
-
-                if (target.matches(`#${this.getElementId()} li .trigger-close button`)) {
-                    // Clicks on tab close buttons are handled in addListeners()
-                    return;
-                }
-
-                for (const node of path) {
-
-                    if (!(node instanceof Element)) {
-                        break;
-                    }
-                    if (node.matches(`#${this.getElementId()} .slds-dropdown li.slds-dropdown__item`)) {
-                        break;
-                    }
-                    if (node.matches(`#${this.getElementId()} li.slds-context-bar__item`)) {
-                        // Clicks on tabs are handled in addListeners()
-                        return;
-                    }
-                }
-
-                if (!this.selectedMenuItemArea || hideOnItemClick) {
-                    this.closeOpenSubMenu();
-                }
-            });
-    };
 
     events() {
         return [
@@ -182,12 +128,12 @@ class GlobalNavigation extends components.LightningComponent {
         return this.items || (this.items = {})
     }
 
-    getSubmenuTriggerIcon(identifier) {
-        return this.getInlineComponent(`tab-${identifier}-submenuTrigger-icon`);
+    getTabSubmenuTriggerButton(identifier) {
+        return this.getInlineComponent(`tab-${identifier}-submenuTrigger-button`);
     }
 
-    getCloseIcon(identifier) {
-        return this.getInlineComponent(`tab-${identifier}-close-icon`);
+    getTabCloseButton(identifier) {
+        return this.getInlineComponent(`tab-${identifier}-close-button`);
     }
 
     getActive() {
@@ -358,8 +304,8 @@ class GlobalNavigation extends components.LightningComponent {
         contentDiv.id = this.getContentId(identifier);
 
         contentDiv.style.position = 'absolute';
-        contentDiv.style.width = '100%';
-        contentDiv.style.height = '100%';
+        contentDiv.style.minWidth = '100%';
+        contentDiv.style.minHeight = '100%';
         contentDiv.style.overflow = 'scroll';
 
         if (contentPadding) {
@@ -391,6 +337,15 @@ class GlobalNavigation extends components.LightningComponent {
         if (items[identifier]) {
             throw Error(`Tab with identifier "${identifier}" already exists`);
         }
+
+        [
+            li,
+            this.getTabSubmenuTriggerButton(identifier).getNode(),
+            this.getTabCloseButton(identifier).getNode()
+        ]
+            .forEach(node => {
+                node.setAttribute(this.getOverlayAttribute(), true)
+            });
 
         items[identifier] = {
             li, hasSubMenu: !!subMenu, content, subMenu, contentPadding
@@ -438,7 +393,7 @@ class GlobalNavigation extends components.LightningComponent {
         li.querySelector('.trigger-close button')
             .addEventListener('click', (evt) => {
                 let identifier;
-                for (const node of evt.path) {
+                for (const node of evt.composedPath()) {
                     if (node.matches(`li.slds-context-bar__item`)) {
                         identifier = node.getAttribute('identifier');
                         break;
@@ -452,7 +407,7 @@ class GlobalNavigation extends components.LightningComponent {
         // If the 'trigger-submenu' button is clicked, toggleSubMenuVisibility
         li.querySelector('.trigger-submenu button').addEventListener('click', (evt) => {
             let identifier;
-            for (const node of evt.path) {
+            for (const node of evt.composedPath()) {
                 if (node.matches(`li.slds-context-bar__item`)) {
                     identifier = node.getAttribute('identifier');
                     break;

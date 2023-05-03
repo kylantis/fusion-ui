@@ -1,5 +1,5 @@
 
-class ButtonIcon extends components.LightningComponent {
+class ButtonIcon extends components.TextCompanion {
 
     initCompile() {
     }

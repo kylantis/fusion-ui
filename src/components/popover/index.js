@@ -44,7 +44,8 @@ class Popover extends components.OverlayComponent {
 
         if (getComputedStyle(target).display == 'contents') {
             this.throwError(
-                `"${targetElement}" cannot be used as the targetElement because it does not have a box`);
+                `"${targetElement}" cannot be used as the targetElement because it does not have it's own CSS box`
+            );
         }
 
         const rect = target.getBoundingClientRect();
@@ -114,10 +115,6 @@ class Popover extends components.OverlayComponent {
 
     
     // }
-
-    getNode() {
-        return this.node.querySelector(`:scope > .slds-popover`);
-    }
 
     getShowToggleClass() {
         return "slds-rise-from-ground";

@@ -2,7 +2,7 @@
 /* eslint-disable class-methods-use-this */
 class BaseRenderer {
   static #componentIds = [];
-  static #components = [];
+  static #components = {};
 
   #id;
 
@@ -34,7 +34,7 @@ class BaseRenderer {
     );
 
     this.#id = id;
-    this.logger = logger || self.appContext ? self.appContext.logger : console;
+    this.logger = logger || self.appContext ? self.appContext.logger : this.createDefaultLogger();
     this.#isRoot = !BaseRenderer.#componentIds.length;
 
     if (self.appContext) {
@@ -56,6 +56,24 @@ class BaseRenderer {
     this.#internalMeta = {};
 
     this.#initialized = true;
+  }
+
+  createDefaultLogger() {
+    const prefix = `[${this.getId()}]`;
+    return {
+      log: (...msg) => {
+        console.log(prefix, ...msg);
+      },
+      info: (...msg) => {
+        console.info(prefix, ...msg);
+      },
+      warn: (...msg) => {
+        console.warn(prefix, ...msg);
+      },
+      error: (...msg) => {
+        console.error(prefix, ...msg);
+      },
+    }
   }
 
   getInternalMeta() {
@@ -80,6 +98,10 @@ class BaseRenderer {
 
   static getComponentIds() {
     return BaseRenderer.#componentIds;
+  }
+
+  static getAllComponents() {
+    return BaseRenderer.#components;
   }
 
   isRoot() {

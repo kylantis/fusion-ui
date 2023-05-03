@@ -1,3 +1,4 @@
+{{style url="/components/drawer/style.min.css"}}
 
 {{#*inline "render_panel"}}
   <div class="slds-panel {{overlay ? "slds-c-overlay-drawer" : "slds-c-drawer"}} slds-size_{{size}} slds-panel_docked slds-panel_docked-{{position}}" aria-hidden="true">
@@ -21,7 +22,10 @@
 
     {{#if toggleButton}}
        {{> ButtonIcon 
-                iconType='utility' iconName='justify_text' 
+                iconType='utility' iconName='justify_text'
+                marginTop='x-small'
+                marginLeft=((position eq 'left') ? 'x-small' : null)
+                marginRight=((position eq 'right') ? 'x-small' : null)
                 size="large" type="circular" on-click="toggleDrawer"
                 ref="toggleButton"
         }}

@@ -1,5 +1,9 @@
 {
-  "collections": {},
+  "collections": {
+    "dependsOn": {
+      "minLength": 10
+    }
+  },
   "useCollectionLengthProperty": false,
   "scalars": {
     "titleText": {
@@ -11,7 +15,7 @@
     "message": {
       "type": "String",
       "defaults": [
-        "This field is required"
+        null
       ]
     },
     "titleIcon": {
@@ -30,19 +34,7 @@
       "type": "Boolean",
       "defaultValue": false
     },
-    "readonly": {
-      "type": "Boolean",
-      "defaultValue": true
-    },
     "error": {
-      "type": "Boolean",
-      "defaultValue": false
-    },
-    "editable": {
-      "type": "Boolean",
-      "defaultValue": false
-    },
-    "inEditMode": {
       "type": "Boolean",
       "defaultValue": false
     },
@@ -56,13 +48,6 @@
       "defaults": [
         "stacked"
       ]
-    },
-    "controlCssClass": {
-      "type": "String",
-      "defaults": [
-        null
-      ],
-      "clientOnly": true
     },
     "padding": {
       "type": "String",
@@ -82,17 +67,25 @@
       "type": "Boolean",
       "defaultValue": false
     },
-    "insideForm": {
+    "readonly": {
       "type": "Boolean",
-      "defaultValue": false,
-      "clientOnly": true
+      "defaultValue": false
+    },
+    "editable": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "inlineEdit": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "dependsOn_$": {
+      "type": "FormElement",
+      "isNull": true
     }
   },
   "sample": {
-    "nullifyRandomly": [
-      "error",
-      "readonly"
-    ]
+    "nullifyRandomly": []
   },
   "escapeDynamicHtml": false
 }

@@ -106,17 +106,6 @@ class Chart extends components.LightningComponent {
         }
     }
 
-    jsDependencies() {
-        return [
-            ...super.jsDependencies(),
-            {
-                // url: 'https://cdn.jsdelivr.net/npm/frappe-charts@1/dist/frappe-charts.min.cjs.min.js',
-                url: '/assets/js/cdn/frappe-charts.min.js',
-                namespace: 'frappe',
-            }
-        ];
-    }
-
     static cloneData(data) {
         return JSON.parse(JSON.stringify(data));
     }

@@ -90,9 +90,10 @@ module.exports = {
         if (val['@type']) {
           // This is a component, see toJSON() in BaseRenderer
           const data = JSON.stringify(val['@data'], replacer, 2)
-            // Normalize by replacing double quotes to single quotes, so we can inline
-            // <data> below
-            .replace(/"/g, "'");
+
+            // Normalize by replacing double quotes to single quotes, so we can inline <data> below
+            .replace(/"/g, "@@")
+            ;
 
           return `%%new components['${val['@type']}']({
           input: ${data},
@@ -104,8 +105,9 @@ module.exports = {
       return val;
     };
     return JSON.stringify(srcObject, replacer, 2)
-      .replace(/("|')%%/g, '')
-      .replace(/%%("|')/g, '')
+      .replace(/@@/g, '"')      
+      .replaceAll(/"%%/g, '')
+      .replaceAll(/%%"/g, '')
       .replace(/\n/g, '');
   },
 
@@ -137,7 +139,7 @@ module.exports = {
     for (let i = 0; i < arr.length; i++) {
 
       const segments = clientUtils.getSegments({ original: arr[i] });
-      
+
       segments.forEach(s => {
         r += s;
 
@@ -364,12 +366,12 @@ module.exports = {
           if (Number(value) != NaN) {
             return true;
           }
-        break;
+          break;
         case 'boolean':
           if (['true', 'false'].includes(value)) {
             return true;
           }
-        break;
+          break;
         default:
           throw Error(`Unknown type "${type}"`);;
       }

@@ -5,18 +5,39 @@ class LightningComponent extends BaseComponent {
         this.getInput().cssClass;
     }
 
-    jsDependencies() {
-        return [
-            ...super.jsDependencies(),
-            // Todo: Add extra js files to be used across all lightning components
-        ];
-    }
-
     behaviours() {
         return [
             'setTooltipText', 'showTooltip', 'hideTooltip', 'refreshTooltip', 'removeTooltip',
-            'resetTooltipHover', 'showTooltipOnHover',
+            'resetTooltipHover', 'showTooltipOnHover', 'show', 'hide', 'toggleCssClass',
         ];
+    }
+
+    getNode() {
+        return this.node.querySelector(':scope > :nth-child(1)');
+    }
+
+    toggleCssClass(predicate, className) {
+        const node = this.getNode();
+
+        if (!node) {
+            return;
+        }
+        const { classList } = node;
+        if (predicate) {
+            classList.add(className);
+        } else {
+            classList.remove(className);
+        }
+    }
+
+    show() {
+        this.toggleCssClass(false, 'slds-hidden');
+        this.toggleCssClass(true, 'slds-visible');
+    }
+
+    hide() {
+        this.toggleCssClass(false, 'slds-visible');
+        this.toggleCssClass(true, 'slds-hidden');
     }
 
     async setTooltipText(title) {
@@ -141,15 +162,6 @@ class LightningComponent extends BaseComponent {
         return this.getTooltipTarget();
     }
 
-    cssDependencies() {
-        return [
-            '/assets/styles/salesforce-lightning-design-system.min.css',
-            ... this.isMobile() ? ['/assets/styles/salesforce-lightning-design-system_touch.min.css'] : [],
-            '/assets/styles/base.min.css',
-            ...super.cssDependencies(),
-        ];
-    }
-
     static isAbstract() {
         return true;
     }
@@ -181,6 +193,66 @@ class LightningComponent extends BaseComponent {
         return component.getInput()[propertyName] != undefined;
     }
 
+    events() {
+        return ['bodyClick'];
+    }
+
+    behaviours() {
+        return [
+            'dispatchBodyClickEventForAll', 'setHtmlAttribute', 'removeHtmlAttribute',
+        ];
+    }
+
+    setHtmlAttribute(name, value) {
+        const node = this.getNode();
+        if (!node) {
+            return;
+        }
+        node.setAttribute(name, value);
+    }
+
+    removeHtmlAttribute(name) {
+        const node = this.getNode();
+        if (!node) {
+            return;
+        }
+        node.removeAttribute(name);
+    }
+
+    dispatchBodyClickEventForAll() {
+        const { dispatchBodyClickEventForAll } = LightningComponent;
+        return dispatchBodyClickEventForAll();
+    }
+
+    static dispatchBodyClickEventForAll() {
+        const { getAllComponents } = BaseComponent;
+        Object.values(getAllComponents())
+            .forEach(i => i.dispatchEvent('bodyClick'));
+    }
+
+    getOverlayAttribute() {
+        const { getOverlayAttribute } = LightningComponent;
+        return getOverlayAttribute();
+    }
+
+    static getOverlayAttribute() {
+        return 'overlay';
+    }
+
+    static {
+        document.body.addEventListener('click', ({ target }) => {
+
+            const k = this.getOverlayAttribute();
+
+            const selector = `[${k}='true'], [${k}='true'] *:not([${k}='false'] *)`;
+
+            if (target.matches(selector)) {
+                return;
+            }
+
+            this.dispatchBodyClickEventForAll();
+        });
+    }
 }
 
 module.exports = LightningComponent;

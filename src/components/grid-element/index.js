@@ -27,7 +27,6 @@ class GridElement extends components.LightningComponent {
 
     toggleBump(bump, initial) {
         const grid = this.getGrid();
-        const input = this.getInput();
 
         if (grid) {
 
@@ -44,14 +43,9 @@ class GridElement extends components.LightningComponent {
             }
 
         } else {
-
-            // Note: hooks need to be suspended and resumed later to avoid a stackoverflow exception
-            // (if this component is mounted) because the assignment below will cause toggleBump(...) 
-            // to be called again via the 'beforeMount.bump' hook
-            this.suspendHooks();
-
-            input.bump = null;
-            this.resumeHooks();
+            this.set0(() => {
+                this.getInput().bump = null;
+            });
         }
     }
 

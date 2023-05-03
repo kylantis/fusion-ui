@@ -24,6 +24,33 @@
           "type": "string"
         }
       }
+    },
+    "toggleCssClass": {
+      "parameters": {
+        "predicate": {
+          "type": "boolean"
+        },
+        "className": {
+          "type": "string"
+        }
+      }
+    },
+    "setHtmlAttribute": {
+      "parameters": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "removeHtmlAttribute": {
+      "parameters": {
+        "name": {
+          "type": "string"
+        }
+      }
     }
   },
   "sample": {
