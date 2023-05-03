@@ -24,6 +24,9 @@
     "isSubMenu": {
       "type": "Boolean"
     },
+    "overlay": {
+      "type": "Boolean"
+    },
     "x": {
       "type": "String",
       "allowed": "positionX"

@@ -9,7 +9,6 @@ class ContextMenu extends components.OverlayComponent {
     initCompile() {
         this.getInput().clickType;
         this.getInput().useTargetPosition;
-        this.getInput().hideOnItemClick;
         this.getInput().positions[0];
     }
 
@@ -17,6 +16,18 @@ class ContextMenu extends components.OverlayComponent {
         return {
             ['beforeMount.menu']: (evt) => this.onMenuChange(evt.newValue)
         }
+    }
+
+    async onMount() {
+        const { menu } = this.getInput();
+
+        await this.calculateAreas();
+
+        await this.setupMenus(menu);
+
+        this.on('bodyClick', () => {
+            this.hide();
+        });
     }
 
     getSupportedPositions() {
@@ -127,7 +138,6 @@ class ContextMenu extends components.OverlayComponent {
     }
 
     destroy() {
-        const { getInstances } = ContextMenu;
         this.destroyMenus();
 
         // Remove event listeners
@@ -138,8 +148,6 @@ class ContextMenu extends components.OverlayComponent {
             delete this.targetNodes;
             delete this.targetClickListener;
         }
-
-        delete getInstances()[this.getId()];
 
         super.destroy();
     }
@@ -219,7 +227,9 @@ class ContextMenu extends components.OverlayComponent {
         this.targetNodes.splice(this.targetNodes.indexOf(targetNode), 1)
 
         targetNode.removeEventListener(this.getTriggerEvent(), this.targetClickListener);
+        
         targetNode.removeAttribute(key);
+        targetNode.removeAttribute(this.getOverlayAttribute());
     }
 
     addNode(targetNode) {
@@ -235,74 +245,11 @@ class ContextMenu extends components.OverlayComponent {
         const targetNodes = this.targetNodes || (this.targetNodes = []);
 
         targetNode.addEventListener(this.getTriggerEvent(), this.getTargetClickListener())
+        
         targetNode.setAttribute(key, true);
+        targetNode.setAttribute(this.getOverlayAttribute(), true);
 
         targetNodes.push(targetNode);
-    }
-
-    static getBodyClickListener() {
-        const { getInstances } = ContextMenu;
-
-        return ContextMenu.bodyClickListener || (
-            ContextMenu.bodyClickListener = ({ target }) => {
-
-                Object.values(getInstances())
-                    .forEach(i => {
-                        let { hideOnItemClick } = i.getInput();
-
-                        if (hideOnItemClick == null) {
-                            hideOnItemClick = true;
-                        }
-
-                        if (
-                            i.targetNodes && 
-                            i.targetNodes.includes(target) || i.targetNodes.includes(target.parentElement)
-                        ) {
-                            // Clicks on <targetNodes> is handled by this.targetClickListener
-                            return;
-                        }
-
-                        if (!i.selectedMenuItemArea || hideOnItemClick) {
-                            i.hide();
-                        }
-                    });
-            });
-    };
-
-    static getInstances() {
-        return ContextMenu.instances || (ContextMenu.instances = {});
-    }
-
-    async onMount() {
-        const { getInstances, getBodyClickListener } = ContextMenu;
-        const { menu } = this.getInput();
-
-        await this.calculateAreas();
-
-        await this.setupMenus(menu);
-
-        Object.values(this.menus)
-            .forEach(menu => {
-
-                document.querySelectorAll(
-                    `#${menu.getElementId()} > .slds-dropdown li.slds-dropdown__item`
-                )
-                    .forEach(node => {
-                        node.addEventListener("click", (evt) => {
-                            this.selectedMenuItemArea = true;
-
-                            setTimeout(() => {
-                                this.selectedMenuItemArea = null;
-                            }, 200);
-                        });
-                    })
-            });
-
-        getInstances()[this.getId()] = this;
-
-        if (!ContextMenu.bodyClickListener) {
-            document.body.addEventListener('click', getBodyClickListener());
-        }
     }
 
     getRequiredArea(position) {
@@ -457,6 +404,7 @@ class ContextMenu extends components.OverlayComponent {
         let x0 = x;
 
         const inputVisitor = (input) => {
+            input.overlay = false;
             input.groups.forEach(group => {
 
                 const children = [];

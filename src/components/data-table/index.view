@@ -1,10 +1,21 @@
 
 {{#*inline "render_base_table"}}
 
+    {{#*inline "render_cell" icon text}}
+        {{component Icon alias="icon"}}
+
+        {{#if icon}}
+            {{> icon marginRight="xx-small" size="x-small"}}
+        {{/if}}
+        <div class="slds-truncate" title="{{text}}">{{text}}</div>
+    {{/inline}}
+
     <tag-table class="
         slds-table 
         slds-table_fixed-layout
         {{bordered ? "slds-table_bordered" : ""}}
+        {{striped ? "slds-table_striped" : ""}}
+        {{borderColumns ? "slds-table_col-bordered" : ""}}
         {{editable ? "slds-table_edit" : ""}}
         {{resizableColumns ? "slds-table_resizable-cols" : ""}}
         " 
@@ -57,18 +68,14 @@
                                 {{/if}}
                                 
                                 <div class="slds-grid slds-grid_vertical-align-center slds-has-flexi-truncate">
-                                    <span class="slds-truncate" title="{{@key}}">
-                                        {{@key}}
+                                    
+                                    <span class="slds-grid slds-grid_vertical-align-center slds-has-flexi-truncate">
+                                        {{> render_cell icon text=@key }}
+
+                                        {{#if sortable}}
+                                            {{> Icon type="utility" name="arrowdown" svgCssClass="slds-is-sortable__icon"}}
+                                        {{/if}}
                                     </span>
-
-                                    {{#if sortable}}
-
-
-                                        {{!-- NEED TO WORK - TOGGLE BETWEEN UP AND DOWN DEPENDING CURRENT SORT --}}
-
-
-                                        {{> Icon type="utility" name="arrowdown" svgCssClass="slds-is-sortable__icon"}}
-                                    {{/if}}
                                 </div>
                             </a>
 
@@ -95,8 +102,7 @@
 
         <tag-tbody>
 
-            {{!-- hook = 'rowHook' --}}
-            {{#each rows predicate='hasRequiredCells' outerTransform='rowOuterTransform' innerTransform='rowInnerTransform' as |row|}}
+            {{#each rows predicate='hasRequiredCells' outerTransform='rowOuterTransform' innerTransform='rowInnerTransform' hook='rowHook' as |row|}}
 
                     <tag-tr aria-selected="{{rowsSelectable and selected}}" class="slds-hint-parent">
                         
@@ -116,8 +122,44 @@
                         </tag-td>
 
                         {{#each cells outerTransform='tdOuterTransform' innerTransform='tdInnerTransform' as |cell cellIndex|}}
-                            <tag-td role="gridcell" xyz="{{editable}}">
-                                <div class="slds-truncate" title="Acme">Acme</div>
+                            <tag-td role="gridcell" class="{{@root.inlineEdit ? "slds-cell-edit" : ""}}">
+
+                                {{component alias="component"}}
+                                {{component FormElement alias="control"}}
+
+                                <div class="slds-grid slds-grid_align-spread">
+                                    {{#if component}}
+                                        <div class="slds-truncate">
+                                            {{> component}}
+                                        </div>
+                                    {{else}}
+                                        {{#with value}}
+                                            {{> render_cell icon text}}
+                                        {{/with}}
+
+                                        {{#if @root.inlineEdit}}
+                                            {{#if control}}
+                                                {{> ButtonIcon 
+                                                    iconType='utility' iconName='edit' 
+                                                    cssClass="slds-cell-edit__button"
+                                                    svgCssClass="slds-button__icon_edit"
+                                                    hint=true
+                                                    ref="${@../key}-{@key}-edit-button"
+                                                    marginLeft='x-small'
+                                                }}
+                                            {{else}}
+                                                {{> ButtonIcon 
+                                                    iconType='utility' iconName='lock' 
+                                                    cssClass="slds-cell-edit__button"
+                                                    svgCssClass="slds-button__icon_lock"
+                                                    hint=true
+                                                    disabled=true
+                                                    marginLeft='x-small'
+                                                }}
+                                            {{/if}}
+                                        {{/if}}
+                                    {{/if}}
+                                </div>
                             </tag-td>
                         {{/each}}
 
@@ -128,7 +170,7 @@
                                 <div class="slds-cell_action-mode">
                                     {{> ButtonIcon 
                                             iconType='utility' iconName='down' 
-                                            size="x-small" type="border-filled"
+                                            size="x-small" type="border-filled" hint=true
                                             ref="${@key}-actions-trigger-button"
                                     }}
                                 </div>
@@ -159,7 +201,7 @@
 {{/inline}}
 
 
-{{#if editable}}
+{{#if inlineEdit}}
     <div class="slds-table_edit_container slds-is-relative">
         {{> render_table}}
     </div>

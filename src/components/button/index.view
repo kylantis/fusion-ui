@@ -21,7 +21,7 @@
 {{stateful ? selectState ? 'slds-${selectState}' : 'slds-not-selected' : '' transform="selectStateTransform"}}
 {{cssClass ? cssClass : ""}}
 "
- {{disabled ? "disabled=\"\"" : ""}}
+ {{disabled ? "disabled=''" : ""}}
 >
 
     <span class="{{stateful ? 'slds-text-not-selected' : ''}}">

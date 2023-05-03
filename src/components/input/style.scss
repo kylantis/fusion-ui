@@ -1,5 +1,6 @@
-.slds-form-element {
-    .slds-form-element__control {
-        padding-left: 0.5em;
+.slds-input {
+    &.hasWidget[readonly] {
+        --slds-c-input-color-border: unset;
+        --slds-c-input-color-background: unset;
     }
 }

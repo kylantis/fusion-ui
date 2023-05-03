@@ -1,0 +1,3 @@
+
+{{!-- https://cdn.jsdelivr.net/npm/frappe-charts@1/dist/frappe-charts.min.cjs.min.js --}}
+{{script url="/assets/js/cdn/frappe-charts.min.js" namespace='frappe'}}

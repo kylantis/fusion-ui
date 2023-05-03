@@ -25,89 +25,82 @@ class DataTable extends components.LightningComponent {
         }
     }
 
-    renameTagsTransform({ node }) {
+    renameTagsTransform(node) {
         this.visitHtmlAst({
             ast: node, tagVisitor: this.renameTagVisitor
         })
     }
 
-    thOuterTransform({ node }) {
+    thOuterTransform(node) {
+        this.moveWrapperToParent(node);
+        this.thInnerTransform(node.content.children, true)
+    }
 
-        this.moveWrapperToParent({ node });
-
-        node.content.children
+    thInnerTransform(nodes, initial) {
+        nodes
             .filter(({ nodeType }) => nodeType == 'tag')
             .forEach(node => {
-                this.thInnerTransform({ node, initial: true });
+                if (!node.content.children) {
+
+                    // This cell is null, add an empty cell element as it's child. This is needed for moveWrapperToFirstChild(...)
+                    node.content.children = [
+                        this.createEmptyCellElement('th')
+                    ];
+
+                } else if (!initial) {
+                    this.renameTagsTransform(node);
+                }
+
+                this.moveWrapperToFirstChild({ node, attributes: ['key'] });
             });
     }
 
-    thInnerTransform({ node, initial }) {
-        if (!node.content.children) {
-
-            // This cell is null, add an empty cell element as it's child. This is needed for moveWrapperToFirstChild(...)
-            node.content.children = [
-                this.createEmptyCellElement('th')
-            ];
-
-        } else if (!initial) {
-            this.renameTagsTransform({ node });
-        }
-
-        this.moveWrapperToFirstChild({ node, attributes: ['key'] });
+    tdOuterTransform(node) {
+        this.moveWrapperToParent(node);
+        this.tdInnerTransform(node.content.children, true)
     }
 
-    tdOuterTransform({ node }) {
-
-        this.moveWrapperToParent({ node });
-
-        node.content.children
+    tdInnerTransform(nodes, initial) {
+        nodes
             .filter(({ nodeType }) => nodeType == 'tag')
             .forEach(node => {
-                this.tdInnerTransform({ node, initial: true });
+                if (!node.content.children) {
+
+                    // This cell is null, add an empty cell element as it's child. This is needed for moveWrapperToFirstChild(...)
+                    node.content.children = [
+                        this.createEmptyCellElement()
+                    ];
+
+                } else if (!initial) {
+                    this.renameTagsTransform(node);
+                }
+
+                this.moveWrapperToFirstChild({ node, attributes: ['key'] });
             });
     }
 
-    tdInnerTransform({ node, initial }) {
-        if (!node.content.children) {
-
-            // This cell is null, add an empty cell element as it's child. This is needed for moveWrapperToFirstChild(...)
-            node.content.children = [
-                this.createEmptyCellElement()
-            ];
-
-        } else if (!initial) {
-            this.renameTagsTransform({ node });
-        }
-
-        this.moveWrapperToFirstChild({ node, attributes: ['key'] });
+    rowOuterTransform(node) {
+        this.moveWrapperToParent(node);
+        this.rowInnerTransform(node.content.children, true)
     }
 
-    rowOuterTransform({ node }) {
-
-        this.moveWrapperToParent({ node });
-
-        node.content.children
+    rowInnerTransform(nodes, initial) {
+        nodes
             .filter(({ nodeType }) => nodeType == 'tag')
             .forEach(node => {
-                this.rowInnerTransform({ node, initial: true });
+                if (!node.content.children) {
+
+                    // This row is null, add an empty row element as it's child. This is needed for moveWrapperToFirstChild(...)
+                    node.content.children = [
+                        this.createEmptyRowElement()
+                    ];
+
+                } else if (!initial) {
+                    this.renameTagsTransform(node);
+                }
+
+                this.moveWrapperToFirstChild({ node, attributes: ['key'] });
             });
-    }
-
-    rowInnerTransform({ node, initial }) {
-
-        if (!node.content.children) {
-
-            // This row is null, add an empty row element as it's child. This is needed for moveWrapperToFirstChild(...)
-            node.content.children = [
-                this.createEmptyRowElement(),
-            ];
-
-        } else if (!initial) {
-            this.renameTagsTransform({ node });
-        }
-
-        this.moveWrapperToFirstChild({ node, attributes: ['key'] });
     }
 
     createEmptyCellElement(tagName = 'td') {
@@ -262,7 +255,6 @@ class DataTable extends components.LightningComponent {
                 menu: actions,
                 clickType: 'left',
                 useTargetPosition: true,
-                hideOnItemClick: true,
             }
         });
 
@@ -293,10 +285,6 @@ class DataTable extends components.LightningComponent {
 
     getColumnResizeHandle(index) {
         return this.node ? this.node.querySelector(`${this.getId()}-resize-handle-${index}`) : null;
-    }
-
-    cellValueTranform(val) {
-
     }
 
     sortAscending(columnIndex) {

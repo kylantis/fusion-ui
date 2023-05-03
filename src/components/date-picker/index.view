@@ -1,0 +1,100 @@
+
+{{style url="/components/date_picker/style.min.css"}}
+
+{{component DatePicker alias="startDatePicker"}}
+
+{{#*inline "date_picker" runtime=true }}
+    {{var overlayAttribute = getOverlayAttribute}}
+
+    {{!-- Todo: Add a suitable aria-label --}}
+    <div id="{{getWidgetElementId}}" aria-label="" class="slds-datepicker slds-dropdown slds-dropdown_left"
+        role="dialog" {{overlayAttribute}}="true">
+
+        {{#getWidgetInfo as |widgetInfo|}}
+
+            <div class="slds-datepicker__filter slds-grid">
+                <div class="slds-datepicker__filter_month slds-grid slds-grid_align-spread slds-grow">
+                    
+                    <div class="slds-align-middle">
+                        {{#if hasPrevious}}
+                            {{var title = "Previous Month"}}
+                            {{> ButtonIcon title iconType='utility' iconName='left' container=true assistiveText=title on-click='previousMonth'}}
+                        {{/if}}
+                    </div>
+
+                    <h2 aria-atomic="true" aria-live="assertive" class="slds-align-middle" id="{{@root.componentId}}-monthName">
+                        {{monthName}}
+                    </h2>
+
+                    <div class="slds-align-middle">
+                        {{#if hasNext}}
+                            {{var title = "Next Month"}}
+                            {{> ButtonIcon title iconType='utility' iconName='right' container=true assistiveText=title on-click='nextMonth'}}
+                        {{/if}}
+                    </div>
+
+                </div>
+
+                <div class="slds-shrink-none">
+                    <label class="slds-assistive-text" for="{{@root.componentId}}_select">Pick a Year</label>
+                    <div class="slds-select_container">
+
+                        <select class="slds-select" id="{{@root.componentId}}_select" onchange="{{fn "setYearInView"}}(Number(event.target.value))">
+                            {{#each years as |y z|}}
+                                <option {{(../year eq y) ? "selected" : ""}}>{{y}}</option>
+                            {{/each}}
+                        </select>
+
+                    </div>
+                </div>
+                
+            </div>
+
+            <table aria-labelledby="{{@root.componentId}}-monthName" aria-multiselectable="true" class="slds-datepicker__month"
+                role="grid">
+
+                <thead>
+                    <tr id="{{@root.componentId}}-weekdays">
+                        {{#each getDaysOfTheWeek as |i j|}}
+                            <th id="{{@root.componentId}}-{{i}}" scope="col">
+                                <abbr title="{{i}}">{{j}}</abbr>
+                            </th>
+                        {{/each}}
+                    </tr>
+                </thead>
+
+
+                <tbody>
+
+                        {{#each getMonthDates year month as |i j|}}
+                            <tr class="{{hasSelectedRange ? 'slds-has-multi-selection' : ''}}">
+                                {{#each days as |k l|}}
+                                    <td 
+                                        class="{{(isPrevMonth or isNextMonth) ? 'slds-day_adjacent-month' : ''}} {{(isToday and not isSelected) ? 'slds-is-today' : ''}} {{isSelected ? 'slds-is-selected' : ''}} {{isSelectedRange ? 'slds-is-selected-multi' : ''}}" 
+                                        role="gridcell" 
+                                        aria-label="{{label}}"
+                                        aria-selected="{{isSelected}}"
+                                        {{isToday ? "aria-current='date'" : ""}}
+                                        {{(day eq 1) ? "tabindex='0'" : ''}}
+                                    >
+                                        <span class="slds-day" onclick="{{fn "selectDate"}}('{{isoString}}')">{{day}}</span>
+                                    </td>
+                                {{/each}}
+                            </tr>
+                        {{/each}}
+                </tbody>
+            </table>
+
+            {{#if isDateInRange currentDate}}
+                <button class="slds-button slds-align_absolute-center slds-text-link" onclick="{{fn "currentMonth"}}()">Today</button>
+            {{/if}}
+
+        {{/getWidgetInfo}}
+    </div>
+{{/inline}}
+
+{{#*inline "standalone_classes"}}
+  slds-dropdown-trigger {{(readonly or not displayOnHover) ? 'slds-dropdown-trigger_click' : ''}}
+{{/inline}}
+
+{{> render_standalone visible=false}}

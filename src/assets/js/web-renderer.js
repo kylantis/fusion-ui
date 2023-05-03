@@ -25,12 +25,32 @@ class WebRenderer extends CustomCtxRenderer {
     return Promise.all(deps).then(() => super.load(opts));
   }
 
+  #getDependencies(arr) {
+    return arr.map(dep => {
+      const { predicate } = dep;
+      if (predicate) {
+        if (!this[predicate].bind(this)()) {
+          return false;
+        } else {
+          delete dep.predicate;
+        }
+      }
+      return dep;
+    })
+      .filter(d => d);
+  }
+
   cssDependencies() {
-    return this.getSyntheticMethod({ name: 'cssDependencies' })();
+    return this.#getDependencies(
+      this.getSyntheticMethod({ name: 'cssDependencies' })()
+    )
+      .map(({ url }) => url);
   }
 
   jsDependencies() {
-    return this.getSyntheticMethod({ name: 'jsDependencies' })();
+    return this.#getDependencies(
+      this.getSyntheticMethod({ name: 'jsDependencies' })()
+    );
   }
 
   loadCSSDependencies() {
@@ -84,7 +104,7 @@ class WebRenderer extends CustomCtxRenderer {
     // eslint-disable-next-line no-restricted-globals
     const { appContext } = self;
     const dependencies =
-      [...this.jsDependencies()]
+      [...new Set(this.jsDependencies())]
         .map((dep) => {
           if (dep.constructor.name === 'String') {
             dep = { url: dep };

@@ -11,6 +11,16 @@
       "type": "String",
       "allowed": "size",
       "default": null
+    },
+    "marginTop": {
+      "type": "String",
+      "allowed": "size",
+      "default": null
+    },
+    "marginBottom": {
+      "type": "String",
+      "allowed": "size",
+      "default": null
     }
   },
   "sample": {

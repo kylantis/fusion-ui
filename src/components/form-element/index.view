@@ -1,16 +1,19 @@
 
+{{#each dependsOn as |i j|}}
+  {{component FormElement alias="."}}
+{{/each}}
 
 {{#*inline "render_required_label"}}
   <abbr class="slds-required" title="required">*</abbr>
 {{/inline}}
 
-{{#*inline "render_message" eager=true}}
+{{#*inline "render_message"}}
 <div class="slds-form-element__help" id="{{@root.componentId}}_message">
   {{message}}
 </div>
 {{/inline}}
 
-{{#*inline "render_title_icon" eager=true}}
+{{#*inline "render_title_icon"}}
   {{component ButtonIcon alias="titleIcon"}}
   {{#if titleIcon}}
     <div class="slds-form-element__icon {{displayOnlyControl ? "slds-assistive-text" : ""}}">
@@ -19,7 +22,7 @@
   {{/if}}
 {{/inline}}
 
-{{#*inline "render_title" eager=true}}
+{{#*inline "render_title"}}
   {{component Text alias="title"}}
     {{#if required}}
       {{> render_required_label}}
@@ -33,48 +36,81 @@
     {{/if}}
 {{/inline}}
 
+{{#*inline "render_edit_icon_container" visible=true}}
 
-{{#*inline "render_standalone" eager=true}}
-  <div class="slds-form-element {{padding ? 'slds-p-${padding}' : ''}} {{margin ? 'slds-m-${margin}' : ''}}">
+{{!-- Note: If your form element has an Icon or ButtonIcon on the right, ensure to only render it when
+readonly is false, so that this edit icon does not display on top of it --}}
 
-    {{#block outerTransform='formElementLabelTransform'}}
+  {{#if readonly and editable}}
+      {{> ButtonIcon 
+            iconType='utility' iconName='edit' 
+            cssClass="slds-input__icon slds-input__icon_right"
+            svgCssClass="slds-button__icon_edit"
+            hint=true
+            ref="edit-button"
+            marginLeft='x-small'
+            on-click='onEditButtonClick'
+      }}
+  {{/if}}
+{{/inline}}
+
+{{#*inline "render_standalone" visible=true}}
+  <div class="
+        slds-form-element 
+        {{padding ? 'slds-p-${padding}' : ''}} 
+        {{margin ? 'slds-m-${margin}' : ''}} 
+        {{visible ? "slds-visible" : "slds-hidden"}} 
+        {{> ?standalone_classes}}"
+  >
+
+    {{#if readonly neq undefined innerTransform='labelTransform' transient=true}}
       <label class="slds-form-element__label {{displayOnlyControl ? "slds-assistive-text" : ""}}" for="{{@root.componentId}}_input">
         {{> render_title}}
       </label>
-    {{/block}}
+    {{/if}}
 
     {{> render_title_icon}}
 
-    <div class="slds-form-element__control {{controlCssClass ? controlCssClass : ""}}">
-      {{#if readonly}}
+    <div class="slds-form-element__control {{> ?standalone_control_classes}}">
+      
+      {{!-- 
+        Because of the way, we are re-rendering "render_standalone_control", we need to register add the
+        hook "loadStandaloneControl" to allow subclasses perform initialization each time the control markup 
+        is rendered
+       --}}
+      
+      {{#if readonly hook='loadStandaloneControl'}}
         <div class="slds-form-element__static">
           {{> ?render_standalone_control}}
         </div>
       {{else}}
         {{> ?render_standalone_control}}
       {{/if}}
+
+      {{> render_edit_icon_container}}
     </div>
     {{#if message}}
       {{> render_message}}
     {{/if}}
+
+    <div id="{{@root.componentId}}-popup-widget"></div>
+
   </div>
 {{/inline}}
 
 
-{{#*inline "render_compound" eager=true}}
-  <fieldset class="slds-form-element {{padding ? 'slds-p-${padding}' : ''}} {{margin ? 'slds-m-${margin}' : ''}}">
+{{#*inline "render_compound" visible=true}}
+  <fieldset class="slds-form-element {{padding ? 'slds-p-${padding}' : ''}} {{margin ? 'slds-m-${margin}' : ''}} {{visible ? "slds-visible" : "slds-hidden"}} {{> ?compound_classes}}">
     
     <legend class="slds-form-element__legend slds-form-element__label {{displayOnlyControl ? "slds-assistive-text" : ""}}">
-      {{#if required}}
-        {{> render_required_label}}
-      {{/if}}
       {{> render_title}}
     </legend>
 
     {{> render_title_icon}}
     
-    <div class="slds-form-element__control {{controlCssClass ? controlCssClass : ""}}">
+    <div class="slds-form-element__control {{> ?compound_control_classes}}">
       {{> ?render_compound_control}}
+      {{> render_edit_icon_container}}
       {{#if message}}
         {{> render_message}}
       {{/if}}
@@ -83,10 +119,10 @@
 {{/inline}}
 
 
-{{#*inline "render_form_element" eager=true}}
+{{#*inline "render_form_element" visible=true}}
   {{#if isCompound}}
-    {{> render_compound}}
+    {{> render_compound visible}}
   {{else}}
-    {{> render_standalone}}
+    {{> render_standalone visible}}
   {{/if}}
 {{/inline}}

@@ -1,0 +1,58 @@
+{
+  "enableTypeMerging": false,
+  "collections": {},
+  "scalars": {
+    "displayOnHover": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "startDatePicker": {
+      "type": "DatePicker",
+      "isNull": true
+    },
+    "startDate": {
+      "type": "String",
+      "defaults": [
+        null
+      ],
+      "date": true
+    },
+    "rangeStart": {
+      "type": "String",
+      "defaults": [
+        null
+      ],
+      "date": true
+    },
+    "rangeEnd": {
+      "type": "String",
+      "defaults": [
+        null
+      ],
+      "date": true
+    }
+  },
+  "events": {
+    "select": {
+      "parameters": {
+        "day": {
+          "type": "number",
+          "short": true
+        },
+        "month": {
+          "type": "number",
+          "short": true
+        },
+        "year": {
+          "type": "number",
+          "short": true
+        }
+      }
+    }
+  },
+  "sample": {
+    "nullifyRandomly": []
+  },
+  "useCollectionLengthProperty": false,
+  "escapeDynamicHtml": false
+}

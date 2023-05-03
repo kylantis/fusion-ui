@@ -83,6 +83,8 @@ class RootProxy {
 
   static enumsFile = 'dist/components/enums.json';
 
+  static copyEnumsCommand = 'npx gulp copy-enums';
+
   #dataPathHooks;
 
   #logicGates;
@@ -199,7 +201,7 @@ class RootProxy {
 
     const {
       pathProperty, firstProperty, lastProperty, keyProperty, indexProperty, randomProperty,
-      emptyString, enumsFile,
+      emptyString, enumsFile, copyEnumsCommand,
     } = RootProxy;
 
     const syntheticProperties = [
@@ -277,7 +279,7 @@ class RootProxy {
 
                       if (!enum0) {
                         this.component.throwError(
-                          `Could not find eunm "${enumName}". Ensure that ${enumsFile} contains the latest changes`
+                          `Could not find eunm "${enumName}". Ensure that ${enumsFile} contains the latest changes, try running "${copyEnumsCommand}"`
                         );
                       }
 
@@ -890,22 +892,27 @@ class RootProxy {
     };
 
     const analyzeGate = (item) => {
-      const { invert } = item;
 
-      while (item.type == LOGIC_GATE) {
-        const data = clientUtils.deepClone(table[item.original]);
+      assert(item.type == LOGIC_GATE)
 
-        const { condition, left, right } = data;
+      const data = clientUtils.deepClone(table[item.original]);
 
-        data.condition = condition.map(c => this.toExecutablePath(c, true));
+      const { condition, left, right, invert } = data;
 
-        data.left = this.toExecutablePath(left);
-        data.right = this.toExecutablePath(right);
+      data.condition = condition.map(c => this.toExecutablePath(c, true));
 
-        item = analyzeCondition(data.condition, data.conditionInversions) ? data.left : data.right;
-      }
+      data.left = this.toExecutablePath(left);
+      data.right = this.toExecutablePath(right);
 
-      let value = getValue(item);
+      item = analyzeCondition(data.condition, data.conditionInversions) ? data.left : data.right;
+
+      let value = (() => {
+        if (item.type == LOGIC_GATE) {
+          return analyzeGate(item);
+        } else {
+          return getValue(item);
+        }
+      })()
 
       if (invert) {
         value = !value;
@@ -923,6 +930,15 @@ class RootProxy {
       blockData
     );
 
+    const { hook, currentValue, initial = true } = gate;
+
+    if (hook && (initial || (currentValue !== value))) {
+      this.component[hook].bind(this.component)(value);
+
+      gate.currentValue = value;
+      gate.initial = false;
+    }
+
     return value;
   }
 
@@ -932,13 +948,18 @@ class RootProxy {
    */
   toExecutablePath(item, lenient, allowSynthetic = true) {
     const {
-      dataPathRoot, literalPrefix, pathSeparator, syntheticMethodPrefix, parsePathExpressionLiteralValue,
+      dataPathPrefix, literalPrefix, syntheticMethodPrefix, parsePathExpressionLiteralValue,
     } = RootProxy;
     const { wrapExecStringForLeniency } = RootCtxRenderer;
 
     const MUST_GRP = 'MustacheGroup';
-    const PATH_EXPR = 'PathExpression';
     const BOOL_EXPR = 'BooleanExpression';
+    const PATH_EXPR = 'PathExpression';
+    const STR_LITERAL = 'StringLiteral';
+    const BOOL_LITERAL = 'BooleanLiteral';
+    const NUM_LITERAL = 'NumberLiteral';
+    const NULL_LITERAL = 'NullLiteral';
+    const UNDEFINED_LITERAL = 'UndefinedLiteral';
 
     const lenientMarker = /\?$/g;
 
@@ -960,16 +981,38 @@ class RootProxy {
       case PATH_EXPR:
 
         assert(
-          original.startsWith(`${dataPathRoot}${pathSeparator}`) ||
+          original.match(dataPathPrefix) ||
           original.startsWith(syntheticMethodPrefix)
         );
 
-        let p = original.replace(`${dataPathRoot}${pathSeparator}`, '');
+        let p = original.replace(dataPathPrefix, '');
 
         if (p.startsWith(literalPrefix)) {
+
+          const val = this.component.evaluateExpression(
+            `return ${parsePathExpressionLiteralValue(p)}`
+          );
+
+          const type = (() => {
+            switch (typeof val) {
+              case 'object':
+                return NULL_LITERAL;
+              case 'undefined':
+                return UNDEFINED_LITERAL;
+              case 'number':
+                return NUM_LITERAL;
+              case 'boolean':
+                return BOOL_LITERAL;
+              case 'string':
+                return STR_LITERAL;
+              default:
+                throw Error(`Unknown value: ${val}`);
+            }
+          })();
+
           return {
-            type: 'StringLiteral',
-            original: parsePathExpressionLiteralValue(p),
+            type,
+            original: val,
           }
         } else {
           lenient = lenient || p.match(lenientMarker);
@@ -1090,6 +1133,7 @@ class RootProxy {
       id: gateId,
       canonicalId: prop,
       blockData: this.component.getBlockDataSnapshot(path),
+      hook: gate.table[0].hook,
     };
 
     const v = this.getLogicGateValue({ gate: this.#logicGates[gateId], useBlockData: false });
@@ -1206,7 +1250,7 @@ class RootProxy {
   pruneHooks() {
     this.pruneHooks0(
       Object.entries(this.#dataPathHooks),
-      this.getHookFilter,
+      this.getHookFilter.bind(this),
     )
   }
 
@@ -1266,7 +1310,7 @@ class RootProxy {
 
   triggerHooks(triggerInfo) {
 
-    if (this.#disableHooks) {
+    if (this.#disableHooks || !this.component.isMounted()) {
       return;
     }
 
@@ -1281,30 +1325,35 @@ class RootProxy {
     const fqPath0 = fqPath.replace(dataPathPrefix, '');
     const sPath = clientUtils.toCanonicalPath(fqPath0);
 
-    if (!this.component.isMounted()) {
-      return true;
-    }
-
     const triggerComponentHooks = (phase) => {
       if (!parentObject || !Object.keys(triggerInfo).includes('oldValue')) return;
 
       const componentHooks = this.component.getHooks();
 
-      const hookList = [
+      const hookList = [...new Set([
         ...componentHooks[fqPath0] || [],
         ...componentHooks[`${phase}.${fqPath0}`] || [],
         ...componentHooks[sPath] || [],
         ...componentHooks[`${phase}.${sPath}`] || [],
-      ];
+      ])];
 
-      const evt = { path: fqPath, oldValue, newValue, parentObject };
+      let mount = true;
+
+      const evt = {
+        path: fqPath, oldValue, newValue, parentObject,
+        preventDefault: () => {
+          mount = false;
+        }
+      };
 
       for (const fn of hookList) {
         fn(evt);
       }
+
+      return mount;
     }
 
-    const triggerHooks0 = (path, withParent, parentObject, newValue, hookTypes, changeListener, filteredSelectors=[]) => {
+    const triggerHooks0 = (path, withParent, parentObject, newValue, hookTypes, changeListener, filteredSelectors = []) => {
 
       const hooksFilter = ({ selector }) => {
         return !selector ||
@@ -1349,7 +1398,7 @@ class RootProxy {
           emitContext.write(header);
         }
 
-        emitContext.write(markupPredicate());
+        markupPredicate();
 
         if (footer) {
           emitContext.write(footer);
@@ -1424,7 +1473,7 @@ class RootProxy {
 
               (() => {
 
-                const fn = this.component.lookupFnStore(hook.fn);
+                const fn = this.component.lookupObject(hook.fn);
 
                 const { hookMethod, canonicalPath, blockData, innerTransform, predicate } = hook;
 
@@ -1563,6 +1612,8 @@ class RootProxy {
 
                 let elementNodeId;
 
+                this.component.startRenderingContext({ selector: childNodeSelector });
+
                 if (childNode) {
 
                   createAndAppendNode0(
@@ -1582,6 +1633,10 @@ class RootProxy {
                   elementNodeId = createAndAppendNode(markupPredicate);
                 }
 
+                this.component.finalizeRenderingContext();
+
+                triggerNodeUpdateEvt0(childNodeSelector);
+
                 if (!isNull && Array.isArray(parentObject)) {
                   this.component.backfillArrayChildBlocks(`${parent}[${index}]`, `#${elementNodeId}`);
                 }
@@ -1591,11 +1646,13 @@ class RootProxy {
                 if (hookMethod) {
                   const hook = this.component[hookMethod].bind(this.component);
 
-                  hook({
-                    node: document.querySelector(childNodeSelector),
-                    blockData: clientUtils.deepClone(blockData0),
-                    initial: false,
-                  })
+                  this.component.awaitPendingTasks().then(() => {
+                    hook({
+                      node: document.querySelector(childNodeSelector),
+                      blockData: clientUtils.deepClone(blockData0),
+                      initial: false,
+                    })
+                  });
                 }
 
               })();
@@ -1780,21 +1837,9 @@ class RootProxy {
 
                 this.component.setRenderedValue(mustacheRef, getRenderedValue());
 
-                let keyToken = tokenList[tokenIndex - 2];
+                const { keyToken, valueToken } = this.component.getValueTokenInfo(tokenList, tokenIndex);
 
-                const valueToken = { ...tokenList[tokenIndex] };
-
-                if (tokenList[tokenIndex - 1].type == 'token:attribute-value-wrapper-start') {
-                  assert(tokenList[tokenIndex + 1].type == 'token:attribute-value-wrapper-end');
-
-                  keyToken = tokenList[tokenIndex - 3];
-                  valueToken.content = `\`${valueToken.content}\``;
-                }
-
-                assert(
-                  keyToken.type == 'token:attribute-key' && keyToken.content &&
-                  valueToken.type == 'token:attribute-value'
-                );
+                const observer = valueToken.observer ? this.component.lookupObject(valueToken.observer) : null;
 
                 const attrKey = this.component.getRenderedValue(keyToken.content);
 
@@ -1804,7 +1849,18 @@ class RootProxy {
                   this.component.getRenderedValue(valueToken.content)
                 );
 
+                if (observer) {
+                  observer.disconnect();
+                }
+
                 setNodeAttribute({ node, attrKey, attrValue });
+
+                if (observer) {
+                  observer.observe(
+                    node,
+                    { attributes: true, attributeOldValue: true, attributeFilter: [attrKey] }
+                  );
+                }
 
                 triggerNodeUpdateEvt0(selector);
               })();
@@ -1840,18 +1896,21 @@ class RootProxy {
                   computedValue = this.getLogicGateValue({ gate: this.#logicGates[gateId] });
                 }
 
-                const fn = this.component.lookupFnStore(hook.fn);
-                const inverse = hook.inverse ? this.component.lookupFnStore(hook.inverse) : null;
+                const fn = this.component.lookupObject(hook.fn);
+                const inverse = hook.inverse ? this.component.lookupObject(hook.inverse) : null;
 
-                const { invert, hookMethod, blockData, innerTransform } = hook;
+                const { invert, hookMethod, blockData, innerTransform, transient } = hook;
 
                 const b = this.component.analyzeConditionValue(computedValue);
 
                 const parentNode = document.querySelector(selector);
 
                 let branch = parentNode.getAttribute('branch');
-
                 assert(branch);
+
+                if (transient) {
+                  branch = (branch == 'fn') ? 'inverse' : 'fn'
+                }
 
                 let htmlFn = null
 
@@ -1877,6 +1936,8 @@ class RootProxy {
                   blockData,
                 )
 
+                this.component.startRenderingContext({ selector });
+
                 renderBlock(
                   (node) => {
                     parentNode.innerHTML = '';
@@ -1885,17 +1946,21 @@ class RootProxy {
                   null, null, markupPredicate, parentNode, innerTransform,
                 )
 
+                this.component.finalizeRenderingContext();
+
                 parentNode.setAttribute('branch', branch)
+
+                triggerNodeUpdateEvt0(selector);
 
                 if (hookMethod) {
                   const hook = this.component[hookMethod].bind(this.component);
 
-                  hook({
-                    node: parentNode, blockData: clientUtils.deepClone(blockData), initial: false,
-                  })
+                  this.component.awaitPendingTasks().then(() => {
+                    hook({
+                      node: parentNode, blockData: clientUtils.deepClone(blockData), initial: false,
+                    })
+                  });
                 }
-
-                triggerNodeUpdateEvt0(selector);
 
               })();
               break;
@@ -1904,8 +1969,8 @@ class RootProxy {
 
               (() => {
 
-                const fn = this.component.lookupFnStore(hook.fn);
-                const inverse = hook.inverse ? this.component.lookupFnStore(hook.inverse) : null;
+                const fn = this.component.lookupObject(hook.fn);
+                const inverse = hook.inverse ? this.component.lookupObject(hook.inverse) : null;
 
                 const { hookMethod, canonicalPath, blockData, innerTransform, predicate } = hook;
 
@@ -2019,9 +2084,13 @@ class RootProxy {
                       keyMarkerNode = n;
                     }
 
+                    this.component.startRenderingContext({ selector: childNodeSelector });
+
                     createCollChildNode(
                       consumer, key, currentWrapperNodeId, markupPredicate, parentNode, innerTransform
                     );
+
+                    this.component.finalizeRenderingContext();
 
                     triggerNodeUpdateEvt0(childNodeSelector);
 
@@ -2040,12 +2109,14 @@ class RootProxy {
                   if (hookMethod) {
                     const hook = this.component[hookMethod].bind(this.component);
 
-                    hookList.forEach(({ selector, blockData }) => {
-                      hook({
-                        node: document.querySelector(selector),
-                        blockData,
-                        initial: false,
-                      })
+                    this.component.awaitPendingTasks().then(() => {
+                      hookList.forEach(({ selector, blockData }) => {
+                        hook({
+                          node: document.querySelector(selector),
+                          blockData,
+                          initial: false,
+                        })
+                      });
                     });
                   }
 
@@ -2130,7 +2201,7 @@ class RootProxy {
               (() => {
                 const computedValue = newValue;
 
-                const fn = this.component.lookupFnStore(hook.fn);
+                const fn = this.component.lookupObject(hook.fn);
                 const canonicalPath = hook.canonicalPath.replace(/_\$$/g, '');
 
                 const { blockData, predicate, hookMethod, innerTransform } = hook;
@@ -2188,6 +2259,8 @@ class RootProxy {
                       blockData0,
                     )
 
+                this.component.startRenderingContext({ selector });
+
                 createCollChildNode(
                   (node) => {
                     childNode.insertAdjacentElement("afterend", node.childNodes[0]);
@@ -2200,6 +2273,8 @@ class RootProxy {
                   innerTransform
                 );
 
+                this.component.finalizeRenderingContext();
+
                 triggerNodeUpdateEvt0(selector);
 
                 if (b && isArray) {
@@ -2211,11 +2286,13 @@ class RootProxy {
                 if (hookMethod) {
                   const hook = this.component[hookMethod].bind(this.component);
 
-                  hook({
-                    node: childNode,
-                    blockData: clientUtils.deepClone(blockData0),
-                    initial: false,
-                  })
+                  this.component.awaitPendingTasks().then(() => {
+                    hook({
+                      node: childNode,
+                      blockData: clientUtils.deepClone(blockData0),
+                      initial: false,
+                    })
+                  });
                 }
 
               })();
@@ -2225,38 +2302,41 @@ class RootProxy {
 
     }
 
-    const primaryHookTypes = [
-      nodeAttributeHookType, nodeAttributeKeyHookType, nodeAttributeValueHookType,
-      textNodeHookType, gateParticipantHookType, conditionalBlockHookType, eachBlockHookType
-    ];
+    const mount = triggerComponentHooks('beforeMount');
 
-    const transitiveHookTypes = [
-      predicateHookType,
-    ]
+    if (mount) {
 
-    triggerComponentHooks('beforeMount');
+      const primaryHookTypes = [
+        nodeAttributeHookType, nodeAttributeKeyHookType, nodeAttributeValueHookType,
+        textNodeHookType, gateParticipantHookType, conditionalBlockHookType, eachBlockHookType
+      ];
+  
+      const transitiveHookTypes = [
+        predicateHookType,
+      ]
+  
+      const filteredSelectors = [];
 
-    const filteredSelectors = [];
+      if (primary) {
+        clientUtils.forEachPath(fqPath, (p) => {
+          if (p == fqPath) {
+            return;
+          }
 
-    if (primary) {
-      clientUtils.forEachPath(fqPath, (p) => {
-        if (p == fqPath) {
-          return;
-        }
+          const { parentObject, value } = this.getInfoFromPath(
+            p.replace(dataPathPrefix, emptyString)
+          );
 
-        const { parentObject, value } = this.getInfoFromPath(
-          p.replace(dataPathPrefix, emptyString)
-        );
-
-        triggerHooks0(p, false, parentObject, value, transitiveHookTypes, (selector) => {
-          filteredSelectors.push(selector);
+          triggerHooks0(p, false, parentObject, value, transitiveHookTypes, (selector) => {
+            filteredSelectors.push(selector);
+          });
         });
-      });
+      }
+
+      triggerHooks0(fqPath, primary, parentObject, newValue, primaryHookTypes, null, filteredSelectors);
+
+      triggerComponentHooks('onMount');
     }
-
-    triggerHooks0(fqPath, primary, parentObject, newValue, primaryHookTypes, null, filteredSelectors);
-
-    triggerComponentHooks('onMount');
   }
 
   /**
@@ -3469,8 +3549,8 @@ class RootProxy {
             return obj[prop];
 
           default:
-            assert( typeof prop == 'string');
-            
+            assert(typeof prop == 'string');
+
             // Props can start with "@" if <obj> is also a collection
             // child, and the user wants to access data variable(s)
             return obj[

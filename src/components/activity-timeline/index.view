@@ -8,6 +8,11 @@ parts, and each part is either plain text or a link
 
   {{#each sentence.parts as |part partIndex|}}
     {{component Link alias="link"}}
+    
+    {{#if partIndex gt 0}}
+      &ensp;
+    {{/if}}
+
     {{#if link}}
         {{> link cssClass="slds-truncate"}}
     {{else}}

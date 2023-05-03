@@ -18,10 +18,6 @@
       "type": "Boolean",
       "defaultValue": false
     },
-    "hideOnItemClick": {
-      "type": "Boolean",
-      "defaultValue": false
-    },
     "positions_$": {
       "type": "String",
       "allowed": "overlayPosition",

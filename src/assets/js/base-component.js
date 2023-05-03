@@ -9,6 +9,8 @@ class BaseComponent extends WebRenderer {
 
   #inlineParent;
 
+  #handlers;
+
   // #API
   static CONSTANTS = {
     pathSeparator: RootProxy.pathSeparator,
@@ -36,7 +38,7 @@ class BaseComponent extends WebRenderer {
       RootCtxRenderer.setToken(BaseComponent.#token);
     }
 
-    this.handlers = {};
+    this.#handlers = {};
   }
 
   setInlineParent(inlineParent) {
@@ -87,7 +89,7 @@ class BaseComponent extends WebRenderer {
       return val;
     }
 
-    return this.analyzeConditionValue(value) ? Object(value) !== value ? `${value}` : JSON.stringify(value, replacer, null) : '';
+    return Object(value) !== value ? `${value}` : JSON.stringify(value, replacer, null);
   }
 
   getRenderedHtml() {
@@ -111,7 +113,7 @@ class BaseComponent extends WebRenderer {
 
   // #API
   awaitPendingTasks() {
-    return Promise.all(this.futures);
+    return Promise.all(this.getFutures());
   }
 
   render({ data, target, transform, options }) {
@@ -174,7 +176,7 @@ class BaseComponent extends WebRenderer {
         this.renderOffset--;
       });
 
-    this.futures.push(future);
+    this.getFutures().push(future);
 
     return future;
   }
@@ -266,15 +268,29 @@ class BaseComponent extends WebRenderer {
   }
 
   // #API
+  getHandlers() {
+    return this.#handlers;
+  }
+
+  // #API
+  removeEventListener(evt, handler) {
+    const arr = this.getHandlers()[evt];
+    if (!arr) {
+      return;
+    }
+    const idx = arr.indexOf(handler);
+    assert(idx >= 0);
+
+    arr.splice(idx, 1);
+  }
+
+  // #API
   once(handler, ...events) {
     const handler0 = (...args) => {
       handler(...args);
 
       events.forEach(evt => {
-        const idx = this.handlers[evt].indexOf(handler0);
-        assert(idx >= 0);
-
-        this.handlers[evt].splice(idx, 1);
+        this.removeEventListener(evt, handler0)
       });
     }
 
@@ -286,7 +302,7 @@ class BaseComponent extends WebRenderer {
   #on0(event, handler) {
     assert(typeof handler == 'function');
 
-    const handlers = this.handlers[event] || (this.handlers[event] = []);
+    const handlers = this.getHandlers()[event] || (this.getHandlers()[event] = []);
     handlers.push(handler);
     return this;
   }
@@ -305,7 +321,7 @@ class BaseComponent extends WebRenderer {
       }
       assert(typeof defaultHandler == 'function');
     }
-    [...this.handlers[event] || (defaultHandler ? [defaultHandler] : [])]
+    [...this.getHandlers()[event] || (defaultHandler ? [defaultHandler] : [])]
       .forEach(handler => handler(...args));
     return this;
   }
@@ -381,6 +397,15 @@ class BaseComponent extends WebRenderer {
     // ask base renderer to clear input data
 
     // remove from componentRefs in base renderer
+    delete BaseRenderer.getAllComponents()[this.getId()];
+  }
+
+  s$_jsDependencies() {
+    return [];
+  }
+
+  s$_cssDependencies() {
+    return [];
   }
 
   // #API
@@ -434,9 +459,10 @@ class BaseComponent extends WebRenderer {
       config: { ...component.getConfig() }
     });
 
-    Object.entries(component.handlers).forEach(([k, v]) => {
-      o.handlers[k] = v;
-    });
+    Object.entries(component.getHandlers())
+      .forEach(([k, v]) => {
+        o.handlers[k] = v;
+      });
 
     return o;
   }
@@ -461,13 +487,13 @@ class BaseComponent extends WebRenderer {
   }
 
   // #API
-  moveWrapperToParent({ node }) {
+  moveWrapperToParent(node) {
     const { parentRef, content } = node;
 
     const idx = parentRef.content.children.indexOf(node);
     assert(idx >= 0);
 
-    const getAttr = (k, attrs=content.attributes) => (attrs || []).filter(({ key: { content } }) => content == k)[0];
+    const getAttr = (k, attrs = content.attributes) => (attrs || []).filter(({ key: { content } }) => content == k)[0];
 
     const parentAttributes = parentRef.content.attributes || (parentRef.content.attributes = []);
 
@@ -496,7 +522,7 @@ class BaseComponent extends WebRenderer {
     const [child] = content.children.filter(({ nodeType }) => nodeType == 'tag');
     assert(child);
 
-    const getAttr = (k, attrs=content.attributes) => (attrs || []).filter(({ key: { content } }) => content == k)[0];
+    const getAttr = (k, attrs = content.attributes) => (attrs || []).filter(({ key: { content } }) => content == k)[0];
     const clear = (o) => {
       for (const key of Object.keys(o)) {
         delete o[key];
@@ -559,12 +585,14 @@ class BaseComponent extends WebRenderer {
     return clientUtils.randomString();
   }
   // #API
-  suspendHooks() {
+  set0(fn) {
     this.proxyInstance.suspendHooks();
+    fn();
+    this.proxyInstance.resumeHooks();
   }
   // #API
-  resumeHooks() {
-    this.proxyInstance.resumeHooks();
+  pruneHooks() {
+    this.proxyInstance.pruneHooks();
   }
   // #API
   getDataVariableValue(dataVariable, index, keys) {
@@ -575,6 +603,11 @@ class BaseComponent extends WebRenderer {
   visitHtmlAst({ ast, emitter, tagVisitor }) {
     const { visitHtmlAst } = RootCtxRenderer;
     return visitHtmlAst({ ast, emitter, tagVisitor });
+  }
+
+  static getAllComponents() {
+    const { getAllComponents } = BaseRenderer;
+    return getAllComponents();
   }
 }
 module.exports = BaseComponent;

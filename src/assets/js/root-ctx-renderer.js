@@ -17,6 +17,8 @@ class RootCtxRenderer extends BaseRenderer {
 
   static cachedNameSuffix = '_cached';
 
+  static nodePruneTimeout = 5000;
+
   static #token;
 
   #currentBindContext;
@@ -27,7 +29,7 @@ class RootCtxRenderer extends BaseRenderer {
 
   #syntheticCache;
 
-  #fnStore;
+  #objectRegistry;
 
   #handlebars;
 
@@ -37,9 +39,15 @@ class RootCtxRenderer extends BaseRenderer {
 
   #resolve;
 
+  #futures;
+
   #rendered;
 
   #emitContext;
+
+  #renderingContext;
+
+  #helperFunctionNames;
 
   constructor({
     id, input, logger,
@@ -56,7 +64,7 @@ class RootCtxRenderer extends BaseRenderer {
       this.#resolve = resolve;
     });
 
-    this.futures = [];
+    this.#futures = [];
 
     this.renderOffset = 0;
 
@@ -67,9 +75,13 @@ class RootCtxRenderer extends BaseRenderer {
 
     this.#inlineComponentInstances = {};
     this.#syntheticCache = {};
-    this.#fnStore = {};
+    this.#objectRegistry = {};
 
     this.mustacheStatements = {};
+  }
+
+  getFutures() {
+    return this.#futures;
   }
 
   getPromise() {
@@ -126,7 +138,7 @@ class RootCtxRenderer extends BaseRenderer {
 
     if (transform) {
       this.getTransformFunctionList(transform)
-        .forEach(fn => fn({ node: ast, initial }))
+        .forEach(fn => fn(ast.content.children, !!initial))
     }
 
     const ret = {
@@ -138,8 +150,18 @@ class RootCtxRenderer extends BaseRenderer {
     return ret;
   }
 
-  registerTransform(nodeId, methodName) {
-    this.getEmitContext().transforms[nodeId] = methodName;
+  nodeIdTransformSelector(nodeId) {
+    assert(nodeId);
+    return `#${nodeId}`
+  }
+
+  nodeDirectChildrenTransformSelector(nodeId) {
+    assert(nodeId);
+    return `#${nodeId} > *`
+  }
+
+  registerTransform(selector, methodName) {
+    this.getEmitContext().transforms[selector] = methodName;
   }
 
   getMetadata(assetId) {
@@ -158,21 +180,37 @@ class RootCtxRenderer extends BaseRenderer {
     return decorator;
   }
 
-  renderDecorator({ program }) {
+  renderDecorator({ program, config }, node) {
 
     const fn = () => this.#handlebars.template(program)(
       this.rootProxy, this.#handlebarsOptions,
     );
 
     if (this.#emitContext) {
-      // A tokenization context exists - so this was likely called by handlebars.VM.invokePartial 
+
+      // A tokenization context exists - this method was called by handlebars.VM.invokePartial 
       // to resolve a partial
       return fn();
+
     } else {
+      assert(node);
+
+      const { decoratorName } = config;
+
+      this.startRenderingContext({ decoratorName });
       this.startTokenizationContext();
+
       fn();
+
       const { htmlString } = this.finalizeTokenizationContext({ initial: true });
-      return htmlString;
+
+      node.innerHTML = htmlString;
+
+      this.finalizeRenderingContext();
+
+      this.awaitPendingTasks().then(() => {
+        this.dispatchEvent('decoratorLoad', decoratorName);
+      });
     }
   }
 
@@ -203,11 +241,17 @@ class RootCtxRenderer extends BaseRenderer {
       if (isBlockWrapper && idAttr) {
         const nodeId = idAttr.value.content;
 
-        const transform = this.getEmitContext().transforms[nodeId];
+        const nodeIdTransform = this.getEmitContext().transforms[this.nodeIdTransformSelector(nodeId)];
+        const nodeDirectChildrenTransform = this.getEmitContext().transforms[this.nodeDirectChildrenTransformSelector(nodeId)];
 
-        if (transform) {
-          this.getTransformFunctionList(transform)
-            .forEach(fn => fn({ node, initial }))
+        if (nodeIdTransform) {
+          this.getTransformFunctionList(nodeIdTransform)
+            .forEach(fn => fn(node, initial))
+        }
+
+        if (nodeDirectChildrenTransform) {
+          this.getTransformFunctionList(nodeDirectChildrenTransform)
+            .forEach(fn => fn(node.content.children, initial))
         }
       }
     }
@@ -277,7 +321,7 @@ class RootCtxRenderer extends BaseRenderer {
       }
 
       emitContent(value)
-      
+
       if (children) {
         acceptChildren(children);
       }
@@ -375,32 +419,29 @@ class RootCtxRenderer extends BaseRenderer {
       };
     }
 
-    // Expose global helpers as global functions, using obfuscated names
-    const functionNames = {};
-    const noOpHelper = 'noOp';
+    if (!this.#helperFunctionNames) {
+      // Expose global helpers as global functions for our fn helper
+      this.#helperFunctionNames = {};
+      const noOpHelper = 'noOp';
 
-    const __helpers = window.__helpers || (window.__helpers = {});
+      const __helpers = window.__helpers || (window.__helpers = {});
 
-    for (const helperName of this.getGlobalHelpers()) {
-      let helperFn = componentHelpers[helperName];
+      for (const helperName of this.getGlobalHelpers()) {
+        let helperFn = componentHelpers[helperName];
 
-      if (!helperFn) {
-        helperFn = this[helperName].bind(this);
+        if (!helperFn) {
+          helperFn = this[helperName].bind(this);
+        }
+
+        const id = clientUtils.randomString();
+
+        this.#helperFunctionNames[helperName] = id;
+        __helpers[id] = helperFn;
       }
 
-      const id = clientUtils.randomString();
-
-      functionNames[helperName] = id;
-      __helpers[id] = helperFn;
-    }
-
-    if (!__helpers[noOpHelper]) {
-      __helpers[noOpHelper] = () => { }
-    }
-
-    // Add fn helper
-    helpers.fn = (helperName) => {
-      return `__helpers.${functionNames[helperName] || noOpHelper}`;
+      if (!__helpers[noOpHelper]) {
+        __helpers[noOpHelper] = () => { }
+      }
     }
 
     // Control prototype access, to prevent attackers from executing
@@ -486,50 +527,35 @@ class RootCtxRenderer extends BaseRenderer {
 
     this.node.id = this.getElementId();
     this.node.classList.add(htmlWrapperCssClassname);
+    this.node.setAttribute('__component', this.getId())
     this.node.innerHTML = html;
 
     parentNode.appendChild(this.node);
 
-
-    if (!this.isHeadlessContext()) {
-      // Todo: Investigate why this MutationObserver's callback is not called when <parentNode> is mutated
-      // ?? Verify if the above issue still happens
-
-      new MutationObserver((mutations) => {
-        // Inline components can have their node removed from the DOM at any time - whether programatically by the dev
-        // or as a result of data bind mutations. If this 
-        const isDetached = mutations.some((mutation) => {
-          return [...mutation.removedNodes || []].indexOf(this.node) !== -1;
-        });
-        if (isDetached) {
-          // Wait for a few seonds to see if the elements is re-connected to the DOM
-          setTimeout(() => {
-            if (!this.node.parentNode) {
-              this.destroy();
-            }
-          }, 5000)
-        }
-      }).observe(this.node.parentNode, { childList: true, });
-    }
-
     this.#resolve();
 
-    return this.#promise
+    return this.getPromise()
 
       // Even after all promises are resolved, we need to wait for this component to be fully mounted. This is
       // especially important if there async custom blocks or sub-components inside this component or arbitrary
       // functions that need to be called during finalize phase
 
-      .then(() => Promise.all(this.futures.map(f => typeof f == 'function' ? f() : f)))
+      .then(() => Promise.all(this.getFutures().map(f => typeof f == 'function' ? f() : f)))
 
       .then(() => {
 
         const finalize = async () => {
 
+          this.pruneSyntheticCache();
+
+          this.triggerNodeUpdateEvent(this.node);
+
+          self.appContext.components[this.getId()] = this;
+
           if (this.getComponentName() == 'ActivityTimeline') {
           }
 
-          this.pruneSyntheticCache();
+          // console.info(this.hooks);
 
           // Trigger hooks
           const hookKeys = Object.keys(this.hooks)
@@ -571,15 +597,12 @@ class RootCtxRenderer extends BaseRenderer {
 
           await this.invokeLifeCycleMethod('onMount');
 
-
           // As a general contract, we expect developers to update the futures object 
           // with any extra promises, including the loading of sub components. hence
           // we need to await futures again, in case it was updated by any of the hooks
-          await Promise.all(this.futures);
+          await Promise.all(this.getFutures());
 
-          this.triggerNodeUpdateEvent(this.node);
-
-          self.appContext.components[this.getId()] = this;
+          this.dispatchEvent('load');
 
           return { id: this.getId(), html: this.node.outerHTML };
         }
@@ -663,12 +686,69 @@ class RootCtxRenderer extends BaseRenderer {
 
     const { data, hash } = options;
 
-    Object.entries(hash).forEach(([k, v]) => {
-      const contextId = hash[`${contextIdHashKeyPrefix}${k}`];
-      data[contextId] = v;
-    });
+    Object.keys(hash)
+      .filter(k => k.startsWith(contextIdHashKeyPrefix))
+      .forEach(k => {
+        data[hash[k]] = hash[k.replace(contextIdHashKeyPrefix, '')];
+      });
 
     return '';
+  }
+
+  getRenderingContext() {
+    return this.#renderingContext;
+  }
+
+  startRenderingContext({ selector, decoratorName }) {
+
+    this.#promise = new Promise((resolve) => {
+      this.#resolve = resolve;
+    });
+
+    this.#futures = [];
+
+    this.#renderingContext = {
+      selector, decoratorName,
+    };
+  }
+
+  finalizeRenderingContext() {
+    this.#resolve();
+
+    this.#renderingContext = null;
+  }
+
+  /**
+   * This method is used to register functions that need to be invoked after rendering has 
+   * fully completed.
+   * 
+   * @param {Function} fn 
+   */
+  onContextFinalization(fn) {
+
+
+    // Todo: Re-implement this to simply use awaitPendingTasks() which works in all scenarios
+
+    assert(fn instanceof Function);
+
+    const { selector, decoratorName } = this.getRenderingContext() || {};
+
+    switch (true) {
+      case !!decoratorName:
+        this.once(
+          () => {
+            fn()
+          },
+          'decoratorLoad'
+        );
+        break;
+      case !!selector:
+        this.onNodeUpdateEvent(fn, [selector]);
+        break;
+      default:
+        this.onNodeUpdateEvent(fn, [`#${this.getElementId()}`]);
+        break;
+    }
   }
 
   conditional({ options, ctx, params }) {
@@ -677,11 +757,11 @@ class RootCtxRenderer extends BaseRenderer {
 
     const { fn, inverse, hash, loc } = {
       ...options,
-      fn: this.wrapFn(options.fn),
-      inverse: this.wrapFn(options.inverse),
+      fn: this.addToObjectRegistry(options.fn),
+      inverse: this.addToObjectRegistry(options.inverse),
     };
 
-    const { hook, hookOrder, outerTransform, innerTransform } = hash;
+    const { hook, hookOrder, outerTransform, innerTransform, transient } = hash;
 
     const nodeId = this.getSyntheticNodeId();
 
@@ -716,9 +796,16 @@ class RootCtxRenderer extends BaseRenderer {
       }
 
       if (outerTransform) {
-        assert(nodeId);
 
-        this.registerTransform(nodeId, outerTransform);
+        this.registerTransform(
+          this.nodeIdTransformSelector(nodeId), outerTransform
+        );
+
+      } else if (innerTransform) {
+
+        this.registerTransform(
+          this.nodeDirectChildrenTransformSelector(nodeId), innerTransform
+        );
       }
 
       const b = this.analyzeConditionValue(value);
@@ -730,15 +817,15 @@ class RootCtxRenderer extends BaseRenderer {
         if (invert ? !b : b) {
 
           branch = 'fn';
-          func = this.lookupFnStore(fn);
+          func = this.lookupObject(fn);
 
         } else if (inverse) {
 
           branch = 'inverse';
-          func = this.lookupFnStore(inverse);
+          func = this.lookupObject(inverse);
         }
 
-        this.getEmitContext().blockStack.push(path);
+        this.getEmitContext().blockStack.push(loc);
 
         const markup = func(ctx);
 
@@ -749,14 +836,11 @@ class RootCtxRenderer extends BaseRenderer {
         return markup;
       })();
 
-
       if (nodeId) {
-        this.onNodeUpdateEvent(() => {
-
+        this.onContextFinalization(() => {
           document.querySelector(`#${this.getElementId()} #${nodeId}`)
             .setAttribute('branch', branch);
-
-        }, [this.isMounted() ? `#${nodeId}` : `#${this.getElementId()}`]);
+        });
       }
 
       return markup;
@@ -770,7 +854,7 @@ class RootCtxRenderer extends BaseRenderer {
       this.proxyInstance.getDataPathHooks()[path]
         .push({
           type: conditionalBlockHookType, selector: `#${nodeId}`,
-          fn, inverse, hookMethod: hook, invert,
+          fn, inverse, hookMethod: hook, invert, transient,
           blockData: this.getBlockDataSnapshot(path),
           canonicalPath, loc, innerTransform,
         });
@@ -802,8 +886,8 @@ class RootCtxRenderer extends BaseRenderer {
 
     const { fn, inverse, hash, loc } = {
       ...options,
-      fn: this.wrapFn(options.fn),
-      inverse: this.wrapFn(options.inverse),
+      fn: this.addToObjectRegistry(options.fn),
+      inverse: this.addToObjectRegistry(options.inverse),
     };
 
     const { hook, hookOrder, innerTransform, outerTransform, predicate } = hash;
@@ -818,9 +902,16 @@ class RootCtxRenderer extends BaseRenderer {
     const forEach0 = (value) => {
 
       if (outerTransform) {
-        assert(nodeId);
 
-        this.registerTransform(nodeId, outerTransform);
+        this.registerTransform(
+          this.nodeIdTransformSelector(nodeId), outerTransform
+        );
+
+      } else if (innerTransform) {
+
+        this.registerTransform(
+          this.nodeDirectChildrenTransformSelector(nodeId), innerTransform
+        );
       }
 
       if (this.analyzeConditionValue(value)) {
@@ -883,7 +974,7 @@ class RootCtxRenderer extends BaseRenderer {
             this.getEmitContext().write(wrapperHeader);
           }
 
-          this.getEmitContext().blockStack.push(path);
+          this.getEmitContext().blockStack.push(loc);
 
           const currentValue = rawValue[key];
 
@@ -895,7 +986,7 @@ class RootCtxRenderer extends BaseRenderer {
               this.blockData[blockKey].index++;
               return '';
             })() :
-            this.lookupFnStore(fn)(this.rootProxy);
+            this.lookupObject(fn)(this.rootProxy);
 
 
           this.getEmitContext().blockStack.pop();
@@ -938,7 +1029,7 @@ class RootCtxRenderer extends BaseRenderer {
 
       } else if (inverse) {
 
-        return this.lookupFnStore(inverse)(ctx);
+        return this.lookupObject(inverse)(ctx);
       }
     }
 
@@ -963,17 +1054,16 @@ class RootCtxRenderer extends BaseRenderer {
     return html;
   }
 
-  lookupFnStore(id) {
-
+  lookupObject(id) {
     const { wrapFnWithExceptionCatching } = RootCtxRenderer;
-    return wrapFnWithExceptionCatching(this.#fnStore[id]);
+    return wrapFnWithExceptionCatching(this.#objectRegistry[id]);
   }
 
-  wrapFn(fn) {
-    assert(fn);
+  addToObjectRegistry(o) {
+    assert(o);
 
     const id = clientUtils.randomString();
-    this.#fnStore[id] = fn;
+    this.#objectRegistry[id] = o;
     return id;
   }
 
@@ -1049,9 +1139,8 @@ class RootCtxRenderer extends BaseRenderer {
 
   getBlockDataSnapshot(path) {
 
-    const {
-      dataPathRoot, pathSeparator, arrayChildBlockHookType, syntheticBlockKeyPrefix
-    } = RootProxy;
+    const { syntheticBlockKeyPrefix } = RootCtxRenderer;
+    const { dataPathRoot, pathSeparator, arrayChildBlockHookType } = RootProxy;
 
     // We first need to find the closest non-synthetic array-based blockData, and
     // register <path> as a arrayChildBlock. That way, when the current
@@ -1104,11 +1193,15 @@ class RootCtxRenderer extends BaseRenderer {
     return clientUtils.deepClone(this.blockData);
   }
 
+  fn(helperName) {
+    return `__helpers.${(this.#helperFunctionNames || {})[helperName] || 'noOp'}`;
+  }
+
   static getMetaHelpers() {
     return [
       'storeContext', 'loadContext', 'forEach', 'conditional', 'startAttributeBindContext',
       'endAttributeBindContext', 'startTextNodeBindContext', 'setSyntheticNodeId', 'resolveMustacheInRoot',
-      'resolveMustacheInCustom', 'c', 'var'
+      'resolveMustacheInCustom', 'c', 'var', 'wrapInvocationWithProxy'
     ];
   }
 
@@ -1302,10 +1395,13 @@ class RootCtxRenderer extends BaseRenderer {
     const definedNodeId = this.getNodeIdFromTokenList({ tokenList, loc });
     const nodeId = definedNodeId || randomString();
 
+    const mustacheRgx = /{{\w+}}/g;
+    const valueTokenIndexes = [];
+
     for (let tokenIndex = 0; tokenIndex < tokenList.length; tokenIndex++) {
       let { type, content } = tokenList[tokenIndex];
 
-      (content.match(/{{\w+}}/g) || [])
+      (content.match(mustacheRgx) || [])
         .forEach(m => {
 
           const mustacheRef = m.replace(/({{)|(}})/g, '');
@@ -1339,6 +1435,7 @@ class RootCtxRenderer extends BaseRenderer {
 
             case type == 'token:attribute-value':
               hookType = nodeAttributeValueHookType;
+              valueTokenIndexes.push(tokenIndex);
               break;
           }
 
@@ -1352,6 +1449,65 @@ class RootCtxRenderer extends BaseRenderer {
         });
     }
 
+    this.onContextFinalization(() => {
+
+      if (this.isHeadlessContext()) {
+        return;
+      }
+
+      const node = document.querySelector(`#${nodeId}`);
+
+      [...new Set(valueTokenIndexes)]
+        .forEach(tokenIndex => {
+
+          const { keyToken, hasWrapper } = this.getValueTokenInfo(tokenList, tokenIndex);
+          const { content: attrKey } = keyToken;
+
+          if (!hasWrapper || attrKey.match(mustacheRgx) || !this.isCompositeAttribute(node.tagName, attrKey)) {
+            return;
+          }
+
+          const valueToken = tokenList[tokenIndex];
+
+          const observer = new MutationObserver((mutations) => {
+
+            mutations.forEach(function (mutation) {
+              assert(mutation.type === 'attributes' && mutation.attributeName === attrKey)
+            });
+
+            const previousEntries = this.getRenderedValue(valueToken.content).trim().split(/\s+/g);
+            const currentEntries = mutations[0].target.getAttribute(attrKey).trim().split(/\s+/g);
+
+            // Added entries
+            currentEntries
+              .filter(function (e) {
+                return previousEntries.indexOf(e) === -1;
+              })
+              .forEach((e) => {
+                valueToken.content += ` ${e}`;
+              });
+
+            // Removed entries
+            previousEntries
+              .filter(function (e) {
+                return currentEntries.indexOf(e) === -1;
+              })
+              .forEach((e) => {
+                valueToken.content = valueToken.content.replace(
+                  RegExp(`(?<=^|\\s+)${e}(?=\\s+|$)`, 'g'), ''
+                );
+              });
+          });
+
+          observer.observe(
+            node,
+            { attributes: true, attributeOldValue: true, attributeFilter: [attrKey] }
+          );
+
+          valueToken.observer = this.addToObjectRegistry(observer);
+        })
+    });
+
     this.#attributeEmitContext = null;
 
     const ret = definedNodeId ? '' : ` id='${nodeId}'`;
@@ -1359,6 +1515,41 @@ class RootCtxRenderer extends BaseRenderer {
     this.getEmitContext().write(ret);
 
     return ret;
+  }
+
+  getValueTokenInfo(tokenList, valueTokenIndex) {
+
+    let keyToken = tokenList[valueTokenIndex - 2];
+
+    const valueToken = { ...tokenList[valueTokenIndex] };
+
+    const hasWrapper = tokenList[valueTokenIndex - 1].type == 'token:attribute-value-wrapper-start';
+
+    if (hasWrapper) {
+      assert(tokenList[valueTokenIndex + 1].type == 'token:attribute-value-wrapper-end');
+
+      keyToken = tokenList[valueTokenIndex - 3];
+      valueToken.content = `\`${valueToken.content}\``;
+    }
+
+    assert(
+      keyToken.type == 'token:attribute-key' && keyToken.content &&
+      valueToken.type == 'token:attribute-value'
+    );
+
+    return { keyToken, valueToken, hasWrapper }
+  }
+
+  /**
+   * A composite attribute is generally seen as a attribute that usually has a space-delimited
+   * set of values, a notable example is the "class" attribute. For such attributes, we watch 
+   * for changes made to it using the DOM API and we register it internally so that later when 
+   * we need to orchestrate data binding for the attribute, the delta is also included in the 
+   * attribute value. Components should feel free to override this method to return new composite
+   * attributes
+   */
+  isCompositeAttribute(tagName, attrName) {
+    return attrName == 'class';
   }
 
   startTextNodeBindContext() {
@@ -1470,6 +1661,7 @@ class RootCtxRenderer extends BaseRenderer {
             data: value,
             target: selector.replace('#', ''),
             transform,
+            options,
           })
 
           transform = null;
@@ -1481,7 +1673,7 @@ class RootCtxRenderer extends BaseRenderer {
           this.proxyInstance.getDataPathHooks()[path]
             .push({
               ...bindContext,
-              hookMethod: hook, canonicalPath, transform, blockData,
+              hookMethod: hook, canonicalPath, transform, blockData, loc,
             })
         }
 
@@ -1714,6 +1906,9 @@ class RootCtxRenderer extends BaseRenderer {
 
   throwError(msg, loc) {
     const { getLine } = clientUtils;
+
+    // Todo: Before throwing error, send error to server
+
     throw Error(`[${loc ? `${getLine({ loc })}` : this.getId()}] ${msg}`);
   }
 
@@ -2306,7 +2501,7 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   evaluateGetterExpression(execString, scope) {
-    return this.evaluateExpression(`return ${execString}`, scope);
+    return this.evaluateExpression(`return ${execString};`, scope);
   }
 
   /**
@@ -2392,7 +2587,7 @@ class RootCtxRenderer extends BaseRenderer {
     return this.getGlobalVariables();
   }
 
-  buildInputData({ inputProducer = () => ({}), hash }) {
+  buildInputData({ inputProducer = () => ({}), hash = {} }) {
     const { getDefaultConfig } = BaseRenderer;
 
     let config, handlers;
@@ -2418,7 +2613,11 @@ class RootCtxRenderer extends BaseRenderer {
         if (!handlers) { handlers = {} };
 
         const evtName = k.replace(eventNamePattern, '');
-        handlers[evtName] = hash[k];
+
+        if (hash[k]) {
+          handlers[evtName] = hash[k];
+        }
+
         delete hash[k];
       });
 
@@ -2476,21 +2675,64 @@ class RootCtxRenderer extends BaseRenderer {
     return component;
   }
 
-  addEventHandlers({ handlers, component }) {
-    Object.entries(handlers).forEach(([evtName, methodName]) => {
-      const fn = this[methodName];
+  addEventHandlers({ handlersObject = {}, handlers = {}, component }) {
 
-      if (!fn || !fn instanceof Function) {
-        this.throwError(`Unknown event handler: ${methodName}`);
-      }
+    Object.entries(handlersObject)
+      .forEach(([k, v]) => {
+        v.forEach(fn => {
+          component.on(k, fn.bind(component));
+        })
+      });
 
-      component.on(evtName, fn.bind(this));
+    Object.entries(handlers)
+      .forEach(([evtName, methodName]) => {
+        const fn = this[methodName];
+
+        if (!fn || !fn instanceof Function) {
+          this.throwError(`Unknown event handler: ${methodName}`);
+        }
+
+        component.on(evtName, fn.bind(this));
+      });
+  }
+
+  cloneComponent({ componentSpec, hash = {}, forceClone = true }) {
+    const { cloneInputData } = BaseComponent;
+
+    assert(componentSpec instanceof BaseComponent);
+
+    const inputProducer = () => cloneInputData(componentSpec.getInput());
+
+    const { handlers, config, input } = this.buildInputData({
+      inputProducer, hash,
     });
+
+    let component;
+
+    if (input || config || handlers || componentSpec.getInternalMeta().loaded || forceClone) {
+
+      component = new componentSpec.constructor({
+        input: input || inputProducer(),
+        config,
+      });
+
+    } else {
+
+      // We don't have to clone the component
+      component = componentSpec;
+      component.getInternalMeta().loaded = true;
+    }
+
+    this.addEventHandlers({
+      handlersObject: componentSpec.getHandlers(),
+      handlers, component,
+    });
+
+    return component;
   }
 
   // eslint-disable-next-line class-methods-use-this
   loadInlineComponent() {
-    const { cloneInputData } = BaseComponent;
 
     // eslint-disable-next-line prefer-rest-params
     const params = Array.from(arguments);
@@ -2525,28 +2767,7 @@ class RootCtxRenderer extends BaseRenderer {
             break;
 
           case componentSpec && componentSpec instanceof BaseComponent:
-
-            const inputProducer = () => cloneInputData(componentSpec.getInput());
-
-            const { handlers, config, input } = this.buildInputData({
-              inputProducer, hash,
-            });
-
-            if (input || config || handlers || componentSpec.getInternalMeta().loaded) {
-              component = new componentSpec.constructor({
-                input: input || inputProducer(),
-                config,
-              });
-            } else {
-              // We don't have to clone the component
-              component = componentSpec;
-              component.getInternalMeta().loaded = true;
-            }
-
-            if (handlers) {
-              this.addEventHandlers({ handlers, component });
-            }
-
+            component = this.cloneComponent({ componentSpec, hash, forceClone: false });
             break;
 
           case componentSpec == null:
@@ -2649,6 +2870,10 @@ class RootCtxRenderer extends BaseRenderer {
     return behaviours;
   }
 
+  events() {
+    return ['load', 'decoratorLoad'];
+  }
+
   getOwnEvents() {
     const fn = this.getOwnMethod('events');
     return fn ? fn() : [];
@@ -2702,6 +2927,34 @@ class RootCtxRenderer extends BaseRenderer {
 
   getGlobalHelpers() {
     return this.getSyntheticMethod({ name: 'globalHelpers' })();
+  }
+
+  static {
+
+    if (global.MutationObserver) {
+      new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          if (mutation.type === 'childList' && mutation.removedNodes.length > 0) {
+            for (const removedNode of mutation.removedNodes) {
+              if (!(removedNode instanceof Element)) {
+                continue;
+              }
+              const componentId = removedNode.getAttribute('__component');
+
+              if (componentId) {
+                // Wait for some moments to see if node is re-connected to the DOM
+                setTimeout(() => {
+                  if (!document.querySelector(`[__component='${componentId}']`)) {
+                    BaseRenderer.getAllComponents()[componentId].destroy();
+                  }
+                }, this.nodePruneTimeout)
+              }
+            }
+          }
+        }
+      }).observe(document.body, { childList: true, subtree: true });
+    }
+
   }
 }
 module.exports = RootCtxRenderer;

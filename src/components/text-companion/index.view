@@ -1,1 +1,6 @@
-
+{{#*inline "add_margin_classes"}}
+    {{marginLeft ? 'slds-m-left_${marginLeft}' : ''}}
+    {{marginRight ? 'slds-m-right_${marginRight}' : ''}}
+    {{marginTop ? 'slds-m-top_${marginTop}' : ''}}
+    {{marginBottom ? 'slds-m-bottom_${marginBottom}' : ''}}
+{{/inline}}

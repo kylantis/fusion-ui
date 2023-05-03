@@ -13,11 +13,7 @@ class IllustrationBase extends components.LightningComponent {
         }
 
         const decorator = this.getDecorator(`${name}_svg`);
-        this.getNode().innerHTML = this.renderDecorator(decorator);
-    }
-
-    getNode() {
-        return this.node.querySelector(`:scope > .slds-illustration`);
+        this.renderDecorator(decorator, this.getNode());
     }
 }
 module.exports = IllustrationBase;

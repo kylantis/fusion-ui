@@ -1,4 +1,5 @@
 <svg class="slds-button__icon
+    {{hint ? 'slds-button__icon_hint' : ''}}
     {{size ? 'slds-button__icon_${size}' : ''}}
     {{foreground ? "slds-icon-${foreground}" : ""}}
     {{cssClass ? cssClass : ""}}" 

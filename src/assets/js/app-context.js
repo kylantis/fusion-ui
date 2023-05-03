@@ -52,9 +52,6 @@ class AppContext {
       }
     };
 
-    // AppContext.#internalApi.eval = self.eval;
-    // delete self.eval;
-
     self.global = self;
 
     Object.defineProperty(self, 'appContext', {
@@ -62,15 +59,12 @@ class AppContext {
     });
   }
 
+  // Use Token for security
+  // getInternalApi() {
+  //   return AppContext.#internalApi;
+  // }
+
   addPolyfills() {
-
-    // Todo: remove all polyfills after upgrade necessary components to stop using deprecated API
-
-    if (!Event.prototype.hasOwnProperty('path')) {
-      Object.defineProperty(Event.prototype, 'path', {
-        get() { return this.composedPath(); }
-      });
-    }
   }
 
   static unsafeEval(code, scope = {}) {
@@ -93,7 +87,7 @@ class AppContext {
       args.values.push(v);
     });
 
-    let fn = Function(...args.names, code);
+    let fn = new Function(args.names.join(', '), code);
 
     if (thisObject) {
       fn = fn.bind(thisObject);

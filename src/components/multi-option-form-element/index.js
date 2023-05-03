@@ -10,13 +10,6 @@ class MultiOptionFormElement extends components.FormElement {
         this.getInput().items[0].name;
     }
 
-    cssDependencies() {
-        return [
-            ...super.cssDependencies(),
-            '/components/multi_option_form_element/style.min.css',
-        ];
-    }
-
     beforeMount() {
         const input = this.getInput();
         const { items } = input;

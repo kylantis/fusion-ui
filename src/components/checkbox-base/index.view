@@ -1,16 +1,12 @@
 {{style url="/components/checkbox_base/style.min.css"}}
 
-<div class="slds-checkbox
-      {{!-- Margin --}}
-      {{marginLeft ? 'slds-m-left_${marginLeft}' : ''}}
-      {{marginRight ? 'slds-m-right_${marginRight}' : ''}}
-">
+<div class="slds-checkbox {{> add_margin_classes}}">
     <input type="checkbox"
       id="{{@root.componentId}}_input"
       value="{{@root.componentId}}_input"
       {{name ? "name=\"${name}\"" : "" }}
-      {{checked ? "checked=\"\"" : "" }}
-      {{disabled ? "disabled=\"\"" : "" }}
+      {{checked ? "checked=''" : "" }}
+      {{disabled ? "disabled=''" : "" }}
        onchange="{{fn "onChange"}}(event)"
        {{tabIndex ? "tabIndex=\"${tabIndex}\"" : "" }}
        aria-labelledby="{{@root.componentId}}_label {{labelledBy ? labelledBy : ""}}"

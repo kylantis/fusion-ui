@@ -2,6 +2,8 @@
 class Menu extends components.LightningComponent {
 
     initCompile() {
+        this.getInput().overlay;
+
         // If group role is 'radio' or 'checkbox', this specifies the
         // direction that the check icon should be placed
         this.getInput().groups[0].checkIconPosition
@@ -103,7 +105,7 @@ class Menu extends components.LightningComponent {
         }
     }
 
-   createIcon({ type, name, level, x, container }) {
+    createIcon({ type, name, level, x, container }) {
         const input = {
             type,
             name,
@@ -132,7 +134,12 @@ class Menu extends components.LightningComponent {
         const { pathSeparator } = BaseComponent.CONSTANTS;
 
         const _this = this;
+
         const li = node.querySelector(':scope > li');
+
+        const { overlay } = this.getInput();
+
+        li.setAttribute(this.getOverlayAttribute(), !!overlay)
 
         const { index: groupIndex } = blockData['groups'];
 
