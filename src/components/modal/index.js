@@ -13,7 +13,7 @@ class Modal extends components.LightningComponent {
         return ['modalClose', 'modalOpen'];
     }
 
-    onMount() {
+    afterMount() {
         const { showByDefault } = this.getInput();
 
         if (showByDefault) {

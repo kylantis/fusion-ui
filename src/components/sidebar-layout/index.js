@@ -7,7 +7,7 @@ class SidebarLayout extends components.Drawer {
 
     // this.getContentContainerSelector()
 
-    beforeMount() {
+    beforeRender() {
         const input = this.getInput();
         const { navigation } = input;
 
@@ -37,7 +37,7 @@ class SidebarLayout extends components.Drawer {
             });
     }
 
-    onMount() {
+    afterMount() {
         if (!this.getActiveNavigationItem()) {
             this.setActive(
                 this.getNavigationItems()[0]

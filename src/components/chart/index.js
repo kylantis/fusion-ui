@@ -96,7 +96,7 @@ class Chart extends components.LightningComponent {
         ];
     }
 
-    beforeMount() {
+    beforeRender() {
         const { getDefaultColors } = Chart;
         const input = this.getInput();
         const { colors } = input;

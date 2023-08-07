@@ -1,16 +1,25 @@
 
 /* eslint-disable no-underscore-dangle */
 
-const anyArrayIndex = /\[[0-9]+\]/g;
-const mapKey = /\["\$_.+?"\]/g;
+const arrayIndexSegment = /\[[0-9]+\]/g;
+
+// Note: The reason why we are using .+ instead of \w+ is because map keys are actually
+// free-form string that can contain anything
+const mapKeySegment = /\["\$_.+?"\]/g;
 
 const canonicalArrayIndex = /_\$$/g
 const segment = /(\[[0-9]+\])|(\["\$_.+?"\])/g;
 const segmentWithCanonical = /(\[[0-9]+\])|(\["\$_.+?"\])|(_\$)/g;
 
 module.exports = {
-
+  arrayIndexSegment,
+  mapKeySegment,
   getParentFromPath(pathArray) {
+
+    if (typeof pathArray == 'string') {
+      pathArray = pathArray.split('.');
+    }
+
     const arr = [...pathArray];
     const lastPart = arr[arr.length - 1];
 
@@ -32,6 +41,20 @@ module.exports = {
 
   tailSegment: (part) => {
     return part.match(segment).pop();
+  },
+
+  getCommaSeperatedValues: (str, minLength, defaultValue) => {
+    const arr = str.trim().split(/\s*,\s*/g);
+
+    if (Number.isInteger(minLength)) {
+      assert(defaultValue !== undefined);
+
+      for (let i = arr.length; i < minLength; i++) {
+        arr[i] = defaultValue;
+      }
+    }
+
+    return arr;
   },
 
   flattenJson: (data) => {
@@ -97,7 +120,7 @@ module.exports = {
 
           return `%%new components['${val['@type']}']({
           input: ${data},
-        })%%`
+        }, { loadable: ${val['@loadable']} })%%`
             .replace(/\n/g, '');
         }
       }
@@ -105,7 +128,7 @@ module.exports = {
       return val;
     };
     return JSON.stringify(srcObject, replacer, 2)
-      .replace(/@@/g, '"')      
+      .replace(/@@/g, '"')
       .replaceAll(/"%%/g, '')
       .replaceAll(/%%"/g, '')
       .replace(/\n/g, '');
@@ -121,20 +144,25 @@ module.exports = {
 
   getSegments0: (original, regex) => {
     const segments = original.match(regex) || [];
-    return [
-      original.replace(
-        RegExp(
-          `${clientUtils.escapeRegExp(segments.join(''))}$`
-        ),
-        ''
+
+    const first = original.replace(
+      RegExp(
+        `${clientUtils.escapeRegExp(segments.join(''))}$`
       ),
+      ''
+    );
+
+    return [
+      first,
       ...segments,
     ];
   },
 
-  forEachPath: (original, fn) => {
+  getParentPaths: (original) => {
     const arr = original.split('.');
     let r = '';
+
+    const result = [];
 
     for (let i = 0; i < arr.length; i++) {
 
@@ -143,7 +171,9 @@ module.exports = {
       segments.forEach(s => {
         r += s;
 
-        fn(r);
+        if (original != r) {
+          result.push(r);
+        }
       });
 
       if (i < arr.length - 1) {
@@ -152,6 +182,8 @@ module.exports = {
     }
 
     assert(r == original);
+
+    return result;
   },
 
   peek: (arr) => {
@@ -210,7 +242,9 @@ module.exports = {
     };
   },
 
-  getCanonicalSegments: (fqPathArr) => {
+  getCanonicalSegments: (fqPath) => {
+
+    const fqPathArr = fqPath.split('.');
 
     const arr = [];
     let p = '';
@@ -262,9 +296,9 @@ module.exports = {
         original: p,
       }).map((segment) => {
         switch (true) {
-          case !!segment.match(anyArrayIndex):
+          case !!segment.match(arrayIndexSegment):
             return '_$';
-          case !!segment.match(mapKey):
+          case !!segment.match(mapKeySegment):
             return `${separator}$_`;
           case segment.startsWith('$_'):
             return '$_';
@@ -276,7 +310,7 @@ module.exports = {
   isCanonicalArrayIndex: (path, parent) => {
     const arr = parent.split('.');
 
-    const index = parent.length - 1;
+    const index = arr.length - 1;
     const segmentIndex = clientUtils.getSegments0(arr[index], segmentWithCanonical).length;
 
     const arr2 = path.split('.');

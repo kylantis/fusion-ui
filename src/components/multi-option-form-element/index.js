@@ -10,7 +10,7 @@ class MultiOptionFormElement extends components.FormElement {
         this.getInput().items[0].name;
     }
 
-    beforeMount() {
+    beforeRender() {
         const input = this.getInput();
         const { items } = input;
 
@@ -62,7 +62,7 @@ class MultiOptionFormElement extends components.FormElement {
                     delete this.getItems()[inputId];
                 }
             },
-            ['onMount.required']: (evt) => {
+            ['afterMount.required']: (evt) => {
                 const { newValue: required } = evt;
                 this.toggleRequiredClass(required);
             }
@@ -109,7 +109,7 @@ class MultiOptionFormElement extends components.FormElement {
         return `${id}_input`;
     }
 
-    itemHook({ blockData }) {
+    registerCompoundItem({ blockData }) {
         const { index } = blockData['items'];
         const { items } = this.getInput();
 

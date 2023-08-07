@@ -105,7 +105,7 @@ class Menu extends components.LightningComponent {
         }
     }
 
-    createIcon({ type, name, level, x, container }) {
+    createIcon({ type, name, level, x }) {
         const input = {
             type,
             name,
@@ -119,16 +119,14 @@ class Menu extends components.LightningComponent {
             input.marginLeft = 'small';
         }
 
-        return new components.Icon({
-            input
-        }).load({ container })
+        return new components.Icon({ input });
     }
 
     /**
      * Block Hook that processes new items added to this menu
      * @param {HTMLElement} node 
      */
-    async itemHook({ node, blockData }) {
+    async setupMenuItem({ node, blockData }) {
 
         const wrapperCssClass = BaseComponent.getWrapperCssClass();
         const { pathSeparator } = BaseComponent.CONSTANTS;
@@ -219,12 +217,18 @@ class Menu extends components.LightningComponent {
 
             item.checkIconContainer = checkIconContainer;
 
-            item.checkIconMarkup = (await this.createIcon({
+            const checkIcon = this.createIcon({
                 type: 'utility',
                 name: 'check',
                 level,
                 x: checkIconPosition
-            })).html;
+            });
+
+            await checkIcon.load();
+
+            item.checkIconMarkup = checkIcon.getNode().outerHTML;
+
+            checkIcon.destroy();
 
             if (initiallySelected) {
                 this.selectItem(identifier)
@@ -246,13 +250,14 @@ class Menu extends components.LightningComponent {
                 }
             }
 
-            await this.createIcon({
+            const caret = this.createIcon({
                 type: 'utility',
                 name: `chevron${subMenuX}`,
                 level,
                 x: subMenuX,
-                container: caretContainer.id
             });
+
+            await caret.load({ container: caretContainer.id });
 
             // Move the sub-menu directly into <li>
 

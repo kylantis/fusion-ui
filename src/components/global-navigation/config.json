@@ -19,7 +19,8 @@
     "tabs_$.content": {
       "type": "componentRef",
       "defaults": [
-        "SidebarLayout"
+        "DataTable",
+        "ActivityTimeline"
       ]
     },
     "useDivider": {
@@ -89,7 +90,6 @@
   "escapeDynamicHtml": false,
   "sample": {
     "nullifyRandomly": [
-      "tabs_$.content",
       "tabs_$.feedbackState"
     ]
   }

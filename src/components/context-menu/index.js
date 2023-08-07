@@ -6,6 +6,10 @@ class ContextMenu extends components.OverlayComponent {
         this.testMode = opts.testMode;
     }
 
+    static getInstances() {
+        return ContextMenu.instances || (ContextMenu.instances = {});
+    }
+
     initCompile() {
         this.getInput().clickType;
         this.getInput().useTargetPosition;
@@ -14,27 +18,42 @@ class ContextMenu extends components.OverlayComponent {
 
     hooks() {
         return {
-            ['beforeMount.menu']: (evt) => this.onMenuChange(evt.newValue)
+            ['afterMount.menu']: ({ newValue }) => this.onMenuChange(newValue)
         }
     }
 
     async onMount() {
+        const { getInstances } = ContextMenu;
         const { menu } = this.getInput();
-
-        await this.calculateAreas();
 
         await this.setupMenus(menu);
 
         this.on('bodyClick', () => {
             this.hide();
         });
+
+        getInstances()[this.getId()] = this;
+    }
+
+    getDefaultSupportedPositions() {
+        return ["bottom-right", "bottom-left", "top-right", "top-left"];
     }
 
     getSupportedPositions() {
-        const { positions } = this.getInput()
-        return (positions && positions.length) ?
-            [...positions] :
-            ["bottom-right", "bottom-left", "top-right", "top-left"];
+        const { positions } = this.getInput();
+
+        const defaultSupported = this.getDefaultSupportedPositions();
+
+        if (positions && positions.length) {
+            positions.forEach(p => {
+                if (!defaultSupported.includes(p)) {
+                    this.throwError(`Unknown position "${p}"`);
+                }
+            })
+            return [...positions];
+        } else {
+            return defaultSupported;
+        }
     }
 
     onMenuChange(newMenu) {
@@ -89,36 +108,85 @@ class ContextMenu extends components.OverlayComponent {
     }
 
     async setupMenus(menu) {
-        const { cloneMenu, getMenuNode } = ContextMenu;
+        const { cloneMenu, getMenuNode, calculateArea0 } = ContextMenu;
+        const { cloneComponent, cloneInputData } = BaseComponent;
         const { getOverlayConfig } = components.OverlayComponent;
 
         this.destroyMenus();
 
+        this.areas = {};
+
+        const menuData = {};
+
+        const getSupportedVerticalPositions = (y0) => {
+            return this.getSupportedPositions()
+                .map(position => {
+                    const { x, y } = this.getPositionXY(position);
+                    return { position, x, y }
+                })
+                .filter(({ y }) => y == y0);
+        }
+
+        const calculateArea = async (container, { x, y, position }) => {
+
+            this.areas[y] =
+                await calculateArea0(
+                    cloneMenu(menu, x, y, (i) => {
+                        // clone and cache input, so we don't have to re-visit again by calling cloneMenu(...) below
+                        menuData[position] = cloneInputData(i);
+                    }),
+                    container,
+                    y,
+                    !this.testMode
+                )
+        }
+
+        const calculateAreas = async () => {
+
+            // Render a container div where our menu will be rendered
+            // The reason we want to provide a container instead of have the menu
+            // rendered in the document body is because we want it to be invisible
+            const container = document.createElement('div');
+            container.id = this.randomString();
+
+            if (!this.testMode) {
+                container.style.visibility = 'hidden';
+            }
+
+            document.body.appendChild(container);
+
+            const topPositions = getSupportedVerticalPositions('top');
+            const bottomPositions = getSupportedVerticalPositions('bottom');
+
+            await Promise.all([
+                topPositions.length ? calculateArea(container, topPositions[0]) : null,
+                bottomPositions.length ? calculateArea(container, bottomPositions[0]) : null
+            ]);
+
+            if (!this.testMode) {
+                document.body.removeChild(container);
+            }
+        }
+
+        await calculateAreas();
+
         this.menus = {};
 
-        this.getSupportedPositions().forEach(pos => {
-            switch (pos) {
-                case "top-left":
-                    this.menus[pos] = cloneMenu(menu, 'left', 'top');
-                    break;
-                case "top-right":
-                    this.menus[pos] = cloneMenu(menu, 'right', 'top');
-                    break;
-                case "bottom-left":
-                    this.menus[pos] = cloneMenu(menu, 'left', 'bottom');
-                    break;
-                case "bottom-right":
-                    this.menus[pos] = cloneMenu(menu, 'right', 'bottom');
-                    break;
-            }
-        });
+        this.getSupportedPositions()
+            .forEach(pos => {
+                const { x, y } = this.getPositionXY(pos);
+
+                this.menus[pos] = menuData[pos] ?
+                    cloneComponent({ component: menu, inputProducer: () => menuData[pos] })
+                    : cloneMenu(menu, x, y);
+            });
 
         const { container } = getOverlayConfig();
 
         await Promise.all(
             Object.values(this.menus)
                 .map(menu =>
-                    menu.load({ container })
+                    menu.load({ container, style: { visibility: 'hidden' } })
                         .then(() => {
                             const node = getMenuNode(menu);
 
@@ -129,8 +197,6 @@ class ContextMenu extends components.OverlayComponent {
                             // in lightning design css
                             node.style.transform = `translateX(0%)`;
 
-                            node.style.visibility = 'hidden';
-
                             node.classList.add('lightning-context-menu');
                         })
                 )
@@ -138,6 +204,7 @@ class ContextMenu extends components.OverlayComponent {
     }
 
     destroy() {
+        const { getInstances } = ContextMenu;
         this.destroyMenus();
 
         // Remove event listeners
@@ -149,6 +216,8 @@ class ContextMenu extends components.OverlayComponent {
             delete this.targetClickListener;
         }
 
+        delete getInstances()[this.getId()];
+
         super.destroy();
     }
 
@@ -156,7 +225,7 @@ class ContextMenu extends components.OverlayComponent {
         return this.targetClickListener || (
             this.targetClickListener = async (evt) => {
 
-                const { getMenuNode } = ContextMenu;
+                const { getInstances, getMenuNode } = ContextMenu;
                 const { clickType, useTargetPosition } = this.getInput();
                 let { which, x, y, target } = evt;
 
@@ -203,6 +272,13 @@ class ContextMenu extends components.OverlayComponent {
                     fn(getMenuNode(this.currentMenu));
 
                     this.show();
+
+                    // Hide other context menu instances
+                    Object.values(getInstances())
+                        .filter(i => i != this)
+                        .forEach(i => {
+                            i.hide();
+                        })
                 }
             }
         )
@@ -227,7 +303,7 @@ class ContextMenu extends components.OverlayComponent {
         this.targetNodes.splice(this.targetNodes.indexOf(targetNode), 1)
 
         targetNode.removeEventListener(this.getTriggerEvent(), this.targetClickListener);
-        
+
         targetNode.removeAttribute(key);
         targetNode.removeAttribute(this.getOverlayAttribute());
     }
@@ -245,19 +321,26 @@ class ContextMenu extends components.OverlayComponent {
         const targetNodes = this.targetNodes || (this.targetNodes = []);
 
         targetNode.addEventListener(this.getTriggerEvent(), this.getTargetClickListener())
-        
+
         targetNode.setAttribute(key, true);
         targetNode.setAttribute(this.getOverlayAttribute(), true);
 
         targetNodes.push(targetNode);
     }
 
+    getPositionXY(position) {
+        const [y, x] = position.split('-');
+        return { x, y };
+    }
+
     getRequiredArea(position) {
-        return this.areas[position].requiredArea;
+        const { y } = this.getPositionXY(position);
+        return (this.areas[y] || {}).requiredArea;
     }
 
     getRenderingArea(position) {
-        return this.areas[position].renderingArea;
+        const { y } = this.getPositionXY(position);
+        return (this.areas[y] || {}).renderingArea;
     }
 
     isPointerBased() {
@@ -273,45 +356,6 @@ class ContextMenu extends components.OverlayComponent {
             }
         }
         return false;
-    }
-
-    async calculateAreas() {
-
-        const { cloneMenu, calculateArea0 } = ContextMenu;
-
-        this.areas = {};
-
-        // Render a container div where our menu will be rendered
-        // The reason we want to provide a container instead of have the menu
-        // rendered in the document body is because we want it to be invisible
-        const container = document.createElement('div');
-        container.id = this.randomString();
-
-        if (!this.testMode) {
-            container.style.visibility = 'hidden';
-        }
-
-        document.body.appendChild(container);
-
-        this.areas['top-left'] = this.areas['top-right'] =
-            await calculateArea0(
-                cloneMenu(this.getInput().menu, 'right', 'top'),
-                container,
-                'top',
-                !this.testMode
-            )
-
-        this.areas['bottom-left'] = this.areas['bottom-right'] =
-            await calculateArea0(
-                cloneMenu(this.getInput().menu, 'right', 'bottom'),
-                container,
-                'bottom',
-                !this.testMode
-            )
-
-        if (!this.testMode) {
-            document.body.removeChild(container);
-        }
     }
 
     static async calculateArea0(component, container, subMenuPosition, pruneComponent) {
@@ -392,12 +436,10 @@ class ContextMenu extends components.OverlayComponent {
             component.destroy();
         }
 
-        return {
-            requiredArea, renderingArea
-        }
+        return { requiredArea, renderingArea }
     }
 
-    static cloneMenu(menu, x, y) {
+    static cloneMenu(menu, x, y, inputConsumer) {
 
         const { cloneComponent, randomString } = BaseComponent;
 
@@ -433,7 +475,9 @@ class ContextMenu extends components.OverlayComponent {
             return input;
         }
 
-        return cloneComponent(menu, inputVisitor);
+        return cloneComponent({
+            component: menu, inputVisitor, inputConsumer
+        });
     }
 
 }

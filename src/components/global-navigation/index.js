@@ -20,7 +20,6 @@ class GlobalNavigation extends components.LightningComponent {
         super.destroy();
     }
 
-    // TODO: Add hooks for menu and content
     hooks() {
         return {}
     }
@@ -32,8 +31,6 @@ class GlobalNavigation extends components.LightningComponent {
     }
 
     onMount() {
-        this.getContentContainer().style.visibility = 'visible';
-
         this.on('bodyClick', () => {
             this.closeOpenSubMenu();
         });
@@ -147,20 +144,9 @@ class GlobalNavigation extends components.LightningComponent {
     }
 
     getContentContainer() {
-        const { getWrapperCssClass } = BaseComponent;
         return document.querySelector(
-            `#${this.getElementId()} > div > .${getWrapperCssClass()} > .content`
+            `#${this.getElementId()} > div > div.content`
         );
-    }
-
-    contentHook({ node }) {
-        const contentContainer = node.querySelector(':scope > .content');
-
-        // Temporarily make the content container hidden, so the user does not see as
-        // tab contents are being stacked on top of one another in tabTransform(...) 
-
-        contentContainer.style.visibility = 'hidden';
-        contentContainer.style.height = '100%';
     }
 
     hideContent(identifier) {
@@ -236,7 +222,7 @@ class GlobalNavigation extends components.LightningComponent {
         // If tab context is not yet loaded, load it.
         if (!item.isLoaded) {
             this.loading = true;
-            // Todo: Use spinner instead
+
             showLoader();
 
             let { content } = item;
@@ -249,25 +235,23 @@ class GlobalNavigation extends components.LightningComponent {
 
             this.beforeContentLoaded(container);
 
-            // Load content
-
-            // Note: The reason we are giving this slight delay, is so to give the browser some
-            // time to paint the above css updates before attempting to start loading the content
-            await new Promise((resolve) => {
-                setTimeout(resolve, 50)
-            })
-                .then(() => content
-                    .load({ container })
-                )
-                .then(() => {
-                    this.afterContentLoaded(container);
-
-                    item.isLoaded = true;
-
-                    // Todo: Use spinner instead
+            if (this.isMounted()) {
+                content.once(() => {
                     hideLoader();
-                    this.loading = false;
-                });
+                }, 'render');
+            }
+
+            await content.load({ container, domRelayTimeout: this.isMounted() ? 50 : 0 });
+
+            if (!this.isMounted()) {
+                hideLoader();
+            }
+
+            this.afterContentLoaded(container);
+
+            item.isLoaded = true;
+
+            this.loading = false;
         }
 
         item.isActive = true;
@@ -299,13 +283,16 @@ class GlobalNavigation extends components.LightningComponent {
     createTabContentContainer(identifier) {
         const { contentPadding } = this.getItems()[identifier];
 
+        const contextBar = this.getNode().querySelector(':scope > .slds-context-bar');
+        const topOffset = Number(getComputedStyle(contextBar).height.replace('px', ''));
+
         const contentDiv = document.createElement('div');
 
         contentDiv.id = this.getContentId(identifier);
 
         contentDiv.style.position = 'absolute';
-        contentDiv.style.minWidth = '100%';
-        contentDiv.style.minHeight = '100%';
+        contentDiv.style.width = '100%';
+        contentDiv.style.height = `${window.innerHeight - topOffset}px`;
         contentDiv.style.overflow = 'scroll';
 
         if (contentPadding) {
@@ -315,6 +302,7 @@ class GlobalNavigation extends components.LightningComponent {
         contentDiv.style.zIndex = -1;
 
         this.getContentContainer().appendChild(contentDiv);
+
         return contentDiv.id;
     }
 
@@ -534,9 +522,8 @@ class GlobalNavigation extends components.LightningComponent {
      * @returns 
      */
     isSecondaryEvent(event) {
-        const { path } = event;
 
-        for (const elem of path) {
+        for (const elem of event.composedPath()) {
             const { classList } = elem;
 
             switch (true) {

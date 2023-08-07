@@ -18,44 +18,44 @@
       </li>
       {{/if}}
 
-      {{#each items hook = "itemHook" as |item itemIndex|}}
+      {{#each items hook='setupMenuItem' hookPhase='afterMount' as |item itemIndex|}}
 
-      {{component Menu alias="subMenu"}}
+        {{component Menu alias="subMenu"}}
 
-      <li 
-      class="slds-dropdown__item {{subMenu ? 'slds-has-submenu' : ''}}" 
-      role="{{not subMenu ? (../role eq 'presentation') ? ../role : 'menuitem${../role}' : 'presentation'}}"
-      identifier="{{identifier}}">
+        <li
+        class="slds-dropdown__item {{subMenu ? 'slds-has-submenu' : ''}}" 
+        role="{{not subMenu ? (../role eq 'presentation') ? ../role : 'menuitem${../role}' : 'presentation'}}"
+        identifier="{{identifier}}">
 
-        <a role="menuitem" 
-        tabindex="{{(groupIndex eq 0) and (@index eq 0) ? '0' : '-1'}}"
-        {{feedbackState ? "class=\"slds-has-${feedbackState}\"" : ""}}
-        {{ subMenu ? "aria-haspop=\"true\"" : "" }}
-        >
+          <a role="menuitem" 
+          tabindex="{{(groupIndex eq 0) and (@index eq 0) ? '0' : '-1'}}"
+          {{feedbackState ? "class=\"slds-has-${feedbackState}\"" : ""}}
+          {{ subMenu ? "aria-haspop=\"true\"" : "" }}
+          >
 
-          <span class="slds-truncate" title="{{title}}">
+            <span class="slds-truncate" title="{{title}}">
 
-            {{component Icon alias="leftIcon"}}
+              {{component Icon alias="leftIcon"}}
 
-            {{#if leftIcon}}
-              {{> leftIcon marginRight='x-small' useCurrentColor=(feedbackState eq 'warning')}}
-            {{/if}}
+              {{#if leftIcon}}
+                {{> leftIcon marginRight='x-small' useCurrentColor=(feedbackState eq 'warning')}}
+              {{/if}}
+              
+              {{title}}
+            </span>
+
+              {{component Icon alias="rightIcon"}}
             
-            {{title}}
-          </span>
+              {{#if rightIcon and (not subMenu)}}
+                {{> rightIcon marginLeft='small' useCurrentColor=(feedbackState eq 'warning')}}
+              {{/if}}
+          </a>
+              
+              {{#if subMenu and title}}
+                {{> subMenu label=title isSubMenu=true x=subMenuX y=subMenuY }}
+              {{/if}}
 
-            {{component Icon alias="rightIcon"}}
-          
-            {{#if rightIcon and (not subMenu)}}
-              {{> rightIcon marginLeft='small' useCurrentColor=(feedbackState eq 'warning')}}
-            {{/if}}
-        </a>
-            
-            {{#if subMenu and title}}
-              {{> subMenu label=title isSubMenu=true x=subMenuX y=subMenuY }}
-            {{/if}}
-
-      </li>
+        </li>
       {{/each}}
 
       {{/each}}

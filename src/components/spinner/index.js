@@ -6,7 +6,7 @@ class Spinner extends components.LightningComponent {
 
     hooks() {
         return {
-            ['onMount.inlined']: ({ newValue: inlined }) => {
+            ['afterMount.inlined']: ({ newValue: inlined }) => {
                 if (inlined) {
                     this.addAbsoluteCenterClass();
                 } else {

@@ -27,9 +27,9 @@ class BaseComponent extends WebRenderer {
     componentRefType: RootProxy.componentRefType,
   };
 
-  constructor({ id, input, logger } = {}) {
+  constructor({ id, input, logger, config } = {}) {
 
-    super({ id, input, logger });
+    super({ id, input, logger, config });
 
     if (!BaseComponent.#token) {
       // eslint-disable-next-line no-undef
@@ -112,36 +112,23 @@ class BaseComponent extends WebRenderer {
   }
 
   // #API
-  awaitPendingTasks() {
-    return Promise.all(this.getFutures());
+  async awaitPendingTasks() {
+    await Promise.all(
+      this.getFutures().map(f => typeof f == 'function' ? f() : f)
+    );
+
+    // Clear futures array
+    while (this.getFutures().length) {
+      this.getFutures().shift();
+    }
   }
 
-  render({ data, target, transform, options }) {
+  render({ data, target, transform }) {
     if (data === undefined) {
       return Promise.resolve();
     }
 
-    if (!target) {
-      // The MustacheExpression was not wrapped in a html wrapper
-      // likely because the mustache expression was within a html
-      // attribute context
-      const { loc } = options;
-      assert(!!loc);
-
-      switch (true) {
-        case data instanceof BaseComponent:
-          throw Error(`Component: ${data.getId()} cannot be rendered in this template location: ${clientUtils.getLine({ loc })}`);
-
-        case data instanceof Function:
-          data = data();
-
-        default:
-          return data;
-      }
-    }
-
-    // eslint-disable-next-line no-plusplus
-    this.renderOffset++;
+    assert(target);
 
     const future = Promise.resolve(data)
       // eslint-disable-next-line no-shadow
@@ -172,8 +159,6 @@ class BaseComponent extends WebRenderer {
         } else {
           node.innerHTML = html
         }
-
-        this.renderOffset--;
       });
 
     this.getFutures().push(future);
@@ -213,13 +198,6 @@ class BaseComponent extends WebRenderer {
 
   defaultHandlers() {
     return {};
-  }
-
-  #ensureKnownEvent(event) {
-    assert(
-      this.getEvents().includes(event),
-      `Unknown event '${event}' for component: ${this.constructor.name}`
-    );
   }
 
   static getNodeId(node) {
@@ -309,7 +287,6 @@ class BaseComponent extends WebRenderer {
 
   // #API
   on(event, handler) {
-    this.#ensureKnownEvent(event);
     return this.#on0(event, handler);
   }
 
@@ -328,7 +305,6 @@ class BaseComponent extends WebRenderer {
 
   // #API
   dispatchEvent(event, ...args) {
-    this.#ensureKnownEvent(event);
     return this.#dispatchEvent0(event, ...args);
   }
 
@@ -371,12 +347,6 @@ class BaseComponent extends WebRenderer {
         return x.startsWith(y);
       }
     }
-  }
-
-  beforeMount() {
-  }
-
-  onMount() {
   }
 
   // #API
@@ -445,14 +415,23 @@ class BaseComponent extends WebRenderer {
     )
   }
 
-  static cloneComponent(component, inputVistor = (i) => i) {
+  static cloneComponent({ component, inputVistor = (i) => i, inputConsumer, inputProducer }) {
     const { cloneInputData } = BaseComponent;
 
-    const input = inputVistor(
-      cloneInputData(
-        component.getInput(),
-      )
-    )
+    let input;
+
+    if (inputProducer) {
+      input = inputProducer();
+    } else {
+      input = inputVistor(
+        cloneInputData(
+          component.getInput(),
+        )
+      );
+      if (inputConsumer) {
+        inputConsumer(input);
+      }
+    }
 
     const o = new component.constructor({
       input,
@@ -487,11 +466,19 @@ class BaseComponent extends WebRenderer {
   }
 
   // #API
+  // Note: After this transform has executed, any changes made to node.content.children array itself will not have 
+  // no effect, but the array can be iterated to access the child nodes
   moveWrapperToParent(node) {
     const { parentRef, content } = node;
 
     const idx = parentRef.content.children.indexOf(node);
     assert(idx >= 0);
+
+    if (parentRef.nodeType == 'document') {
+      throw Error(
+        `Unable to execute "moveWrapperToParent" because targetNode does not have a parent`
+      );
+    }
 
     const getAttr = (k, attrs = content.attributes) => (attrs || []).filter(({ key: { content } }) => content == k)[0];
 
@@ -516,43 +503,53 @@ class BaseComponent extends WebRenderer {
   }
 
   // #API
-  moveWrapperToFirstChild({ node, attributes = [] }) {
-    const { parentRef, content } = node;
+  moveWrapperToFirstChild(nodes, attributes = []) {
+    nodes
+      .filter(({ nodeType }) => nodeType == 'tag')
+      .forEach(node => {
+        const { parentRef, content } = node;
 
-    const [child] = content.children.filter(({ nodeType }) => nodeType == 'tag');
-    assert(child);
+        const [child] = (content.children || []).filter(({ nodeType }) => nodeType == 'tag');
 
-    const getAttr = (k, attrs = content.attributes) => (attrs || []).filter(({ key: { content } }) => content == k)[0];
-    const clear = (o) => {
-      for (const key of Object.keys(o)) {
-        delete o[key];
-      }
-    }
-
-    const childAttributes = child.content.attributes || (child.content.attributes = []);
-
-    ['id', ...attributes]
-      .forEach(attrName => {
-
-        const attr = getAttr(attrName);
-        assert(attr);
-
-        const childAttr = getAttr(attrName, childAttributes);
-
-        if (childAttr) {
-          if (attrName == 'id') {
-            this.updateHookSelector(`#${attr.value.content}`, `#${childAttr.value.content}`);
-          }
-        } else {
-          childAttributes.push(attr);
+        if (!child) {
+          return;
         }
-      })
 
-    clear(node);
-    Object.assign(node, {
-      ...child,
-      parentRef: parentRef ? parentRef : null,
-    });
+        const getAttr = (k, attrs = content.attributes) => (attrs || []).filter(({ key: { content } }) => content == k)[0];
+        const clear = (o) => {
+          for (const key of Object.keys(o)) {
+            delete o[key];
+          }
+        }
+
+        const childAttributes = child.content.attributes || (child.content.attributes = []);
+
+        ['id', 'key', ...attributes]
+          .forEach(attrName => {
+
+            const attr = getAttr(attrName);
+
+            if (!attr) {
+              this.throwError(`Unknown attribute "${attrName}"`);
+            }
+
+            const childAttr = getAttr(attrName, childAttributes);
+
+            if (childAttr) {
+              if (attrName == 'id') {
+                this.updateHookSelector(`#${attr.value.content}`, `#${childAttr.value.content}`);
+              }
+            } else {
+              childAttributes.push(attr);
+            }
+          })
+
+        clear(node);
+        Object.assign(node, {
+          ...child,
+          parentRef: parentRef ? parentRef : null,
+        });
+      })
   }
 
   // #API

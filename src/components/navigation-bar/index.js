@@ -20,11 +20,9 @@ class NavigationBar extends components.LightningComponent {
         return this.items || (this.items = {})
     }
 
-    itemHook({ node, blockData }) {
+    registerNavItem({ node, blockData }) {
 
         const li = node.querySelector(':scope > .slds-context-bar__item');
-
-        const _this = this;
 
         const { index = -1 } = blockData[`items`] || {};
 

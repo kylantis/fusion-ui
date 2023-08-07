@@ -34,15 +34,15 @@ class FormElement extends components.LightningComponent {
 
     hooks() {
         return {
-            ['onMount.error']: (evt) => {
+            ['afterMount.error']: (evt) => {
                 const { newValue: error } = evt;
                 this.toggleErrorClass(!!error);
             },
-            ['onMount.readonly']: (evt) => {
+            ['afterMount.readonly']: (evt) => {
                 const { newValue: readonly } = evt;
                 this.toggleReadOnlyClass(readonly);
             },
-            ['onMount.editable']: (evt) => {
+            ['afterMount.editable']: (evt) => {
                 const { newValue: editable } = evt;
                 this.toggleEditableClass(editable);
             },
@@ -137,7 +137,7 @@ class FormElement extends components.LightningComponent {
         }
     }
 
-    async onMount() {
+    onMount() {
         const { error, readonly, editable } = this.getInput();
 
         if (error) {

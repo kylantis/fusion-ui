@@ -10,10 +10,10 @@ class CustomCtxRenderer extends RootCtxRenderer {
   static partialNameHash = '__name';
 
   constructor({
-    id, input, logger,
+    id, input, logger, config,
   } = {}) {
     super({
-      id, input, logger,
+      id, input, logger, config,
     });
 
     this.decorators = {};
@@ -159,7 +159,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     const { fn, hash, loc } = options;
 
-    const { blockParam, hook, hookOrder, outerTransform } = hash;
+    const { blockParam, hook, hookPhase, hookOrder, outerTransform } = hash;
 
     if (scope) {
       assert(blockParam);
@@ -176,13 +176,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
       }
 
       if (hook) {
-        assert(nodeId);
-
-        this.hooks[`#${nodeId}`] = {
-          hookName: hook,
-          order: hookOrder != undefined ? hookOrder : this.getDefaultHookOrder(),
-          blockData: (state || options.data.state).blockData,
-        };
+        this.registerHook(`#${nodeId}`, hook, hookPhase, hookOrder, loc, (state || options.data.state).blockData);
       }
 
       options.data = clientUtils.createFrame(options.data);
@@ -215,7 +209,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     const { textNodeHookType } = RootProxy;
 
-    let { hash: { hook, hookOrder, transform }, loc } = options;
+    let { hash: { hook, hookPhase, hookOrder, transform }, loc } = options;
 
     let [value] = params;
 
@@ -243,11 +237,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
       }
 
       if (hook) {
-        this.hooks[selector] = {
-          hookName: hook,
-          order: hookOrder != undefined ? hookOrder : this.getDefaultHookOrder(),
-          blockData: options.data.state.blockData,
-        };
+        this.registerHook(selector, hook, hookPhase, hookOrder, loc, options.data.state.blockData);
       }
     }
 

@@ -41,7 +41,7 @@ class Icon extends components.TextCompanion {
     }
 
     /**
-     * This function checks if the solid state of this icon is changed when the provided property chamges
+     * This function checks if the solid state of this icon is changed when the provided property changes
      */
     #willChangeSolidState(property, value) {
         const { isSolid0 } = Icon;
@@ -63,7 +63,7 @@ class Icon extends components.TextCompanion {
         return type != 'utility' && (solid || solid == undefined);
     }
 
-    beforeMount() {
+    beforeRender() {
         const input = this.getInput();
         if (!input.size) {
             input.size = "small";

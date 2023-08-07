@@ -13,7 +13,8 @@ class LightningComponent extends BaseComponent {
     }
 
     getNode() {
-        return this.node.querySelector(':scope > :nth-child(1)');
+        const n = super.getNode0();
+        return n.children.length ? n.querySelector(':scope > :nth-child(1)') : n;
     }
 
     toggleCssClass(predicate, className) {

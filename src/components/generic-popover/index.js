@@ -1,12 +1,12 @@
 
 class GenericPopover extends components.Popover {
 
-    beforeMount() {
+    beforeRender() {
         const input = this.getInput();
         input.closeIcon = true;
     }
 
-    onMount() {
+    afterMount() {
         const { feedbackState } = this.getInput();
 
         if (feedbackState) {

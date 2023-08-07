@@ -1,0 +1,27 @@
+
+<div style="left: 20%;position: absolute;">
+    {{#each arr outerTransform='moveWrapperToParent' innerTransform='moveWrapperToFirstChild' as |i j|}}
+        <div style="margin: 2em; width: 600px; height: 50px; background-color: {{getRandomColor}};">
+            
+            <div style="text-align: center; font-size: 2em; color: white; text-transform: uppercase;">
+                {{noOp @key}} 
+
+                <div style="display: none;">
+                    {{@key ? true : false}}
+                </div>
+                
+                &ensp;&ensp; {{@key}} 
+
+                &ensp;&ensp; {{.}}
+
+                &ensp;&ensp; {{@first}}
+
+                &ensp;&ensp; {{@last}}
+
+                {{!-- Test Lenient paths in the context of registering data path hooks --}}
+
+            </div>
+            
+        </div>
+    {{/each}}
+</div>

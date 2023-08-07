@@ -10,7 +10,7 @@ class GridElement extends components.LightningComponent {
         return arr.filter(a => a).map(a => `slds-${a}`).join(' ');
     }
 
-    beforeMount() {
+    beforeRender() {
         const { bump } = this.getInput();
 
         this.setCol(!!this.getGrid());
@@ -19,7 +19,7 @@ class GridElement extends components.LightningComponent {
 
     hooks() {
         return {
-            ['beforeMount.bump']: ({ newValue }) => {
+            ['afterMount.bump']: ({ newValue }) => {
                 this.toggleBump(newValue);
             }
         }
@@ -39,7 +39,7 @@ class GridElement extends components.LightningComponent {
                     gridElement.setCol(col);
                 });
             } else {
-                // See Grid.onMount()
+                // See Grid.afterMount()
             }
 
         } else {

@@ -1,7 +1,7 @@
 
 class Tooltip extends components.Popover {
 
-    beforeMount() {
+    beforeRender() {
         const input = this.getInput();
 
         input.cssClass = "slds-popover_tooltip";

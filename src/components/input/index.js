@@ -10,7 +10,7 @@ class Input extends components.FormElement {
 
     hooks() {
         return {
-            ['onMount.value']: (evt) => {
+            ['afterMount.value']: (evt) => {
                 const { newValue: value } = evt;
                 this.dispatchEvent('change', value);
             }
