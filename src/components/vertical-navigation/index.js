@@ -10,7 +10,7 @@ class VerticalNavigation extends components.LightningComponent {
         this.getInput().sections[0].items[0].sectionId;
     }
 
-    beforeMount() {
+    beforeRender() {
         const { DEFAULT_TRUNCATE_SIZE } = VerticalNavigation;
 
         const input = this.getInput();
@@ -84,7 +84,7 @@ class VerticalNavigation extends components.LightningComponent {
         }
     }
 
-    itemHook({ node, blockData, initial }) {
+    registerNavItem({ node, blockData }) {
 
         if (node.querySelector('div').innerHTML.trim() == "") {
             return;

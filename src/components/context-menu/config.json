@@ -8,7 +8,8 @@
   "scalars": {
     "menu": {
       "type": "Menu",
-      "isNull": false
+      "isNull": false,
+      "loadable": false
     },
     "clickType": {
       "type": "String",

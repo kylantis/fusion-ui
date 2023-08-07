@@ -1,0 +1,69 @@
+{
+  "enableTypeMerging": false,
+  "collections": {
+    "items": {
+      "minLength": 5,
+      "singularType": "Item"
+    }
+  },
+  "scalars": {
+    "items_$.identifier": {
+      "type": "String",
+      "defaults": []
+    },
+    "items_$.deletable": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "items_$.description": {
+      "type": "String"
+    },
+    "items_$.label": {
+      "type": "String",
+      "defaults": [
+        "Order now",
+        "Create Profile",
+        "Continue",
+        "Global settings",
+        "My Profile",
+        "Delete Account",
+        "Send gift",
+        "Refresh",
+        "Create Step",
+        "Order item",
+        "Preview",
+        "Send message",
+        "Detect language",
+        "Facilitate",
+        "Incorporate",
+        "Evaluate",
+        "Conceptualize",
+        "Enable feature",
+        "Generate",
+        "Implement"
+      ]
+    },
+    "items_$.hasError": {
+      "type": "Boolean"
+    },
+    "items_$.icon": {
+      "type": "Icon",
+      "isNull": false
+    },
+    "items_$.avatar": {
+      "type": "Avatar",
+      "isNull": false
+    },
+    "items_$.linked": {
+      "type": "Boolean"
+    }
+  },
+  "sample": {
+    "count": 5,
+    "nullifyRandomly": [
+      "items_$.avatar"
+    ]
+  },
+  "useCollectionLengthProperty": true,
+  "escapeDynamicHtml": false
+}

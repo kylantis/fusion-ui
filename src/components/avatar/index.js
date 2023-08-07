@@ -1,7 +1,7 @@
 
 class Avatar extends components.LightningComponent {
 
-    beforeMount() {
+    beforeRender() {
         const input = this.getInput();
         const { initials, size } = input;
 

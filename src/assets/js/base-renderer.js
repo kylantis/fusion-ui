@@ -16,7 +16,7 @@ class BaseRenderer {
 
   #internalMeta;
 
-  constructor({ id, input, logger, config={} } = {}) {
+  constructor({ id, input, logger, config = {} } = {}) {
     if (!id) {
       // eslint-disable-next-line no-param-reassign
       id = this.#createId();
@@ -85,6 +85,7 @@ class BaseRenderer {
       loadable: true,
       hookCleanupInterval: 300,
       allowHooksForNonExistentPaths: true,
+      serialization: {},
     }
   }
 
@@ -140,9 +141,12 @@ class BaseRenderer {
    * @see global.clientUtils.stringifyComponentData
    */
   toJSON() {
+    const { serialization, loadable } = this.#config;
+
     const o = {};
     o['@type'] = this.constructor.className || this.constructor.name;
-    o['@data'] = this.getInput();
+    o['@data'] = this.#input;
+    o['@loadable'] = serialization.loadable !== undefined ? !!serialization.loadable : loadable;
     return o;
   }
 

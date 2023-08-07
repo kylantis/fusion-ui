@@ -58,7 +58,7 @@
 
     <ul class="slds-grid" role="tablist">
 
-    {{#each tabs hook = "tabHook" as |tab tabIndex|}}
+    {{#each tabs hook='tabHook' hookPhase='afterMount' as |tab tabIndex|}}
 
       {{component Menu alias="subMenu"}}
       {{component alias="content"}}
@@ -144,13 +144,6 @@
 
 </div>
 
-
-{{!-- Todo: Implement inline transforms --}}
-
-{{!-- We are using hookOrder = 0, so that contentTransform can be executed
-before other transforms on this page --}}
-{{#with . hook = "contentHook" hookOrder = 0 as |x|}}
-<div class="content"></div>
-{{/with}}
+<div class="content" style="height: 100%;"></div>
 
 </div>

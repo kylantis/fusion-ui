@@ -2,3 +2,11 @@
     // Avoid interference from scrollbar
     padding-right: 8px;
 }
+
+.slds-timeline__item_expandable:before {
+    visibility: unset;
+}
+
+.slds-timeline__item_expandable.hideLine:before {
+    visibility: hidden;
+}

@@ -1,7 +1,16 @@
 {
   "enableTypeMerging": false,
-  "collections": {},
-  "scalars": {},
+  "collections": {
+    "arr": {
+      "minLength": 10
+    }
+  },
+  "scalars": {
+    "arr_$": {
+      "type": "String",
+      "defaults": []
+    }
+  },
   "sample": {
     "nullifyRandomly": []
   },

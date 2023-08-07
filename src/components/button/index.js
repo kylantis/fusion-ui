@@ -79,7 +79,7 @@ class Button extends components.LightningComponent {
                     this.getInput().type = this.getDefaultType();
                 }
             },
-            ['onMount.states.$_']: ({ path, newValue }) => {
+            ['afterMount.states.$_']: ({ path, newValue }) => {
                 const { getKeyFromIndexSegment, getParentFromPath, getMapKeyPrefix } = this;
                 const { selectState } = this.getInput();
 
@@ -110,28 +110,28 @@ class Button extends components.LightningComponent {
                     }
                 }
             },
-            ['onMount.states.$_.title']: () => {
+            ['afterMount.states.$_.title']: () => {
                 this.refreshButtonSize();
             },
-            ['onMount.states.$_.leftIcon']: () => {
+            ['afterMount.states.$_.leftIcon']: () => {
                 this.refreshButtonSize();
             },
-            ['onMount.states.$_.rightIcon']: () => {
+            ['afterMount.states.$_.rightIcon']: () => {
                 this.refreshButtonSize();
             },
-            ['onMount.title']: () => {
+            ['afterMount.title']: () => {
                 this.refreshButtonSize();
             },
-            ['onMount.leftIcon']: () => {
+            ['afterMount.leftIcon']: () => {
                 this.refreshButtonSize();
             },
-            ['onMount.rightIcon']: () => {
+            ['afterMount.rightIcon']: () => {
                 this.refreshButtonSize();
             }
         }
     }
 
-    beforeMount() {
+    beforeRender() {
         const input = this.getInput();
         const { stateful, type } = input;
 

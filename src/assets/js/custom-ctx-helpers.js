@@ -4,18 +4,12 @@ module.exports = {
         const _this = this;
         return (value, invert, options, ctx) => {
 
-            const { hash: { hook, hookOrder, outerTransform }, loc } = options;
+            const { hash: { hook, hookPhase, hookOrder, outerTransform }, loc } = options;
 
             const nodeId = _this.getSyntheticNodeId();
 
             if (hook) {
-                assert(nodeId);
-
-                _this.hooks[`#${nodeId}`] = {
-                    hookName: hook,
-                    order: hookOrder != undefined ? hookOrder : _this.getDefaultHookOrder(),
-                    blockData: options.data.state.blockData,
-                };
+                _this.registerHook(`#${nodeId}`, hook, hookPhase, hookOrder, loc, options.data.state.blockData);
             }
 
             if (outerTransform) {
@@ -54,19 +48,13 @@ module.exports = {
             }
 
             const { loc, fn, inverse, hash } = options;
-            const { blockParam, hook, hookOrder, outerTransform } = hash;
+            const { blockParam, hook, hookPhase, hookOrder, outerTransform } = hash;
             assert(blockParam);
 
             const nodeId = _this.getSyntheticNodeId();
 
             if (hook) {
-                assert(nodeId);
-
-                _this.hooks[`#${nodeId}`] = {
-                    hookName: hook,
-                    order: hookOrder != undefined ? hookOrder : _this.getDefaultHookOrder(),
-                    blockData: options.data.state.blockData,
-                };
+                _this.registerHook(`#${nodeId}`, hook, hookPhase, hookOrder, loc, options.data.state.blockData);
             }
 
             if (outerTransform) {
@@ -117,7 +105,7 @@ module.exports = {
             }
 
             const { fn, inverse, hash, loc } = options;
-            const { blockParam, hook, hookOrder, outerTransform, predicate } = hash;
+            const { blockParam, hook, hookPhase, hookOrder, outerTransform, predicate } = hash;
             assert(blockParam);
 
             const nodeId = _this.getSyntheticNodeId();
@@ -176,13 +164,7 @@ module.exports = {
                     ret = ret + markup;
 
                     if (hook) {
-                        assert(nodeId);
-
-                        _this.hooks[`#${nodeId} > :nth-child(${index + 1})`] = {
-                            hookName: hook,
-                            order: hookOrder != undefined ? hookOrder : _this.getDefaultHookOrder(),
-                            blockData: options.data.state.blockData,
-                        };
+                        _this.registerHook(`#${nodeId} > :nth-child(${index + 1})`, hook, hookPhase, hookOrder, loc, options.data.state.blockData);
                     }
                 }
 

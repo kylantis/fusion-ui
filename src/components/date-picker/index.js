@@ -36,7 +36,7 @@ class DatePicker extends components.Input {
         }
     }
 
-    beforeMount() {
+    beforeRender() {
 
         const input = this.getInput();
         const { placeholder, rangeStart, rangeEnd } = input;
@@ -296,12 +296,12 @@ class DatePicker extends components.Input {
 
     hooks() {
         return {
-            ['onMount.displayOnHover']: (evt) => {
+            ['afterMount.displayOnHover']: (evt) => {
                 const { newValue: displayOnHover } = evt;
 
                 this.toggleDisplayOnHover(displayOnHover);
             },
-            ['onMount.readonly']: (evt) => {
+            ['afterMount.readonly']: (evt) => {
                 const { newValue: readonly } = evt;
 
                 if (readonly) {

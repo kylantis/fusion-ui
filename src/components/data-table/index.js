@@ -1,7 +1,7 @@
 
 class DataTable extends components.LightningComponent {
 
-    beforeMount() {
+    beforeRender() {
         this.setHasActions();
     }
 
@@ -26,17 +26,17 @@ class DataTable extends components.LightningComponent {
     }
 
     renameTagsTransform(node) {
-        this.visitHtmlAst({
-            ast: node, tagVisitor: this.renameTagVisitor
-        })
+        // Note: <node> can be a node or a node array, this way we have the flexibility of using it as either an outer
+        // transform or an inner transform
+        (Array.isArray(node) ? node : [node])
+            .forEach(n => {
+                this.visitHtmlAst({
+                    ast: n, tagVisitor: this.renameTagVisitor
+                })
+            })
     }
 
-    thOuterTransform(node) {
-        this.moveWrapperToParent(node);
-        this.thInnerTransform(node.content.children, true)
-    }
-
-    thInnerTransform(nodes, initial) {
+    thInnerTransform(nodes) {
         nodes
             .filter(({ nodeType }) => nodeType == 'tag')
             .forEach(node => {
@@ -47,20 +47,13 @@ class DataTable extends components.LightningComponent {
                         this.createEmptyCellElement('th')
                     ];
 
-                } else if (!initial) {
+                } else if (this.isComponentRendered()) {
                     this.renameTagsTransform(node);
                 }
-
-                this.moveWrapperToFirstChild({ node, attributes: ['key'] });
             });
     }
 
-    tdOuterTransform(node) {
-        this.moveWrapperToParent(node);
-        this.tdInnerTransform(node.content.children, true)
-    }
-
-    tdInnerTransform(nodes, initial) {
+    tdInnerTransform(nodes) {
         nodes
             .filter(({ nodeType }) => nodeType == 'tag')
             .forEach(node => {
@@ -71,20 +64,13 @@ class DataTable extends components.LightningComponent {
                         this.createEmptyCellElement()
                     ];
 
-                } else if (!initial) {
+                } else if (this.isComponentRendered()) {
                     this.renameTagsTransform(node);
                 }
-
-                this.moveWrapperToFirstChild({ node, attributes: ['key'] });
             });
     }
 
-    rowOuterTransform(node) {
-        this.moveWrapperToParent(node);
-        this.rowInnerTransform(node.content.children, true)
-    }
-
-    rowInnerTransform(nodes, initial) {
+    rowInnerTransform(nodes) {
         nodes
             .filter(({ nodeType }) => nodeType == 'tag')
             .forEach(node => {
@@ -95,11 +81,9 @@ class DataTable extends components.LightningComponent {
                         this.createEmptyRowElement()
                     ];
 
-                } else if (!initial) {
+                } else if (this.isComponentRendered()) {
                     this.renameTagsTransform(node);
                 }
-
-                this.moveWrapperToFirstChild({ node, attributes: ['key'] });
             });
     }
 
@@ -189,7 +173,7 @@ class DataTable extends components.LightningComponent {
 
     hooks() {
         return {
-            ['beforeMount.rows.$_.actions']: (evt) => {
+            ['afterMount.rows.$_.actions']: (evt) => {
                 const { newValue: actions, parentObject: { ["@key"]: identifier } } = evt;
 
                 const input = this.getInput();
@@ -215,7 +199,7 @@ class DataTable extends components.LightningComponent {
                     this.setHasActions();
                 }
             },
-            ['beforeMount.rows.$_']: (evt) => {
+            ['afterMount.rows.$_']: (evt) => {
                 const { getKeyFromIndexSegment, getParentFromPath, getMapKeyPrefix } = this;
                 const { path, newValue, oldValue } = evt;
 
@@ -239,6 +223,18 @@ class DataTable extends components.LightningComponent {
                 }
             },
         }
+    }
+
+    events() {
+
+
+        // Create a header and footer area, for multi-select button set
+
+
+
+        return [
+            'multiSelectStart', 'multiSelectEnd'
+        ];
     }
 
     behaviours() {
@@ -267,7 +263,7 @@ class DataTable extends components.LightningComponent {
         contextMenus[identifier] = contextMenu;
     }
 
-    async rowHook({ node, blockData, initial }) {
+    async rowHook({ node }) {
 
         const identifier = node.querySelector(':scope > tr').getAttribute('identifier');
         const { rows } = this.getInput();
@@ -284,7 +280,21 @@ class DataTable extends components.LightningComponent {
     }
 
     getColumnResizeHandle(index) {
-        return this.node ? this.node.querySelector(`${this.getId()}-resize-handle-${index}`) : null;
+        const { columns } = this.getInput();
+
+        const columnName = Object.keys(columns).indexOf(index);
+
+        if (!columnName) {
+            return;
+        }
+
+        const selector = `#${this.getId()}-resize-handle-${this.replaceWhitespace(columnName)}`
+
+        return this.getNode().querySelector(selector);
+    }
+
+    replaceWhitespace(idString) {
+        return idString.replace(/\s/g, '-');
     }
 
     sortAscending(columnIndex) {

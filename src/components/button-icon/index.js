@@ -8,7 +8,7 @@ class ButtonIcon extends components.TextCompanion {
         return {};
     }
 
-    beforeMount() {
+    beforeRender() {
 
         // Todo: Ensure that the attribute "aria-pressed" is set to true or false, depending on its 
         // state. This is applicable to the types: border, border-filled, border-inverse

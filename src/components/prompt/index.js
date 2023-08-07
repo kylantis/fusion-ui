@@ -1,7 +1,7 @@
 
 class Prompt extends components.Modal {
 
-    beforeMount() {
+    beforeRender() {
         const input = this.getInput();
 
         input.tabIndex = 0;

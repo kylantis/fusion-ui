@@ -28,7 +28,7 @@
 
 
 {{#*inline "render_compound_control" eager=true}}
-  {{#each items hook = "itemHook" as |item itemIndex|}}
+  {{#each items hook='registerCompoundItem' hookPhase='onMount' as |item itemIndex|}}
     <div class="mst-w {{error ? 'slds-has-error' : ''}}">
       
       <div class="slds-{{../type}}">

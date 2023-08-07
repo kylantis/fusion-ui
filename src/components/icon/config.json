@@ -498,14 +498,10 @@
     },
     "foreground": {
       "type": "String",
-      "allowed": "iconColor",
-      "defaults": [
-        "undefined"
-      ]
+      "allowed": "iconColor"
     },
     "solid": {
-      "type": "Boolean",
-      "defaultValue": "undefined"
+      "type": "Boolean"
     },
     "svgCssClass": {
       "type": "String",

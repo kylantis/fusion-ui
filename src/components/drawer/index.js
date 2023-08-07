@@ -9,7 +9,7 @@ class Drawer extends components.LightningComponent {
         return true;
     }
 
-    beforeMount() {
+    beforeRender() {
         const input = this.getInput();
 
         if (!input.position) {
@@ -21,7 +21,7 @@ class Drawer extends components.LightningComponent {
         }
     }
 
-    onMount() {
+    afterMount() {
         const { showByDefault } = this.getInput();
 
         if (showByDefault) {
@@ -31,7 +31,7 @@ class Drawer extends components.LightningComponent {
 
     hooks() {
         return {
-            ['onMount.size']: () => {
+            ['afterMount.size']: () => {
                 this.normalizeSize();
             },
         }
@@ -68,8 +68,24 @@ class Drawer extends components.LightningComponent {
         }
     }
 
+    showToggleButton() {
+        const { toggleButton } = this.getInput();
+
+        if (toggleButton) {
+            this.getInlineComponent('toggleButton').show();
+        }
+    }
+
+    hideToggleButton() {
+        const { toggleButton } = this.getInput();
+
+        if (toggleButton) {
+            this.getInlineComponent('toggleButton').hide();
+        }
+    }
+
     openDrawer() {
-        const { overlay, backdrop, toggleButton } = this.getInput();
+        const { overlay, backdrop } = this.getInput();
 
         const drawer = this.getDrawerNode();
 
@@ -79,11 +95,6 @@ class Drawer extends components.LightningComponent {
 
         if (overlay && backdrop) {
             this.node.querySelector(':scope .slds-backdrop').classList.add('slds-backdrop_open');
-        }
-
-        if (toggleButton) {
-            this.getInlineComponent('toggleButton').node
-                .setAttribute("style", "display: none");
         }
 
         const fn = ({ propertyName }) => {
@@ -99,7 +110,7 @@ class Drawer extends components.LightningComponent {
     }
 
     closeDrawer() {
-        const { backdrop, toggleButton } = this.getInput();
+        const { backdrop } = this.getInput();
 
         const drawer = this.getDrawerNode();
 
@@ -114,13 +125,6 @@ class Drawer extends components.LightningComponent {
 
         if (backdrop) {
             this.node.querySelector(':scope .slds-backdrop').classList.remove('slds-backdrop_open');
-        }
-
-        if (toggleButton) {
-            setTimeout(() => {
-                this.getInlineComponent('toggleButton').node
-                    .removeAttribute("style");
-            }, 200);
         }
 
         this.dispatchEvent('drawerClose');

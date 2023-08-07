@@ -469,8 +469,7 @@
       ]
     },
     "solid": {
-      "type": "Boolean",
-      "defaultValue": "undefined"
+      "type": "Boolean"
     },
     "foregroundColor": {
       "type": "String",
@@ -481,10 +480,7 @@
     },
     "foreground": {
       "type": "String",
-      "allowed": "iconColor",
-      "defaults": [
-        "undefined"
-      ]
+      "allowed": "iconColor"
     }
   },
   "escapeDynamicHtml": false

@@ -1,0 +1,52 @@
+
+{{#*inline "base_pill" item eager=false}}
+
+    <span identifier="{{item.identifier}}" class="slds-pill {{item.linked ? 'slds-pill_link' : ''}} {{item.hasError ? 'slds-has-error' : ''}}">
+
+        {{#if item.avatar or item.icon}}
+            <div class="slds-pill__icon_container">
+                {{component Icon alias="item.icon"}}
+                {{component Avatar alias="item.avatar"}}
+
+                {{#if item.avatar}}
+                    {{> item.avatar size='x-small'}}
+                {{else}}
+                    {{#if item.icon}}
+                        {{> item.icon foreground=(item.hasError ? 'text-error' : undefined)}}
+                    {{/if}}
+                {{/if}}
+            </div>
+        {{/if}}
+
+        {{#*inline "render_label"}}
+            <span class="slds-pill__label">{{item.label}}</span>
+        {{/inline}}
+
+        {{#if item.linked}}
+            {{var onClickHelper = (fn 'onClick')}}
+            <a href="#" onclick="{{onClickHelper}}('{{item.identifier}}')" class="slds-pill__action" title="{{item.description ? item.description : item.label}}">
+                {{> render_label}}
+            </a>
+        {{else}}
+            {{> render_label}}
+        {{/if}}
+        
+        {{#if item.deletable}}
+            {{var helperName = (fn 'onRemoveButtonClick')}}
+            {{> ButtonIcon title="Remove" assistiveText="Remove" iconType='utility' iconName='close' cssClass='slds-pill__remove' on-click="${helperName}('${item.identifier}')"}}
+        {{/if}}
+    </span>
+
+{{/inline}}
+
+{{#if items.length gt 1}}
+    <div class="slds-pill_container">
+        {{#each items innerTransform='moveWrapperToFirstChild' as |item itemIndex|}}
+            {{> base_pill item}}
+        {{/each}}
+    </div>
+{{else}}
+    {{#if items.[0]}}
+        {{> base_pill item=items.[0]}}
+    {{/if}}
+{{/if}}

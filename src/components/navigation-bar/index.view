@@ -7,7 +7,7 @@
 
     <ul class="slds-grid">
 
-      {{#each items hook = "itemHook" as |item itemIndex|}}
+      {{#each items hook='registerNavItem' hookPhase='onMount' as |item itemIndex|}}
 
       {{component Menu alias="subMenu"}}
 

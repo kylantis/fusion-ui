@@ -33,7 +33,7 @@
             {{!-- Main Pane--}}
             <div>
                 <ul aria-describedby="{{id}}-header">
-                    {{#each items hook = "itemHook" as |item itemIndex|~}}
+                    {{#each items hook='registerNavItem' hookPhase='onMount'as |item itemIndex|~}}
                         {{#if itemIndex lt @root.truncateSize}}
                             {{> render_item item}}
                         {{/if}}
@@ -64,7 +64,7 @@
 
                 <div id="{{id}}-overflow" class="slds-{{overflow.expanded ? "show" : "hide"}}">
                     <ul aria-describedby="{{id}}-header">
-                    {{#each items hook = "itemHook" as |item itemIndex|~}}
+                    {{#each items hook='registerNavItem' hookPhase='onMount' as |item itemIndex|~}}
                         {{#if itemIndex gte @root.truncateSize}}
                             {{> render_item item}}
                         {{/if}}
