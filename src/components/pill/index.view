@@ -39,9 +39,9 @@
 
 {{/inline}}
 
-{{#if items.length gt 1}}
+{{#if (items.length gt 1) or itemPredicate}}
     <div class="slds-pill_container">
-        {{#each items innerTransform='moveWrapperToFirstChild' as |item itemIndex|}}
+        {{#each items predicate='itemPredicateFn' innerTransform='moveWrapperToFirstChild' as |item itemIndex|}}
             {{> base_pill item}}
         {{/each}}
     </div>

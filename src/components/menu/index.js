@@ -1,7 +1,7 @@
 
 class Menu extends components.LightningComponent {
 
-    initCompile() {
+    beforeCompile() {
         this.getInput().overlay;
 
         // If group role is 'radio' or 'checkbox', this specifies the
@@ -19,10 +19,7 @@ class Menu extends components.LightningComponent {
     }
 
     events() {
-        return [
-            ...super.events(),
-            'click', 'select', 'unselect'
-        ]
+        return ['click', 'select', 'unselect'];
     }
 
     getItems() {

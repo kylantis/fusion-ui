@@ -8,6 +8,10 @@ const arrayIndexSegment = /\[[0-9]+\]/g;
 const mapKeySegment = /\["\$_.+?"\]/g;
 
 const canonicalArrayIndex = /_\$$/g
+
+const canonicalMapKey = /^\$_$/g
+const defaultMapKey = /^\$_\w+$/g
+
 const segment = /(\[[0-9]+\])|(\["\$_.+?"\])/g;
 const segmentWithCanonical = /(\[[0-9]+\])|(\["\$_.+?"\])|(_\$)/g;
 
@@ -103,13 +107,43 @@ module.exports = {
     return result;
   },
 
+  visitObject(obj, visitor) {
+    const { visitObject } = clientUtils;
+
+    if (obj != null && ['Array', 'Object'].includes(obj.constructor.name)) {
+      if (Array.isArray(obj)) {
+        for (let i = 0; i < obj.length; i++) {
+          const b = visitor(i, obj[i], obj);
+          if (b) {
+            visitObject(obj[i], visitor);
+          }
+        }
+      } else {
+        for (const key in obj) {
+          if (obj.hasOwnProperty(key)) {
+            const b = visitor(key, obj[key], obj);
+            if (b) {
+              visitObject(obj[key], visitor);
+            }
+          }
+        }
+      }
+    }
+  },
+
+  cloneComponentInputData: (data) => {
+    const { unsafeEval } = AppContext;
+    return unsafeEval(
+      `module.exports=${clientUtils.stringifyComponentData(
+        data,
+      )}`
+    )
+  },
+
   stringifyComponentData: (srcObject) => {
     const replacer = (name, val) => {
       const mapType = 'Map';
       if (val && val.constructor.name === 'Object') {
-        if (val['@type'] == mapType) {
-          delete val['@type'];
-        }
         if (val['@type']) {
           // This is a component, see toJSON() in BaseRenderer
           const data = JSON.stringify(val['@data'], replacer, 2)
@@ -134,8 +168,27 @@ module.exports = {
       .replace(/\n/g, '');
   },
 
-  deepClone: (o) => {
-    return JSON.parse(JSON.stringify(o));
+  /**
+ * This key is used by <restoreObjectReferences> to maintain object
+   references inside the object
+ */
+  objectReferenceKey: '__objReferenceId',
+
+  restoreObjectReferences: (key, val, objectReferences={}) => {
+    if (val && typeof val == 'object') {
+      const refKey = val[clientUtils.objectReferenceKey];
+
+      if (refKey) {
+        return objectReferences[refKey] || (objectReferences[refKey] = val);
+      }
+    }
+    return val;
+  },
+
+  deepClone: (o, objectReferences) => {
+    return JSON.parse(
+      JSON.stringify(o), (key, val) => clientUtils.restoreObjectReferences(key, val, objectReferences),
+    );
   },
 
   getSegments: ({ original }) => {
@@ -242,6 +295,40 @@ module.exports = {
     };
   },
 
+  // Note: This is designed to be used at compile-time, due to the way we validate map keys
+  validatePath: (fqPath) => {
+    const fqPathArr = fqPath.split('.');
+
+    for (let i = 0; i < fqPathArr.length; i++) {
+      const segments = clientUtils.getSegments({ original: fqPathArr[i] });
+
+      for (let j = 0; j < segments.length; j++) {
+        const segment = segments[j];
+
+        if (j == 0) {
+
+          let s = segment;
+
+          while (s.match(canonicalArrayIndex)) {
+            s = s.replace(canonicalArrayIndex, '');
+          }
+
+          if (!s.match(/^\w+$/g) && !s.match(canonicalMapKey) && !s.match(defaultMapKey)) {
+            return false;
+          }
+
+        } else {
+          // Only array indexes should be found here
+          if (segment.replace(arrayIndexSegment, '') != '') {
+            return false;
+          }
+        }
+      }
+    }
+
+    return true;
+  },
+
   getCanonicalSegments: (fqPath) => {
 
     const fqPathArr = fqPath.split('.');
@@ -253,7 +340,7 @@ module.exports = {
     loop:
     for (let i = 0; i < fqPathArr.length; i++) {
 
-      const segments = clientUtils.getSegments0(fqPathArr[i], canonicalArrayIndex);
+      const segments = clientUtils.getSegments({ original: fqPathArr[i] });
 
       // eslint-disable-next-line no-plusplus
       for (let j = 0; j < segments.length; j++) {
@@ -380,36 +467,30 @@ module.exports = {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   },
 
-  coerceString(value, type) {
-    assert(typeof value == 'string');
+  mutateObjectFromHookInfo({ hookType, hookOptions, src, dest, transfomer }) {
+    const { arrayChildReorderHookType, collChildSetHookType, collChildDetachHookType } = RootProxy;
+    const { childKey, offsetIndexes, newIndexes } = hookOptions;
 
-    switch (type) {
-      case 'number':
-        return Number(value);
-      case 'boolean':
-        return Boolean(value);
-      default:
-        throw Error(`Unknown type "${type}"`);
-    }
-  },
+    assert(src && dest && src.constructor.name == dest.constructor.name);
 
-  isStringCoercible(value, types) {
-    for (const type of types.split('|')) {
-      switch (type) {
-        case 'number':
-          if (Number(value) != NaN) {
-            return true;
-          }
-          break;
-        case 'boolean':
-          if (['true', 'false'].includes(value)) {
-            return true;
-          }
-          break;
-        default:
-          throw Error(`Unknown type "${type}"`);;
-      }
+    switch (hookType) {
+      case collChildSetHookType:
+        dest[childKey] = transfomer(src[childKey]);
+        break;
+      case collChildDetachHookType:
+        if (Array.isArray(src)) {
+          dest.length = src.length;
+        } else {
+          delete dest[childKey];
+        }
+        break;
+      case arrayChildReorderHookType:
+        dest.length = src.length;
+        [...newIndexes, ...Object.values(offsetIndexes)]
+          .forEach(i => {
+            dest[i] = transfomer(src[i]);
+          })
+        break;
     }
-    return false;
   }
 };

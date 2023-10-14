@@ -3,11 +3,7 @@
 // Todo: Update this component is old and uses a deprectaed approach
 class Accordion extends components.LightningComponent {
 
-    /**
-     * At compile-time, dynanically register extra params we want to add to the data model,
-     * Then later, update config.json to indicate specify the primitive type(s)
-     */
-    initCompile() {
+    beforeCompile() {
         this.getInput().expandSingle;
     }
 
@@ -16,7 +12,6 @@ class Accordion extends components.LightningComponent {
      * @param {HTMLElement} li 
      */
     closeItem(li) {
-
         if (!this.active.includes(li)) {
             // Item is already closed;
             return;
@@ -36,7 +31,6 @@ class Accordion extends components.LightningComponent {
      * @param {HTMLElement} li 
      */
     openItem(li) {
-
         if (this.active.includes(li)) {
             // Item is already open
             return;
@@ -56,7 +50,6 @@ class Accordion extends components.LightningComponent {
      * @param {HTMLElement} node 
      */
     addClickListener({ node }) {
-
         const li = node.querySelector(':scope > li');
 
         if (!this.active) {

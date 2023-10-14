@@ -1,34 +1,62 @@
 
 class Pill extends components.LightningComponent {
 
-    initializers() {
+    getDefaultValues() {
         return {
-            ['items_$']: (item) => {
-                const { randomString } = BaseComponent;
-
-                if (!item.identifier) {
-                    item.identifier = randomString();
-                }
-            }
-        }
+            ['items_$.identifier']: () => this.randomString()
+        };
     }
 
     events() {
-        return ['removeButtonClick', 'click'];
+        return ['itemRemove', 'click'];
     }
 
     onClick(identifier) {
         this.dispatchEvent('click', identifier);
     }
 
-    onRemoveButtonClick(identifier) {
-        this.dispatchEvent('removeButtonClick', identifier);
-
+    getIndexForIdentifier(identifier) {
         const { items } = this.getInput();
-        const idx = items.findIndex(({ identifier: id }) => id == identifier);
+        return items.findIndex(({ identifier: id }) => id == identifier);
+    }
 
-        assert(idx >= 0);
-        items.splice(idx, 1);
+    onRemoveButtonClick(identifier) {
+        const { defaultPrevented } = this.dispatchEvent('itemRemove', identifier);
+
+        if (!defaultPrevented) {
+            const { items } = this.getInput();
+            const idx = this.getIndexForIdentifier(identifier);
+
+            assert(idx >= 0);
+            items.splice(idx, 1);
+        }
+    }
+
+    itemPredicateFn(item) {
+        const { itemPredicate } = this.getInput();
+
+        const inlineParent = this.getInlineParent();
+
+        if (itemPredicate && inlineParent) {
+            const predicateFn = inlineParent[itemPredicate];
+
+            if (typeof predicateFn == "function") {
+                return predicateFn.bind(inlineParent)(item);
+            }
+        }
+        return true;
+    }
+
+    refreshItem(identifier) {
+        const { predicateHookType } = BaseComponent.CONSTANTS;
+
+        const idx = this.getIndexForIdentifier(identifier);
+
+        if (idx >= 0) {
+            this.triggerHook({
+                path: `items[${idx}]`, hookType: predicateHookType
+            })
+        }
     }
 
 }

@@ -504,7 +504,7 @@ class RootCtxRenderer extends BaseRenderer {
     return htmlString;
   }
 
-  async load({ container, token, html, style = {}, domRelayTimeout = 0 }) {
+  async load({ container, token, html, style = {}, domRelayTimeout = 5 }) {
 
     const { htmlWrapperCssClassname } = RootCtxRenderer;
 
@@ -608,8 +608,6 @@ class RootCtxRenderer extends BaseRenderer {
       delete this[name0];
       delete cache[k];
     }
-
-    assert(this.#syntheticCache.length == 0 || !this.mounted);
   }
 
   async invokeLifeCycleMethod(name, ...args) {
@@ -1305,7 +1303,7 @@ class RootCtxRenderer extends BaseRenderer {
 
       const dataPathHooks = this.proxyInstance.getDataPathHooks();
       const hookList = dataPathHooks[path] || this.proxyInstance.createHooksArray(path);
-  
+
       // Add hook, only if it does not already exist
       if (
         !hookList.filter(({ type, path: p }) =>
@@ -1728,10 +1726,10 @@ class RootCtxRenderer extends BaseRenderer {
 
   resolveMustacheInRoot({ options, params }) {
 
-    const { textNodeHookType } = RootProxy;
+    const { textNodeHookType, inlineComponentHookType, dataPathRoot, pathSeparator } = RootProxy;
     const { getLine } = clientUtils;
 
-    let { hash: { hook, hookPhase, hookOrder, transform }, loc } = options;
+    let { hash: { hook, transform }, loc } = options;
 
     const bindContext = this.getCurrentBindContext();
 
@@ -1747,10 +1745,12 @@ class RootCtxRenderer extends BaseRenderer {
 
     const isSynthetic = this.isSyntheticMethodName(path);
 
-    // Todo: Support data-binding for synthetic invocations
-    const dataBinding = !isSynthetic && this.dataBindingEnabled() &&
+    const canDataBind = this.dataBindingEnabled() &&
       // Disable for literals
       !!path;
+
+    // Todo: Support data-binding for synthetic invocations
+    const shouldDataBind = !isSynthetic && canDataBind;
 
     const isTextNodeBindContext = bindContext && bindContext.type == textNodeHookType;
 
@@ -1766,7 +1766,7 @@ class RootCtxRenderer extends BaseRenderer {
 
       case !!this.#attributeEmitContext:
 
-        if (dataBinding) {
+        if (shouldDataBind) {
           const mustacheRef = clientUtils.randomString();
 
           this.mustacheStatements[mustacheRef] = {
@@ -1793,7 +1793,7 @@ class RootCtxRenderer extends BaseRenderer {
         break;
 
       case isTextNodeBindContext:
-        const { selector } = bindContext;
+        const { type, selector, inlineComponent } = bindContext;
 
         if (value instanceof Promise || value instanceof BaseComponent) {
           value = this.render({
@@ -1806,18 +1806,38 @@ class RootCtxRenderer extends BaseRenderer {
           transform = null;
         }
 
-        const blockData = hook ? this.getBlockDataSnapshot(path) : null;
+        const dataPathHooks = this.proxyInstance.getDataPathHooks();
 
-        if (dataBinding) {
-          this.proxyInstance.getDataPathHooks()[path]
+        let blockData;
+
+        if (shouldDataBind) {
+          blockData = hook ? this.getBlockDataSnapshot(path) : null;
+
+          dataPathHooks[path]
             .push({
-              ...bindContext,
-              hookMethod: hook, hookPhase, canonicalPath, transform, blockData, loc,
-            })
+              type, selector,
+              hookMethod: hook, canonicalPath, transform, blockData, loc,
+            });
+
+        } else if (canDataBind && inlineComponent) {
+
+          const path0 = `${dataPathRoot}${pathSeparator}${this.getExecPath({ fqPath: bindContext.canonicalPath, addBasePath: false }).path}`;
+
+          blockData = this.getBlockDataSnapshot(path0);
+
+          if (!dataPathHooks[path0]) {
+            this.proxyInstance.createHooksArray(path0);
+          }
+
+          dataPathHooks[path0].push({
+            type: inlineComponentHookType, selector,
+            syntheticPath: path, ref: bindContext.ref,
+            hookMethod: hook, canonicalPath: bindContext.canonicalPath, transform, blockData, loc,
+          });
         }
 
         if (hook) {
-          this.registerHook(selector, hook, hookPhase, hookOrder, loc, blockData);
+          this.registerHook(selector, hook, 'afterMount', 0, loc, blockData);
         }
 
         break;
@@ -2828,6 +2848,10 @@ class RootCtxRenderer extends BaseRenderer {
         config,
       });
 
+      this.addEventHandlers({
+        handlersObject: componentSpec.getHandlers(), component,
+      });
+
     } else {
 
       // We don't have to clone the component
@@ -2835,10 +2859,7 @@ class RootCtxRenderer extends BaseRenderer {
       component.getInternalMeta().loaded = true;
     }
 
-    this.addEventHandlers({
-      handlersObject: componentSpec.getHandlers(),
-      handlers, component,
-    });
+    this.addEventHandlers({ handlers, component });
 
     return component;
   }
@@ -2846,18 +2867,35 @@ class RootCtxRenderer extends BaseRenderer {
   // eslint-disable-next-line class-methods-use-this
   loadInlineComponent() {
 
+    const { dataPathPrefix, textNodeHookType } = RootProxy;
+
     // eslint-disable-next-line prefer-rest-params
     const params = Array.from(arguments);
     const options = params.pop();
 
-    const { hash, loc } = options;
-    let [componentSpec] = params;
+    const [componentSpec] = params;
+    const { loc, hash } = options;
+
+    const { ref, inlineComponent, path } = hash;
 
     delete hash.ctx;
 
-    const { ref } = hash;
-
     delete hash.ref;
+    delete hash.inlineComponent;
+    delete hash.path;
+
+    delete hash.hook;
+
+    const [bindContext] = this.#currentBindContext;
+
+    if (inlineComponent && bindContext) {
+      // Update the current bind context if necessary, for data-binding purpose
+      assert(bindContext.type == textNodeHookType);
+
+      bindContext.inlineComponent = true;
+      bindContext.canonicalPath = path.replace(dataPathPrefix, '');
+      bindContext.ref = ref;
+    }
 
     return this.getPromise()
       .then(() => {
@@ -2882,8 +2920,8 @@ class RootCtxRenderer extends BaseRenderer {
             component = this.cloneComponent({ componentSpec, hash, forceClone: false });
             break;
 
-          case componentSpec == null:
-            // We need to return undefined so that BaseComponent.render(...) will render an empty string
+          case componentSpec === null:
+            // If null, set to undefined so that BaseComponent.render(...) will render an empty string
             return undefined;
         }
 
@@ -2891,20 +2929,24 @@ class RootCtxRenderer extends BaseRenderer {
           this.throwError(`Unknown target specified in PartialStatement`, loc);
         }
 
-        if (ref) {
-          this.#inlineComponentInstances[ref] = component;
-
-          this.dispatchEvent(`inlineComponentInit-${ref}`);
-
-          component.on('destroy', () => {
-            delete this.#inlineComponentInstances[ref];
-          })
-        }
-
-        component.setInlineParent(this);
+        this.#registerInlineComponent(ref, component);
 
         return component;
       });
+  }
+
+  #registerInlineComponent(ref, component) {
+    if (ref) {
+      this.#inlineComponentInstances[ref] = component;
+
+      this.dispatchEvent(`inlineComponentInit-${ref}`);
+
+      component.on('destroy', () => {
+        delete this.#inlineComponentInstances[ref];
+      })
+    }
+
+    component.setInlineParent(this);
   }
 
   onceInlineComponentLoad(ref, fn) {

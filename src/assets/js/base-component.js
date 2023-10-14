@@ -11,23 +11,41 @@ class BaseComponent extends WebRenderer {
 
   #handlers;
 
+  #eventContext;
+
   // #API
   static CONSTANTS = {
+    // Paths
     pathSeparator: RootProxy.pathSeparator,
     pathProperty: RootProxy.pathProperty,
+    // Data Variables
     firstProperty: RootProxy.firstProperty,
     lastProperty: RootProxy.lastProperty,
     keyProperty: RootProxy.keyProperty,
     indexProperty: RootProxy.indexProperty,
     randomProperty: RootProxy.randomProperty,
+    // Data types
     literalType: RootProxy.literalType,
     arrayType: RootProxy.arrayType,
     objectType: RootProxy.objectType,
     mapType: RootProxy.mapType,
     componentRefType: RootProxy.componentRefType,
+    // Hook Types
+    predicateHookType: RootProxy.predicateHookType,
+    conditionalBlockHookType: RootProxy.conditionalBlockHookType,
+    eachBlockHookType: RootProxy.eachBlockHookType,
+    textNodeHookType: RootProxy.textNodeHookType,
+    gateParticipantHookType: RootProxy.gateParticipantHookType,
+    arrayChildBlockHookType: RootProxy.arrayChildBlockHookType,
+    nodeAttributeHookType: RootProxy.nodeAttributeHookType,
+    nodeAttributeKeyHookType: RootProxy.nodeAttributeKeyHookType,
+    nodeAttributeValueHookType: RootProxy.nodeAttributeValueHookType,
+    collChildSetHookType: RootProxy.collChildSetHookType,
+    collChildDetachHookType: RootProxy.collChildDetachHookType,
+    arrayChildReorderHookType: RootProxy.arrayChildReorderHookType,
   };
 
-  constructor({ id, input, logger, config } = {}) {
+  constructor({ id, input={}, logger, config } = {}) {
 
     super({ id, input, logger, config });
 
@@ -181,7 +199,7 @@ class BaseComponent extends WebRenderer {
    * Todo: Can we add support for non-scalar attributes here by using a setter
    * sometimes instead of a getter in the object proxy 
    */
-  initCompile() {
+  beforeCompile() {
   }
   // #API
   behaviours() {
@@ -290,6 +308,21 @@ class BaseComponent extends WebRenderer {
     return this.#on0(event, handler);
   }
 
+  #newEventContext() {
+    return new class {
+      constructor() {
+        this.defaultPrevented = false;
+      }
+      preventDefault() {
+        this.defaultPrevented = true;
+      }
+    }
+  }
+
+  getEventContext() {
+    return this.#eventContext;
+  }
+
   #dispatchEvent0(event, ...args) {
     let defaultHandler = this.defaultHandlers()[event]
     if (defaultHandler) {
@@ -298,9 +331,16 @@ class BaseComponent extends WebRenderer {
       }
       assert(typeof defaultHandler == 'function');
     }
+
+    this.#eventContext = this.#newEventContext();
+
     [...this.getHandlers()[event] || (defaultHandler ? [defaultHandler] : [])]
       .forEach(handler => handler(...args));
-    return this;
+
+    const ctx = this.#eventContext;
+    this.#eventContext = null;
+
+    return ctx;
   }
 
   // #API
@@ -407,12 +447,7 @@ class BaseComponent extends WebRenderer {
   }
 
   static cloneInputData(data) {
-    const { unsafeEval } = AppContext;
-    return unsafeEval(
-      `module.exports=${clientUtils.stringifyComponentData(
-        data,
-      )}`
-    )
+    return clientUtils.cloneComponentInputData(data);
   }
 
   static cloneComponent({ component, inputVistor = (i) => i, inputConsumer, inputProducer }) {
@@ -601,10 +636,24 @@ class BaseComponent extends WebRenderer {
     const { visitHtmlAst } = RootCtxRenderer;
     return visitHtmlAst({ ast, emitter, tagVisitor });
   }
-
+  // #API
   static getAllComponents() {
     const { getAllComponents } = BaseRenderer;
     return getAllComponents();
+  }
+  // #API
+  async triggerHook({ path, hookType, hookOptions }) {
+    const { dataPathRoot, pathSeparator } = RootProxy;
+    const { value } = this.proxyInstance.getInfoFromPath(path);
+
+    return this.proxyInstance.triggerHooks0({
+      path: `${dataPathRoot}${pathSeparator}${path}`,
+      value, hookTypes: [hookType], hookOptions,
+    })
+  }
+  // #API
+  static mutateObjectFromHookInfo(hookType, hookOptions, src, dest, transfomer) {
+    return clientUtils.mutateObjectFromHookInfo({ hookType, hookOptions, src, dest, transfomer });
   }
 }
 module.exports = BaseComponent;

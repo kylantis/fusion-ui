@@ -1,6 +1,7 @@
 
 /* eslint-disable class-methods-use-this */
 class BaseRenderer {
+
   static #componentIds = [];
   static #components = {};
 
@@ -142,11 +143,19 @@ class BaseRenderer {
    */
   toJSON() {
     const { serialization, loadable } = this.#config;
+    const { referenceKey } = this.getInternalMeta();
+    const { objectReferenceKey } = clientUtils
 
     const o = {};
-    o['@type'] = this.constructor.className || this.constructor.name;
-    o['@data'] = this.#input;
-    o['@loadable'] = serialization.loadable !== undefined ? !!serialization.loadable : loadable;
+
+    if (referenceKey) {
+      o[objectReferenceKey] = referenceKey;
+    } else {
+      o['@type'] = this.constructor.className || this.constructor.name;
+      o['@data'] = this.#input;
+      o['@loadable'] = serialization.loadable !== undefined ? !!serialization.loadable : loadable;
+    }
+
     return o;
   }
 

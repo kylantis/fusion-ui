@@ -1,0 +1,78 @@
+  
+  {{#*inline "loadSpinner"}}
+    <div class="slds-align_absolute-center slds-p-top_medium">
+      {{> Spinner size='x-small' container=null inline=true }}
+    </div>
+  {{/inline}}
+
+<div 
+  class="
+    slds-dropdown 
+    {{length ? length : '' transform='lengthTransform'}}
+    {{fluid ? 'slds-dropdown_fluid' : ''}}" 
+  role="listbox" aria-label="" tabindex="0" aria-busy="false"
+  >
+  {{!-- Todo: Why is "aria-busy" above always false? --}}
+
+  {{#if loading}}
+    {{> loadSpinner}}
+  {{/if}}
+  
+  {{#each groups as |group groupIndex|}}
+    <ul class="slds-listbox {{../type ? 'slds-listbox_${../type}' : ''}}" role="presentation">
+      
+      <li role="presentation" class="slds-listbox__item">
+            <div id="group-{{groupIndex}}-title" class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small" role="presentation">
+                <h3 class="slds-listbox__option-header" role="presentation">{{title}}</h3>
+            </div>
+      </li>
+      
+      {{#each items as |item itemIndex|}}
+
+        {{var onClickHelper = (fn 'onClick')}}
+
+        <li role="presentation" class="slds-listbox__item" onclick="{{onClickHelper}}('{{identifier}}')" >
+          <div 
+            id="{{identifier}}" 
+            class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small {{selected ? 'slds-is-selected slds-has-focus' : ''}}" 
+            {{disabled ? "aria-disabled='true'" : ''}}
+            {{selected ? "aria-checked='true'" : ''}}
+            role="option"
+          >
+            
+            <span class="slds-media__figure slds-listbox__option-icon">
+        
+              {{component Icon alias="icon"}}
+              
+              {{#if selected}}
+                {{> Icon type='utility' name='check' size='x-small' useCurrentColor=true }}
+              {{else}}
+                {{#if icon}}
+                  {{> icon size='x-small' svgCssClass=((disabled and (isSolidIcon icon)) ? 'slds-icon_disabled' : '') }}
+                {{/if}}
+              {{/if}}
+            </span>
+            
+            <span class="slds-media__body">
+              <span class="slds-truncate" title="{{title}}">{{title}}</span>
+              
+              {{#if metaText}}
+                  <span class="slds-listbox__option-meta">{{metaText}}</span>
+              {{/if}}
+            </span>
+            
+          </div>
+        </li>
+      {{/each}}
+
+      {{#if loading}}
+        <li role="presentation" class="slds-listbox__item">
+          {{> loadSpinner}}
+        </li>
+      {{/if}}
+
+    </ul>
+  {{/each}}
+
+
+</div>

@@ -1,7 +1,7 @@
 
 class ButtonIcon extends components.TextCompanion {
 
-    initCompile() {
+    beforeCompile() {
     }
 
     hooks() {

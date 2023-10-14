@@ -1,10 +1,10 @@
 
-{{#*inline "render_base"}}
+{{#*inline "render_base" inline}}
 <div role="status" class="slds-spinner 
   {{size ? 'slds-spinner_${size}' : '' transform='sizeTransform'}}
   {{delayed ? 'slds-spinner_delayed' : ''}}
   {{color ? 'slds-spinner_${color}' : ''}}
-  {{inlined ? 'slds-spinner_inline' : ''}}
+  {{inline ? 'slds-spinner_inline' : ''}}
   ">
     <span class="slds-assistive-text">{{assistiveText}}</span>
     <div class="slds-spinner__dot-a"></div>
@@ -15,11 +15,11 @@
 
 {{#if container}}
   <div class="slds-spinner_container {{(container eq 'fixed') ? 'slds-is-fixed' : ''}}">
-    {{> render_base}}
+    {{> render_base inline=false}}
     {{#if backdropped}}
       <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
     {{/if}}
   </div>
 {{else}}
-  {{> render_base}}
+    {{> render_base inline}}
 {{/if}}

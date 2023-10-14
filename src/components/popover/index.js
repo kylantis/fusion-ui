@@ -1,7 +1,7 @@
 
 class Popover extends components.OverlayComponent {
 
-    initCompile() {
+    beforeCompile() {
         this.getInput().targetElement;
         this.getInput().nubbin;
     }

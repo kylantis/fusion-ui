@@ -10,7 +10,7 @@ class ContextMenu extends components.OverlayComponent {
         return ContextMenu.instances || (ContextMenu.instances = {});
     }
 
-    initCompile() {
+    beforeCompile() {
         this.getInput().clickType;
         this.getInput().useTargetPosition;
         this.getInput().positions[0];

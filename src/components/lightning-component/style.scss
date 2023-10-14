@@ -1,0 +1,10 @@
+
+.lightning-transition-in {
+    visibility: visible;
+    transition: visibility 0.3s ease-in;
+}
+
+.lightning-transition-out {
+    visibility: hidden;
+    transition: visibility 0.3s ease-in;
+}

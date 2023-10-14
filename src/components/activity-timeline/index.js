@@ -1,6 +1,6 @@
 class ActivityTimeline extends components.LightningComponent {
 
-    initCompile() {
+    beforeCompile() {
         // Load component class: ContextMenu at compile-time to indicate
         // that this component requires them
         components.ContextMenu;
@@ -13,7 +13,7 @@ class ActivityTimeline extends components.LightningComponent {
             // When there's a domRelayTimeout, the user will see the skeletal markup
             // rendered on the screen for a while before the inner components load.
             // For ActivityTimeline, this view is not appealing at all, so we will hide until
-            // components start laoding
+            // components start loading
 
             this.once(() => {
                 this.node.style.visibility = 'hidden';

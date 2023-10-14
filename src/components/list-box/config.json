@@ -1,0 +1,140 @@
+{
+  "enableTypeMerging": false,
+  "collections": {
+    "groups": {
+      "minLength": 2,
+      "singularType": "Group"
+    },
+    "groups_$.items": {
+      "minLength": 5,
+      "singularType": "Item"
+    }
+  },
+  "scalars": {
+    "length": {
+      "type": "String",
+      "allowed": [
+        "five",
+        "seven",
+        "ten",
+        "with-icon-five",
+        "with-icon-seven",
+        "with-icon-ten"
+      ],
+      "defaults": [
+        "undefined"
+      ]
+    },
+    "fluid": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "type": {
+      "type": "String",
+      "allowed": [
+        "horizontal",
+        "vertical"
+      ],
+      "defaults": [
+        "undefined"
+      ]
+    },
+    "loading": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "groups_$.title": {
+      "type": "String",
+      "defaults": [
+        "Group One",
+        "Group Two",
+        "Group Three",
+        "Group Four"
+      ]
+    },
+    "groups_$.loading": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "groups_$.items_$.disabled": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "groups_$.items_$.icon": {
+      "type": "Icon",
+      "isNull": false
+    },
+    "groups_$.items_$.title": {
+      "type": "string",
+      "defaults": [
+        "Order now",
+        "Create Profile",
+        "Continue",
+        "Global settings",
+        "My Profile",
+        "Delete Account",
+        "Send gift",
+        "Refresh",
+        "Create Step",
+        "Order item",
+        "Preview",
+        "Send message",
+        "Detect language",
+        "Facilitate",
+        "Incorporate",
+        "Evaluate",
+        "Conceptualize",
+        "Enable feature",
+        "Generate",
+        "Implement"
+      ]
+    },
+    "groups_$.items_$.selected": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "groups_$.items_$.identifier": {
+      "type": "string",
+      "defaults": [
+        "undefined"
+      ]
+    },
+    "groups_$.items_$.metaText": {
+      "type": "string",
+      "defaults": [
+        null
+      ]
+    }
+  },
+  "events": {
+    "itemsUpdate": {
+      "parameters": {
+        "allItems": {
+          "type": {
+            "$ref": "groups_$.items"
+          }
+        },
+        "addedItems": {
+          "type": {
+            "$ref": "groups_$.items"
+          }
+        },
+        "removedItems": {
+          "type": {
+            "$ref": "groups_$.items"
+          }
+        }
+      }
+    }
+  },
+  "sample": {
+    "count": 5,
+    "nullifyRandomly": [
+      "groups_$.loading",
+      "groups_$.items_$.icon",
+      "items_$.icon"
+    ]
+  },
+  "useCollectionLengthProperty": false,
+  "escapeDynamicHtml": false
+}

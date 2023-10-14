@@ -1,7 +1,7 @@
 
 class Modal extends components.LightningComponent {
 
-    initCompile() {
+    beforeCompile() {
         this.getInput().showByDefault;
     }
 

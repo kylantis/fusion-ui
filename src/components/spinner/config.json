@@ -39,7 +39,7 @@
         "brand"
       ]
     },
-    "inlined": {
+    "inline": {
       "type": "Boolean",
       "defaultValue": false
     },

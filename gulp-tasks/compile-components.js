@@ -3,20 +3,45 @@
 const pathLib = require('path');
 const fs = require('fs');
 
+const { spawn } = require('child_process');
+
 const gulp = require('gulp');
 const through = require('through2');
 
 const { processFile } = require('../lib/template-processor');
 const { getAllComponentNames, peek } = require('../lib/utils');
 
+const componentNameArgPrefix = '--component=';
+const segmentArg = '--segment';
+const performPurgeArg = '--performPurge';
 
-const componentArgPrefix = '--component=';
-const tailArgument = process.argv[process.argv.length - 1];
+let componentName;
+let componentList;
+let performPurge;
 
-const componentName = tailArgument.startsWith(componentArgPrefix) ?
-  tailArgument.replace(componentArgPrefix, '') : null;
+const nodeArgs = process.argv.slice(2);
 
-const componentList = componentName ? [componentName] : getAllComponentNames();
+const processNodeArgs = () => {
+  nodeArgs.forEach(arg => {
+    switch (true) {
+      case arg.startsWith(componentNameArgPrefix):
+        componentName = arg.replace(componentNameArgPrefix, '');
+        break;
+      case arg == segmentArg:
+        componentList = getAllComponentNames();
+        break;
+      case arg == performPurgeArg:
+        performPurge = true;
+        break;
+    }
+  });
+}
+
+processNodeArgs();
+
+if (!componentList) {
+  componentList = componentName ? [componentName] : getAllComponentNames();
+}
 
 const srcFolder = 'src/components';
 const distFolder = 'dist/components';
@@ -24,7 +49,7 @@ const distFolder = 'dist/components';
 const __cpq = global.__cpq || (global.__cpq = []);
 
 // eslint-disable-next-line func-names
-const gulpTransform = ({ fromWatch, componentList, beforeHook } = {}) => {
+const gulpTransform = ({ fromWatch, componentList, performPurge } = {}) => {
   return through.obj(async (vinylFile, _encoding, callback) => {
     const file = vinylFile.clone();
 
@@ -41,8 +66,13 @@ const gulpTransform = ({ fromWatch, componentList, beforeHook } = {}) => {
       return callback(null, file);
     }
 
-    if (beforeHook) {
-      await beforeHook();
+    if (performPurge) {
+      // prune the list.json file inorder to clear the component cache
+
+      const file = pathLib.join(process.env.PWD, distFolder, 'list.json');
+      if (fs.existsSync(file)) {
+        fs.rmSync(file);
+      }
     }
 
     __cpq.push(dir);
@@ -56,10 +86,6 @@ const gulpTransform = ({ fromWatch, componentList, beforeHook } = {}) => {
 
     __cpq.pop();
 
-    if (global.gc) {
-      // Run the garbage collector, if node flag: --expose-gc is present
-      global.gc();
-    }
 
     // write precompiled template
     file.basename = 'metadata.min.js';
@@ -71,31 +97,71 @@ const gulpTransform = ({ fromWatch, componentList, beforeHook } = {}) => {
   });
 };
 
+gulp.task('compile-component', async () => {
+  const process = require('process');
+
+  if (process) {
+    process.on('uncaughtException', (err) => {
+      console.error(err.stack);
+      process.exit(1);
+    });
+  }
+
+  if (!componentName) {
+    throw Error(`Required argument: ${componentNameArgPrefix}`)
+  }
+
+  return gulp.src(pathLib.join(srcFolder, componentName, 'index.view'))
+    .pipe(
+      gulpTransform({ componentList, performPurge })
+    )
+    .pipe(gulp.dest(pathLib.join(distFolder, componentName)))
+});
 
 gulp.task('compile-components', gulp.series(componentList
   .map((name, i) => {
-    let beforeHook;
-
-    if (!componentName && i == 0) {
-      beforeHook = () => {
-        // We are compiling all components, prune the list.json file before the first coponent
-        // is compiled, iorder to clear the component cache
-
-        const file = pathLib.join(process.env.PWD, distFolder, 'list.json');
-        if (fs.existsSync(file)) {
-          fs.rmSync(file);
-        }
-      }
-    }
-
     const taskName = `compile-component-${name}`;
 
-    gulp.task(taskName, () => gulp.src(pathLib.join(srcFolder, name, 'index.view'))
-      .pipe(
-        gulpTransform({ componentList, beforeHook })
+    if (!componentName) {
+      // We are compiling all components, we need to move each compilation task to a new process
+
+      const args = [`${componentNameArgPrefix}${name}`, segmentArg];
+
+      if (i == 0) {
+        args.push(performPurgeArg);
+      }
+
+      gulp.task(taskName, () => {
+        return new Promise((resolve, reject) => {
+
+          const childProcess = spawn(
+            'npm', ['run', 'compile-component', '--silent', '--', '--silent', ...args],
+            { stdio: "inherit" }
+          );
+
+          childProcess.on('close', (code) => {
+            if (code == 0) {
+              resolve();
+            } else {
+              const err = Error(`Exception thrown while running ${taskName}, see above for stack trace`);
+              err.stack = ' ';
+              reject(err);
+            }
+          });
+        })
+      });
+
+    } else {
+      // We are compiling only one component, [componentName]
+
+      gulp.task(taskName, () => gulp.src(pathLib.join(srcFolder, name, 'index.view'))
+        .pipe(
+          gulpTransform({ componentList })
+        )
+        .pipe(gulp.dest(pathLib.join(distFolder, name)))
       )
-      .pipe(gulp.dest(pathLib.join(distFolder, name)))
-    )
+    }
+
     return taskName;
   })));
 
@@ -118,7 +184,7 @@ gulp.task('compile-components:watch', () => {
         }
         cb(null, vinylFile);
       }))
-      .pipe(gulpTransform({ fromWatch: true }))
+      .pipe(gulpTransform({ fromWatch: true, performPurge: false }))
 
       .pipe(gulp.dest(`${distFolder}${componentName ? `/${componentName}` : ''}`))
   });
