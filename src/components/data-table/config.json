@@ -1,5 +1,5 @@
 {
-  "enableTypeMerging": true,
+  "enableTypeMerging": false,
   "collections": {
     "columns": {
       "minLength": 5,
@@ -186,6 +186,5 @@
     ]
   },
   "useCollectionLengthProperty": true,
-  "escapeDynamicHtml": false,
-  "sharedTypeNames": {}
+  "escapeDynamicHtml": false
 }

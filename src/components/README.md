@@ -1,6 +1,6 @@
 ## Overview
 
-- initCompile()
+- beforeCompile()
 - component lifecycle
 
 

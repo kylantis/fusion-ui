@@ -1,7 +1,7 @@
 
 class GridElement extends components.LightningComponent {
 
-    initCompile() {
+    beforeCompile() {
         this.getInput().size[0];
         this.getInput().order[0];
     }

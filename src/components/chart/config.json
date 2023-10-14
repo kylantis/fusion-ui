@@ -194,24 +194,30 @@
       "type": "Number",
       "defaultValue": 8
     },
+    "yMarkers_$.options.labelPos": {
+      "type": {
+        "$ref": "YOption.labelPos"
+      },
+      "defaults": [],
+      "allowed": {
+        "$ref": "YOption.labelPos"
+      }
+    },
+    "yRegions_$.options.labelPos": {
+      "type": {
+        "$ref": "YOption.labelPos"
+      },
+      "defaults": [],
+      "allowed": {
+        "$ref": "YOption.labelPos"
+      }
+    },
     "YOption.labelPos": {
       "type": "String",
       "allowed": [
         "left",
         "right"
       ]
-    },
-    "yMarkers_$.options.labelPos": {
-      "type": {
-        "$ref": "YOption.labelPos"
-      },
-      "defaults": []
-    },
-    "yRegions_$.options.labelPos": {
-      "type": {
-        "$ref": "YOption.labelPos"
-      },
-      "defaults": []
     }
   },
   "events": {
@@ -283,7 +289,10 @@
   "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false,
   "loadAfterCompile": false,
-  "sharedTypeNames": {
-    "SharedType0": "YOption"
+  "sharedTypes": {
+    "SharedType0": {
+      "strategy": "derivedType",
+      "className": "YOption"
+    }
   }
 }

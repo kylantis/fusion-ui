@@ -7,9 +7,18 @@
     }
   },
   "scalars": {
+    "itemPredicate": {
+      "type": "String",
+      "defaults": [
+        null
+      ],
+      "clientOnly": true
+    },
     "items_$.identifier": {
       "type": "String",
-      "defaults": []
+      "defaults": [
+        "undefined"
+      ]
     },
     "items_$.deletable": {
       "type": "Boolean",

@@ -64,8 +64,11 @@ readonly is false, so that this edit icon does not display on top of it --}}
   >
 
     {{#if readonly neq undefined innerTransform='labelTransform' transient=true}}
-      <label class="slds-form-element__label {{displayOnlyControl ? "slds-assistive-text" : ""}}" for="{{@root.componentId}}_input">
-        {{> render_title}}
+      <label class="slds-form-element__label {{displayOnlyControl ? "slds-assistive-text" : ""}}" 
+        {{hasInputElement ? "for='${@root.componentId}_input'" : ''}}
+        id="{{@root.componentId}}_label"
+      >
+          {{> render_title}}
       </label>
     {{/if}}
 

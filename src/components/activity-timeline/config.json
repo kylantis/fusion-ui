@@ -1,18 +1,21 @@
 {
   "enableTypeMerging": true,
   "collections": {
-    "Sentence.parts": {
-      "singularType": "Part"
-    },
     "items": {
       "minLength": 5,
       "singularType": "Item"
     },
     "items.$_.summary.parts": {
-      "minLength": 5
+      "minLength": 5,
+      "singularType": {
+        "$ref": "Sentence.parts"
+      }
     },
     "items.$_.description.parts": {
-      "minLength": 1
+      "minLength": 1,
+      "singularType": {
+        "$ref": "Sentence.parts"
+      }
     },
     "items.$_.title.left": {
       "minLength": 1
@@ -31,15 +34,12 @@
         "Attendees",
         "When"
       ]
+    },
+    "Sentence.parts": {
+      "singularType": "Part"
     }
   },
   "scalars": {
-    "Sentence.parts_$.link": {
-      "type": "Link"
-    },
-    "Sentence.parts_$.text": {
-      "type": "String"
-    },
     "items.$_.expanded": {
       "type": "Boolean",
       "defaultValue": false
@@ -152,6 +152,12 @@
     "items.$_.properties.$_": {
       "type": "Link",
       "isNull": false
+    },
+    "Sentence.parts_$.link": {
+      "type": "Link"
+    },
+    "Sentence.parts_$.text": {
+      "type": "string"
     }
   },
   "sample": {
@@ -160,8 +166,10 @@
       "items.$_.summary.parts_$.link"
     ]
   },
-  "sharedTypeNames": {
-    "SharedType0": "Sentence"
-  },
-  "escapeDynamicHtml": false
+  "escapeDynamicHtml": false,
+  "sharedTypes": {
+    "SharedType0": {
+      "className": "Sentence"
+    }
+  }
 }

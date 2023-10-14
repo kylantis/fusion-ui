@@ -1,14 +1,11 @@
 
 class NavigationBar extends components.LightningComponent {
 
-    initCompile() {
+    beforeCompile() {
     }
 
     events() {
-        return [
-            ...super.events(),
-            'navItemClick'
-        ]
+        return ['navItemClick'];
     }
 
     defaultHandlers() {

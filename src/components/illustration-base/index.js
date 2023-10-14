@@ -1,7 +1,7 @@
 
 class IllustrationBase extends components.LightningComponent {
 
-    initCompile() {
+    beforeCompile() {
         this.getInput().name;
     }
 

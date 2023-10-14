@@ -1,7 +1,9 @@
 
 class GlobalNavigation extends components.LightningComponent {
 
-    initCompile() {
+    #spinner;
+
+    beforeCompile() {
 
         // DEV PURPOSE ONLY - PLEASE REMOVE
         components.SidebarLayout;
@@ -18,6 +20,10 @@ class GlobalNavigation extends components.LightningComponent {
         delete this.bodyClickListener;
 
         super.destroy();
+
+        if (this.#spinner) {
+            this.#spinner.destroy();
+        }
     }
 
     hooks() {
@@ -28,6 +34,17 @@ class GlobalNavigation extends components.LightningComponent {
         return {
             ['tabs_$.identifier']: () => this.randomString()
         };
+    }
+
+    beforeLoad() {
+        this.#createSpinner();
+    }
+
+    #createSpinner() {
+        const spinner = new components.Spinner();
+        this.#spinner = spinner;
+
+        spinner.load();
     }
 
     onMount() {
@@ -174,6 +191,39 @@ class GlobalNavigation extends components.LightningComponent {
         delete overlayConfig.container;
     }
 
+    showLoader() {
+        if (!this.#spinner.canDisplay()) {
+            this.#spinner.setCssDisplay();
+        }
+
+        this.#spinner.show((n) => this.show0(n));
+
+        this.clearSpinnerDisplayTimeout();
+    }
+
+    hideLoader() {
+        this.#spinner.hide((n) => this.hide0(n));
+
+        this.clearSpinnerDisplayTimeout();
+
+        this.spinnerDisplayTimeout = setTimeout(() => {
+            this.#spinner.setCssDisplay('none');
+        },
+            this.getSpinnerDisplayTimeoutInMillis()
+        )
+    }
+
+    clearSpinnerDisplayTimeout() {
+        if (this.spinnerDisplayTimeout) {
+            clearTimeout(this.spinnerDisplayTimeout);
+        }
+        this.spinnerDisplayTimeout = null;
+    }
+
+    getSpinnerDisplayTimeoutInMillis() {
+        return 60000;
+    }
+
     async setActiveItem(identifier, force = true) {
 
         // If another tab is actively being loaded, do nothing
@@ -210,6 +260,8 @@ class GlobalNavigation extends components.LightningComponent {
         }
 
         if (!item.isLoaded) {
+            this.showLoader();
+            
             this.createTabContentContainer(identifier);
         }
 
@@ -223,8 +275,6 @@ class GlobalNavigation extends components.LightningComponent {
         if (!item.isLoaded) {
             this.loading = true;
 
-            showLoader();
-
             let { content } = item;
 
             if (!content) {
@@ -237,14 +287,14 @@ class GlobalNavigation extends components.LightningComponent {
 
             if (this.isMounted()) {
                 content.once(() => {
-                    hideLoader();
+                    this.hideLoader();
                 }, 'render');
             }
 
             await content.load({ container, domRelayTimeout: this.isMounted() ? 50 : 0 });
 
             if (!this.isMounted()) {
-                hideLoader();
+                this.hideLoader();
             }
 
             this.afterContentLoaded(container);

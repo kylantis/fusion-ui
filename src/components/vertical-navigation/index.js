@@ -3,7 +3,7 @@ class VerticalNavigation extends components.LightningComponent {
 
     static DEFAULT_TRUNCATE_SIZE = 3;
 
-    initCompile() {
+    beforeCompile() {
         this.getInput().truncateSize;
 
         // Client-only field needed by <this.items> to help us map sections to items

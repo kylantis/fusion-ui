@@ -1,3 +1,4 @@
 {{style url="/assets/styles/salesforce-lightning-design-system.min.css"}}
 {{style url="/assets/styles/salesforce-lightning-design-system_touch.min.css" predicate='isMobile'}}
 {{style url="/assets/styles/base.min.css"}}
+{{style url="/components/lightning_component/style.min.css"}}

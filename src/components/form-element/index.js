@@ -1,7 +1,7 @@
 
 class FormElement extends components.LightningComponent {
 
-    initCompile() {
+    beforeCompile() {
         components.Tooltip;
 
         this.getInput().disabled;
@@ -18,6 +18,9 @@ class FormElement extends components.LightningComponent {
     }
 
     isLoadable() {
+        if (this.isHeadlessContext()) {
+            return true;
+        }
         return (this.getComponentName() == FormElement.name) ? false : super.isLoadable();;
     }
 
@@ -157,6 +160,10 @@ class FormElement extends components.LightningComponent {
         return !this.isCompound() ?
             document.querySelector(`#${this.getId()}-popup-widget`) :
             null;
+    }
+
+    hasInputElement() {
+        return true;
     }
 }
 

@@ -5,7 +5,7 @@ class MultiOptionFormElement extends components.FormElement {
         return true;
     }
 
-    initCompile() {
+    beforeCompile() {
         this.getInput().cssClass;
         this.getInput().items[0].name;
     }

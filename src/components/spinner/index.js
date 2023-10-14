@@ -1,20 +1,12 @@
 
 class Spinner extends components.LightningComponent {
 
-    initCompile() {
-    }
-
-    hooks() {
+    getDefaultValues() {
         return {
-            ['afterMount.inlined']: ({ newValue: inlined }) => {
-                if (inlined) {
-                    this.addAbsoluteCenterClass();
-                } else {
-                    this.removeAbsoluteCenterClass();
-                }
-            },
-            // Todo: Add hook for "container"
-        }
+            ['color']: 'brand',
+            ['size']: 'medium',
+            ['container']: 'default',
+        };
     }
 
     onMount() {
@@ -27,42 +19,33 @@ class Spinner extends components.LightningComponent {
         this.show();
     }
 
+    getNode() {
+        const { container } = this.getInput();
+        return this.node.querySelector(
+            container ? '.slds-spinner_container' : '.slds-spinner'
+        );
+    }
+
     getContainer() {
         return this.node.parentElement;
     }
 
-    addAbsoluteCenterClass() {
-        this.getContainer().classList
-            .add('slds-align_absolute-center');
+    canDisplay() {
+        return getComputedStyle(this.getNode()).display != 'none';
     }
 
-    removeAbsoluteCenterClass() {
-        this.getContainer().classList
-            .remove('slds-align_absolute-center');
+    setCssDisplay(display = 'initial') {
+        this.getNode().style.display = display;
     }
 
     show() {
-        const { inlined } = this.getInput();
-
-        if (inlined) {
-            this.addAbsoluteCenterClass();
-        }
-
         this.getContainer().classList.add('slds-is-relative');
-
-        this.node.style.visibility = 'visible';
+        this.show0(this.getNode());
     }
 
     hide() {
-        const { inlined } = this.getInput();
-
-        if (inlined) {
-            this.removeAbsoluteCenterClass();
-        }
-
         this.getContainer().classList.remove('slds-is-relative');
-
-        this.node.style.visibility = 'hidden';
+        this.hide0(this.getNode());
     }
 
     sizeTransform(size) {

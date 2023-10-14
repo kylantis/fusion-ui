@@ -3,7 +3,7 @@ class OverlayComponent extends components.LightningComponent {
 
     static #overlayConfig = {};
 
-    initCompile() {
+    beforeCompile() {
     }
 
     static isAbstract() {

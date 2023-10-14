@@ -8,7 +8,7 @@
 
 class Chart extends components.LightningComponent {
 
-    initCompile() {
+    beforeCompile() {
         this.getInput().title;
         this.getInput().type;
         this.getInput().height;

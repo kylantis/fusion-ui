@@ -7,7 +7,7 @@ class DatePicker extends components.Input {
     #locale;
     #datesCache;
 
-    initCompile() {
+    beforeCompile() {
         this.getInput().displayOnHover;
         this.getInput().startDate;
         this.getInput().rangeStart;

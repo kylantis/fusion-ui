@@ -1,6 +1,6 @@
 class LightningComponent extends BaseComponent {
 
-    initCompile() {
+    beforeCompile() {
         this.getInput().cssStyle;
         this.getInput().cssClass;
     }
@@ -18,8 +18,10 @@ class LightningComponent extends BaseComponent {
     }
 
     toggleCssClass(predicate, className) {
-        const node = this.getNode();
+        this.toggleCssClass0(this.getNode(), predicate, className);
+    }
 
+    toggleCssClass0(node, predicate, className) {
         if (!node) {
             return;
         }
@@ -32,13 +34,21 @@ class LightningComponent extends BaseComponent {
     }
 
     show() {
-        this.toggleCssClass(false, 'slds-hidden');
-        this.toggleCssClass(true, 'slds-visible');
+        this.show0(this.getNode());
     }
 
+    show0(node) {
+        this.toggleCssClass0(node, false, 'lightning-transition-out');
+        this.toggleCssClass0(node, true, 'lightning-transition-in');
+    }
+    
     hide() {
-        this.toggleCssClass(false, 'slds-visible');
-        this.toggleCssClass(true, 'slds-hidden');
+       this.hide0(this.getNode());
+    }
+
+    hide0(node) {
+        this.toggleCssClass0(node, false, 'lightning-transition-in');
+        this.toggleCssClass0(node, true, 'lightning-transition-out');
     }
 
     async setTooltipText(title) {
@@ -241,7 +251,7 @@ class LightningComponent extends BaseComponent {
     }
 
     static {
-        document.body.addEventListener('click', ({ target }) => {
+        document.body.addEventListener('mousedown', ({ target }) => {
 
             const k = this.getOverlayAttribute();
 

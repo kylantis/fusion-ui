@@ -1,7 +1,7 @@
 
 class SidebarLayout extends components.Drawer {
 
-    initCompile() {
+    beforeCompile() {
 
     }
 
