@@ -3,11 +3,16 @@ class VerticalNavigation extends components.LightningComponent {
 
     static DEFAULT_TRUNCATE_SIZE = 3;
 
+    #sectionIds = [];
+    #itemIds = [];
+
+    #items = {};
+
     beforeCompile() {
         this.getInput().truncateSize;
 
-        // Client-only field needed by <this.items> to help us map sections to items
         this.getInput().sections[0].items[0].sectionId;
+        this.getInput().sections[0].items[0].rendered;
     }
 
     beforeRender() {
@@ -19,107 +24,101 @@ class VerticalNavigation extends components.LightningComponent {
             input.truncateSize = DEFAULT_TRUNCATE_SIZE;
         }
 
-        this.ensureUniqueIds();
+        this.on('remove.sections_$', ({ value: section }) => {
+            if (!section) return;
+
+            const { id } = section;
+
+            this.#sectionIds.splice(
+                this.#sectionIds.indexOf(id), 1
+            );
+        });
+
+        this.on('insert.sections_$.items_$', ({ value: item, parentObject }) => {
+            if (!item) return;
+
+            const { id: sectionId } = parentObject['@parentRef'];
+
+            item.sectionId = sectionId;
+            this.#items[item.id] = item;
+        });
+
+        this.on('remove.sections_$.items_$', ({ value: item }) => {
+            if (!item) return;
+
+            const { id } = item;
+
+            this.#itemIds.splice(
+                this.#itemIds.indexOf(id), 1
+            );
+
+            delete this.#items[id];
+        });
     }
 
-    hooks() {
+    immutablePaths() {
+        return ['sections_$.id', 'sections_$.items_$.id'];
+    }
+
+    initializers() {
         return {
-            ['sections_$']: ({ oldValue, newValue }) => {
-                if (newValue == undefined && oldValue) {
-                    const items = this.getItems();
-
-                    Object.values(items)
-                        .forEach(({ id, sectionId }) => {
-                            if (sectionId == oldValue.id) {
-                                delete items[id];
-                            }
-                        })
-                }
-            },
-            ['sections_$.items_$']: ({ oldValue, newValue }) => {
-                if (newValue == undefined && oldValue) {
-                    const items = this.getItems();
-                    delete items[oldValue.id];
-                }
-            }
+            ['sections_$.id']: () => this.randomString(),
+            ['sections_$.items_$.id']: () => this.randomString(),
         }
     }
 
-    ensureUniqueIds() {
-        const { sections } = this.getInput();
-
-        const itemIds = [];
-        for (const section of sections) {
-            this.verifySectionId(section);
-
-            section.items.forEach(item => {
-                if (!item.id) {
-                    item.id = clientUtils.randomString();
+    transformers() {
+        return {
+            ['sections_$.id']: (sectionId) => {
+                if (this.#sectionIds.includes(sectionId)) {
+                    sectionId = this.randomString();
                 }
-                if (itemIds.includes(item.id)) {
-                    this.throwError(`Duplicate item id "${item.id}"`);
+                this.#sectionIds.push(sectionId);
+                return sectionId;
+            },
+
+            ['sections_$.items_$.id']: (itemId) => {
+                if (this.#itemIds.includes(itemId)) {
+                    itemId = this.randomString();
                 }
-                itemIds.push(item.id);
-            })
-        }
+                this.#itemIds.push(itemId);
+                return itemId;
+            },
+        };
     }
 
     events() {
-        return ['click', 'beforeItemRegistered'];
+        return ['itemClick', 'itemRender'];
+    }
+
+    behaviours() {
+        return ['toggleOverflowArea'];
+    }
+
+    onItemClick(item_id) {
+        this.dispatchEvent('itemClick', item_id);
+    }
+
+    onItemRender(itemId) {
+
+        // Note: due to way we are executing this method from the template, we need
+        // to ignore any compile-time invocations
+        if (!self.appContext) return;
+
+        const item = this.getItems()[itemId];
+        assert(item);
+
+        if (!item.rendered) {
+            item.rendered = true;
+
+            this.dispatchEvent('itemRender', item);
+        }
+
+        return '';
     }
 
     getItems() {
-        return this.items || (this.items = {});
-    }
-
-    verifySectionId(section) {
-        const { sections } = this.getInput();
-
-        if (!section.id) {
-            section.id = clientUtils.randomString();
-        }
-
-        if (sections.filter((e) => e != section).map(({ id }) => id).includes(section.id)) {
-            this.throwError(`Duplicate section id "${section.id}"`);
-        }
-    }
-
-    registerNavItem({ node, blockData }) {
-
-        if (node.querySelector('div').innerHTML.trim() == "") {
-            return;
-        }
-
-        const { pathSeparator } = RootProxy;
-
-        const { index: sectionIndex } = blockData['sections'];
-        const { index: itemIndex } = blockData[`sections_$${pathSeparator}items`];
-
-        const { sections } = this.getInput();
-
-        const section = sections[sectionIndex];
-
-        this.verifySectionId(section);
-
-        const item = section.items[itemIndex];
-
-        if (!item.id) {
-            item.id = clientUtils.randomString();
-        }
-
-        if (this.getItems()[item.id]) {
-            this.throwError(`Duplicate item id "${item.id}"`);
-        }
-
-        item.sectionId = section.id;
-
-        this.dispatchEvent('beforeItemRegistered', item)
-
-        this.getItems()[item.id] = item;
-    }
-
-    onClick(item_id) {
-        this.dispatchEvent('click', item_id);
+        return this.#items;
     }
 
     toggleOverflowArea(sectionIndex) {

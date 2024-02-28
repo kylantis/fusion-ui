@@ -79,6 +79,10 @@
       ],
       "clientOnly": true
     },
+    "sections_$.items_$.rendered": {
+      "type": "Boolean",
+      "clientOnly": true
+    },
     "sections_$.items_$.icon": {
       "type": "String",
       "allowed": "utilityIconName",
@@ -87,6 +91,20 @@
     "sections_$.items_$.badge": {
       "type": "Badge",
       "isNull": false
+    }
+  },
+  "behaviours": {
+    "toggleOverflowArea": {
+      "parameters": {
+        "sectionIndex": {
+          "type": "number"
+        }
+      }
+    }
+  },
+  "events": {
+    "itemRender": {
+      "clientOnly": true
     }
   },
   "sample": {

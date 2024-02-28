@@ -16,9 +16,10 @@ const segment = /(\[[0-9]+\])|(\["\$_.+?"\])/g;
 const segmentWithCanonical = /(\[[0-9]+\])|(\["\$_.+?"\])|(_\$)/g;
 
 module.exports = {
-  arrayIndexSegment,
-  mapKeySegment,
-  getParentFromPath(pathArray) {
+  arrayIndexSegment, mapKeySegment,
+
+  getPathStringInfo(pathArray) {
+    const { mapKeyPrefixRegex } = RootProxy;
 
     if (typeof pathArray == 'string') {
       pathArray = pathArray.split('.');
@@ -29,13 +30,20 @@ module.exports = {
 
     const segments = clientUtils.getSegments({ original: lastPart });
 
-    if (segments.length > 1) {
-      segments.pop();
-      arr[arr.length - 1] = segments.join('');
-    } else {
+    const hasSegments = segments.length > 1;
+
+    const key = hasSegments ?
+      clientUtils.getKeyFromIndexSegment(segments.pop()).replace(mapKeyPrefixRegex, '') :
       arr.pop();
+
+    if (hasSegments) {
+      arr[arr.length - 1] = segments.join('');
     }
-    return arr.join('.');
+
+    return {
+      parent: arr.join('.'),
+      key: clientUtils.isNumber(key) ? Number(key) : key,
+    };
   },
 
   getKeyFromIndexSegment(segment) {
@@ -142,7 +150,6 @@ module.exports = {
 
   stringifyComponentData: (srcObject) => {
     const replacer = (name, val) => {
-      const mapType = 'Map';
       if (val && val.constructor.name === 'Object') {
         if (val['@type']) {
           // This is a component, see toJSON() in BaseRenderer
@@ -174,12 +181,18 @@ module.exports = {
  */
   objectReferenceKey: '__objReferenceId',
 
-  restoreObjectReferences: (key, val, objectReferences={}) => {
+  restoreObjectReferences: (key, val, objectReferences = {}) => {
     if (val && typeof val == 'object') {
       const refKey = val[clientUtils.objectReferenceKey];
 
       if (refKey) {
         return objectReferences[refKey] || (objectReferences[refKey] = val);
+      }
+
+      if (val['@component']) {
+        return new components[`${val['@type']}`]({
+          input: val['@data'],
+        }, { loadable: val['@loadable'] })
       }
     }
     return val;
@@ -264,34 +277,25 @@ module.exports = {
     return keys;
   },
 
-  getCollectionKeys: (obj) => {
-    if (Array.isArray(obj)) {
-      return clientUtils.getIndexes(0, obj.length);
-    } else {
-      return Object.keys(obj);
-    }
-  },
-
-  getCollectionLength: (coll) => {
-    const { mapSizeProperty } = RootProxy;
-    return Array.isArray(coll) ? coll.length : coll[mapSizeProperty];
-  },
-
   getCollectionIndex: (coll, key) => {
-    return Array.isArray(coll) ? Number(key) : Object.keys(coll).indexOf(key);
+    const { isMapProperty, mapIndexOfProperty } = RootProxy;
+    assert(
+      (Array.isArray(coll) && clientUtils.isNumber(key)) || coll[isMapProperty]
+    );
+
+    return Array.isArray(coll) ? Number(key) : coll[mapIndexOfProperty](key);
   },
 
   getCollectionIndexAndLength: (coll, key) => {
-    const { mapKeyPrefix, isMapProperty } = RootProxy;
+    const { isMapProperty, mapSizeProperty } = RootProxy;
 
     assert(
-      (Array.isArray(coll) && clientUtils.isNumber(key)) ||
-      (coll[isMapProperty] && key.startsWith(mapKeyPrefix))
+      (Array.isArray(coll) && clientUtils.isNumber(key)) || coll[isMapProperty]
     );
 
     return {
       index: clientUtils.getCollectionIndex(coll, key),
-      length: clientUtils.getCollectionLength(coll),
+      length: Array.isArray(coll) ? coll.length : coll[mapSizeProperty],
     };
   },
 
@@ -457,8 +461,11 @@ module.exports = {
     return results;
   },
 
-  getLine: ({ loc }) => {
-    return loc ? `${loc.source} ${loc.start.line}:${loc.start.column}` : '';
+  getLine: (stmt, range = true) => {
+    const { loc: { source, start, end } = {} } = stmt;
+
+    // Note: we need to do "+ 1" to column because hbs is 0-based but most IDEs are 1-based
+    return `${source} ${start.line}:${start.column + 1}${range ? ` - ${(end.source && end.source != source) ? `${end.source} ` : ''}${end.line}:${end.column + 1}` : ''}`;
   },
 
   getRandomInt: (min = 10000, max = 99999) => {
@@ -467,30 +474,96 @@ module.exports = {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   },
 
-  mutateObjectFromHookInfo({ hookType, hookOptions, src, dest, transfomer }) {
-    const { arrayChildReorderHookType, collChildSetHookType, collChildDetachHookType } = RootProxy;
-    const { childKey, offsetIndexes, newIndexes } = hookOptions;
-
-    assert(src && dest && src.constructor.name == dest.constructor.name);
-
-    switch (hookType) {
-      case collChildSetHookType:
-        dest[childKey] = transfomer(src[childKey]);
-        break;
-      case collChildDetachHookType:
-        if (Array.isArray(src)) {
-          dest.length = src.length;
+  toHtmlAttrString(attributes) {
+    return Array.from(attributes)
+      .map(({ name, value }) => {
+        if (value.includes("'")) {
+          return `${name}="${value}"`;
         } else {
-          delete dest[childKey];
+          return `${name}='${value}'`;
         }
-        break;
-      case arrayChildReorderHookType:
-        dest.length = src.length;
-        [...newIndexes, ...Object.values(offsetIndexes)]
-          .forEach(i => {
-            dest[i] = transfomer(src[i]);
-          })
-        break;
+      })
+      .join(' ');
+  },
+
+  createImmutableProxy (obj) {
+    const fn = () => {
+      throw Error("Object is immutable");
+    };
+
+    return new Proxy(obj, {
+      set: fn,
+      deleteProperty: fn,
+      defineProperty: fn,
+      setPrototypeOf: fn,
+      preventExtensions: fn
+    });
+  },
+
+  createNewTrie() {
+    class TrieNode {
+      constructor() {
+        this.children = {};
+        this.isEndOfWord = false;
+        this.isInserted = false;
+        this.words = [];
+      }
     }
+
+    class Trie {
+      constructor() {
+        this.root = new TrieNode();
+      }
+
+      bulkInsert(words) {
+        for (const word of words) {
+          this.insert(word);
+        }
+      }
+
+      insert(word) {
+        let node = this.root;
+        for (const char of word) {
+          if (!node.children[char]) {
+            node.children[char] = new TrieNode();
+          }
+          node = node.children[char];
+        }
+        if (!node.isInserted) {
+          node.isInserted = true;
+          node.words.push(word);
+        }
+        node.isEndOfWord = true;
+      }
+
+      search(prefix) {
+        if (prefix === "") {
+          // Return all stored words when searching for an empty string
+          return this.collectWords(this.root);
+        }
+
+        let node = this.root;
+        for (const char of prefix) {
+          if (!node.children[char]) {
+            return []; // No words with this prefix
+          }
+          node = node.children[char];
+        }
+        return this.collectWords(node).filter(word => word !== prefix);
+      }
+
+      collectWords(node) {
+        const result = [];
+        if (node.isEndOfWord) {
+          result.push(...node.words);
+        }
+        for (const childNode of Object.values(node.children)) {
+          result.push(...this.collectWords(childNode));
+        }
+        return result;
+      }
+    }
+
+    return new Trie();
   }
 };

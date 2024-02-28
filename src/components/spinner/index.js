@@ -1,7 +1,7 @@
 
 class Spinner extends components.LightningComponent {
 
-    getDefaultValues() {
+    initializers() {
         return {
             ['color']: 'brand',
             ['size']: 'medium',

@@ -1,62 +1,74 @@
-  <div class="slds-dropdown
-  {{size ? "slds-dropdown_${size}" : "slds-dropdown_x-small"}}
-  {{isSubMenu ? "slds-dropdown_submenu" : ''}}
-  {{isSubMenu ? x ? 'slds-dropdown_submenu-${x}' : 'slds-dropdown_submenu-right' : 
-    x ? 'slds-dropdown_${x}' : ''}}"
-  style="
-  {{isSubMenu ? (x eq 'left') ? "margin-right: 0;" : "margin-left: 0;" : ''}}
-  {{isSubMenu ? (y eq 'top') ? "top: unset; bottom: -5;" : "top: 0; bottom: unset;" : ''}}
-  ">
+  
+  <div class="
+      slds-dropdown
+      {{size ? "slds-dropdown_${size}" : "slds-dropdown_x-small"}}
+      {{isSubMenu ? "slds-dropdown_submenu" : ''}}
+      {{isSubMenu ? x ? 'slds-dropdown_submenu-${x}' : 'slds-dropdown_submenu-right' : 
+        x ? 'slds-dropdown_${x}' : ''}}"
+      style="
+      {{isSubMenu ? (x eq 'left') ? "margin-right: 0;" : "margin-left: 0;" : ''}}
+      {{isSubMenu ? (y eq 'top') ? "top: unset; bottom: -5;" : "top: 0; bottom: unset;" : ''}}
+      "
+  >
 
     <ul class="slds-dropdown__list" role="menu" {{label ? "aria-label=\"${label}\"" : ""}}>
  
       {{#each groups as |group groupIndex|}}
 
-      {{#if title}}
-      <li class="slds-dropdown__header slds-truncate {{(groupIndex gt 0) ? 'slds-has-divider_top-space' : ''}}" title="{{title}}" role="separator">
-        <span>{{title}}</span>
-      </li>
-      {{/if}}
+        {{#if title}}
+          <li class="slds-dropdown__header slds-truncate {{(groupIndex gt 0) ? 'slds-has-divider_top-space' : ''}}" title="{{title}}" role="separator">
+            <span>{{title}}</span>
+          </li>
+        {{/if}}
 
-      {{#each items hook='setupMenuItem' hookPhase='afterMount' as |item itemIndex|}}
+        {{#each items hook='itemHook' hookPhase='afterMount' as |item itemIndex|}}
 
-        {{component Menu alias="subMenu"}}
+          {{component Menu alias="subMenu"}}
 
-        <li
-        class="slds-dropdown__item {{subMenu ? 'slds-has-submenu' : ''}}" 
-        role="{{not subMenu ? (../role eq 'presentation') ? ../role : 'menuitem${../role}' : 'presentation'}}"
-        identifier="{{identifier}}">
-
-          <a role="menuitem" 
-          tabindex="{{(groupIndex eq 0) and (@index eq 0) ? '0' : '-1'}}"
-          {{feedbackState ? "class=\"slds-has-${feedbackState}\"" : ""}}
-          {{ subMenu ? "aria-haspop=\"true\"" : "" }}
+          <li
+            class="slds-dropdown__item {{subMenu ? 'slds-has-submenu' : ''}}" 
+            role="{{not subMenu ? (../role eq 'presentation') ? ../role : 'menuitem${../role}' : 'presentation'}}"
+            identifier="{{identifier}}"
           >
 
-            <span class="slds-truncate" title="{{title}}">
+            {{#*inline "submenu-decorator" runtime=true}}
+              {{> subMenu label=title isSubMenu=true x=subMenuX y=subMenuY }}
+            {{/inline}}
 
-              {{component Icon alias="leftIcon"}}
+            <a role="menuitem" 
+              tabindex="{{(groupIndex eq 0) and (@index eq 0) ? '0' : '-1'}}"
+              {{feedbackState ? "class=\"slds-has-${feedbackState}\"" : ""}}
+              {{ subMenu ? "aria-haspop=\"true\"" : "" }}
+            >
 
-              {{#if leftIcon}}
-                {{> leftIcon marginRight='x-small' useCurrentColor=(feedbackState eq 'warning')}}
-              {{/if}}
-              
-              {{title}}
-            </span>
+              <span class="slds-truncate" title="{{title}}">
+
+                {{component Icon alias="leftIcon"}}
+
+                <span class="left-icon-container 
+                      {{leftMargin ? 'slds-m-left_small' : ''}}"
+                >
+                  {{#if leftIcon opaqueWrapper=true}}
+                    {{> leftIcon marginRight='x-small' useCurrentColor=(feedbackState eq 'warning')}}
+                  {{/if}}
+                </span>
+                
+                {{title}}
+              </span>
 
               {{component Icon alias="rightIcon"}}
-            
-              {{#if rightIcon and (not subMenu)}}
-                {{> rightIcon marginLeft='small' useCurrentColor=(feedbackState eq 'warning')}}
-              {{/if}}
-          </a>
               
-              {{#if subMenu and title}}
-                {{> subMenu label=title isSubMenu=true x=subMenuX y=subMenuY }}
-              {{/if}}
+              <span class="right-icon-container
+                    {{rightMargin ? 'slds-m-right_x-small' : ''}}"
+              >
+                {{#if rightIcon and (not subMenu) opaqueWrapper=true}}
+                  {{> rightIcon marginLeft='small' useCurrentColor=(feedbackState eq 'warning')}}
+                {{/if}}
+              </span>
+            </a>
 
-        </li>
-      {{/each}}
+          </li>
+        {{/each}}
 
       {{/each}}
 

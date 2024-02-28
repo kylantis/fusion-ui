@@ -1,6 +1,6 @@
 
 <div style="left: 20%;position: absolute;">
-    {{#each arr outerTransform='moveWrapperToParent' innerTransform='moveWrapperToFirstChild' as |i j|}}
+    {{#each arr opaqueWrapper=true as |i j|}}
         <div style="margin: 2em; width: 600px; height: 50px; background-color: {{getRandomColor}};">
             
             <div style="text-align: center; font-size: 2em; color: white; text-transform: uppercase;">

@@ -25,7 +25,15 @@ class RootCtxRenderer extends BaseRenderer {
 
   static #helpersNamespace = '__helpers';
 
-  #currentBindContext;
+  static rootTag = 'html';
+
+  static attrBindContextEvent = 'attributeBindContext';
+
+  static #nodeDetachListeners = {};
+
+  static nodeIdSelector = /#([a-zA-Z][a-zA-Z0-9_-]*)/;
+
+  #dataStack;
 
   #attributeEmitContext;
 
@@ -47,9 +55,19 @@ class RootCtxRenderer extends BaseRenderer {
 
   #rendered;
 
+  #mounted;
+
   #emitContext;
 
   #helperFunctionNames;
+
+  #hooks;
+
+  #mustacheStatements;
+
+  #transformers;
+
+  #initializers;
 
   constructor({
     id, input, logger, config,
@@ -58,26 +76,22 @@ class RootCtxRenderer extends BaseRenderer {
       id, input, logger, config,
     });
 
-    this.blockData = {};
-
-    this.syntheticContext = {};
-
     this.#promise = new Promise((resolve) => {
       this.#resolve = resolve;
     });
 
     this.#futures = [];
 
-    this.syntheticNodeId = [];
-    this.#currentBindContext = [];
-
-    this.hooks = {};
-
     this.#inlineComponentInstances = {};
-    this.#syntheticCache = [];
     this.#objectRegistry = {};
+    this.#mustacheStatements = {};
+    this.#hooks = {};
 
-    this.mustacheStatements = {};
+    // Todo: Move these to the emit context
+    this.#dataStack = [];
+    this.blockData = {};
+    this.syntheticContext = {};
+    this.#syntheticCache = [];
   }
 
   getFutures() {
@@ -89,7 +103,7 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   isMounted() {
-    return !!this.mounted;
+    return !!this.#mounted;
   }
 
   static setToken(token) {
@@ -111,25 +125,43 @@ class RootCtxRenderer extends BaseRenderer {
     return this.#emitContext;
   }
 
-  startTokenizationContext() {
-    const streamTokenizer = new hyntax.StreamTokenizer();
+  getAttributeEmitContext() {
+    return this.#attributeEmitContext;
+  }
 
-    streamTokenizer
-      .on('data', (tokens) => {
-        this.#emitContext.tokenList = this.#emitContext.tokenList.concat(tokens);
-      });
+  startTokenizationContext(blockStack = []) {
+    const { rootTag } = RootCtxRenderer;
+    const tokenize = this.hasBlockTransform();
 
-    const blockStack = [];
+    const streamTokenizer = tokenize ? new hyntax.StreamTokenizer() : null;
+
+    if (tokenize) {
+      streamTokenizer
+        .on('data', (tokens) => {
+          this.#emitContext.tokenList = this.#emitContext.tokenList.concat(tokens);
+        });
+    }
 
     this.#emitContext = {
-      tokenList: [], nodeList: {},
-      blockStack, transforms: {},
-      write: (value) => {
-        if (blockStack.length == 0) {
-          streamTokenizer.write(value);
-        }
-      },
+      tokenList: [], stringBuffer: '',
+      blockStack, variables: {}, transforms: {},
+      nodeIdStore: {}, logicGateParticipants: {},
+      write: tokenize ?
+        (value, force) => {
+          if (!blockStack.length || force) {
+            streamTokenizer.write(value);
+          }
+        } :
+        (value, force) => {
+          if (!blockStack.length || force) {
+            this.#emitContext.stringBuffer += value;
+          }
+        },
     };
+
+    if (tokenize) {
+      this.#emitContext.write(`<${rootTag}>`);
+    }
   }
 
   getFunctionListFromString(str) {
@@ -138,31 +170,90 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   finalizeTokenizationContext({ transform } = {}) {
+    const { rootTag } = RootCtxRenderer;
 
-    const { ast } = hyntax.constructTree(this.#emitContext.tokenList);
+    const { stringBuffer } = this.#emitContext;
+    const tokenize = this.hasBlockTransform();
 
-    if (transform) {
-      this.getFunctionListFromString(transform)
-        .forEach(fn => fn(ast.content.children))
+    let htmlString;
+
+    if (tokenize) {
+      this.#emitContext.write(`</${rootTag}>`);
+
+      const ast = hyntax.constructTree(this.#emitContext.tokenList).ast.content.children[0];
+
+      if (transform) {
+        (
+          (typeof transform == 'function') ? [transform] :
+            this.getFunctionListFromString(transform)
+        )
+          .forEach(fn => fn(ast.content.children))
+      }
+
+      htmlString = this.stringifyHtmlAst({ ast });
+
+    } else {
+      htmlString = stringBuffer;
     }
 
-    const ret = {
-      htmlString: this.stringifyHtmlAst({ ast }),
-    };
+    assert(!this.#emitContext.logicGateParticipants.length);
 
     this.#emitContext = null;
 
-    return ret;
+    return { htmlString };
+  }
+
+  registerNodeId(nodeIndex, nodeId) {
+    const { nodeIdStore } = this.getEmitContext();
+
+    if (nodeIndex != null) {
+      nodeIdStore[nodeIndex] = nodeId;
+    }
+  }
+
+  getBlockContextObject({ blockId, loc }) {
+    return { blockId, loc, variables: {} };
+  }
+
+  startBlockContext({ blockId = clientUtils.randomString(), loc }) {
+
+    const { blockStack } = this.getEmitContext();
+
+    blockStack.push(this.getBlockContextObject({ blockId, loc }));
+
+    return blockId;
+  }
+
+  endBlockContext() {
+    const { blockStack } = this.getEmitContext();
+    blockStack.pop();
+  }
+
+  addVariableToScope(key, value) {
+    const { blockStack, variables } = this.getEmitContext();
+
+    if (blockStack.length) {
+      blockStack[blockStack.length - 1].variables[key] = value;
+    } else {
+      variables[key] = value;
+    }
+  }
+
+  getVariablesInScope() {
+    const { blockStack, variables } = this.getEmitContext();
+
+    let result = { ...variables };
+
+    blockStack.forEach(({ variables }) => {
+      result = { ...result, ...variables }
+    });
+
+    return result;
   }
 
   nodeIdTransformSelector(nodeId) {
     assert(nodeId);
     return `#${nodeId}`
-  }
-
-  nodeDirectChildrenTransformSelector(nodeId) {
-    assert(nodeId);
-    return `#${nodeId} > *`
   }
 
   registerTransform(selector, methodName) {
@@ -185,7 +276,7 @@ class RootCtxRenderer extends BaseRenderer {
     return decorator;
   }
 
-  renderDecorator({ program, config }, node) {
+  renderDecorator({ program, config }, target) {
 
     const fn = () => this.#handlebars.template(program)(
       this.rootProxy, this.#handlebarsOptions,
@@ -198,7 +289,6 @@ class RootCtxRenderer extends BaseRenderer {
       return fn();
 
     } else {
-      assert(node);
 
       // const { decoratorName } = config;
 
@@ -209,7 +299,12 @@ class RootCtxRenderer extends BaseRenderer {
 
       const { htmlString } = this.finalizeTokenizationContext();
 
-      node.innerHTML = htmlString;
+      if (typeof target == 'function') {
+        target(htmlString);
+      } else {
+        assert(target instanceof Node);
+        target.innerHTML = htmlString;
+      }
 
       this.finalizeRenderingContext();
     }
@@ -224,35 +319,27 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   stringifyHtmlAst({ ast }) {
-    const { htmlWrapperCssClassname, visitHtmlAst } = RootCtxRenderer;
+    const { visitHtmlAst } = RootCtxRenderer;
 
     const arr = [];
+    const { transforms } = this.getEmitContext();
 
     const tagVisitor = (node) => {
-
       const { content } = node;
 
       const attr = (k) => (content.attributes || []).filter(({ key: { content } }) => content == k)[0];
 
       const idAttr = attr('id');
-      const classAttr = attr('class');
 
-      const isBlockWrapper = content.name == 'div' && classAttr && (classAttr.value.content == htmlWrapperCssClassname);
+      if (idAttr) {
 
-      if (isBlockWrapper && idAttr) {
         const nodeId = idAttr.value.content;
 
-        const nodeIdTransform = this.getEmitContext().transforms[this.nodeIdTransformSelector(nodeId)];
-        const nodeDirectChildrenTransform = this.getEmitContext().transforms[this.nodeDirectChildrenTransformSelector(nodeId)];
+        const nodeIdTransform = transforms[this.nodeIdTransformSelector(nodeId)];
 
         if (nodeIdTransform) {
           this.getFunctionListFromString(nodeIdTransform)
             .forEach(fn => fn(node))
-        }
-
-        if (nodeDirectChildrenTransform) {
-          this.getFunctionListFromString(nodeDirectChildrenTransform)
-            .forEach(fn => fn(node.content.children))
         }
       }
     }
@@ -261,18 +348,21 @@ class RootCtxRenderer extends BaseRenderer {
       arr.push(value);
     };
 
-    visitHtmlAst({
-      ast, tagVisitor,
-    });
+    if (Object.keys(transforms).length) {
+      visitHtmlAst({
+        ast, tagVisitor,
+      });
+    }
 
     visitHtmlAst({
-      ast, emitter, format: true
+      ast, emitter, format: false,
     });
 
     return arr.join('');
   }
 
   static visitHtmlAst({ ast, emitter, tagVisitor, format }) {
+    const { rootTag } = RootCtxRenderer;
 
     const formatText = (value) => {
       return format ? value.trim().replace(/\s+/g, ' ') : value;
@@ -378,7 +468,9 @@ class RootCtxRenderer extends BaseRenderer {
       }
     }
 
-    acceptNode(ast);
+    assert(ast.content.name == rootTag);
+
+    acceptChildren(ast.content.children);
   }
 
   isComponentRendered() {
@@ -396,7 +488,11 @@ class RootCtxRenderer extends BaseRenderer {
       throw Error(`${this.getId()} is already rendered`);
     }
 
+    super.init();
+
     await this.invokeLifeCycleMethod('beforeRender');
+
+    this.dispatchEvent('beforeRender');
 
     const componentHelpers = {};
 
@@ -497,8 +593,6 @@ class RootCtxRenderer extends BaseRenderer {
 
     const { htmlString } = this.finalizeTokenizationContext();
 
-    assert(this.syntheticNodeId.length == 0);
-
     this.#rendered = true;
 
     return htmlString;
@@ -509,21 +603,20 @@ class RootCtxRenderer extends BaseRenderer {
     const { htmlWrapperCssClassname } = RootCtxRenderer;
 
     if (this.isMounted()) {
-      throw Error(`${this.getId()} is already mounted`);
+      this.throwError(`Component is already mounted`);
     }
 
     if (token !== RootCtxRenderer.#token && !this.isRoot()) {
-      throw Error(`Invalid token: ${token}`);
+      this.throwError(`Invalid token: ${token}`);
     }
-    await this.invokeLifeCycleMethod('beforeLoad', domRelayTimeout);
+
+    super.init();
 
     if (!this.isLoadable()) {
-      return;
+      this.throwError(`Component is not loadable`);
     }
 
-    super.load();
-
-    const parentNode = container ? document.getElementById(container) : document.body;
+    const parentNode = container ? document.querySelector(container) : document.body;
 
     // We require that the <parentNode> is a live element, present om the DOM
     assert(parentNode != null, `DOMElement #${container} does not exist`);
@@ -555,7 +648,7 @@ class RootCtxRenderer extends BaseRenderer {
       });
     }
 
-    this.dispatchEvent('render');
+    this.dispatchRenderEvent();
 
     await this.triggerInitialHooks('onMount');
 
@@ -567,23 +660,26 @@ class RootCtxRenderer extends BaseRenderer {
 
     await this.awaitPendingTasks();
 
-
     assert(Object.keys(this.syntheticContext).length == 0);
-
-    this.triggerNodeUpdateEvent(this.node);
 
     self.appContext.components[this.getId()] = this;
 
-
-    await this.triggerInitialHooks('afterMount');
-
-    await this.invokeLifeCycleMethod('afterMount');
-
-    await this.awaitPendingTasks();
-
     this.dispatchEvent('load');
 
-    this.mounted = true;
+    this.#mounted = true;
+
+    this.dispatchEvent('afterMount');
+
+    this.triggerInitialHooks('afterMount');
+    this.#hooks = [];
+
+    this.invokeLifeCycleMethod('afterMount');
+
+    await this.awaitPendingTasks();
+  }
+
+  dispatchRenderEvent() {
+    this.dispatchEvent('render');
   }
 
   getNode0() {
@@ -664,7 +760,12 @@ class RootCtxRenderer extends BaseRenderer {
     Object.keys(hash)
       .filter(k => k.startsWith(contextIdHashKeyPrefix))
       .forEach(k => {
-        data[hash[k]] = hash[k.replace(contextIdHashKeyPrefix, '')];
+        const key = k.replace(contextIdHashKeyPrefix, '');
+        const val = hash[key];
+
+        data[hash[k]] = val;
+
+        this.addVariableToScope(key, val);
       });
 
     return '';
@@ -704,45 +805,69 @@ class RootCtxRenderer extends BaseRenderer {
     this.once(fn, 'render');
   }
 
+  wrapTransform(transform) {
+    const { randomString } = clientUtils;
+    const fnList = this.getFunctionListFromString(transform);
+
+    if (fnList.length == 1) {
+      return transform;
+    }
+
+    const _transform = randomString();
+
+    this[_transform] = (value) => {
+      for (const fn of fnList) {
+        value = fn(value);
+      }
+      return value;
+    }
+
+    return _transform;
+  }
+
   static getSupportedHookPhases() {
     return ['onMount', 'afterMount'];
   }
 
   getDefaultHookPhase() {
-    return 'afterMount';
+    return 'onMount';
   }
 
   async triggerInitialHooks(phase) {
 
     await Promise.all(
-      Object.keys(this.hooks)
+      Object.keys(this.#hooks)
         .sort((e1, e2) => {
 
-          const o1 = this.hooks[e1].order;
-          const o2 = this.hooks[e2].order;
+          const o1 = this.#hooks[e1].order;
+          const o2 = this.#hooks[e2].order;
 
           return o1 < o2 ? -1 : o2 < o1 ? 1 : 0;
         })
         .map(async (selector) => {
-          const { fnList, blockData } = this.hooks[selector];
+
+          const node = document.querySelector(`#${this.getId()} ${selector}`);
+
+          if (!node) {
+            // <node> could not be found - likely because a block transform removed it from the html ast
+            return;
+          }
+
+          if (!node.innerHTML) {
+            // If <node> originated from a conditional block - it means the conditional expression
+            // evaluated to false, else if it originated from an each block - it means the member
+            // that owns this node is null. 
+            // Another possible scenario is that the empty markup originated from the template
+            return;
+          }
+
+          const { fnList, blockData } = this.#hooks[selector];
 
           await Promise.all(
             fnList
-              .map(({ hookName, hookPhase }) => {
-                if (hookPhase != phase) {
-                  return false;
-                }
-
+              .filter(({ hookPhase }) => hookPhase == phase)
+              .map(({ hookName }) => {
                 const hook = this[hookName].bind(this);
-                const node = document.querySelector(`#${this.getId()} ${selector}`);
-
-                assert(hook);
-
-                if (!node) {
-                  // Node could not be found - It's likely that a transform (outer/inner) removed it 
-                  // from the html ast
-                  return false;
-                }
 
                 return hook({
                   node,
@@ -752,15 +877,19 @@ class RootCtxRenderer extends BaseRenderer {
                   initial: true,
                 });
               })
-              .filter(h => h)
           );
         })
     );
   }
 
-  // This is a helper method for proxyInstance to use in hook invocation
   async triggerBlockHooks(hookNameString, hookPhaseString, phase, loc, opts) {
     assert(phase);
+
+    const { node } = opts;
+
+    if (!node.innerHTML) {
+      return;
+    }
 
     const arr = this.getBlockHookList(hookNameString, hookPhaseString, phase, loc);
 
@@ -800,25 +929,45 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   registerHook(selector, hookNameString, hookPhaseString, hookOrder, loc, blockData) {
-    assert(selector);
+    const { nodeIdSelector } = RootCtxRenderer;
+    assert(selector && selector.match(nodeIdSelector));
 
-    this.hooks[selector] = {
-      order: hookOrder != undefined ? hookOrder : this.getDefaultHookOrder(),
-      blockData: blockData ? blockData : clientUtils.deepClone(this.blockData),
-      fnList: [],
-    }
+    const fnList = [];
 
     this.getBlockHookList(hookNameString, hookPhaseString, null, loc)
       .forEach(({ hookName, hookPhase }) => {
-        this.hooks[selector].fnList.push({
+        fnList.push({
           hookName, hookPhase,
         });
       });
+
+    if (!this.#rendered) {
+      this.#hooks[selector] = {
+        order: hookOrder != undefined ? hookOrder : this.getDefaultHookOrder(),
+        blockData: blockData ? blockData : clientUtils.deepClone(this.blockData),
+        fnList, variablesInScope: clientUtils.deepClone(this.getVariablesInScope())
+      }
+    }
+  }
+
+  executeWithBlockData(fn, blockData) {
+    const blockDataSnapshot = this.blockData;
+
+    if (blockData) {
+      this.blockData = blockData;
+    }
+
+    const html = fn();
+
+    if (blockData) {
+      this.blockData = blockDataSnapshot;
+    }
+    return html;
   }
 
   conditional({ options, ctx, params }) {
 
-    const { conditionalBlockHookType } = RootProxy;
+    const { conditionalBlockHookType, logicGatePathPrefix } = RootProxy;
     const { syntheticAliasSeparator, getSyntheticAliasFromPath0 } = RootCtxRenderer;
 
     const { fn, inverse, hash, loc } = {
@@ -827,11 +976,11 @@ class RootCtxRenderer extends BaseRenderer {
       inverse: this.addToObjectRegistry(options.inverse),
     };
 
-    const { hook, hookPhase, hookOrder, outerTransform, innerTransform, transient } = hash;
-
-    const nodeId = this.getSyntheticNodeId();
+    const { hook, hookPhase, hookOrder, transform, transient, nodeIndex } = hash;
 
     let [target, invert] = params;
+
+    const nodeId = nodeIndex ? this.getNodeIdFromIndex(nodeIndex, loc) : null;
 
     if (Object(target) !== target) {
       // <target> resolved to a literal
@@ -849,23 +998,19 @@ class RootCtxRenderer extends BaseRenderer {
       // Disable for literals and components
       !!path && !(value instanceof BaseComponent);
 
+    const blockData = dataBinding ? this.getBlockDataSnapshot(path, loc) : null;
+
     const conditional0 = (value) => {
 
       if (hook) {
-        this.registerHook(`#${nodeId}`, hook, hookPhase, hookOrder, loc);
-      }
-
-      if (outerTransform) {
-
-        this.registerTransform(
-          this.nodeIdTransformSelector(nodeId), outerTransform
+        this.registerHook(
+          `#${nodeId}`, hook, hookPhase, hookOrder, loc, blockData ? clientUtils.createImmutableProxy(blockData) : clientUtils.deepClone(this.blockData)
         );
       }
 
-      if (innerTransform) {
-
+      if (transform) {
         this.registerTransform(
-          this.nodeDirectChildrenTransformSelector(nodeId), innerTransform
+          this.nodeIdTransformSelector(nodeId), transform
         );
       }
 
@@ -886,15 +1031,7 @@ class RootCtxRenderer extends BaseRenderer {
           func = this.lookupObject(inverse);
         }
 
-        this.getEmitContext().blockStack.push(loc);
-
-        const markup = func(ctx);
-
-        this.getEmitContext().blockStack.pop();
-
-        this.getEmitContext().write(markup);
-
-        return markup;
+        return func ? func(ctx) : '';
       })();
 
       if (isSynthetic) {
@@ -916,21 +1053,35 @@ class RootCtxRenderer extends BaseRenderer {
       return markup;
     }
 
+    const blockStack = [...this.getEmitContext().blockStack];
+    const blockId = this.startBlockContext({ loc });
+
     // Todo: If target is a logicGate, I can optimize space by having the blockData
     // of the logicGate and this conditional block reference the same blockData object
     // instead of having separate objects that are exactly the same
 
     if (dataBinding) {
+
+      const hookObj = {
+        type: conditionalBlockHookType, selector: `#${nodeId}`, blockStack, blockId, fn, inverse, hook,
+        hookPhase, invert, transient, blockData, canonicalPath, loc, transform,
+      };
+
       this.proxyInstance.getDataPathHooks()[path]
-        .push({
-          type: conditionalBlockHookType, selector: `#${nodeId}`,
-          fn, inverse, hookMethod: hook, hookPhase, invert, transient,
-          blockData: this.getBlockDataSnapshot(path),
-          canonicalPath, loc, innerTransform,
-        });
+        .push(hookObj);
+
+      if (path.match(logicGatePathPrefix)) {
+        this.#addParentHookToLogicGateParticipants(
+          path.replace(logicGatePathPrefix, ''), hookObj,
+        );
+      }
     }
 
     const html = conditional0(value);
+
+    this.endBlockContext();
+
+    this.getEmitContext().write(html);
 
     if (this.#attributeEmitContext) {
       assert(!nodeId);
@@ -940,31 +1091,84 @@ class RootCtxRenderer extends BaseRenderer {
     return html;
   }
 
+  #addParentHookToLogicGateParticipants(gateId, parentHook) {
+    const { canonicalId } = this.proxyInstance.getLogicGates()[gateId];
+    const gate = this.getLogicGates()[canonicalId];
+
+    this.proxyInstance.getParticipantsFromLogicGate(gate)
+      .filter(({ synthetic }) => !synthetic)
+      .forEach(({ original, loc }) => {
+        const { logicGateParticipants } = this.getEmitContext();
+
+        const identifier = this.proxyInstance.getLogicGateParticipantIdentifier({ original, loc });
+        const hookInfo = logicGateParticipants[identifier];
+
+        hookInfo.parentHook = parentHook;
+
+        delete logicGateParticipants[identifier];
+      });
+  }
+
   getCollIntrinsicHookTypes() {
     const { collChildSetHookType, collChildDetachHookType } = RootProxy;
     return [collChildSetHookType, collChildDetachHookType];
   }
 
   getArrayIntrinsicHookTypes() {
-    const { arrayChildReorderHookType } = RootProxy;
-    return [arrayChildReorderHookType];
+    const { arraySpliceHookType } = RootProxy;
+    return [arraySpliceHookType];
   }
 
-  getColElementWrapperHeader(id, key) {
-    const { htmlWrapperCssClassname } = RootCtxRenderer;
-    return `<div id="${id}" class="${htmlWrapperCssClassname}" key="${key}">`;
+  execBlockIteration(fn, opaqueWrapper, key, nodeId, loc) {
+    const { htmlWrapperCssClassname, attrBindContextEvent } = RootCtxRenderer;
+
+    const emitContext = this.getEmitContext();
+
+    const header = () => `<div class='${htmlWrapperCssClassname}' ${nodeId ? `id='${nodeId}'` : ''} key='${key}'>`;
+    const footer = () => `</div>`;
+
+    if (opaqueWrapper) {
+      this.once((attributesMap) => {
+        attributesMap['key'] = key;
+
+        if (nodeId) {
+          attributesMap['id'] = nodeId;
+        }
+      }, attrBindContextEvent);
+    } else {
+      emitContext.write(header());
+    }
+
+    const markup = fn();
+
+    if (!opaqueWrapper) {
+      emitContext.write(footer());
+
+    } else if (markup == '') {
+      this.popEventListener(attrBindContextEvent);
+
+      this.throwError(
+        `#each block with "opaqueWrapper=true" cannot have a null member`, loc
+      );
+    }
+
+    return opaqueWrapper ? markup : `${header()}${markup}${footer()}`;
   }
 
-  getColElementWrapperFooter() {
-    return '</div>';
+  getMarkerStartNodeId(markerId) {
+    return `marker-${markerId}-start`;
+  }
+
+  getMarkerEndNodeId(markerId) {
+    return `marker-${markerId}-end`;
   }
 
   forEach({ options, ctx, params }) {
 
     const {
-      eachBlockHookType, predicateHookType, toFqPath, isNullProperty, dataPathPrefix,
+      eachBlockHookType, predicateHookType, toFqPath, dataPathPrefix, blockDataHolderHookType,
     } = RootProxy;
-    const { getSyntheticAliasFromPath } = RootCtxRenderer;
+    const { htmlWrapperCssClassname, getSyntheticAliasFromPath } = RootCtxRenderer;
 
     const { fn, inverse, hash, loc } = {
       ...options,
@@ -972,27 +1176,32 @@ class RootCtxRenderer extends BaseRenderer {
       inverse: this.addToObjectRegistry(options.inverse),
     };
 
-    const { hook, hookPhase, hookOrder, innerTransform, outerTransform, predicate } = hash;
+    const { hook, hookPhase, hookOrder, transform, predicate, nodeIndex, opaqueWrapper, markerTagName } = hash;
 
     const [{ path, value, canonicalPath }] = params;
 
-    const nodeId = this.getSyntheticNodeId();
+    const nodeId = nodeIndex ? this.getNodeIdFromIndex(nodeIndex, loc) : null;
+    const markerId = opaqueWrapper ? clientUtils.randomString() : null;
+
+    const markerStart = markerId ? `#${nodeId} #${this.getMarkerStartNodeId(markerId)}` : null;
+    const markerEnd = markerId ? `#${nodeId} #${this.getMarkerEndNodeId(markerId)}` : null;
+
+    const selector = markerStart ? markerStart : `#${nodeId}`;
 
     const isSynthetic = this.isSyntheticMethodName(path);
     const dataBinding = !isSynthetic && this.dataBindingEnabled() && nodeId;
 
+    const _blockId = clientUtils.randomString();
+
     const forEach0 = () => {
 
-      if (outerTransform) {
-        this.registerTransform(
-          this.nodeIdTransformSelector(nodeId), outerTransform
-        );
-      }
+      let ret = "";
 
-      if (innerTransform) {
-        this.registerTransform(
-          this.nodeDirectChildrenTransformSelector(nodeId), innerTransform
-        );
+      if (markerId) {
+        const markup = `<${markerTagName} class="${htmlWrapperCssClassname}" id="${this.getMarkerStartNodeId(markerId)}"></${markerTagName}>`
+        this.getEmitContext().write(markup);
+
+        ret += markup;
       }
 
       if (this.analyzeConditionValue(value)) {
@@ -1003,8 +1212,8 @@ class RootCtxRenderer extends BaseRenderer {
 
         const blockKey = isSynthetic ? getSyntheticAliasFromPath(path) : canonicalPath;
 
-        this.blockData[blockKey].length = value.length;
         this.blockData[blockKey].type = isArray ? 'array' : 'map';
+        this.blockData[blockKey].length = value.length;
 
         // Note: <rawValue> and <keys> are only used to check for null members
 
@@ -1012,7 +1221,7 @@ class RootCtxRenderer extends BaseRenderer {
 
         const keys = Object.keys(rawValue);
 
-        let ret = "";
+        const blockStack = [...this.getEmitContext().blockStack];
 
         for (let i = 0; i < value.length; i++) {
 
@@ -1021,13 +1230,13 @@ class RootCtxRenderer extends BaseRenderer {
             value[i];
           }
 
-          const currentWrapperNodeId = nodeId ? clientUtils.randomString() : null;
-
           const p = toFqPath({ isArray, isMap: !isArray, parent: path, prop: keys[i] });
 
           const key = this.getBlockData({
             path: blockKey,
             dataVariable: '@key',
+            // Note: we need to pass in <blockDataProducer> because at this point, doBlockUpdate(...) has not
+            // yet been called
             blockDataProducer: () => ({
               ...this.blockData,
               [blockKey]: {
@@ -1037,65 +1246,75 @@ class RootCtxRenderer extends BaseRenderer {
             })
           });
 
-          const wrapperHeader = currentWrapperNodeId ? this.getColElementWrapperHeader(currentWrapperNodeId, key) : null;
-          const wrapperFooter = currentWrapperNodeId ? this.getColElementWrapperFooter() : null;
-
-          if (currentWrapperNodeId) {
-            this.getEmitContext().write(wrapperHeader);
-          }
-
-          this.getEmitContext().blockStack.push(loc);
-
           const currentValue = rawValue[key];
+          const isNull = currentValue === null || (predicate ? !this[predicate].bind(this)(currentValue) : false);
 
-          const isNull = currentValue === null || currentValue[isNullProperty] || (predicate ? !this[predicate].bind(this)(currentValue) : false);
+          const func = () => {
+            this.startSyntheticCacheContext();
 
-          this.startSyntheticCacheContext();
+            const markup = isNull ?
+              // null collection members are always represented as an empty strings
+              (() => {
+                this.blockData[blockKey].index++;
+                return '';
+              })() :
+              this.lookupObject(fn)(this.rootProxy);
 
-          let markup = isNull ?
-            // null collection members are always represented as an empty strings
-            (() => {
-              this.blockData[blockKey].index++;
-              return '';
-            })() :
-            this.lookupObject(fn)(this.rootProxy);
+            this.pruneSyntheticCache();
 
-          this.pruneSyntheticCache();
+            this.getEmitContext().write(markup);
 
-          this.getEmitContext().blockStack.pop();
-
-          this.getEmitContext().write(markup);
-
-          if (currentWrapperNodeId) {
-            this.getEmitContext().write(wrapperFooter);
+            return markup;
           }
 
-          if (currentWrapperNodeId) {
-            markup = `${wrapperHeader}${markup}${wrapperFooter}`;
+          const memberNodeId = nodeId ? clientUtils.randomString() : null;
+          this.startBlockContext({ blockId: _blockId, loc });
+
+          const markup = nodeId ? this.execBlockIteration(func, opaqueWrapper, key, memberNodeId, loc) : func();
+
+          this.endBlockContext();
+
+          const blockData = dataBinding ? this.getBlockDataSnapshot(p, loc) : null;
+
+          if (hook) {
+            this.registerHook(
+              `#${memberNodeId}`, hook, hookPhase, hookOrder, loc, blockData ? clientUtils.createImmutableProxy(blockData) : clientUtils.deepClone(this.blockData),
+            );
           }
 
-          if (isArray && !isSynthetic && currentWrapperNodeId) {
+          if (transform) {
+            this.registerTransform(
+              this.nodeIdTransformSelector(memberNodeId), transform
+            );
+          }
 
-            if (nodeId) {
-              this.backfillArrayChildBlocks(p, `#${currentWrapperNodeId}`);
+          if (dataBinding) {
+            if (predicate) {
+
+              this.proxyInstance.getDataPathHooks()[p]
+                .push({
+                  type: predicateHookType, selector: `#${memberNodeId}`,
+                  blockStack, blockId: _blockId, fn, predicate, hook, hookPhase, transform, opaqueWrapper,
+                  blockData, canonicalPath: `${canonicalPath}_$`, loc,
+                });
+
             } else {
-              this.pruneArrayChildBlocks(p, null);
+
+              this.proxyInstance.getDataPathHooks()[p]
+                .push({
+                  type: blockDataHolderHookType, selector: `#${memberNodeId}`,
+                  blockData, canonicalPath: `${canonicalPath}_$`, loc,
+                });
             }
           }
 
-          if (hook) {
-            this.registerHook(`#${nodeId} > #${currentWrapperNodeId}[key='${key}']`, hook, hookPhase, hookOrder, loc);
-          }
+          if (isArray && !isNull && !isSynthetic) {
 
-          if (dataBinding && predicate) {
-
-            this.proxyInstance.getDataPathHooks()[p]
-              .push({
-                type: predicateHookType, selector: `#${currentWrapperNodeId}`,
-                fn, predicate, hookMethod: hook, hookPhase, innerTransform, loc,
-                blockData: this.getBlockDataSnapshot(p),
-                canonicalPath: `${canonicalPath}_$`,
-              });
+            if (nodeId) {
+              this.backfillArrayChildBlocks(p, `#${memberNodeId}`);
+            } else {
+              this.pruneArrayChildBlocks(p, null);
+            }
           }
 
           ret += markup;
@@ -1105,22 +1324,37 @@ class RootCtxRenderer extends BaseRenderer {
           delete this.syntheticContext[blockKey];
         }
 
-        return ret;
-
       } else if (inverse) {
 
-        return this.lookupObject(inverse)(ctx);
+        const markup = this.lookupObject(inverse)(ctx);
+        this.getEmitContext().write(markup);
+
+        ret += markup;
       }
+
+      if (markerId) {
+        const markup = `<${markerTagName} class="${htmlWrapperCssClassname}" id="${this.getMarkerEndNodeId(markerId)}"></${markerTagName}>`
+        this.getEmitContext().write(markup);
+
+        ret += markup;
+      }
+
+      return ret;
     }
+
+    const blockStack = [...this.getEmitContext().blockStack];
+    const blockId = this.startBlockContext({ loc });
+
+    const _blockStack = [...this.getEmitContext().blockStack];
 
     if (dataBinding) {
 
+      const blockData = this.getBlockDataSnapshot(path, loc);
+
       this.proxyInstance.getDataPathHooks()[path]
         .push({
-          type: eachBlockHookType, selector: `#${nodeId}`,
-          fn, inverse, predicate, hookMethod: hook, hookPhase,
-          blockData: this.getBlockDataSnapshot(path),
-          canonicalPath, loc, innerTransform,
+          type: eachBlockHookType, selector, blockStack, blockId, memberBlockId: _blockId, markerEnd, fn, inverse, predicate,
+          hook, hookPhase, blockData, canonicalPath, transform, opaqueWrapper, loc,
         });
 
       const collDef = this.proxyInstance.getCollectionDefinition(path.replace(dataPathPrefix, ''));
@@ -1134,16 +1368,18 @@ class RootCtxRenderer extends BaseRenderer {
 
             this.proxyInstance.getDataPathHooks()[path]
               .push({
-                type: hookType, selector: `#${nodeId}`,
-                fn, predicate, hookMethod: hook, hookPhase,
-                blockData: this.getBlockDataSnapshot(path),
-                canonicalPath, loc, innerTransform,
+                type: hookType, selector, blockStack: _blockStack, blockId: _blockId, markerEnd, fn, predicate, hook, hookPhase,
+                blockData, canonicalPath, transform, opaqueWrapper, loc,
               });
           })
       }
     }
 
     const html = forEach0();
+
+    this.endBlockContext();
+
+    this.getEmitContext().write(html);
 
     if (this.#attributeEmitContext) {
       assert(!nodeId);
@@ -1219,25 +1455,27 @@ class RootCtxRenderer extends BaseRenderer {
    * This backfills "selector: null" created by nested blocks via getBlockDataSnapshot(...)
    */
   backfillArrayChildBlocks(path, selector) {
-    const { arrayChildBlockHookType } = RootProxy;
+    const { arrayChildBlockHookType, dataPathPrefix } = RootProxy;
+
+    assert(selector);
+    assert(path.match(dataPathPrefix));
 
     const dataPathHooks = this.proxyInstance.getDataPathHooks();
     const arr = dataPathHooks[path];
-
-    assert(selector);
 
     if (!arr) return;
 
     arr.forEach((hook) => {
       if (hook.type == arrayChildBlockHookType && !hook.selector) {
-        this.proxyInstance.registerHookSelector(path, { selector });
         hook.selector = selector;
       }
     });
   }
 
   pruneArrayChildBlocks(path, selector) {
-    const { arrayChildBlockHookType } = RootProxy;
+    const { arrayChildBlockHookType, dataPathPrefix } = RootProxy;
+
+    assert(path.match(dataPathPrefix));
 
     const dataPathHooks = this.proxyInstance.getDataPathHooks();
     const arr = dataPathHooks[path];
@@ -1290,9 +1528,22 @@ class RootCtxRenderer extends BaseRenderer {
     return null;
   }
 
-  getBlockDataSnapshot(targetPath, arrayBlock) {
+  getBlockDataSnapshot(targetPath, targetLoc, arrayBlock) {
 
-    const { arrayChildBlockHookType } = RootProxy;
+    const { arrayChildBlockHookType, logicGatePathPrefix } = RootProxy;
+
+    if (targetPath.match(logicGatePathPrefix)) {
+      // getBlockDataSnapshot(...) is already called in RootProxy.resolveLogicPath(...),
+      // so we should re-use the existing blockData
+
+      const gateId = targetPath.replace(logicGatePathPrefix, '');
+
+      const gate = this.proxyInstance.getLogicGates()[gateId];
+
+      if (gate) {
+        return gate.blockData;
+      }
+    }
 
     if (arrayBlock === undefined) {
       arrayBlock = this.getClosestArrayBlock();
@@ -1304,20 +1555,14 @@ class RootCtxRenderer extends BaseRenderer {
       const dataPathHooks = this.proxyInstance.getDataPathHooks();
       const hookList = dataPathHooks[path] || this.proxyInstance.createHooksArray(path);
 
-      // Add hook, only if it does not already exist
-      if (
-        !hookList.filter(({ type, path: p }) =>
-          type == arrayChildBlockHookType && p == targetPath)
-          .length
-      ) {
-        hookList.push({
-          type: arrayChildBlockHookType, path: targetPath,
-          // <selector> will be backfilled by backfillArrayChildBlocks(...) on iteration
-          selector: null,
-          canonicalPath: `${blockDataKey}_$`,
-          blockDataKey: blockDataKey,
-        });
-      };
+      hookList.push({
+        type: arrayChildBlockHookType, path: targetPath,
+        // <selector> will be backfilled by backfillArrayChildBlocks(...) on iteration
+        selector: null,
+        canonicalPath: `${blockDataKey}_$`,
+        blockDataKey: blockDataKey,
+        loc: targetLoc,
+      });
     }
 
     // Then, clone and return blockData
@@ -1331,27 +1576,42 @@ class RootCtxRenderer extends BaseRenderer {
   static getMetaHelpers() {
     return [
       'storeContext', 'loadContext', 'forEach', 'conditional', 'startAttributeBindContext',
-      'endAttributeBindContext', 'startTextNodeBindContext', 'setSyntheticNodeId', 'resolveMustacheInRoot',
-      'resolveMustacheInCustom', 'c', 'var', 'wrapInvocationWithProxy'
+      'endAttributeBindContext', 'textBindContext', 'blockWrapperId', 'resolveMustacheInRoot',
+      'resolveMustacheInCustom', 'c', 'var', 'wrapInvocationWithProxy',
     ];
   }
 
-  setSyntheticNodeId() {
+  getNodeIdFromIndex(nodeIndex, loc) {
+    const nodeId = this.getEmitContext().nodeIdStore[nodeIndex];
+
+    if (!nodeId) {
+      this.throwError(
+        `Could not find any nodeId with index "${nodeIndex}" in the current tokenization context`, loc
+      );
+    }
+
+    return nodeId;
+  }
+
+  blockWrapperId({ params }) {
+
+    const [nodeIndex] = params;
+    assert(typeof nodeIndex == 'number');
+
     const id = global.clientUtils.randomString();
-    this.syntheticNodeId.push(id);
 
     this.getEmitContext().write(id);
+
+    this.registerNodeId(nodeIndex, id);
 
     return id;
   }
 
-  getSyntheticNodeId() {
-    return this.syntheticNodeId.pop();
-  }
+  getBlockWrapperId() {
+    const { nodeIdStore } = this.getEmitContext();
+    const nodeIndex = Object.keys(nodeIdStore).pop();
 
-  peekSyntheticNodeId() {
-    assert(this.syntheticNodeId.length == 1);
-    return this.syntheticNodeId[0];
+    return this.getNodeIdFromIndex(nodeIndex);
   }
 
   startAttributeBindContext() {
@@ -1369,9 +1629,7 @@ class RootCtxRenderer extends BaseRenderer {
 
     this.#attributeEmitContext = {
       tokenList: [],
-      literal: '',
       write: (value) => {
-        this.#attributeEmitContext.literal += value;
         streamTokenizer.write(value);
       },
     };
@@ -1474,7 +1732,7 @@ class RootCtxRenderer extends BaseRenderer {
       .map(v => {
         if (v.match(rgx)) {
           const ref = v.replace(/({{)|(}})/g, '');
-          v = this.mustacheStatements[ref].renderedValue;
+          v = this.#mustacheStatements[ref].renderedValue;
         }
         return v;
       })
@@ -1482,7 +1740,7 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   setRenderedValue(ref, value) {
-    const mustacheInfo = this.mustacheStatements[ref];
+    const mustacheInfo = this.#mustacheStatements[ref];
     const { renderedValue: previousValue } = mustacheInfo;
 
     mustacheInfo.renderedValue = value;
@@ -1514,14 +1772,19 @@ class RootCtxRenderer extends BaseRenderer {
     return null;
   }
 
-  endAttributeBindContext({ options }) {
+  endAttributeBindContext({ options, params }) {
+    const { attrBindContextEvent } = RootCtxRenderer;
     const {
-      nodeAttributeHookType, nodeAttributeKeyHookType, nodeAttributeValueHookType
+      nodeAttributeHookType, nodeAttributeKeyHookType, nodeAttributeValueHookType, logicGatePathPrefix,
     } = RootProxy;
 
     if (!this.#attributeEmitContext) {
       return '';
     }
+
+    const attributesMap = {};
+
+    this.dispatchEvent(attrBindContextEvent, attributesMap);
 
     const { loc } = options;
 
@@ -1529,8 +1792,8 @@ class RootCtxRenderer extends BaseRenderer {
 
     const { tokenList } = this.#attributeEmitContext;
 
-    const definedNodeId = this.getNodeIdFromTokenList({ tokenList, loc });
-    const nodeId = definedNodeId || randomString();
+    const nodeId = this.getNodeIdFromTokenList({ tokenList, loc }) ||
+      attributesMap['id'] || (attributesMap['id'] = randomString());
 
     const mustacheRgx = /{{\w+}}/g;
     const valueTokenIndexes = [];
@@ -1543,7 +1806,7 @@ class RootCtxRenderer extends BaseRenderer {
 
           const mustacheRef = m.replace(/({{)|(}})/g, '');
 
-          const mustacheInfo = this.mustacheStatements[mustacheRef];
+          const mustacheInfo = this.#mustacheStatements[mustacheRef];
 
           if (!mustacheInfo) {
             return;
@@ -1578,10 +1841,18 @@ class RootCtxRenderer extends BaseRenderer {
 
           if (dataBinding && hookType) {
 
+            const hookObj = {
+              type: hookType, selector: `#${nodeId}`, canonicalPath, mustacheRef, hookInfo, transform, loc,
+            };
+
             this.proxyInstance.getDataPathHooks()[path]
-              .push({
-                type: hookType, selector: `#${nodeId}`, canonicalPath, mustacheRef, hookInfo, transform, loc, opaque: true,
-              })
+              .push(hookObj);
+
+            if (path.match(logicGatePathPrefix)) {
+              this.#addParentHookToLogicGateParticipants(
+                path.replace(logicGatePathPrefix, ''), hookObj,
+              );
+            }
           }
         });
     }
@@ -1645,9 +1916,15 @@ class RootCtxRenderer extends BaseRenderer {
         })
     });
 
+    // Note: we currently do not prune mustacheStatements
+
+    const [nodeIndex] = params;
+
+    this.registerNodeId(nodeIndex, nodeId);
+
     this.#attributeEmitContext = null;
 
-    const ret = definedNodeId ? '' : ` id='${nodeId}'`;
+    const ret = Object.entries(attributesMap).map(([k, v]) => ` ${k}='${v}'`).join('');
 
     this.getEmitContext().write(ret);
 
@@ -1689,27 +1966,26 @@ class RootCtxRenderer extends BaseRenderer {
     return attrName == 'class';
   }
 
-  startTextNodeBindContext() {
-    const { textNodeHookType } = RootProxy;
-
+  textBindContext() {
     const id = global.clientUtils.randomString();
 
     if (this.dataBindingEnabled()) {
-      assert(this.#currentBindContext.length === 0);
-
-      this.#currentBindContext.push({
-        type: textNodeHookType,
-        selector: `#${id}`,
-      });
+      this.#dataStack.push({ selector: `#${id}` });
     }
 
     this.getEmitContext().write(id);
 
+    this.registerNodeId(null, id);
+
     return id;
   }
 
-  getCurrentBindContext() {
-    return this.#currentBindContext.pop();
+  popDataStack() {
+    return this.#dataStack.pop();
+  }
+
+  peekDataStack() {
+    return this.#dataStack[this.#dataStack.length - 1];
   }
 
   c({ params }) {
@@ -1726,12 +2002,16 @@ class RootCtxRenderer extends BaseRenderer {
 
   resolveMustacheInRoot({ options, params }) {
 
-    const { textNodeHookType, inlineComponentHookType, dataPathRoot, pathSeparator } = RootProxy;
+    const { textNodeHookType, inlineComponentHookType, dataPathRoot, pathSeparator, logicGatePathPrefix, } = RootProxy;
     const { getLine } = clientUtils;
 
-    let { hash: { hook, transform }, loc } = options;
+    let { hash: { hook, hookPhase, hookOrder, transform }, loc } = options;
 
-    const bindContext = this.getCurrentBindContext();
+    if (transform) {
+      transform = this.wrapTransform(transform);
+    }
+
+    const bindContext = this.popDataStack();
 
     let [target] = params;
 
@@ -1752,9 +2032,7 @@ class RootCtxRenderer extends BaseRenderer {
     // Todo: Support data-binding for synthetic invocations
     const shouldDataBind = !isSynthetic && canDataBind;
 
-    const isTextNodeBindContext = bindContext && bindContext.type == textNodeHookType;
-
-    if (!isTextNodeBindContext && value instanceof BaseComponent) {
+    if (!bindContext && value instanceof BaseComponent) {
       this.logger.warn(
         `[${getLine({ loc })}] Component "${value.getId()}" needs a bind context inorder to render properly`
       );
@@ -1769,13 +2047,13 @@ class RootCtxRenderer extends BaseRenderer {
         if (shouldDataBind) {
           const mustacheRef = clientUtils.randomString();
 
-          this.mustacheStatements[mustacheRef] = {
+          this.#mustacheStatements[mustacheRef] = {
             path, canonicalPath, transform, loc,
           }
           this.#attributeEmitContext.write(`{{${mustacheRef}}}`);
 
           renderedValueListener = (renderedValue) => {
-            this.mustacheStatements[mustacheRef].renderedValue = renderedValue;
+            this.#mustacheStatements[mustacheRef].renderedValue = renderedValue;
           }
         } else {
           renderedValueListener = (renderedValue) => {
@@ -1783,24 +2061,18 @@ class RootCtxRenderer extends BaseRenderer {
           }
         }
 
-        if (hook) {
-          this.throwError(
-            'Hooks cannot be used on a mustache expression that exists in an attribute context',
-            loc,
-          );
-        }
-
         break;
 
-      case isTextNodeBindContext:
-        const { type, selector, inlineComponent } = bindContext;
+      case !!bindContext:
+        const { selector, inlineComponent } = bindContext;
+        const blockStack = [...this.getEmitContext().blockStack];
 
         if (value instanceof Promise || value instanceof BaseComponent) {
           value = this.render({
             data: value,
-            target: selector.replace('#', ''),
+            target: selector,
             transform,
-            options,
+            loc,
           })
 
           transform = null;
@@ -1811,33 +2083,42 @@ class RootCtxRenderer extends BaseRenderer {
         let blockData;
 
         if (shouldDataBind) {
-          blockData = hook ? this.getBlockDataSnapshot(path) : null;
+          blockData = this.getBlockDataSnapshot(path, loc);
 
-          dataPathHooks[path]
-            .push({
-              type, selector,
-              hookMethod: hook, canonicalPath, transform, blockData, loc,
-            });
+          const hookObj = {
+            type: textNodeHookType, selector, blockStack,
+            hook, hookPhase, canonicalPath, transform, blockData, loc,
+          };
+
+          dataPathHooks[path].push(hookObj);
+
+          if (path.match(logicGatePathPrefix)) {
+            this.#addParentHookToLogicGateParticipants(
+              path.replace(logicGatePathPrefix, ''), hookObj,
+            );
+          }
 
         } else if (canDataBind && inlineComponent) {
 
           const path0 = `${dataPathRoot}${pathSeparator}${this.getExecPath({ fqPath: bindContext.canonicalPath, addBasePath: false }).path}`;
 
-          blockData = this.getBlockDataSnapshot(path0);
+          blockData = this.getBlockDataSnapshot(path0, loc);
 
           if (!dataPathHooks[path0]) {
             this.proxyInstance.createHooksArray(path0);
           }
 
           dataPathHooks[path0].push({
-            type: inlineComponentHookType, selector,
+            type: inlineComponentHookType, selector, blockStack,
             syntheticPath: path, ref: bindContext.ref,
-            hookMethod: hook, canonicalPath: bindContext.canonicalPath, transform, blockData, loc,
+            hook, hookPhase, canonicalPath: bindContext.canonicalPath, transform, blockData, loc,
           });
         }
 
         if (hook) {
-          this.registerHook(selector, hook, 'afterMount', 0, loc, blockData);
+          this.registerHook(
+            selector, hook, hookPhase, hookOrder, loc, blockData ? clientUtils.createImmutableProxy(blockData) : clientUtils.deepClone(this.blockData),
+          );
         }
 
         break;
@@ -2739,15 +3020,11 @@ class RootCtxRenderer extends BaseRenderer {
         delete hash[k];
       });
 
-    let input;
+    const input = inputProducer();
 
     for (const [key, value] of Object.entries(hash)) {
       if (value === undefined) {
         continue;
-      }
-
-      if (!input) {
-        input = inputProducer();
       }
 
       const scope = { i: input, v: value };
@@ -2778,7 +3055,9 @@ class RootCtxRenderer extends BaseRenderer {
 
   createComponent({ hash, componentClass }) {
 
-    const { input = {}, handlers, config } = this.buildInputData({ hash });
+    const { input, handlers, config } = this.buildInputData({
+      inputProducer: () => ({}), hash
+    });
 
     const component = new componentClass({
       input,
@@ -2828,12 +3107,32 @@ class RootCtxRenderer extends BaseRenderer {
       });
   }
 
-  cloneComponent({ componentSpec, hash = {}, forceClone = true }) {
+  cloneInlineComponents() {
+    return false;
+  }
+
+  getComponentInstanceFromSpec({ canonicalPath, componentSpec, hash = {}, loc }) {
     const { cloneInputData } = BaseComponent;
+    const { pathSeparator } = RootProxy;
 
-    assert(componentSpec instanceof BaseComponent);
+    assert(canonicalPath && componentSpec instanceof BaseComponent);
 
-    const inputProducer = () => cloneInputData(componentSpec.getInput());
+    let clone = this.cloneInlineComponents();
+
+    if (Array.isArray(clone)) {
+      clone = clone.includes(canonicalPath.split(pathSeparator).join('.'));
+    }
+
+    if (!clone && componentSpec.getMetaData().loaded) {
+      this.throwError(
+        'A single component instance cannot be rendered multiple times. To resolve, override cloneInlineComponents() and return true',
+        loc
+      );
+    }
+
+    const inputProducer = () => clone ?
+      cloneInputData(componentSpec.getInput()) :
+      componentSpec.getInput();
 
     const { handlers, config, input } = this.buildInputData({
       inputProducer, hash,
@@ -2841,12 +3140,9 @@ class RootCtxRenderer extends BaseRenderer {
 
     let component;
 
-    if (input || config || handlers || componentSpec.getInternalMeta().loaded || forceClone) {
+    if (clone) {
 
-      component = new componentSpec.constructor({
-        input: input || inputProducer(),
-        config,
-      });
+      component = new componentSpec.constructor({ input, config });
 
       this.addEventHandlers({
         handlersObject: componentSpec.getHandlers(), component,
@@ -2854,9 +3150,16 @@ class RootCtxRenderer extends BaseRenderer {
 
     } else {
 
-      // We don't have to clone the component
       component = componentSpec;
-      component.getInternalMeta().loaded = true;
+
+      if (config) {
+        Object.entries(config)
+          .forEach(([k, v]) => {
+            component.addConfig(k, v);
+          });
+      }
+
+      componentSpec.addMetadata('loaded', true);
     }
 
     this.addEventHandlers({ handlers, component });
@@ -2867,8 +3170,6 @@ class RootCtxRenderer extends BaseRenderer {
   // eslint-disable-next-line class-methods-use-this
   loadInlineComponent() {
 
-    const { dataPathPrefix, textNodeHookType } = RootProxy;
-
     // eslint-disable-next-line prefer-rest-params
     const params = Array.from(arguments);
     const options = params.pop();
@@ -2876,24 +3177,23 @@ class RootCtxRenderer extends BaseRenderer {
     const [componentSpec] = params;
     const { loc, hash } = options;
 
-    const { ref, inlineComponent, path } = hash;
+    const { ref, inlineComponent, canonicalPath } = hash;
 
     delete hash.ctx;
 
     delete hash.ref;
     delete hash.inlineComponent;
-    delete hash.path;
+    delete hash.canonicalPath;
 
     delete hash.hook;
 
-    const [bindContext] = this.#currentBindContext;
+    const bindContext = this.peekDataStack();
 
     if (inlineComponent && bindContext) {
       // Update the current bind context if necessary, for data-binding purpose
-      assert(bindContext.type == textNodeHookType);
 
       bindContext.inlineComponent = true;
-      bindContext.canonicalPath = path.replace(dataPathPrefix, '');
+      bindContext.canonicalPath = canonicalPath;
       bindContext.ref = ref;
     }
 
@@ -2917,7 +3217,9 @@ class RootCtxRenderer extends BaseRenderer {
             break;
 
           case componentSpec && componentSpec instanceof BaseComponent:
-            component = this.cloneComponent({ componentSpec, hash, forceClone: false });
+            component = this.getComponentInstanceFromSpec({
+              canonicalPath, componentSpec, hash, loc
+            });
             break;
 
           case componentSpec === null:
@@ -2957,6 +3259,10 @@ class RootCtxRenderer extends BaseRenderer {
 
   getInlineComponent(ref) {
     return this.#inlineComponentInstances[ref];
+  }
+
+  getInlineComponentInstances() {
+    return this.#inlineComponentInstances;
   }
 
   getComponentName() {
@@ -3037,7 +3343,7 @@ class RootCtxRenderer extends BaseRenderer {
 
   getOwnEvents() {
     const fn = this.getOwnMethod('events');
-    return fn ? fn() : [];
+    return (fn && Array.isArray(fn())) ? fn() : [];
   }
 
   getBaseEvents() {
@@ -3052,13 +3358,47 @@ class RootCtxRenderer extends BaseRenderer {
     return events;
   }
 
+  getTransformers() {
+    if (!this.#transformers) {
+      this.#populateTransformers();
+    }
+    return this.#transformers;
+  }
+
+  #populateTransformers() {
+    const transformers = {};
+
+    this.recursivelyInvokeMethod('transformers').forEach(r => {
+      Object.entries(r)
+        .forEach(([key, value]) => {
+          assert(value instanceof Function);
+
+          if (!transformers[key]) {
+            transformers[key] = [];
+          }
+
+          transformers[key].push(value);
+        });
+    });
+
+    Object.values(transformers).forEach(arr => arr.reverse());
+
+    this.#transformers = transformers;
+  }
+
   getInitializers() {
+    if (!this.#initializers) {
+      this.#populateInitializers();
+    }
+    return this.#initializers;
+  }
+
+  #populateInitializers() {
     const initializers = {};
 
     this.recursivelyInvokeMethod('initializers').forEach(r => {
       Object.entries(r)
         .forEach(([key, value]) => {
-          assert(value instanceof Function);
 
           if (!initializers[key]) {
             initializers[key] = [];
@@ -3066,28 +3406,9 @@ class RootCtxRenderer extends BaseRenderer {
 
           initializers[key].push(value);
         });
-    })
+    });
 
-    return initializers;
-  }
-
-  getHooks() {
-    const hooks = {};
-
-    this.recursivelyInvokeMethod('hooks').forEach(r => {
-      Object.entries(r)
-        .forEach(([key, value]) => {
-          assert(value instanceof Function);
-
-          if (!hooks[key]) {
-            hooks[key] = [];
-          }
-
-          hooks[key].push(value);
-        });
-    })
-
-    return hooks;
+    this.#initializers = initializers;
   }
 
   getAssetId() {
@@ -3103,16 +3424,49 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   dataBindingEnabled() {
-    return this.getSyntheticMethod({ name: 'enableDataBinding' })();
+    return this.getSyntheticMethod({ name: 'dataBindingEnabled' })();
+  }
+
+  hasBlockTransform() {
+    return this.getSyntheticMethod({ name: 'hasBlockTransform' })();
   }
 
   getGlobalHelpers() {
     return this.getSyntheticMethod({ name: 'globalHelpers' })();
   }
 
+  getRenderedCollections() {
+    return this.getSyntheticMethod({ name: 'renderedCollections' })();
+  }
+
+  static #addNodeDetachListener(nodeId, listener) {
+    const listeners = RootCtxRenderer.#nodeDetachListeners;
+
+    const arr = listeners[nodeId] || (listeners[nodeId] = []);
+    arr.push(listener);
+
+    return arr;
+  }
+
+  static triggerNodeDetachListeners(node) {
+    const { id: nodeId } = node;
+
+    assert(nodeId);
+    const arr = this.#nodeDetachListeners[nodeId];
+
+    if (arr) {
+      arr.forEach((fn) => {
+        fn(node);
+      })
+
+      delete this.#nodeDetachListeners[nodeId];
+    }
+  }
+
   static {
 
     if (global.MutationObserver) {
+
       new MutationObserver((mutations) => {
         for (const mutation of mutations) {
           if (mutation.type === 'childList' && mutation.removedNodes.length > 0) {
@@ -3121,6 +3475,7 @@ class RootCtxRenderer extends BaseRenderer {
                 continue;
               }
               const componentId = removedNode.getAttribute('__component');
+              const { id: nodeId } = removedNode;
 
               if (componentId) {
                 // Wait for some moments to see if node is re-connected to the DOM
@@ -3132,7 +3487,10 @@ class RootCtxRenderer extends BaseRenderer {
                       component.destroy();
                     }
                   }
-                }, this.nodePruneTimeout)
+                }, this.nodePruneTimeout);
+
+              } else if (removedNode.id) {
+                this.triggerNodeDetachListeners(removedNode);
               }
             }
           }

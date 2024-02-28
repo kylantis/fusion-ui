@@ -1,22 +1,91 @@
 
 class BaseComboBox extends components.FormElement {
 
+    #canLazyLoad = true;
+
     beforeCompile() {
         this.getInput().placeholderText;
     }
 
-    getDefaultValues() {
+    initializers() {
         return {
-            ['placeholderText']: () => 'Select Option'
+            ['placeholderText']: () => 'Select Option',
         };
     }
 
     beforeRender() {
-        const { multiSelect } = this.getInput();
+        this.on('insert.displayOnHover', ({ value }) => {
+            if (value) {
+                this.#canLazyLoad = false;
+            }
+        });
 
-        if (multiSelect) {
-            this.setupSelectedOptions();
-        }
+        this.on('insert.options', ({ value, afterMount }) => {
+            afterMount(() => {
+                this.setupOptions(value);
+            })
+        });
+
+        this.on('insert.multiSelect', ({ value, initial }) => {
+            if (initial) return;
+
+            if (value) {
+                this.setupSelectedOptions();
+
+            } else {
+
+                const input = this.getInput();
+                const { options } = input;
+
+                Object.values(options.getItems())
+                    .forEach(item => {
+                        item.selected = false;
+                    })
+
+                input.selectedOptions = null;
+                this.updateValue();
+            }
+        });
+    }
+
+    onMount() {
+
+        this.getInputNode()
+            .addEventListener("click", () => {
+                const { displayOnHover } = this.getInput();
+
+                if (!displayOnHover) {
+                    this.toggleOptions();
+                }
+            });
+
+        this.on('bodyClick', () => {
+            const { displayOnHover } = this.getInput();
+
+            if (!displayOnHover && this.isExpanded()) {
+                this.toggleOptions();
+            }
+        });
+
+        this.addCssClassListener(
+            this.getDropdownTrigger(), 'slds-is-open', true, () => {
+                if (this.#canLazyLoad) {
+                    this.dispatchEvent('loadOptions');
+                }
+            }
+        );
+    }
+
+    events() {
+        return ['loadOptions'];
+    }
+
+    behaviours() {
+        return ['selectValueFromOptions', 'unselectValueFromOptions'];
+    }
+
+    selectedOptionPredicate({ identifier }) {
+        return this.getSelectedIdentifiers().includes(identifier);
     }
 
     getSelectedOptionItemData({ identifier, icon, title }) {
@@ -31,7 +100,7 @@ class BaseComboBox extends components.FormElement {
 
         const items = [];
 
-        Object.values(options.getAllItems())
+        Object.values(options.getItems())
             .forEach((item) => {
                 items.push(this.getSelectedOptionItemData(item));
             })
@@ -44,117 +113,76 @@ class BaseComboBox extends components.FormElement {
             }
         });
 
+        const _this = this;
+
         input.selectedOptions
-            .on('itemRemove', (identifier) => {
-                this.unselectValueFromOptions(identifier);
-                input.selectedOptions.getEventContext().preventDefault();
+            .on('itemRemove', function (identifier) {
+                this.preventDefault();
+                _this.unselectValueFromOptions(identifier);
             });
     }
 
-    selectedOptionPredicate({ identifier }) {
-        return this.getAllSelectedIdentifiers().includes(identifier);
-    }
+    setupOptions(options) {
 
-    onMount() {
-        const { displayOnHover, options } = this.getInput();
+        if (!options) return;
 
-        if (!displayOnHover) {
-            this.getInputNode()
-                .addEventListener("click", () => {
-                    this.toggleOptions();
-                });
+        const input = this.getInput();
+        const { multiSelect } = input;
 
-            this.on('bodyClick', () => {
+        if (options) {
+
+            options.on('click', (identifier) => {
+                const { multiSelect } = input;
+
+                if (multiSelect && this.isOptionSelected(identifier)) {
+                    this.unselectValueFromOptions(identifier);
+                } else {
+                    this.selectValueFromOptions(identifier);
+                }
+
                 if (this.isExpanded()) {
                     this.toggleOptions();
                 }
             });
-        }
 
-        if (options) {
-            this.setupOptions();
+            options.on('itemsUpdate', (allItems, addedItems, removedItems) => {
+                addedItems.forEach(item => {
+                    const { selectedOptions } = input;
+
+                    if (selectedOptions) {
+                        selectedOptions.getInput().items.push(
+                            this.getSelectedOptionItemData(item)
+                        )
+                    }
+                });
+
+                removedItems.forEach(item => {
+                    const { selectedOptions } = input;
+
+                    if (selectedOptions) {
+                        const { items } = selectedOptions.getInput();
+
+                        const idx = items.findIndex(({ identifier }) => identifier == item.identifier);
+                        items.splice(idx, 1);
+                    }
+                });
+            });
+
+            if (multiSelect) {
+                this.setupSelectedOptions();
+            }
+
+        } else if (multiSelect) {
+            input.selectedOptions = null;
         }
 
         this.updateValue();
     }
 
-    hooks() {
-        return {
-            ['afterMount.options']: (evt) => {
-                const { mutateObjectFromHookInfo } = BaseComponent;
-
-                const { newValue, hookType, hookOptions } = evt;
-
-                const { options, multiSelect, selectedOptions } = this.getInput();
-
-                if (!hookType) {
-                    // for re-assignment, i.e. input.options = ...
-
-                    if (newValue) {
-                        this.setupOptions();
-
-                        if (multiSelect) {
-                            this.setupSelectedOptions();
-                        }
-                    }
-                } else if (multiSelect) {
-                    // for array mutations i.e. input.options.splice(...), e.t.c
-
-                    mutateObjectFromHookInfo(
-                        hookType, hookOptions, 
-                        options.getInput(), selectedOptions.getInput().items,
-                        (item) => item == null ? null : this.getSelectedOptionItemData(item)
-                    )
-                }
-            },
-            ['beforeMount.multiSelect']: ({ newValue }) => {
-
-                if (newValue) {
-                    this.setupSelectedOptions();
-
-                } else {
-
-                    const { options } = this.getInput();
-
-                    Object.values(options.getAllItems())
-                        .forEach(item => {
-                            item.selected = false;
-                        })
-
-                    this.updateValue();
-                }
-            }
-        }
-    };
-
-    behaviours() {
-        return ['selectValueFromOptions', 'unselectValueFromOptions'];
-    }
-
-    setupOptions() {
-
-        const input = this.getInput();
-        const { options } = input;
-
-        options.on('click', (identifier) => {
-            const { multiSelect } = input;
-
-            if (multiSelect && this.isOptionSelected(identifier)) {
-                this.unselectValueFromOptions(identifier);
-            } else {
-                this.selectValueFromOptions(identifier);
-            }
-
-            if (this.isExpanded()) {
-                this.toggleOptions();
-            }
-        });
-    }
-
     unselectValueFromOptions(identifier) {
         const { options, selectedOptions, multiSelect } = this.getInput();
 
-        options.getAllItems()[identifier].selected = false;
+        options.getItems()[identifier].selected = false;
 
         if (multiSelect) {
             selectedOptions.refreshItem(identifier);
@@ -166,14 +194,14 @@ class BaseComboBox extends components.FormElement {
     selectValueFromOptions(identifier) {
         const { options, selectedOptions, multiSelect } = this.getInput();
 
-        const selectedIdentifiers = this.getAllSelectedIdentifiers();
+        const selectedIdentifiers = this.getSelectedIdentifiers();
 
         if (selectedIdentifiers.includes(identifier)) {
             // already selected
             return;
         }
 
-        const items = options.getAllItems();
+        const items = options.getItems();
 
         if (!multiSelect && selectedIdentifiers[0]) {
             // unselect previously selected
@@ -192,7 +220,8 @@ class BaseComboBox extends components.FormElement {
     updateValue() {
         const input = this.getInput();
         const { placeholderText } = input;
-        const selectedOptions = this.getAllSelectedOptions();
+
+        const selectedOptions = this.getSelectedOptions();
 
         const value = selectedOptions.length > 1
             ? `${selectedOptions.length} Options Selected` :
@@ -204,21 +233,21 @@ class BaseComboBox extends components.FormElement {
         this.getInputNode().querySelector('span.value').innerHTML = value;
     }
 
-    getAllSelectedIdentifiers() {
-        return this.getAllSelectedOptions()
+    getSelectedIdentifiers() {
+        return this.getSelectedOptions()
             .map(({ identifier }) => identifier);
     }
 
-    getAllSelectedOptions() {
+    getSelectedOptions() {
         const { options } = this.getInput();
 
-        return Object.values(options.getAllItems())
+        return Object.values(options.getItems())
             .filter(({ selected }) => selected);
     }
 
     isOptionSelected(identifier) {
         const { options } = this.getInput();
-        return options.getAllItems()[identifier].selected;
+        return options.getItems()[identifier].selected;
     }
 
     isExpanded() {
@@ -258,5 +287,25 @@ class BaseComboBox extends components.FormElement {
         return options ? options.getId() : null;
     }
 
+    addCssClassListener(targetNode, cssClass, initial, cb) {
+
+        const observer = new MutationObserver((mutationsList, observer) => {
+            mutationsList.forEach(mutation => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class' && mutation.target.classList.contains(cssClass)) {
+
+                    if (initial) {
+                        observer.disconnect();
+                    }
+
+                    cb();
+                }
+            });
+        });
+
+        observer.observe(
+            targetNode, {
+            attributes: true, attributeOldValue: false, attributeFilter: ['class']
+        });
+    }
 }
 module.exports = BaseComboBox;

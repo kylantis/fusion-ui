@@ -87,6 +87,29 @@
       ]
     }
   },
+  "behaviours": {
+    "setActiveItem": {
+      "parameters": {
+        "identifier": {
+          "type": "string"
+        }
+      }
+    },
+    "toggleSubMenuVisibility": {
+      "parameters": {
+        "identifier": {
+          "type": "string"
+        }
+      }
+    },
+    "closeSubMenu": {
+      "parameters": {
+        "identifier": {
+          "type": "string"
+        }
+      }
+    }
+  },
   "escapeDynamicHtml": false,
   "sample": {
     "nullifyRandomly": [

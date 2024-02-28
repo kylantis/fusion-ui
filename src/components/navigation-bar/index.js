@@ -1,65 +1,52 @@
 
 class NavigationBar extends components.LightningComponent {
 
-    beforeCompile() {
+    #itemsBlockData = {};
+
+    onMount() {
+        this.on('remove.items_$', ({ value: item }) => {
+            if (!item) return;
+
+            const { id } = item;
+            delete this.#itemsBlockData[id];
+        });
     }
 
     events() {
-        return ['navItemClick'];
+        return ['itemClick'];
     }
 
-    defaultHandlers() {
+    behaviours() {
+        return ['closeSubMenu'];
+    }
+
+    initializers() {
         return {
-        };
+            ['items_$.id']: () => this.randomString(),
+        }
     }
 
-    getItems() {
-        return this.items || (this.items = {})
-    }
+    navItemClickListener(evt) {
+        const { target } = evt;
 
-    registerNavItem({ node, blockData }) {
+        const itemId = target.getAttribute('data-id');
+        const hasSubMenu = target.getAttribute('data-has-submenu');
 
-        const li = node.querySelector(':scope > .slds-context-bar__item');
-
-        const { index = -1 } = blockData[`items`] || {};
-
-        const { subMenu } = this.getInput()['items'][index]
-
-        const items = this.getItems();
-
-        const identifier = li.getAttribute('identifier');
-
-        if (!identifier) {
-            const msg = `[${this.getId()}] Empty item identifier`;
-            throw Error(msg)
+        // If this item has a submenu, this handler will be triggered
+        // when item(s) on the submenu are clicked
+        if (hasSubMenu && this.#isSubMenuRelatedEvent(evt)) {
+            return;
         }
 
-        items[identifier] = { li, hasSubMenu: !!subMenu, subMenu };
-
-        this.addClickListener(li);
+        this.dispatchEvent('itemClick', itemId)
     }
 
-    addClickListener(li) {
-        const _this = this;
-        const items = this.getItems();
-
-        li.addEventListener('click', function (evt) {
-
-            const identifier = this.getAttribute('identifier');
-            const item = items[identifier];
-
-            // If this item has a submenu, this handler will be triggered
-            // when item(s) on the submenu are clicked
-            if (item.hasSubMenu && _this.isSubMenuRelatedEvent(evt)) {
-                return;
-            }
-
-            // Trigger the click event
-            _this.dispatchEvent('navItemClick', identifier)
-        }, false);
+    itemHook({ node, blockData }) {
+        const itemId = node.querySelector(':scope > li').getAttribute('data-id');
+        this.#itemsBlockData[itemId] = blockData;
     }
 
-    isSubMenuRelatedEvent(event) {
+    #isSubMenuRelatedEvent(event) {
         const { path } = event;
 
         for (const elem of path) {
@@ -77,26 +64,17 @@ class NavigationBar extends components.LightningComponent {
         return false;
     }
 
-    closeSubMenu(identifier) {
-        const items = this.getItems();
-        const item = items[identifier];
+    closeSubMenu(itemId) {
+        const li = this.getNode().querySelector(`li[data-id='${itemId}']`);
 
-        const { li } = item;
-        const { parentNode } = li;
+        if (!li) return;
 
-        parentNode.innerHTML = parentNode.innerHTML;
+        const blockData = this.#itemsBlockData[itemId];
+        const decorator = this.getDecorator('item_decorator');
 
-        item.li = parentNode.querySelector('.slds-context-bar__item');
-
-        // Re-attach the click listener to li
-        this.addClickListener(item.li);
-
-        if (item.li.children.length > 1) {
-            // This item contains a submenu
-            // We need to bring back the old submenu because we lost the event listeners
-            // when we re-assigned innerHTML
-            item.li.children.item(2).replaceWith(li.children.item(2));
-        }
+        this.executeWithBlockData(() => {
+            this.renderDecorator(decorator, li.parentNode);
+        }, blockData);
     }
 
 }

@@ -1,7 +1,7 @@
 
 class Checkbox extends components.MultiOptionFormElement {
 
-    beforeLoad() {
+    beforeRender() {
         const input = this.getInput();
         input.type = "checkbox";
     }
@@ -16,8 +16,6 @@ class Checkbox extends components.MultiOptionFormElement {
                 .classList.add('slds-checkbox_standalone');
         }
     }
-
-
 }
 
 module.exports = Checkbox;

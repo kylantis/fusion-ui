@@ -1,8 +1,91 @@
 
 class Button extends components.LightningComponent {
 
+    beforeRender() {
+
+        this.on('insert.stateful', ({ value: stateful, parentObject }) => {
+            const { type } = parentObject;
+
+            if (stateful && (type != 'neutral')) {
+                parentObject.stateful = false;
+            }
+        });
+
+        this.on('insert.type', ({ value: type, parentObject }) => {
+            const { stateful } = parentObject;
+
+            if (stateful && (type != 'neutral')) {
+                parentObject.type = 'neutral';
+            }
+        });
+
+        this.on('remove.states.$_', ({ mutationType, parentObject, key, afterMount }) => {
+            const { mutationType_DELETE } = BaseComponent.CONSTANTS;
+            if (mutationType != mutationType_DELETE) return;
+
+            afterMount(() => {
+                parentObject[key] = this.#geEmptyStateObject();
+            });
+        });
+    }
+
+    onMount() {
+        this.refreshButtonSize();
+
+        this.node.addEventListener("click", () => {
+            this.dispatchEvent('click');
+        });
+
+        this.node.addEventListener('mouse_leave', () => {
+            this.dispatchEvent('mouse_leave');
+        });
+    }
+
+    afterMount() {
+        this.on(
+            this.getSizeIntrinsicPaths().map(p => `insert.${p}`).join('|'),
+            () => {
+                this.refreshButtonSize()
+            });
+    }
+
     events() {
         return ['click', 'mouse_leave'];
+    }
+
+    initializers() {
+        return {
+            ['type']: this.getDefaultType(),
+            ['states']: () => ({}),
+            ['states.$_']: () => this.#geEmptyStateObject(),
+        };
+    }
+
+    transformers() {
+        return {
+            ['states']: (states) => {
+                this.getStatesNames()
+                    .filter(k => !states[k])
+                    .forEach(k => {
+                        states[k] = this.#geEmptyStateObject();
+                    });
+            },
+        };
+    }
+
+    #geEmptyStateObject() {
+        return {};
+    }
+
+    /**
+     * Returns a list of paths that have the ability to affect the button size when
+     * their values change
+     */
+    getSizeIntrinsicPaths() {
+        return [
+            'states.$_.title', 'states.$_.leftIcon', 'states.$_.rightIcon',
+            'title', 'leftIcon', 'rightIcon'
+        ]
     }
 
     /**
@@ -10,19 +93,13 @@ class Button extends components.LightningComponent {
      */
     refreshButtonSize() {
 
-        if (this.isHeadlessContext()) {
-            return;
-        }
-
         const { stateful, states = {} } = this.getInput();
 
         if (!stateful) {
             return;
         }
 
-        const availableStates = Object.keys(states)
-            .filter(k => states[k])
-            .map(k => k.replace(this.getMapKeyPrefix(), ''));
+        const availableStates = states.keys().filter(k => states[k]);
 
         if (!availableStates.length) {
             return;
@@ -71,108 +148,25 @@ class Button extends components.LightningComponent {
         this.node.querySelector(':scope > button').style.width = `${maxWidth}px`;
     }
 
-    hooks() {
-        return {
-            ['type']: ({ newValue }) => {
-                if (!newValue) {
-                    // A type is required for the button to render properly
-                    this.getInput().type = this.getDefaultType();
-                }
-            },
-            ['afterMount.states.$_']: ({ path, newValue }) => {
-                const { getKeyFromIndexSegment, getParentFromPath, getMapKeyPrefix } = this;
-                const { selectState } = this.getInput();
-
-                if (!newValue) {
-                    // A state has been removed from our states map. If the current "selectState" depends
-                    // on the removed state, we need to throw an error - at least to let the developer know
-                    // that the component has gone off-track
-
-                    const key = getKeyFromIndexSegment(
-                        path.replace(
-                            getParentFromPath(path.split('.')),
-                            ''
-                        )
-                    );
-                    const state = key.replace(getMapKeyPrefix(), '');
-                    
-                    const throwErr = () => this.throwError(
-                        `Curent selectState "${selectState}" depends on the removed state "${state}"`
-                    );
-
-                    switch (state) {
-                        case 'selected_focus':
-                            if (selectState == 'is-selected') throwErr();
-                            break;
-                        case 'selected':
-                            if (selectState && selectState.startsWith('is-selected')) throwErr();
-                            break;
-                    }
-                }
-            },
-            ['afterMount.states.$_.title']: () => {
-                this.refreshButtonSize();
-            },
-            ['afterMount.states.$_.leftIcon']: () => {
-                this.refreshButtonSize();
-            },
-            ['afterMount.states.$_.rightIcon']: () => {
-                this.refreshButtonSize();
-            },
-            ['afterMount.title']: () => {
-                this.refreshButtonSize();
-            },
-            ['afterMount.leftIcon']: () => {
-                this.refreshButtonSize();
-            },
-            ['afterMount.rightIcon']: () => {
-                this.refreshButtonSize();
-            }
-        }
+    getStatesNames() {
+        return ['selected', 'selected_focus'];
     }
 
-    beforeRender() {
-        const input = this.getInput();
-        const { stateful, type } = input;
-
-        if (stateful) {
-            if (type != 'neutral') {
-                throw Error(
-                    'Stateful buttons are only used with the neutral variation'
-                );
-            }
-        }
-
-        // A type is required for the button to render properly
-        if (!type) {
-            input.type = this.getDefaultType();
-        }
-    }
-
-    onMount() {
-        this.refreshButtonSize();
-
-        this.node.addEventListener("click", () => {
-            this.dispatchEvent('click');
-        });
-
-        this.node.addEventListener('mouse_leave', () => {
-            this.dispatchEvent('mouse_leave');
-        })
+    hasAvailableState(state) {
+        const { states } = this.getInput();
+        return states[state].title != null;
     }
 
     selectStateTransform(selectStateClass) {
-        const input = this.getInput();
         const classPrefix = 'slds-is-';
 
         if (selectStateClass.startsWith(classPrefix)) {
-            const availableStates = Object.keys(input.states);
             const selectState = selectStateClass.replace(classPrefix, '');
 
             switch (true) {
-                case !availableStates.includes('selected'):
+                case !this.hasAvailableState('selected'):
                     return 'slds-not-selected';
-                case !availableStates.includes('selected_focus') && selectState == 'selected':
+                case !this.hasAvailableState('selected_focus') && selectState == 'selected':
                     return `${classPrefix}selected-click`;
             }
         }

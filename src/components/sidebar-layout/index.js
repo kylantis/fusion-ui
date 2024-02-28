@@ -1,19 +1,10 @@
 
 class SidebarLayout extends components.Drawer {
 
-    beforeCompile() {
-
-    }
-
     // this.getContentContainerSelector()
 
     beforeRender() {
         const input = this.getInput();
-        const { navigation } = input;
-
-        if (!navigation) {
-            this.throwError('A "vertival navigation" needs to be provided');
-        }
 
         const isMobile = this.isMobile();
 
@@ -23,30 +14,56 @@ class SidebarLayout extends components.Drawer {
         input.size = 'medium';
         input.closeIcon = !!isMobile;
         input.toggleButton = !!isMobile;
-
-
-        navigation
-            .on('beforeItemRegistered', item => {
-                if (item.active) {
-                    const activeItem = this.getActiveNavigationItem();
-
-                    if (activeItem) {
-                        activeItem.active = false;
-                    }
-                }
-            });
     }
 
-    afterMount() {
-        if (!this.getActiveNavigationItem()) {
-            this.setActive(
-                this.getNavigationItems()[0]
-            );
+    transformers() {
+        return {
+            ['navigation']: (navigation) => {
+                if (!navigation) return;
+
+                navigation
+                    .on('afterMount', () => {
+                        assert(navigation === this.getInput().navigation);
+
+                        const activeItems = this.getActiveNavigationItems();
+                        const firstItem = this.getNavigationItems()[0];
+                
+                        if (!activeItems.length && firstItem) {
+                            this.#setActiveNavItem0(firstItem);
+                        }
+                    });
+
+                navigation
+                    .on('itemRender', item => {
+                        if (item.active) {
+                            this.#setActiveNavItem0(item);
+                        }
+                    });
+
+                return navigation;
+            }
         }
     }
 
-    setActive(item) {
-        if (!item) return;
+    behaviours() {
+        return ['setActiveNavItem'];
+    }
+
+    setActiveNavItem(navItemId) {
+        const { navigation } = this.getInput();
+        const item = navigation.getItems()[navItemId];
+
+        if (item) {
+            this.#setActiveNavItem0(item);
+        }
+    }
+
+    #setActiveNavItem0(item) {
+        const activeItems = this.getActiveNavigationItems();
+
+        activeItems.forEach(item => {
+            item.active = false;
+        });
 
         item.active = true;
     }
@@ -57,8 +74,6 @@ class SidebarLayout extends components.Drawer {
 
 
         // use drawer's content container
-
-
     }
 
     setView() {
@@ -74,9 +89,9 @@ class SidebarLayout extends components.Drawer {
         return Object.values(navigation.getItems());
     }
 
-    getActiveNavigationItem() {
-        this.getNavigationItems()
-            .filter(({ active: c }) => c);
+    getActiveNavigationItems() {
+        return this.getNavigationItems()
+            .filter(({ active }) => active);
     }
 
 }

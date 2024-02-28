@@ -6,7 +6,7 @@ class Popover extends components.OverlayComponent {
         this.getInput().nubbin;
     }
 
-    getDefaultValues() {
+    initializers() {
         return {
             nubbin: true,
         }
@@ -17,36 +17,23 @@ class Popover extends components.OverlayComponent {
     }
 
     behaviours() {
-        return ['refresh'];
-    }
-
-    refresh() {
-        this.setPosition();
+        return ['setPosition', 'showPopover', 'closePopover'];
     }
 
     setPosition() {
+        const { targetElement, targetComponent, nubbin } = this.getInput();
 
-        if (this.isHeadlessContext()) {
-            return;
+        let target;
+
+        if (targetElement) {
+            target = document.querySelector(targetElement);
         }
 
-        const { targetElement, nubbin } = this.getInput();
-
-        if (!targetElement) {
-            return;
+        if (targetComponent) {
+            target = targetComponent.getNode();
         }
 
-        const target = document.querySelector(targetElement);
-
-        if (!target) {
-            throw Error(`[${this.getId()}] Could not find targetElement: ${targetElement}`);
-        }
-
-        if (getComputedStyle(target).display == 'contents') {
-            this.throwError(
-                `"${targetElement}" cannot be used as the targetElement because it does not have it's own CSS box`
-            );
-        }
+        if (!target || getComputedStyle(target).display == 'contents') return;
 
         const rect = target.getBoundingClientRect();
 
@@ -126,12 +113,6 @@ class Popover extends components.OverlayComponent {
 
     showPopover() {
         const node = this.getNode();
-
-        if (!node) {
-            this.throwError(
-                `Could not find popover node, did you forget to call .load(...) for this component?`
-            )
-        }
 
         node.style.zIndex = 0;
 

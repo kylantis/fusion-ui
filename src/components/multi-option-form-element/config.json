@@ -6,6 +6,17 @@
     }
   },
   "scalars": {
+    "type": {
+      "type": "String",
+      "allowed": [
+        "radio",
+        "checkbox"
+      ],
+      "defaults": [
+        "radio"
+      ],
+      "clientOnly": true
+    },
     "items_$.label": {
       "type": "String",
       "defaults": [
@@ -38,17 +49,6 @@
     "items_$.name": {
       "type": "String",
       "defaults": []
-    },
-    "type": {
-      "type": "String",
-      "allowed": [
-        "radio",
-        "checkbox"
-      ],
-      "defaults": [
-        "radio"
-      ],
-      "clientOnly": true
     }
   },
   "sample": {

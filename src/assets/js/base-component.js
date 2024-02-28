@@ -7,11 +7,11 @@ class BaseComponent extends WebRenderer {
 
   static #token;
 
+  static eventNameDelim = /\s*\|\s*/g;
+
   #inlineParent;
 
   #handlers;
-
-  #eventContext;
 
   // #API
   static CONSTANTS = {
@@ -42,10 +42,14 @@ class BaseComponent extends WebRenderer {
     nodeAttributeValueHookType: RootProxy.nodeAttributeValueHookType,
     collChildSetHookType: RootProxy.collChildSetHookType,
     collChildDetachHookType: RootProxy.collChildDetachHookType,
-    arrayChildReorderHookType: RootProxy.arrayChildReorderHookType,
+    arraySpliceHookType: RootProxy.arraySpliceHookType,
+    // Mutation Types
+    mutationType_SET: RootProxy.mutationType_SET,
+    mutationType_SPLICE: RootProxy.mutationType_SPLICE,
+    mutationType_DELETE: RootProxy.mutationType_DELETE,
   };
 
-  constructor({ id, input={}, logger, config } = {}) {
+  constructor({ id, input = {}, logger, config } = {}) {
 
     super({ id, input, logger, config });
 
@@ -117,8 +121,14 @@ class BaseComponent extends WebRenderer {
   }
 
   // #API
-  getDefaultValues() {
+  initializers() {
     return {};
+  }
+
+  // #API
+  // Note: This is used only for object members, not collection members
+  immutablePaths() {
+    return [];
   }
 
   // #API
@@ -141,7 +151,7 @@ class BaseComponent extends WebRenderer {
     }
   }
 
-  render({ data, target, transform }) {
+  render({ data, target, transform, loc }) {
     if (data === undefined) {
       return Promise.resolve();
     }
@@ -165,7 +175,8 @@ class BaseComponent extends WebRenderer {
 
         await this.getPromise();
 
-        const node = document.getElementById(target);
+        const node = document.querySelector(target);
+        
         // clear loader, if any
         node.innerHTML = '';
 
@@ -209,10 +220,6 @@ class BaseComponent extends WebRenderer {
   events() {
     return ['destroy'];
   }
-  // #API
-  hooks() {
-    return {};
-  }
 
   defaultHandlers() {
     return {};
@@ -223,49 +230,17 @@ class BaseComponent extends WebRenderer {
     return node.id;
   }
 
-  static #toNodeUpdateEventName(node) {
-    const { getNodeId } = BaseComponent;
-    return `nodeUpdate-${node instanceof Node ? `#${getNodeId(node)}` : node}`;
-  }
-
-  static #toNodeDetachEventName(node) {
-    const { getNodeId } = BaseComponent;
-    return `nodeDetach-${node instanceof Node ? `#${getNodeId(node)}` : node}`;
-  }
-
-  // #API
-  triggerNodeDetachEvent(node) {
-    this.#dispatchEvent0(
-      BaseComponent.#toNodeDetachEventName(node)
-    );
-  }
-
-  // #API
-  onNodeDetachEvent(handler, nodes) {
-    this.once(
-      handler, nodes
-        .map(s => BaseComponent.#toNodeDetachEventName(s)
-        ))
-  }
-
-  // #API
-  triggerNodeUpdateEvent(node) {
-    this.#dispatchEvent0(
-      BaseComponent.#toNodeUpdateEventName(node)
-    );
-  }
-
-  // #API
-  onNodeUpdateEvent(handler, nodes) {
-    this.once(
-      handler, nodes
-        .map(s => BaseComponent.#toNodeUpdateEventName(s)
-        ))
-  }
-
   // #API
   getHandlers() {
     return this.#handlers;
+  }
+
+  // #API
+  popEventListener(evt) {
+    const arr = this.getHandlers()[evt];
+    if (arr) {
+      arr.pop();
+    }
   }
 
   // #API
@@ -300,12 +275,17 @@ class BaseComponent extends WebRenderer {
 
     const handlers = this.getHandlers()[event] || (this.getHandlers()[event] = []);
     handlers.push(handler);
-    return this;
   }
 
   // #API
-  on(event, handler) {
-    return this.#on0(event, handler);
+  on(evtName, handler) {
+    const { eventNameDelim } = BaseComponent;
+
+    evtName.split(eventNameDelim).forEach((name) => {
+      this.#on0(name, handler);
+    });
+
+    return this;
   }
 
   #newEventContext() {
@@ -319,12 +299,10 @@ class BaseComponent extends WebRenderer {
     }
   }
 
-  getEventContext() {
-    return this.#eventContext;
-  }
-
   #dispatchEvent0(event, ...args) {
+
     let defaultHandler = this.defaultHandlers()[event]
+
     if (defaultHandler) {
       if (typeof defaultHandler == 'string') {
         defaultHandler = this[defaultHandler].bind(this);
@@ -332,13 +310,18 @@ class BaseComponent extends WebRenderer {
       assert(typeof defaultHandler == 'function');
     }
 
-    this.#eventContext = this.#newEventContext();
+    // Note: Only dispatch event to server if event is clientOnly as well as defined in getEvents()
+
+    const ctx = this.#newEventContext();
 
     [...this.getHandlers()[event] || (defaultHandler ? [defaultHandler] : [])]
-      .forEach(handler => handler(...args));
-
-    const ctx = this.#eventContext;
-    this.#eventContext = null;
+      .forEach(handler => {
+        try {
+          handler.bind(ctx)(...args)
+        } catch (e) {
+          this.logger.error(e);
+        }
+      });
 
     return ctx;
   }
@@ -391,6 +374,8 @@ class BaseComponent extends WebRenderer {
 
   // #API
   destroy() {
+    const { setObjectAsPruned } = RootProxy;
+
     this.dispatchEvent('destroy');
 
     // TODO
@@ -402,9 +387,9 @@ class BaseComponent extends WebRenderer {
       node.parentElement.removeChild(node)
     }
 
-    // clear hooks;
+    setObjectAsPruned(this);
 
-    // ask base renderer to clear input data
+    // clear hooks;
 
     // remove from componentRefs in base renderer
     delete BaseRenderer.getAllComponents()[this.getId()];
@@ -475,7 +460,7 @@ class BaseComponent extends WebRenderer {
 
     Object.entries(component.getHandlers())
       .forEach(([k, v]) => {
-        o.handlers[k] = v;
+        o.#handlers[k] = v;
       });
 
     return o;
@@ -485,127 +470,13 @@ class BaseComponent extends WebRenderer {
     return 'empty';
   }
 
-  updateHookSelector(from, to) {
-    const { nodeList } = this.getEmitContext();
-
-    const path = nodeList[from];
-
-    if (!path) {
-      // <from> not associated with any exists hooks
-      return;
-    }
-
-    this.proxyInstance.getDataPathHooks()[path]
-      .filter(({ selector }) => selector == from)
-      .forEach(hook => hook.selector = to);
-  }
-
   // #API
-  // Note: After this transform has executed, any changes made to node.content.children array itself will not have 
-  // no effect, but the array can be iterated to access the child nodes
-  moveWrapperToParent(node) {
-    const { parentRef, content } = node;
-
-    const idx = parentRef.content.children.indexOf(node);
-    assert(idx >= 0);
-
-    if (parentRef.nodeType == 'document') {
-      throw Error(
-        `Unable to execute "moveWrapperToParent" because targetNode does not have a parent`
-      );
-    }
-
-    const getAttr = (k, attrs = content.attributes) => (attrs || []).filter(({ key: { content } }) => content == k)[0];
-
-    const parentAttributes = parentRef.content.attributes || (parentRef.content.attributes = []);
-
-    const idAttr = getAttr('id');
-    assert(idAttr);
-
-    const parentIdAttr = getAttr('id', parentAttributes);
-
-    if (parentIdAttr) {
-      this.updateHookSelector(`#${idAttr.value.content}`, `#${parentIdAttr.value.content}`);
-    } else {
-      parentAttributes.push(idAttr);
-    }
-
-    parentRef.content.children.splice(
-      idx, 1, ...content.children,
-    );
-
-    content.children.forEach(n => n.parentRef = parentRef);
-  }
-
-  // #API
-  moveWrapperToFirstChild(nodes, attributes = []) {
-    nodes
-      .filter(({ nodeType }) => nodeType == 'tag')
-      .forEach(node => {
-        const { parentRef, content } = node;
-
-        const [child] = (content.children || []).filter(({ nodeType }) => nodeType == 'tag');
-
-        if (!child) {
-          return;
-        }
-
-        const getAttr = (k, attrs = content.attributes) => (attrs || []).filter(({ key: { content } }) => content == k)[0];
-        const clear = (o) => {
-          for (const key of Object.keys(o)) {
-            delete o[key];
-          }
-        }
-
-        const childAttributes = child.content.attributes || (child.content.attributes = []);
-
-        ['id', 'key', ...attributes]
-          .forEach(attrName => {
-
-            const attr = getAttr(attrName);
-
-            if (!attr) {
-              this.throwError(`Unknown attribute "${attrName}"`);
-            }
-
-            const childAttr = getAttr(attrName, childAttributes);
-
-            if (childAttr) {
-              if (attrName == 'id') {
-                this.updateHookSelector(`#${attr.value.content}`, `#${childAttr.value.content}`);
-              }
-            } else {
-              childAttributes.push(attr);
-            }
-          })
-
-        clear(node);
-        Object.assign(node, {
-          ...child,
-          parentRef: parentRef ? parentRef : null,
-        });
-      })
-  }
-
-  // #API
-  getKeyFromIndexSegment(s) {
-    return clientUtils.getKeyFromIndexSegment(s);
-  }
-  // #API
-  getParentFromPath(pathArray) {
-    return clientUtils.getParentFromPath(pathArray);
-  }
-  // #API
-  getMapKeyPrefix() {
-    return RootProxy.mapKeyPrefix;
+  getPathStringInfo(pathArray) {
+    return clientUtils.getPathStringInfo(pathArray);
   }
   // #API
   getSharedEnum(enumName) {
     return self.appContext ? self.appContext.enums[enumName] : null
-  }
-  // #API
-  isHeadlessContext() {
-    return global.isServer;
   }
   // #API
   randomString() {
@@ -617,14 +488,8 @@ class BaseComponent extends WebRenderer {
     return clientUtils.randomString();
   }
   // #API
-  set0(fn) {
-    this.proxyInstance.suspendHooks();
-    fn();
-    this.proxyInstance.resumeHooks();
-  }
-  // #API
-  pruneHooks() {
-    this.proxyInstance.pruneHooks();
+  executeDiscrete(fn, interceptor) {
+    this.proxyInstance.executeDiscrete(fn, interceptor);
   }
   // #API
   getDataVariableValue(dataVariable, index, keys) {
@@ -650,10 +515,6 @@ class BaseComponent extends WebRenderer {
       path: `${dataPathRoot}${pathSeparator}${path}`,
       value, hookTypes: [hookType], hookOptions,
     })
-  }
-  // #API
-  static mutateObjectFromHookInfo(hookType, hookOptions, src, dest, transfomer) {
-    return clientUtils.mutateObjectFromHookInfo({ hookType, hookOptions, src, dest, transfomer });
   }
 }
 module.exports = BaseComponent;

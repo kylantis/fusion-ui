@@ -1,4 +1,6 @@
 
+{{component alias="targetComponent"}}
+
 {{#*inline "render_popover"}}
     <section
         aria-describedby="dialog-body-{{@random}}" 

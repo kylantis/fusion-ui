@@ -1,17 +1,21 @@
+
 <div class="slds-section {{(expanded or (not collapsible) ) ? " slds-is-open" : "" }}">
+    
     {{#if collapsible}}
-    <h3 class="slds-section__title">
-        <button aria-controls="{{@random}}-content" aria-expanded="{{expanded ? " true" : "false" }}"
-            class="slds-button slds-section__title-action">
-            {{> ButtonIconSvg iconType='utility' iconName='switch' cssClass='slds-section__title-action-icon
-            slds-button__icon_left'}}
-            <span class="slds-truncate" title="{{title}}">{{title}}</span>
-        </button>
-    </h3>
+        <h3 class="slds-section__title">
+            <button 
+                aria-controls="{{@random}}-content" aria-expanded="{{expanded ? " true" : "false" }}"
+                class="slds-button slds-section__title-action" onclick="{{fn "toggleExpanded"}}"
+            >
+                {{> ButtonIconSvg iconType='utility' iconName='switch' cssClass='slds-section__title-action-icon
+                slds-button__icon_left'}}
+                <span class="slds-truncate" title="{{title}}">{{title}}</span>
+            </button>
+        </h3>
     {{else}}
-    <h3 class="slds-section__title slds-theme_shade">
-        <span class="slds-truncate slds-p-horizontal_small" title="{{title}}">{{title}}</span>
-    </h3>
+        <h3 class="slds-section__title slds-theme_shade">
+            <span class="slds-truncate slds-p-horizontal_small" title="{{title}}">{{title}}</span>
+        </h3>
     {{/if}}
 
     <div aria-hidden="{{expanded ? " false" : "true" }}"

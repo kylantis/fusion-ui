@@ -6,9 +6,9 @@
     }
   },
   "scalars": {
-    "items_$.identifier": {
-      "type": "String",
-      "defaults": []
+    "useDivider": {
+      "type": "Boolean",
+      "defaultValue": false
     },
     "items_$.title": {
       "type": "String",
@@ -25,13 +25,31 @@
       "type": "String",
       "defaults": []
     },
-    "useDivider": {
-      "type": "Boolean",
-      "defaultValue": false
-    },
     "items_$.subMenu": {
       "type": "Menu",
       "isNull": false
+    },
+    "items_$.id": {
+      "type": "String",
+      "defaults": []
+    }
+  },
+  "behaviours": {
+    "closeSubMenu": {
+      "parameters": {
+        "itemId": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "events": {
+    "itemClick": {
+      "parameters": {
+        "itemId": {
+          "type": "string"
+        }
+      }
     }
   },
   "escapeDynamicHtml": false

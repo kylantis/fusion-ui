@@ -1,7 +1,8 @@
 /* eslint-disable no-case-declarations */
 
-// Make all members (that are applicable) private
+// Todo: Make all members (that are applicable) private
 class RootProxy {
+
   // eslint-disable-next-line no-useless-escape
   static syntheticMethodPrefix = 's$_';
 
@@ -79,49 +80,61 @@ class RootProxy {
 
   static collChildDetachHookType = 'collChildDetach';
 
-  static arrayChildReorderHookType = 'arrayChildReorder';
+  static arraySpliceHookType = 'arrayChildReorder';
 
   static inlineComponentHookType = 'inlineComponent';
 
-  static isMapProperty = '$isMap';
+  static blockDataHolderHookType = 'blockDataHolder';
 
-  static isNullProperty = '$isNull';
+  static isMapProperty = '$isMap';
 
   static mapSizeProperty = 'size';
 
   static mapKeysProperty = 'keys';
 
+  static mapIndexOfProperty = 'indexOf';
+
   static isHookProperty = '$isHook';
 
-  static rawProperty = '$raw';
+  static parentRefProperty = '@parentRef';
 
   static lenientExceptionMsgPattern = /^Cannot read properties of (undefined|null)/g;
 
-  static enumsFile = 'dist/components/enums.json';
+  static filter_EQ = 'eq';
 
-  static copyEnumsCommand = 'npx gulp copy-enums';
+  static filter_GTE = 'gte';
 
-  static componentDataUpdateSocketOp = 'componentDataUpdate';
+  static filter_GT = 'gt';
+
+  static #privilegedMode = false;
+
+  static pathSchemaDefPrefix = '__pathSchema';
+
+  static mutationType_SET = 'set';
+
+  static mutationType_SPLICE = 'splice';
+
+  static mutationType_DELETE = 'delete';
 
   #dataPathHooks;
 
   #logicGates;
 
-  #pathValues;
-
-  #disableHooks;
+  #discreteMode = false;
 
   #randomValues;
 
-  #pathTree;
+  #pathTrie;
 
-  #dataPathKeys;
+  #dataPathKeys = [];
 
-  static #dataReferences = [];
+  #openHandles = [];
 
-  static #privilegedMode = false;
+  #pathMetadata = {};
 
-  static pathSchemaDefPrefix = '__pathSchema';
+  #blocks = {};
+
+  #hooksMap = new Map();
 
   constructor({ component }) {
     this.component = component;
@@ -130,11 +143,17 @@ class RootProxy {
     this.#dataPathHooks = this.createDataPathHooksObject();
     this.#logicGates = {};
 
-    this.#pathValues = this.#createPathValuesObject();
     this.#randomValues = this.#createRandomValuesObject();
 
-    this.#pathTree = {};
-    this.#dataPathKeys = [];
+    this.#pathTrie = clientUtils.createNewTrie();
+  }
+
+  getPathTrie() {
+    return this.#pathTrie;
+  }
+
+  getHooksMap() {
+    return this.#hooksMap;
   }
 
   #createRandomValuesObject() {
@@ -153,10 +172,12 @@ class RootProxy {
   }
 
   createDataPathHooksObject() {
-    const { isHookProperty } = RootProxy;
+    const { isHookProperty, dataPathPrefix, logicGatePathPrefix } = RootProxy;
 
     return new Proxy({}, {
       set: (object, key, value) => {
+
+        assert(key.match(dataPathPrefix) || key.match(logicGatePathPrefix));
         assert(Array.isArray(value));
 
         if (!this.component.dataBindingEnabled()) {
@@ -184,47 +205,23 @@ class RootProxy {
     })
   }
 
-  #createPathValuesObject() {
-    return new Proxy({}, {
-      set: (object, key, value) => {
-        const o = object[key];
-        const isEmpty = o === undefined;
-
-        if (isEmpty || o.newValue !== value) {
-          object[key] = {
-            oldValue: isEmpty ? o : o.newValue,
-            newValue: value,
-          }
-        }
-
-        return true;
-      },
-    })
+  doesPathMetadataExist(sPath, property) {
+    const attrs = this.#pathMetadata[sPath];
+    return attrs && (attrs[property] !== undefined);
   }
 
-  onPathChange(path) {
+  addPathMetada(sPath, properties) {
+    if (!this.#pathMetadata[sPath]) {
+      this.#pathMetadata[sPath] = {};
+    }
 
-    const { value, parentObject } = this.getInfoFromPath(path, null);
-
-    this.#pathValues[path] = value;
-
-    this.#pathValues[path].parentObject = parentObject;
+    Object.entries(properties).forEach(([k, v]) => {
+      this.#pathMetadata[sPath][k] = v;
+    });
   }
 
-  getDataPathKeys() {
-    return this.#dataPathKeys;
-  }
-
-  getPathTree() {
-    return this.#pathTree;
-  }
-
-  getPathValues() {
-    return this.#pathValues;
-  }
-
-  getPathInfo(path) {
-    return this.#pathValues[path];
+  getPathMetadata(sPath) {
+    return this.#pathMetadata[sPath] || (this.#pathMetadata[sPath] = {});
   }
 
   getValueFromPath(path, noOpValue) {
@@ -243,11 +240,11 @@ class RootProxy {
 
   static create(component) {
 
-    const { getGlobalSchemasObject } = RootProxy;
+    const { dataPathRoot, pathSeparator, globalsBasePath, getGlobalSchemasObject } = RootProxy;
     const proxy = new RootProxy({ component });
 
-    proxy.component.proxyInstance = proxy;
-    proxy.component.rootProxy = proxy.handler;
+    component.proxyInstance = proxy;
+    component.rootProxy = proxy.handler;
 
     if (self.appContext) {
 
@@ -258,22 +255,53 @@ class RootProxy {
         );
       }
 
-      if (proxy.component.isLoadable0()) {
-        const ret = proxy.#toCanonicalObject({ path: '', obj: component.getInput() });
+      if (component.isLoadable0()) {
 
-        assert(ret == component.getInput());
+        const leafs = [];
 
-        // Add our observer, to orchestrate data binding operations
-        proxy.#addDataObserver();
+        component.setInput(
+          proxy.#getObserverProxy(
+            proxy.#toCanonicalTree({ path: '', obj: component.getInput(), leafs })
+          )
+        );
 
-        proxy.getDataPathKeys()
-          .forEach(p => {
-            proxy.onPathChange(p);
-          })
+        component.seal();
+
+        // Add globals to dataPathHooks
+        Object.keys(component.getGlobalVariables())
+          .forEach(variable => {
+            proxy.createHooksArray(
+              [dataPathRoot, globalsBasePath, variable].join(pathSeparator)
+            );
+          });
+
+        component.once(
+          () => proxy.#triggerInitialInsertEvents(leafs), 'beforeRender',
+        );
       }
     }
+  }
 
-    return proxy.handler;
+  #triggerInitialInsertEvents(leafs) {
+
+    leafs.forEach(({ path, key, value, parentObject }) => {
+      const sPath = clientUtils.toCanonicalPath(path);
+
+      [...(path == sPath) ? [path] : [path, sPath]]
+        .map(p => `insert.${p}`)
+        .forEach(evtName => {
+
+          this.component.dispatchEvent(
+            evtName,
+            {
+              path, key, value, parentObject, initial: true,
+              afterMount: (fn) => {
+                this.component.on('afterMount', () => fn());
+              },
+            }
+          );
+        });
+    });
   }
 
   static getGlobalSchemasObject() {
@@ -302,11 +330,20 @@ class RootProxy {
     return o[componentName];
   }
 
+  getEnum(enumName) {
+    const arr = self.appContext.enums[enumName];
+
+    if (!arr) {
+      this.component.throwError(`Could not find enum "${enumName}"`);
+    }
+
+    return arr;
+  }
+
   withSchema(schema) {
 
     const {
-      pathProperty, firstProperty, lastProperty, keyProperty, indexProperty, randomProperty,
-      emptyString, enumsFile, copyEnumsCommand,
+      pathProperty, firstProperty, lastProperty, keyProperty, indexProperty, randomProperty, emptyString,
     } = RootProxy;
 
     const syntheticProperties = [
@@ -380,16 +417,9 @@ class RootProxy {
                     // Inline enum reference
                     case definitions[refName].isEnumRef:
                       const enumName = definitions[refName].originalName;
-                      const enum0 = self.appContext.enums[enumName];
-
-                      if (!enum0) {
-                        this.component.throwError(
-                          `Could not find eunm "${enumName}". Ensure that ${enumsFile} contains the latest changes, try running "${copyEnumsCommand}"`
-                        );
-                      }
 
                       def.enum = [
-                        ...enum0,
+                        ...this.getEnum(enumName),
                         null
                       ];
 
@@ -566,6 +596,8 @@ class RootProxy {
       })
     );
 
+    // Compatibility note for Ajv
+
     // Though, we do not use ajv for schema validation, our definitions are designed to be fully
     // compatible with the library. Below are the keywords required by our schemas
 
@@ -583,39 +615,6 @@ class RootProxy {
 
   getDataPathHooks() {
     return this.#dataPathHooks;
-  }
-
-  #addDataObserver() {
-
-    const { dataPathRoot, pathSeparator, globalsBasePath } = RootProxy;
-
-    if (RootProxy.#dataReferences.includes(this.component.getInput())) {
-
-      // The reason we have to throw this error is because the input in question
-      // has previously been transformed such that data variables are created as 
-      // immutable, and this operation will attempt re-set those prop, hence resulting
-      // in an error.
-      // It is understandable that the developer may want to re-use input data
-      // without giving much thought to it, so in the error message - add a useful hint
-
-      this.component.throwError(
-        'Input data already processed. You need to clone the data first before using it on a new component instance'
-      );
-    }
-
-    this.component.setInput(
-      this.getObserverProxy(this.component.getInput())
-    );
-
-    RootProxy.#dataReferences.push(this.component.getInput());
-
-    // Add globals to dataPathHooks
-    Object.keys(this.component.getGlobalVariables())
-      .forEach(variable => {
-        this.createHooksArray(
-          [dataPathRoot, globalsBasePath, variable].join(pathSeparator)
-        );
-      });
   }
 
   createObjectProxy() {
@@ -651,9 +650,6 @@ class RootProxy {
           case prop === 'data':
             return this;
 
-          case prop === 'getSyntheticNodeId':
-            return this.component.getSyntheticNodeId();
-
           case prop === 'length':
             // The forEach helper has an object target
             assert(_this.lastLookup.constructor.name == 'Object');
@@ -662,9 +658,9 @@ class RootProxy {
 
           case global.clientUtils.isNumber(prop):
 
-            // At least access the context, so that the proxy
-            // created in setSyntheticContext(...) intercepts the value
-            // and updates the synthetic context
+            // At least access the context, so that the proxy created in setSyntheticContext(...) 
+            // intercepts the value and updates the synthetic context
+
             // eslint-disable-next-line no-unused-expressions
             _this.lastLookup[
               Object.keys(_this.lastLookup)[prop]
@@ -827,23 +823,6 @@ class RootProxy {
     return true;
   }
 
-  executeWithBlockData(fn, blockData) {
-
-    const blockDataSnapshot = this.component.blockData;
-
-    if (blockData) {
-      this.component.blockData = blockData;
-    }
-
-    const html = fn();
-
-    if (blockData) {
-      this.component.blockData = blockDataSnapshot;
-    }
-
-    return html;
-  }
-
   getLogicGates() {
     return this.#logicGates;
   }
@@ -992,7 +971,7 @@ class RootProxy {
 
     const blockData = useBlockData ? gate.blockData : null;
 
-    const value = this.executeWithBlockData(
+    const value = this.component.executeWithBlockData(
       () => {
         return analyzeGate({ type: LOGIC_GATE, original: 0 })
       },
@@ -1148,11 +1127,13 @@ class RootProxy {
       .filter(e => !!e);
   }
 
-  resolveLogicPath({ prop }) {
+  getLogicGateParticipantIdentifier({ original, loc }) {
+    const { getLine } = clientUtils;
+    return `${original}@${getLine({ loc })}`
+  }
 
-    const {
-      logicGatePathRoot, pathSeparator, gateParticipantHookType,
-    } = RootProxy;
+  resolveLogicPath({ prop }) {
+    const { logicGatePathRoot, pathSeparator, gateParticipantHookType } = RootProxy;
 
     const includePath = prop.endsWith('!');
 
@@ -1180,14 +1161,20 @@ class RootProxy {
       this.getParticipantsFromLogicGate(gate)
         .filter(({ synthetic }) => !synthetic)
         .forEach(({ original, canonicalPath, loc }) => {
+          const { logicGateParticipants } = this.component.getEmitContext();
 
           this.createHooksArray(original);
 
-          this.getDataPathHooks()[original]
-            .push({
-              type: gateParticipantHookType,
-              gateId, canonicalPath, loc,
-            });
+          const hookInfo = {
+            type: gateParticipantHookType, gateId, canonicalPath, loc,
+          };
+
+          this.getDataPathHooks()[original].push(hookInfo);
+
+          // We need to regsister in the current emitContext, so that the outer statement can update
+          // this hook with a target hook
+
+          logicGateParticipants[this.getLogicGateParticipantIdentifier({ original, loc })] = hookInfo;
         });
 
       this.createHooksArray(path);
@@ -1198,7 +1185,7 @@ class RootProxy {
     this.#logicGates[gateId] = {
       id: gateId,
       canonicalId: prop,
-      blockData: this.component.getBlockDataSnapshot(path, arrayBlock),
+      blockData: this.component.getBlockDataSnapshot(path, gate.loc, arrayBlock),
       hook: gate.table[0].hook,
       arrayBlockPath: arrayBlock ? arrayBlock.path : null,
     };
@@ -1325,251 +1312,201 @@ class RootProxy {
   }
 
   /**
-   * @param {Function} predicate Predicate function to determine which hooks are still valid
+   * @param {Function} predicate Predicate function to determine which hooks should be pruned
    */
-  pruneHooks0(hookList, predicate) {
-
+  pruneHooks0(hookList, predicate, deep) {
     const { logicGatePathPrefix } = RootProxy;
 
     Object.entries(hookList)
       .forEach(([k, v]) => {
 
-        const isLogicGate = k.match(logicGatePathPrefix);
+        if (deep) {
+          const isLogicGate = k.match(logicGatePathPrefix);
 
-        // Logic gate paths are expected to have a single hook max due to
-        // their dynamic nature, see resolveLogicPath(...)
-        assert(!isLogicGate || v.length <= 1);
+          const prunedHooks = v.filter(predicate);
 
-        const arr = v.filter(predicate);
-
-        if (arr.length) {
-          this.getDataPathHooks().set(k, arr);
-        } else {
-          delete this.getDataPathHooks()[k];
+          prunedHooks.forEach(h => {
+            this.removeHook(h);
+          });
 
           if (isLogicGate) {
-            const gateId = k.replace(logicGatePathPrefix, '');
+            // <predicate> always returns true for logic gates, see pruneCollChild(...)
+            assert(prunedHooks.length);
 
-            this.pruneLogicGate(gateId);
+            this.pruneLogicGate(
+              k.replace(logicGatePathPrefix, '')
+            );
+          }
+        } else {
+          const arr = v.filter(h => !predicate(h));
+
+          if (arr.length) {
+            this.getDataPathHooks().set(k, arr);
+          } else {
+            delete this.getDataPathHooks()[k];
           }
         }
-      })
+      });
   }
 
   pruneLogicGate(gateId) {
-    const { arrayChildBlockHookType, logicGatePathRoot, pathSeparator } = RootProxy;
-    const { arrayBlockPath } = this.#logicGates[gateId];
+    const {
+      arrayChildBlockHookType, logicGatePathRoot, pathSeparator, gateParticipantHookType,
+    } = RootProxy;
+    const { arrayBlockPath, blockData, canonicalId } = this.#logicGates[gateId];
 
-    // Remove arrayChildBlockHook if any exists
+    // Remove associated arrayChildBlockHook if any exists
     if (arrayBlockPath) {
-      const arr = this.getDataPathHooks()[arrayBlockPath];
 
-      if (arr) {
-        this.getDataPathHooks().set(
-          arrayBlockPath,
-          arr.filter(({ type, path }) => type != arrayChildBlockHookType || path != `${logicGatePathRoot}${pathSeparator}${gateId}`)
-        );
+      const [hook] = (this.getDataPathHooks()[arrayBlockPath] || [])
+        .filter(({ type, path }) => type == arrayChildBlockHookType && path == `${logicGatePathRoot}${pathSeparator}${gateId}`)
+
+      if (hook) {
+        this.removeHook(hook);
       }
     }
+
+    // Remove associated participant hooks
+    this.component.executeWithBlockData(
+      () => {
+        const gate = this.component.getLogicGates()[canonicalId];
+
+        this.getParticipantsFromLogicGate(gate)
+          .filter(({ synthetic }) => !synthetic)
+          .forEach(({ original }) => {
+
+            const [hook] = (this.getDataPathHooks()[original] || [])
+              .filter(h => h.gateId == gateId);
+
+            if (hook) {
+              assert(hook.type == gateParticipantHookType);
+              this.removeHook(hook);
+            }
+          });
+      },
+      blockData,
+    );
 
     delete this.#logicGates[gateId];
   }
 
-  // Todo: Investigate if we need to support disabling hooks for only one-more paths as opposed
-  // to a component-wide approach
-  suspendHooks() {
-    this.#disableHooks = true;
-  }
+  removeHook(hook) {
+    const path = this.#hooksMap.get(hook);
+    assert(path);
 
-  resumeHooks() {
-    this.#disableHooks = false;
-  }
+    this.#hooksMap.delete(hook);
 
-  removeHook(path, hook) {
     const arr = this.#dataPathHooks[path];
 
-    if (arr && arr.includes(hook)) {
+    const remove0 = (arr, hook) => {
       const deletedArr = arr.splice(arr.indexOf(hook), 1);
       assert(deletedArr.length == 1 && deletedArr[0] == hook);
     }
+
+    assert(arr.includes(hook));
+
+    remove0(arr, hook);
+
+    if (!arr.length) {
+      delete this.#dataPathHooks[path];
+    }
+
+    const { blockId } = hook;
+
+    if (blockId) {
+      const arr = this.#blocks[blockId];
+      assert(arr.includes(hook));
+
+      remove0(arr, hook);
+
+      if (!arr.length) {
+        delete this.#blocks[blockId];
+      }
+    }
   }
 
-  async triggerHooks(triggerInfo) {
+  executeDiscrete(fn) {
+    this.#discreteMode = true;
+    if (typeof fn == 'function') {
+      fn();
+    }
+    this.#discreteMode = false;
+  }
 
-    if (this.#disableHooks || !this.component.isMounted()) {
+  async triggerHooks({ fqPath, hookList, hookType, hookOptions, hookFilter, filterSpec }) {
+
+    if (!this.component.isMounted()) {
       return;
     }
 
     const {
-      textNodeHookType, eachBlockHookType, gateParticipantHookType, conditionalBlockHookType, dataPathPrefix,
-      nodeAttributeHookType, nodeAttributeKeyHookType, nodeAttributeValueHookType, predicateHookType, emptyString,
-      inlineComponentHookType, componentDataUpdateSocketOp,
+      textNodeHookType, eachBlockHookType, gateParticipantHookType, conditionalBlockHookType,
+      dataPathPrefix, nodeAttributeHookType, nodeAttributeKeyHookType, nodeAttributeValueHookType,
+      predicateHookType, emptyString, inlineComponentHookType,
     } = RootProxy;
 
-    const { fqPath, hookList, hookType, hookOptions, transitive = true } = triggerInfo;
+    const { value } = this.getInfoFromPath(fqPath.replace(dataPathPrefix, emptyString));
 
-    const fqPath0 = fqPath.replace(dataPathPrefix, '');
+    const mainHookTypes = hookType ? [hookType] : [
+      nodeAttributeHookType, nodeAttributeKeyHookType, nodeAttributeValueHookType,
+      textNodeHookType, gateParticipantHookType, conditionalBlockHookType, eachBlockHookType,
+      inlineComponentHookType,
+    ];
 
-    this.onPathChange(fqPath0);
-
-    const pathInfo = this.getPathInfo(fqPath0);
-
-    const { internal: { __nestedCompReferences={} } = {} } = hookOptions || {};
-
-    const hookInfo = {
-      path: fqPath, hookType,
-      hookOptions: hookOptions ?
-        clientUtils.deepClone({ ...hookOptions, internal: undefined }, __nestedCompReferences) :
-        null
-    };
-
-    const sendInfoToServerSide = () => {
-      const { sessionSocket } = self.appContext;
-      if (sessionSocket) {
-        sessionSocket.send({
-          op: componentDataUpdateSocketOp,
-          args: {
-            componentId: this.component.getId(),
-            hookInfo,
-          }
-        });
-      }
-    }
-
-    const triggerComponentHooks = (phase) => {
-      const { oldValue, newValue, parentObject } = pathInfo;
-
-      const sPath = clientUtils.toCanonicalPath(fqPath0);
-
-      const componentHooks = this.component.getHooks();
-
-      const fnList = [...new Set([
-        ...componentHooks[fqPath0] || [],
-        ...componentHooks[`${phase}.${fqPath0}`] || [],
-        ...componentHooks[sPath] || [],
-        ...componentHooks[`${phase}.${sPath}`] || [],
-      ])];
-
-      let mount = true;
-
-      const evt = {
-        ...hookInfo, oldValue, newValue, parentObject,
-        preventDefault: () => {
-          mount = false;
-        }
-      };
-
-      fnList.forEach(fn => fn(evt));
-
-      return mount;
-    }
-
-    sendInfoToServerSide();
-
-    const mount = triggerComponentHooks('beforeMount');
-
-    if (mount) {
-
-      const mainHookTypes = hookType ? [hookType] : [
-        nodeAttributeHookType, nodeAttributeKeyHookType, nodeAttributeValueHookType,
-        textNodeHookType, gateParticipantHookType, conditionalBlockHookType, eachBlockHookType,
-        inlineComponentHookType,
-      ];
-
-      const filteredSelectors = [];
-
-      if (transitive) {
-        const transitiveHookTypes = [
-          predicateHookType,
-        ]
-
-        clientUtils.getParentPaths(fqPath)
-          .forEach((p) => {
-            const { value } = this.getInfoFromPath(
-              p.replace(dataPathPrefix, emptyString)
-            );
-
-            this.triggerHooks0({
-              path: p, value, hookTypes: transitiveHookTypes, changeListener: (selector) => {
-                filteredSelectors.push(selector);
-              }, hookList,
-            });
-          })
-      }
-
-      this.triggerHooks0({
-        path: fqPath, value: pathInfo.newValue, hookTypes: mainHookTypes, filteredSelectors, hookOptions, hookList,
-      })
-        .then(() => {
-          triggerComponentHooks('afterMount');
-        });
-    }
+    await this.triggerHooks0({
+      path: fqPath, value, hookTypes: mainHookTypes, hookOptions, hookList, hookFilter,
+    })
   }
 
-  async triggerHooks0({ path, value, hookTypes, changeListener, filteredSelectors, hookOptions, hookList }) {
+  async triggerHooks0({ path, value, hookTypes, changeListener, filteredSelectors, hookOptions, hookList, hookFilter, }) {
 
     const {
       logicGatePathRoot, pathSeparator, textNodeHookType, eachBlockHookType, gateParticipantHookType, logicGatePathPrefix,
       conditionalBlockHookType, dataPathPrefix, nodeAttributeHookType, nodeAttributeKeyHookType, nodeAttributeValueHookType,
-      mapSizeProperty, isNullProperty, predicateHookType, mapKeyPrefixRegex, emptyString, isMapProperty, collChildSetHookType,
-      toFqPath, collChildDetachHookType, arrayChildReorderHookType, inlineComponentHookType,
+      mapSizeProperty, predicateHookType, isMapProperty, collChildSetHookType, collChildDetachHookType, arraySpliceHookType,
+      inlineComponentHookType, mapKeysProperty, dataPathRoot, blockDataHolderHookType, toFqPath,
     } = RootProxy;
 
     const path0 = path.replace(dataPathPrefix, '');
 
+    const _hookFilter = (hook) => {
+      const { selector, type } = hook;
 
-    const hooksFilter = (hook) => {
-      const { selector } = hook;
-      const b = !selector ||
-        (!(filteredSelectors || []).includes(selector) && document.querySelector(`#${this.component.getId()} ${selector}`));
+      if (!selector) {
+
+        // Note: "arrayChildBlockHookType" hooks do not have the "selector" property but
+        // it is guaranteed to be not be here because it is eagerly pruned by pruneCollChild(...)
+        // when the collection member is removed
+        assert(type == gateParticipantHookType);
+
+        return this.getHooksMap().has(hook);
+      }
+
+      if ((filteredSelectors || []).includes(selector)) {
+        return false;
+      }
+
+      const b = !!document.querySelector(`#${this.component.getId()} ${selector}`);
 
       if (!b) {
-        const isLogicGate = path.match(logicGatePathPrefix);
+        this.removeHook(hook);
 
-        if (isLogicGate) {
-          const gateId = path.replace(logicGatePathPrefix, '')
-
-          delete this.getDataPathHooks()[path];
-
-          this.pruneLogicGate(gateId);
-        } else {
-          this.removeHook(path, hook);
+        if (path.match(logicGatePathPrefix)) {
+          this.pruneLogicGate(
+            path.replace(logicGatePathPrefix, '')
+          );
         }
       }
 
       return b;
     }
 
-    const triggerNodeUpdateEvt0 = (selector) => {
-      const { getWrapperCssClass } = BaseComponent;
+    const renderBlock = (consumer, markupPredicate, parentNode, transform, blockStack) => {
+      this.component.startTokenizationContext(blockStack);
 
-      const node = document.querySelector(selector);
-      this.component.triggerNodeUpdateEvent(node);
-      node
-        .querySelectorAll(`.${getWrapperCssClass()}`)
-        .forEach(node => this.component.triggerNodeUpdateEvent(node));
-    }
+      const markup = markupPredicate();
 
-    const triggerNodeUpdateEvt = (selector) => {
-      triggerNodeUpdateEvt0(
-        `#${this.component.getId()} ${selector}`
-      );
-    }
-
-    const renderBlock = (consumer, header, footer, markupPredicate, parentNode, transform) => {
-      this.component.startTokenizationContext();
-
-      const emitContext = this.component.getEmitContext();
-
-      if (header) {
-        emitContext.write(header);
-      }
-
-      markupPredicate();
-
-      if (footer) {
-        emitContext.write(footer);
-      }
+      this.component.getEmitContext().write(markup, true);
 
       const { htmlString } = this.component.finalizeTokenizationContext({ transform });
 
@@ -1598,43 +1535,86 @@ class RootProxy {
       consumer(node);
     }
 
-    const createCollChildNode = (consumer, key, id, markupPredicate, parentNode, transform) => {
-
-      let currentWrapperNodeId = id || clientUtils.randomString();
-
-      const header = this.component.getColElementWrapperHeader(currentWrapperNodeId, key);
-      const footer = this.component.getColElementWrapperFooter();
+    const createCollChildNode = (consumer, key, id, markupPredicate, parentNode, transform, opaqueWrapper, loc, blockStack) => {
+      const nodeId = id || clientUtils.randomString();
 
       renderBlock(
-        (node) => {
-          currentWrapperNodeId = node.childNodes[0].id;
-          consumer(node);
-        },
-        header, footer, markupPredicate, parentNode, transform,
+        (node) => consumer(node),
+        () => this.component.execBlockIteration(markupPredicate, opaqueWrapper, key, nodeId, loc),
+        parentNode, transform, blockStack,
       )
 
-      return currentWrapperNodeId;
+      return { nodeId };
     }
 
-    const parentPath0 = () => clientUtils.getParentFromPath(path0.split('.'))
+    const isTextNode = ({ nodeName }) => nodeName == '#text';
 
-    const collKey = () => {
-      return clientUtils.getKeyFromIndexSegment(
-        path0.replace(parentPath0(), '')
-      )
-        .replace(mapKeyPrefixRegex, emptyString);
+    const getSibling = (node, clockwise) => {
+      const k = clockwise ? 'nextSibling' : 'previousSibling';
+      let r = node[k];
+
+      while (isTextNode(r)) {
+        assert(!r.nodeValue.trim());
+        r = r[k];
+      }
+
+      return r;
+    }
+
+    const nextSibling = (node) => getSibling(node, true);
+
+    const previousSibling = (node) => getSibling(node);
+
+    const findNodesInRange = (markerStart, markerEnd, predicate, finalizer, consumer, clockwise) => {
+
+      const visitNode = (node) => {
+        const key = node.getAttribute('key');
+
+        if (predicate(key)) {
+          consumer(node);
+        }
+
+        return finalizer(key);
+      }
+
+      if (clockwise) {
+        let sibling = nextSibling(markerStart);
+
+        while (sibling != markerEnd) {
+          if (visitNode(sibling)) {
+            break;
+          }
+
+          sibling = nextSibling(sibling);
+        }
+      } else {
+        let sibling = previousSibling(markerEnd);
+
+        while (sibling != markerStart) {
+          if (visitNode(sibling)) {
+            break;
+          }
+
+          sibling = previousSibling(sibling);
+        }
+      }
     }
 
     await Promise.all(
-      ((hookList || this.getDataPathHooks())[path] || [])
-        .filter(hook => hooksFilter(hook))
-        .map(hook => ({ ...hook, ...hookOptions ? hookOptions : {} }))
-        .map(hook => {
+      (
+        (hookList || this.getDataPathHooks())[path] || [])
+        .filter(hookInfo => _hookFilter(hookInfo))
+        .filter(hookFilter ? hookFilter : () => true)
+        .map((hookInfo) => {
+          Object.assign(hookInfo, hookOptions || {});
+          return hookInfo;
+        })
+        .map(hookInfo => {
 
-          const selector = hook.selector ? `#${this.component.getId()} ${hook.selector}` : null;
+          const selector = hookInfo.selector ? `#${this.component.getId()} ${hookInfo.selector}` : null;
 
           const getRenderedValue = () => {
-            const { transform } = hook;
+            const { transform } = hookInfo;
 
             let computedValue = value;
 
@@ -1645,13 +1625,13 @@ class RootProxy {
             return this.component.toHtml(computedValue);
           }
 
-          const getElementName = (node) => {
+          const getTagName = (node) => {
             return node.tagName.toLowerCase();
           }
 
           const getNodeAttribute = ({ node, attrKey }) => {
             const { getHtmlIntrinsicAttributes } = RootCtxRenderer;
-            const elementName = getElementName(node);
+            const elementName = getTagName(node);
 
             if (getHtmlIntrinsicAttributes(elementName)[attrKey]) {
               return node[attrKey];
@@ -1662,7 +1642,7 @@ class RootProxy {
 
           const setNodeAttribute = ({ node, attrKey, attrValue }) => {
             const { getHtmlIntrinsicAttributes } = RootCtxRenderer;
-            const elementName = node.tagName.toLowerCase();
+            const elementName = getTagName(node);
 
             if (getHtmlIntrinsicAttributes(elementName)[attrKey]) {
               node[attrKey] = attrValue === undefined ? null : attrValue;
@@ -1716,17 +1696,65 @@ class RootProxy {
             return { key, value: evalAttrValue(elementName, key, value, loc) }
           }
 
-          if (hookTypes && !hookTypes.includes(hook.type)) {
+          const getCollMemberNodes = (targetNode, opaqueWrapper, markerEnd) => {
+            if (opaqueWrapper) {
+              const arr = []
+
+              findNodesInRange(
+                targetNode, document.querySelector(markerEnd), () => true, () => false, (n) => arr.push(n),
+              );
+
+              return arr;
+            } else {
+              return [...targetNode.querySelectorAll(':scope > [key]')];
+            }
+          }
+
+          const getCollMemberNode = (targetNode, childKey, opaqueWrapper, markerEnd) => {
+
+            if (opaqueWrapper) {
+              let r;
+
+              const { index, length } = clientUtils.getCollectionIndexAndLength(value, childKey);
+
+              const predicate = (k) => k == childKey;
+
+              findNodesInRange(
+                targetNode, document.querySelector(markerEnd), predicate, predicate, (n) => {
+                  r = n;
+                },
+                (length - index) > index
+              );
+
+              assert(r);
+              return r;
+
+            } else {
+              return targetNode.querySelector(`:scope > [key='${childKey}']`);
+            }
+          }
+
+          const removePredicateHook = (blockId, node) => {
+
+            const hook = this.#blocks[blockId]
+              .find(({ type, selector }) => (type == predicateHookType) && selector == `#${node.id}`);
+
+            assert(hook);
+
+            this.removeHook(hook);
+          }
+
+          if (hookTypes && !hookTypes.includes(hookInfo.type)) {
             return;
           }
 
-          switch (hook.type) {
+          switch (hookInfo.type) {
 
             case nodeAttributeHookType:
               (() => {
-                const { mustacheRef, loc } = hook;
+                const { mustacheRef, loc } = hookInfo;
                 const node = document.querySelector(selector);
-                const elementName = getElementName(node);
+                const elementName = getTagName(node);
 
                 const currentValue = getRenderedValue();
                 const previousValue = this.component.setRenderedValue(mustacheRef, currentValue);
@@ -1745,14 +1773,12 @@ class RootProxy {
                     node, attrKey: key, attrValue: value,
                   });
                 }
-
-                triggerNodeUpdateEvt0(selector);
               })();
               break;
 
             case nodeAttributeKeyHookType:
               (() => {
-                const { mustacheRef, hookInfo: { tokenList, tokenIndex } } = hook;
+                const { mustacheRef, hookInfo: { tokenList, tokenIndex } } = hookInfo;
                 const node = document.querySelector(selector);
 
                 const currentValue = getRenderedValue();
@@ -1777,21 +1803,19 @@ class RootProxy {
                   }
 
                   const attrValue = evalAttrValue(
-                    getElementName(node),
+                    getTagName(node),
                     attrKey,
                     this.component.getRenderedValue(valueToken.content)
                   );
 
                   setNodeAttribute({ node, attrKey, attrValue });
                 }
-
-                triggerNodeUpdateEvt0(selector);
               })();
               break;
 
             case nodeAttributeValueHookType:
               (() => {
-                const { mustacheRef, hookInfo: { tokenList, tokenIndex } } = hook;
+                const { mustacheRef, hookInfo: { tokenList, tokenIndex } } = hookInfo;
                 const node = document.querySelector(selector);
 
                 this.component.setRenderedValue(mustacheRef, getRenderedValue());
@@ -1803,7 +1827,7 @@ class RootProxy {
                 const attrKey = this.component.getRenderedValue(keyToken.content);
 
                 const attrValue = evalAttrValue(
-                  getElementName(node),
+                  getTagName(node),
                   attrKey,
                   this.component.getRenderedValue(valueToken.content)
                 );
@@ -1820,63 +1844,54 @@ class RootProxy {
                     { attributes: true, attributeOldValue: true, attributeFilter: [attrKey] }
                   );
                 }
-
-                triggerNodeUpdateEvt0(selector);
               })();
               break;
 
             case textNodeHookType:
               return (async () => {
+                const { hook, hookPhase, blockData, loc } = hookInfo;
+
                 const node = document.querySelector(selector);
                 node.innerHTML = getRenderedValue();
 
-                const { hookMethod, blockData, loc } = hook;
-
-                if (hookMethod) {
-                  this.component[hookMethod].bind(this.component)({ node, blockData, loc, initial: false });
+                if (hook) {
+                  await this.component.triggerHooks(
+                    hook, hookPhase, null, loc, { node, blockData: clientUtils.createImmutableProxy(blockData), loc, initial: false }
+                  );
                 }
-
-                triggerNodeUpdateEvt0(selector);
               })();
 
             case gateParticipantHookType:
               return (async () => {
-                const { gateId } = hook;
+                const { gateId, parentHook } = hookInfo;
 
-                if (this.#logicGates[gateId]) {
+                assert(this.#logicGates[gateId]);
 
-                  this.component.startSyntheticCacheContext();
-                  const value = this.getLogicGateValue({ gate: this.#logicGates[gateId] });
-                  this.component.pruneSyntheticCache();
+                this.component.startSyntheticCacheContext();
+                const value = this.getLogicGateValue({ gate: this.#logicGates[gateId] });
+                this.component.pruneSyntheticCache();
 
-                  return this.triggerHooks0({
-                    path: `${logicGatePathRoot}${pathSeparator}${gateId}`, value, hookList,
-                  });
+                const p = `${logicGatePathRoot}${pathSeparator}${gateId}`;
 
-                } else {
-                  this.removeHook(path, hook);
-                }
+                return this.triggerHooks0({
+                  path: p, value, hookList: { [p]: [parentHook] },
+                });
               })();
 
             case conditionalBlockHookType:
               return (async () => {
-                let computedValue = value;
+                const computedValue = value;
 
-                if (path.startsWith(`${logicGatePathRoot}${pathSeparator}`)) {
-                  const gateId = path.replace(`${logicGatePathRoot}${pathSeparator}`, '')
-                  computedValue = this.getLogicGateValue({ gate: this.#logicGates[gateId] });
-                }
+                const fn = this.component.lookupObject(hookInfo.fn);
+                const inverse = hookInfo.inverse ? this.component.lookupObject(hookInfo.inverse) : null;
 
-                const fn = this.component.lookupObject(hook.fn);
-                const inverse = hook.inverse ? this.component.lookupObject(hook.inverse) : null;
-
-                const { invert, hookMethod, hookPhase, blockData, innerTransform, transient, loc } = hook;
+                const { invert, hook, hookPhase, blockData, transform, transient, loc, blockStack, blockId } = hookInfo;
 
                 const b = this.component.analyzeConditionValue(computedValue);
 
-                const parentNode = document.querySelector(selector);
+                let targetNode = document.querySelector(selector);
 
-                let branch = parentNode.getAttribute('branch');
+                let branch = targetNode.getAttribute('branch');
                 assert(branch);
 
                 if (transient) {
@@ -1898,12 +1913,23 @@ class RootProxy {
                 }
 
                 if (!htmlFn) {
-                  // There is no update to render
                   return;
                 }
 
-                const markupPredicate = () => this.executeWithBlockData(
-                  htmlFn,
+                if (changeListener) {
+                  // Indicate that <selector> was updated as a result of this hook
+                  changeListener(hookInfo.selector);
+                }
+
+                const markupPredicate = () => this.component.executeWithBlockData(
+                  () => {
+                    const { attributes } = targetNode;
+                    const tagName = getTagName(targetNode);
+
+                    return `<${tagName} ${clientUtils.toHtmlAttrString(attributes)}>
+                              ${htmlFn()}
+                            </${tagName}>`;
+                  },
                   blockData,
                 )
 
@@ -1911,29 +1937,33 @@ class RootProxy {
 
                 renderBlock(
                   (node) => {
-                    parentNode.innerHTML = '';
-                    parentNode.appendChild(node)
+                    const n = node.children[0];
+
+                    targetNode.parentNode.replaceChild(
+                      n, targetNode,
+                    );
+
+                    targetNode = n;
                   },
-                  null, null, markupPredicate, parentNode, innerTransform,
+                  markupPredicate, targetNode.parentNode, transform,
+                  [...blockStack, this.component.getBlockContextObject({ blockId, loc })],
                 )
 
-                parentNode.setAttribute('branch', branch)
-
-                triggerNodeUpdateEvt0(selector);
+                targetNode.setAttribute('branch', branch)
 
                 const hookOptions = {
-                  node: parentNode, blockData: clientUtils.deepClone(blockData), initial: false,
+                  node: targetNode, blockData: clientUtils.createImmutableProxy(blockData), initial: false,
                 };
 
-                if (hookMethod) {
-                  await this.component.triggerBlockHooks(hookMethod, hookPhase, 'onMount', loc, hookOptions);
+                if (hook) {
+                  await this.component.triggerBlockHooks(hook, hookPhase, 'onMount', loc, hookOptions);
                 }
 
                 this.component.finalizeRenderingContext();
 
-                if (hookMethod) {
+                if (hook) {
                   await this.component.awaitPendingTasks();
-                  await this.component.triggerBlockHooks(hookMethod, hookPhase, 'afterMount', loc, hookOptions);
+                  await this.component.triggerBlockHooks(hook, hookPhase, 'afterMount', loc, hookOptions);
                 }
 
               })();
@@ -1942,12 +1972,13 @@ class RootProxy {
 
               return (async () => {
 
-                const fn = this.component.lookupObject(hook.fn);
-                const inverse = hook.inverse ? this.component.lookupObject(hook.inverse) : null;
+                const fn = this.component.lookupObject(hookInfo.fn);
+                const inverse = hookInfo.inverse ? this.component.lookupObject(hookInfo.inverse) : null;
 
-                const { hookMethod, hookPhase, canonicalPath, blockData, innerTransform, predicate, loc } = hook;
+                const { hook, hookPhase, canonicalPath, blockData, transform, predicate, opaqueWrapper, markerEnd, loc, blockId, memberBlockId } = hookInfo;
 
                 const computedValue = value;
+                const targetNode = document.querySelector(selector);
 
                 const isArray = Array.isArray(computedValue);
 
@@ -1955,38 +1986,25 @@ class RootProxy {
 
                 const len = computedValue ? isArray ? computedValue.length : computedValue[mapSizeProperty] : -1;
 
-                const blockData0 = {
+                const provisionalBlockData = {
                   ...blockData,
                   [canonicalPath]: {
                     type: isArray ? 'array' : 'map', length: len,
                   }
                 };
 
-                const parentNode = document.querySelector(selector);
+                // remove all member nodes
+                getCollMemberNodes(targetNode, opaqueWrapper, markerEnd)
+                  .forEach(n => {
+                    n.remove();
 
-                const markerNode = (() => {
+                    if (n.getAttribute('key') && predicate) {
+                      // If this is a member node, remove associated predicate hook, if applicable
+                      removePredicateHook(memberBlockId, n);
+                    }
+                  });
 
-                  const keyChildNodes = parentNode.querySelectorAll(':scope > [key]');
-                  const inverseChildNodes = parentNode.querySelectorAll(':scope > [inverse]');
-
-                  const removeNodes0 = (arr) => {
-                    arr.forEach((node, i) => {
-                      if (i == 0) {
-                        return;
-                      }
-                      node.remove();
-                    });
-                  }
-
-                  if (keyChildNodes.length) {
-                    assert(!inverseChildNodes.length);
-                    removeNodes0(keyChildNodes);
-                    return keyChildNodes[0];
-                  } else {
-                    removeNodes0(inverseChildNodes);
-                    return inverseChildNodes[0];
-                  }
-                })();
+                const blockStack = [...hookInfo.blockStack, this.component.getBlockContextObject({ blockId, loc })];
 
                 if (len >= 0) {
 
@@ -2000,60 +2018,67 @@ class RootProxy {
 
                   for (let i = 0; i < len; i++) {
 
-                    blockData0[canonicalPath].index = i;
+                    provisionalBlockData[canonicalPath].index = i;
 
-                    const currentWrapperNodeId = clientUtils.randomString();
+                    const memberNodeId = clientUtils.randomString();
 
                     const p = toFqPath({ isArray, isMap: !isArray, parent: path, prop: keys[i] });
 
-                    if (predicate) {
+                    let blockData;
 
-                      this.executeWithBlockData(
-                        () => {
+                    this.component.executeWithBlockData(
+                      () => {
+                        blockData = this.component.getBlockDataSnapshot(p, loc);
+
+                        if (predicate) {
                           this.getDataPathHooks()[p]
                             .push({
-                              type: predicateHookType, selector: `#${currentWrapperNodeId}`,
-                              fn, predicate, hookMethod, hookPhase, innerTransform, loc,
-                              blockData: this.component.getBlockDataSnapshot(p),
-                              canonicalPath: `${canonicalPath}_$`,
+                              type: predicateHookType, selector: `#${memberNodeId}`,
+                              blockStack, blockId: memberBlockId, fn: hookInfo.fn, predicate, hook, hookPhase, transform, opaqueWrapper,
+                              blockData, canonicalPath: `${canonicalPath}_$`, loc,
                             });
-                        },
-                        blockData0,
-                      )
-                    }
+                        } else {
+                          this.getDataPathHooks()[p]
+                            .push({
+                              type: blockDataHolderHookType, selector: `#${memberNodeId}`,
+                              blockData, canonicalPath: `${canonicalPath}_$`, loc,
+                            });
+                        }
+                      },
+                      provisionalBlockData,
+                    )
 
-                    const key = this.component.getBlockData({ path: canonicalPath, dataVariable: '@key', blockDataProducer: () => blockData0 });
-
-                    const childNodeSelector = `${selector} > [key='${key}']`;
+                    const key = this.component.getBlockData({ path: canonicalPath, dataVariable: '@key', blockDataProducer: () => provisionalBlockData });
 
                     const currentValue = computedValue[key];
-                    const isNull = currentValue === null || currentValue[isNullProperty] || (predicate ? !this.component[predicate].bind(this.component)(currentValue) : false);
+                    const isNull = currentValue === null || (predicate ? !this.component[predicate].bind(this.component)(currentValue) : false);
 
                     const markupPredicate =
                       () => isNull ?
                         // null collection members are always represented as an empty strings
                         '' :
-                        this.executeWithBlockData(
+                        this.component.executeWithBlockData(
                           () => {
 
                             // We need to decrement <index> by 1 because: inside <fn>, index will
                             // be incremented by 1 through a call to doBlockUpdate(...)
-                            blockData0[canonicalPath].index--;
+                            provisionalBlockData[canonicalPath].index--;
 
                             return fn(this.handler)
                           },
-                          blockData0
+                          provisionalBlockData
                         )
 
                     const consumer = (node) => {
-                      const n = node.childNodes[0];
+                      const n = node.children[0];
+
+                      assert(n.id == memberNodeId);
 
                       if (i == 0) {
-                        if (markerNode) {
-                          markerNode.insertAdjacentElement("afterend", n);
+                        if (opaqueWrapper) {
+                          targetNode.insertAdjacentElement("afterend", n);
                         } else {
-                          parentNode.innerHTML = '';
-                          parentNode.appendChild(n);
+                          targetNode.appendChild(n);
                         }
                       } else {
                         keyMarkerNode.insertAdjacentElement("afterend", n);
@@ -2063,42 +2088,43 @@ class RootProxy {
                     }
 
                     createCollChildNode(
-                      consumer, key, currentWrapperNodeId, markupPredicate, parentNode, innerTransform
+                      consumer, key, memberNodeId, markupPredicate, targetNode, transform, opaqueWrapper, loc,
+                      [...blockStack, this.component.getBlockContextObject({ blockId: memberBlockId, loc })],
                     );
 
-                    assert(blockData0[canonicalPath].index === i);
+                    assert(provisionalBlockData[canonicalPath].index === i);
 
                     if (!isNull && isArray) {
-                      this.component.backfillArrayChildBlocks(p, `#${currentWrapperNodeId}`);
+                      this.component.backfillArrayChildBlocks(p, `#${memberNodeId}`);
                     }
 
-                    triggerNodeUpdateEvt0(childNodeSelector);
-
-                    if (hookMethod) {
+                    if (hook) {
                       hookList.push({
-                        node: document.querySelector(childNodeSelector),
-                        blockData: clientUtils.deepClone(blockData0)
+                        node: document.querySelector(`#${memberNodeId}`),
+                        blockData: clientUtils.createImmutableProxy(blockData),
                       });
                     }
                   }
 
-                  if (hookMethod) {
+                  if (hook) {
                     await Promise.all(hookList.map(async ({ node, blockData }) => {
-                      await this.component.triggerBlockHooks(hookMethod, hookPhase, 'onMount', loc, { node, blockData, initial: false });
+                      await this.component.triggerBlockHooks(hook, hookPhase, 'onMount', loc, { node, blockData, initial: false });
                     }))
                   }
 
                   this.component.finalizeRenderingContext();
 
-                  if (hookMethod) {
+                  if (hook) {
                     await this.component.awaitPendingTasks();
 
                     await Promise.all(hookList.map(async ({ node, blockData }) => {
-                      await this.component.triggerBlockHooks(hookMethod, hookPhase, 'afterMount', loc, { node, blockData, initial: false });
+                      await this.component.triggerBlockHooks(hook, hookPhase, 'afterMount', loc, { node, blockData, initial: false });
                     }))
                   }
 
                 } else if (inverse) {
+
+                  const { htmlWrapperCssClassname } = RootCtxRenderer;
 
                   const toElementList = (node) => {
 
@@ -2125,49 +2151,48 @@ class RootProxy {
                             if (n instanceof Text) {
                               n = textNodeToElement(n);
                             }
+
                             assert(n instanceof Element);
-                            return n;
+
+                            const wrapper = document.createElement('div');
+                            wrapper.className = htmlWrapperCssClassname;
+                            wrapper.appendChild(n);
+
+                            return wrapper;
                           })
                     }
                   }
 
-                  const markupPredicate = () => this.executeWithBlockData(
+                  const markupPredicate = () => this.component.executeWithBlockData(
                     () => inverse(this.handler),
-                    blockData0,
+                    provisionalBlockData,
                   )
 
                   const consumer = (node) => {
 
+                    let keyMarkerNode;
                     const elemList = toElementList(node);
 
-                    elemList.forEach(n => {
-                      n.setAttribute('inverse', true);
-                    });
+                    elemList
+                      .forEach((n, i) => {
 
-                    if (markerNode) {
-                      elemList
-                        .reverse()
-                        .forEach(n => {
-                          markerNode.insertAdjacentElement("afterend", n);
-                        });
+                        if (i == 0) {
+                          if (opaqueWrapper) {
+                            targetNode.insertAdjacentElement("afterend", n);
+                          } else {
+                            targetNode.appendChild(n);
+                          }
+                        } else {
+                          keyMarkerNode.insertAdjacentElement("afterend", n);
+                        }
 
-                    } else {
-                      parentNode.innerHTML = '';
-
-                      elemList
-                        .forEach(n => {
-                          parentNode.appendChild(n);
-                        });
-                    }
+                        keyMarkerNode = n;
+                      });
                   }
 
                   renderBlock(
-                    consumer, null, null, markupPredicate, parentNode, innerTransform,
+                    consumer, markupPredicate, targetNode, transform, blockStack,
                   )
-                }
-
-                if (markerNode) {
-                  markerNode.remove();
                 }
 
               })();
@@ -2175,32 +2200,40 @@ class RootProxy {
             case inlineComponentHookType:
 
               return (async () => {
-
-                const { transform, hookMethod, blockData, loc, syntheticPath, ref } = hook;
                 const node = document.querySelector(selector);
+
+                if (!value) {
+                  node.innerHTML = '';
+                  return;
+                }
+
+                const { transform, hook, hookPhase, blockData, loc, syntheticPath, ref } = hookInfo;
 
                 this.component.startRenderingContext();
 
-                this.executeWithBlockData(() => {
+                this.component.executeWithBlockData(() => {
 
                   const future = this.component[syntheticPath].bind(this.component)()
                     .then(data => this.component.render({
-                      data, target: hook.selector.replace('#', ''), transform,
+                      data, target: selector, transform, loc,
                     }));
 
                   this.component.getFutures().push(future);
 
                 }, blockData);
 
-                await this.component.awaitPendingTasks();
+                const hookOptions = { node, blockData, loc, initial: false };
+
+                if (hook) {
+                  await this.component.triggerHooks(hook, hookPhase, 'onMount', loc, hookOptions);
+                }
 
                 this.component.finalizeRenderingContext();
 
-                if (hookMethod) {
-                  this.component[hookMethod].bind(this.component)({ node, blockData, loc, initial: false });
+                if (hook) {
+                  await this.component.awaitPendingTasks();
+                  await this.component.triggerHooks(hook, hookPhase, 'afterMount', loc, hookOptions);
                 }
-
-                triggerNodeUpdateEvt0(selector);
               })();
 
             // Below are special purpose hook types
@@ -2208,22 +2241,24 @@ class RootProxy {
             case predicateHookType:
 
               return (async () => {
+                assert(this.isCollectionObject(value));
+
                 const computedValue = value;
-                const { parentObject } = this.getPathInfo(path0);
+                const { parentPath, parentObject, childKey } = this.getInfoFromPath(path0);
 
-                const fn = this.component.lookupObject(hook.fn);
-                const canonicalPath = hook.canonicalPath.replace(/_\$$/g, '');
+                const fn = this.component.lookupObject(hookInfo.fn);
+                const canonicalPath = hookInfo.canonicalPath.replace(/_\$$/g, '');
 
-                const { blockData, predicate, hookMethod, hookPhase, innerTransform, loc } = hook;
+                const { blockData, predicate, hook, hookPhase, transform, opaqueWrapper, loc, blockStack, blockId } = hookInfo;
 
-                const childNode = document.querySelector(selector);
+                const targetNode = document.querySelector(selector);
                 const isArray = Array.isArray(parentObject);
 
                 assert(isArray || parentObject[isMapProperty]);
 
                 const b = this.component[predicate].bind(this.component)(computedValue);
 
-                const isEmpty = !childNode.innerHTML || childNode.getAttribute(this.component.getEmptyNodeAttributeKey());
+                const isEmpty = !targetNode.innerHTML || targetNode.getAttribute(this.component.getEmptyNodeAttributeKey());
 
                 if (b) {
                   if (!isEmpty) {
@@ -2234,19 +2269,17 @@ class RootProxy {
                 }
 
                 if (changeListener) {
-                  // Indicate that <selector> was updated as a result of this predicate hook
-                  changeListener(hook.selector);
+                  // Indicate that <selector> was updated as a result of this hook
+                  changeListener(hookInfo.selector);
                 }
 
-                const key = collKey();
+                assert(childKey == targetNode.getAttribute('key'));
 
-                assert(key == childNode.getAttribute('key'));
-
-                const index = Object.keys(parentObject).indexOf(key);
+                const index = Object.keys(parentObject).indexOf(childKey);
 
                 assert(index >= 0);
 
-                const blockData0 = {
+                const provisionalBlockData = {
                   ...blockData,
                   [canonicalPath]: {
                     ...blockData[canonicalPath],
@@ -2257,71 +2290,58 @@ class RootProxy {
                 const markupPredicate =
                   () => !b ?
                     '' :
-                    this.executeWithBlockData(
+                    this.component.executeWithBlockData(
                       () => {
 
                         // We need to decrement <index> by 1 because: inside <fn>, index will
                         // be incremented by 1 through a call to doBlockUpdate(...)
-                        blockData0[canonicalPath].index--;
+                        provisionalBlockData[canonicalPath].index--;
 
                         return fn(this.handler);
                       },
-                      blockData0,
+                      provisionalBlockData,
                     )
 
                 this.component.startRenderingContext();
 
                 createCollChildNode(
                   (node) => {
-                    const n = node.childNodes[0];
+                    const n = node.children[0];
 
-                    childNode.insertAdjacentElement("afterend", n);
-                    childNode.remove();
+                    assert(n.id == targetNode.id);
 
-                    if (n.id != childNode.id) {
-                      assert(innerTransform);
+                    targetNode.insertAdjacentElement("afterend", n);
+                    targetNode.remove();
 
-                      // The target nodeId have changed, hence we need to register a new predicate hook
-                      // because the current one is now invalidated
-
-                      this.executeWithBlockData(
-                        () => {
-                          this.getDataPathHooks()[path]
-                            .push({
-                              type: predicateHookType, selector: `#${n.id}`,
-                              fn: hook.fn, predicate, hookMethod, hookPhase, innerTransform, loc,
-                              blockData: this.component.getBlockDataSnapshot(path),
-                              canonicalPath: hook.canonicalPath,
-                            });
-                        },
-                        blockData0,
-                      )
-                    }
+                    this.component.triggerNodeDetachListeners(targetNode);
                   },
-                  key, childNode.id, markupPredicate, childNode.parentElement, innerTransform
+                  childKey, targetNode.id, markupPredicate, targetNode.parentElement, transform, opaqueWrapper, loc,
+                  [...blockStack, this.component.getBlockContextObject({ blockId, loc })],
                 );
 
-                assert(blockData0[canonicalPath].index === index);
+                assert(provisionalBlockData[canonicalPath].index === index);
 
                 if (b && isArray) {
-                  this.component.backfillArrayChildBlocks(`${parentPath0()}[${index}]`, `#${childNode.id}`);
+                  this.component.backfillArrayChildBlocks(
+                    `${dataPathRoot}${pathSeparator}${parentPath}[${index}]`, `#${targetNode.id}`
+                  );
                 }
 
-                triggerNodeUpdateEvt0(selector);
-
                 const hookOptions = {
-                  node: childNode, blockData: clientUtils.deepClone(blockData0), initial: false,
+                  node: document.querySelector(`#${targetNode.id}`),
+                  blockData: clientUtils.createImmutableProxy(blockData),
+                  initial: false,
                 };
 
-                if (hookMethod) {
-                  await this.component.triggerBlockHooks(hookMethod, hookPhase, 'onMount', loc, hookOptions);
+                if (hook) {
+                  await this.component.triggerBlockHooks(hook, hookPhase, 'onMount', loc, hookOptions);
                 }
 
                 this.component.finalizeRenderingContext();
 
-                if (hookMethod) {
+                if (hook) {
                   await this.component.awaitPendingTasks();
-                  await this.component.triggerBlockHooks(hookMethod, hookPhase, 'afterMount', loc, hookOptions);
+                  await this.component.triggerBlockHooks(hook, hookPhase, 'afterMount', loc, hookOptions);
                 }
 
               })();
@@ -2329,53 +2349,107 @@ class RootProxy {
             case collChildDetachHookType:
 
               (() => {
+                assert(this.isCollectionObject(value));
 
-                const { childKey } = hook;
+                const targetNode = document.querySelector(selector);
+                const { opaqueWrapper, markerEnd, childKey } = hookInfo;
 
-                const childNodeSelector = `${selector} > [key='${childKey}']`;
-                const childNode = document.querySelector(childNodeSelector)
-
-                childNode.remove();
-
-                this.component.triggerNodeDetachEvent(childNode);
+                const memberNode = getCollMemberNode(targetNode, childKey, opaqueWrapper, markerEnd);
+                memberNode.remove();
               })();
 
               break;
 
-            case arrayChildReorderHookType:
+            case arraySpliceHookType:
 
               (() => {
+                assert(this.isCollectionObject(value));
 
-                const { offsetIndexes, newIndexes = [], shuffle } = hook;
+                const { opaqueWrapper, markerEnd, blockId, deletedElements, offsetIndexes, newIndexes = [], shuffle } = hookInfo;
 
-                const parentNode = document.querySelector(selector);
+                const targetNode = document.querySelector(selector);
 
-                const offsetNodes = Object.keys(offsetIndexes)
-                  .map(k => parentNode.querySelector(`:scope > [key='${k}']`));
-
-                Object.values(offsetIndexes)
-                  .forEach((v, i) => {
-                    offsetNodes[i].setAttribute('key', `${v}`);
-                  });
-
-                newIndexes.forEach(i => {
+                deletedElements.forEach(({ childKey }) => {
                   this.triggerHooks0({
-                    path, value, hookTypes: [collChildSetHookType], hookOptions: { childKey: `${i}` }, hookList,
+                    path, value, hookTypes: [collChildDetachHookType], hookOptions: { childKey },
+                    hookList: {
+                      [path]: [
+                        this.#blocks[blockId].find(({ type }) => type == collChildDetachHookType)
+                      ]
+                    },
                   });
                 });
 
+                const offsetKeys = Object.keys(offsetIndexes);
+
+                if (offsetKeys.length) {
+
+                  const offsetNodes = [
+                    getCollMemberNode(targetNode, offsetKeys[0], opaqueWrapper, markerEnd)
+                  ];
+
+                  offsetKeys.forEach((k, i) => {
+                    if (i == 0) return;
+
+                    const node = (() => {
+                      if (opaqueWrapper) {
+                        // Note: we know that all keys are arithmetically progressed by 1, i.e. n, n + 1, c + 2, e.t.c.,
+                        // hence we can continuously call get the nextSibling
+                        return nextSibling(offsetNodes[i - 1]);
+
+                      } else {
+                        return getCollMemberNode(targetNode, k, false)
+                      }
+                    })();
+
+                    offsetNodes.push(node);
+                  });
+
+                  Object.values(offsetIndexes)
+                    .forEach((v, i) => {
+                      offsetNodes[i].setAttribute('key', `${v}`);
+                    });
+
+                }
+
+
+                newIndexes.forEach(i => {
+                  this.triggerHooks0({
+                    path, value, hookTypes: [collChildSetHookType], hookOptions: { childKey: `${i}` },
+                    hookList: {
+                      [path]: [
+                        this.#blocks[blockId].find(({ type }) => type == collChildSetHookType)
+                      ]
+                    },
+                  });
+                });
+
+
                 if (shuffle) {
-                  assert(!newIndexes.length && offsetNodes.length == parentNode.childNodes.length);
+                  const memberNodes = getCollMemberNodes(targetNode, opaqueWrapper, markerEnd);
 
-                  const childNodes = Array.from(parentNode.childNodes);
+                  assert(!newIndexes.length && offsetKeys.length == memberNodes.length);
 
-                  childNodes.sort((a, b) => {
+                  memberNodes.sort((a, b) => {
                     return parseInt(a.getAttribute('key')) - parseInt(b.getAttribute('key'));
                   });
 
-                  childNodes.forEach((node) => {
-                    parentNode.appendChild(node);
-                  });
+                  if (opaqueWrapper) {
+
+                    memberNodes.forEach(n => n.remove());
+
+                    let keyMarkerNode = targetNode;
+
+                    memberNodes.forEach((node, i) => {
+                      keyMarkerNode.insertAdjacentElement("afterend", node);
+                      keyMarkerNode = node;
+                    });
+
+                  } else {
+                    memberNodes.forEach((node) => {
+                      targetNode.appendChild(node);
+                    });
+                  }
                 }
 
               })();
@@ -2386,40 +2460,44 @@ class RootProxy {
 
               return (async () => {
 
-                const fn = this.component.lookupObject(hook.fn);
+                assert(this.isCollectionObject(value));
 
-                const { hookMethod, hookPhase, canonicalPath, blockData, innerTransform, predicate, childKey, loc } = hook;
+                const fn = this.component.lookupObject(hookInfo.fn);
+
+                const { hook, hookPhase, canonicalPath, transform, predicate, opaqueWrapper, markerEnd, loc, blockStack, blockId, childKey } = hookInfo;
 
                 const { collectionType: type } = this.getCollectionDefinition(path0);
 
                 assert(clientUtils.isNumber(childKey) || type == 'map');
 
-                const parentNode = document.querySelector(selector);
+                const targetNode = document.querySelector(selector);
 
-                const childNodeSelector = `${selector} > [key='${childKey}']`;
-                const childNode = document.querySelector(childNodeSelector)
+                const childNode = document.querySelector(`${selector} > [key='${childKey}']`);
 
                 const { index, length } = clientUtils.getCollectionIndexAndLength(value, childKey);
                 const childValue = value[childKey];
 
                 assert(index >= 0 && index < length && childValue !== undefined);
 
-                blockData[canonicalPath].length = length;
+                const _blockStack = [...blockStack, this.component.getBlockContextObject({ blockId, loc })];
 
                 const getFirstChildConsumer = () => {
                   return (node) => {
-                    if (parentNode.childNodes.length) {
-                      parentNode.childNodes[0].insertAdjacentElement("beforebegin", node.childNodes[0])
+                    const n = node.children[0];
+
+                    if (opaqueWrapper) {
+                      targetNode.insertAdjacentElement("afterend", n)
                     } else {
-                      parentNode.appendChild(node);
+                      targetNode.appendChild(n);
                     }
                   };
                 }
 
                 const getSiblingAppendConsumer = (tailKey) => {
-                  const tailSibling = parentNode.querySelector(`:scope > [key='${tailKey}']`);
+                  const tailSibling = getCollMemberNode(targetNode, tailKey, opaqueWrapper, markerEnd);
+
                   return (node) => {
-                    tailSibling.insertAdjacentElement("afterend", node.childNodes[0])
+                    tailSibling.insertAdjacentElement("afterend", node.children[0])
                   };
                 }
 
@@ -2427,140 +2505,129 @@ class RootProxy {
                   return index == 0 ?
                     getFirstChildConsumer() :
                     getSiblingAppendConsumer(
-                      clientUtils.getCollectionKeys(value)[index - 1]
+                      (type == 'map') ? value[mapKeysProperty]()[index - 1] : index - 1
                     );
-                }
-
-                const doesChildExist = (key) => {
-                  return !!parentNode.querySelector(`:scope > [key='${key}']`)
                 }
 
                 const backfillSparseElements = () => {
                   if (type == 'array' && index > 0) {
 
-                    const len = parentNode.querySelectorAll(':scope > [key]').length;
+                    const len = getCollMemberNodes(targetNode, opaqueWrapper, markerEnd).length;
 
                     for (let i = len; i < index; i++) {
 
-                      assert(!doesChildExist(i));
-
                       createCollChildNode(
-                        getNodeConsumer(i), `${i}`, null, () => '', parentNode, innerTransform
+                        getNodeConsumer(i), `${i}`, null, () => '', targetNode, transform, opaqueWrapper, loc, _blockStack,
                       );
-
-                      assert(doesChildExist(i));
                     }
                   }
                 }
 
-                const createAndAppendNode = (markupPredicate) => {
-
-                  assert(!doesChildExist(childKey));
-
-                  const elemId = createCollChildNode(
-                    getNodeConsumer(index), childKey, null, markupPredicate, parentNode, innerTransform
-                  );
-
-                  assert(doesChildExist(childKey));
-
-                  triggerNodeUpdateEvt(`#${elemId}`);
-
-                  return elemId;
-                }
-
                 backfillSparseElements();
 
-                const isNull = childValue === null || childValue[isNullProperty] || (predicate ? !this.component[predicate].bind(this.component)(childValue) : false);
+                const isNull = childValue === null || (predicate ? !this.component[predicate].bind(this.component)(childValue) : false);
 
-                const blockData0 = {
-                  ...blockData,
-                  [canonicalPath]: {
-                    ...blockData[canonicalPath],
-                    type, index,
-                  }
+                const provisionalBlockData = {
+                  ...hookInfo.blockData,
+                  [canonicalPath]: { type, length, index },
                 };
 
                 const markupPredicate =
                   () => isNull ?
                     // null collection members are always represented as an empty strings
                     '' :
-                    this.executeWithBlockData(
+                    this.component.executeWithBlockData(
                       () => {
 
                         // We need to decrement <index> by 1 because: inside <fn>, index will
                         // be incremented by 1 through a call to doBlockUpdate(...)
-                        blockData0[canonicalPath].index--;
+                        provisionalBlockData[canonicalPath].index--;
 
                         return fn(this.handler);
                       },
-                      blockData0,
+                      provisionalBlockData,
                     );
 
-                let elementNodeId;
+                let memberNodeId;
 
                 this.component.startRenderingContext();
 
-                const addPredicate = !!predicate;
+                const p = toFqPath({ type, parent: path, prop: childKey });
+                let blockData;
 
                 if (childNode) {
+                  memberNodeId = childNode.id;
 
                   createCollChildNode(
                     (node) => {
-                      const n = node.childNodes[0];
+                      const n = node.children[0];
+
+                      assert(n.id == memberNodeId);
 
                       childNode.insertAdjacentElement("afterend", n);
                       childNode.remove();
 
-                      if (n.id == childNode.id) {
-                        addPredicate = false;
-                      }
-
-                      elementNodeId = n.id;
+                      this.component.triggerNodeDetachListeners(childNode);
                     },
-                    childKey, childNode.id, markupPredicate, parentNode, innerTransform
+                    childKey, memberNodeId, markupPredicate, targetNode, transform, opaqueWrapper, loc, _blockStack,
                   );
 
-                  triggerNodeUpdateEvt(`#${elementNodeId}`);
-                } else {
-                  elementNodeId = createAndAppendNode(markupPredicate);
-                }
+                  const [hook] = this.getDataPathHooks(p).filter(
+                    ({ type, selector }) => [predicateHookType, blockDataHolderHookType].includes(type) && selector == `#${memberNodeId}`
+                  );
 
-                if (addPredicate) {
-                  this.executeWithBlockData(
+                  blockData = hook.blockData;
+
+                } else {
+
+                  const { nodeId } = createCollChildNode(
+                    getNodeConsumer(index), childKey, null, markupPredicate, targetNode, transform, opaqueWrapper, loc, _blockStack,
+                  );
+
+                  memberNodeId = nodeId;
+
+                  this.component.executeWithBlockData(
                     () => {
-                      this.getDataPathHooks()[path]
-                        .push({
-                          type: predicateHookType, selector: `#${elementNodeId}`,
-                          fn: hook.fn, predicate, hookMethod, hookPhase, innerTransform, loc,
-                          blockData: this.component.getBlockDataSnapshot(path),
-                          canonicalPath: `${canonicalPath}_$`,
-                        });
+                      blockData = this.component.getBlockDataSnapshot(p, loc);
+
+                      if (predicate) {
+                        this.getDataPathHooks()[p]
+                          .push({
+                            type: predicateHookType, selector: `#${memberNodeId}`,
+                            blockStack, blockId, fn: hookInfo.fn, predicate, hook, hookPhase, transform, opaqueWrapper,
+                            blockData, canonicalPath: `${canonicalPath}_$`, loc,
+                          });
+                      } else {
+                        this.getDataPathHooks()[p]
+                          .push({
+                            type: blockDataHolderHookType, selector: `#${memberNodeId}`,
+                            blockData, canonicalPath: `${canonicalPath}_$`, loc,
+                          });
+                      }
                     },
-                    blockData0,
+                    provisionalBlockData,
                   )
                 }
 
-                assert(blockData0[canonicalPath].index === index);
+                assert(provisionalBlockData[canonicalPath].index === index);
 
                 if (!isNull && type == 'array') {
-                  this.component.backfillArrayChildBlocks(`${path0}[${index}]`, `#${elementNodeId}`);
+                  this.component.backfillArrayChildBlocks(p, `#${memberNodeId}`);
                 }
 
-                triggerNodeUpdateEvt0(childNodeSelector);
-
                 const hookOptions = {
-                  node: document.querySelector(childNodeSelector), blockData: clientUtils.deepClone(blockData0), initial: false,
+                  node: document.querySelector(`#${memberNodeId}`), blockData: clientUtils.createImmutableProxy(blockData), initial: false,
                 };
 
-                if (hookMethod) {
-                  await this.component.triggerBlockHooks(hookMethod, hookPhase, 'onMount', loc, hookOptions);
+                if (hook) {
+                  await this.component.triggerBlockHooks(hook, hookPhase, 'onMount', loc, hookOptions);
                 }
 
                 this.component.finalizeRenderingContext();
 
-                if (hookMethod) {
+                if (hook) {
                   await this.component.awaitPendingTasks();
-                  await this.component.triggerBlockHooks(hookMethod, hookPhase, 'afterMount', loc, hookOptions);
+                  await this.component.triggerBlockHooks(hook, hookPhase, 'afterMount', loc, hookOptions);
                 }
 
               })();
@@ -2576,9 +2643,9 @@ class RootProxy {
    * 
    * This function prunes hooks from the dynamic index <i> of the array <parent>
    */
-  pruneCollChild({ parent, key, pruneLogicGates }) {
+  pruneCollChild({ parent, key, deep }) {
     const {
-      dataPathRoot, pathSeparator, arrayChildBlockHookType, logicGatePathRoot, toFqPath,
+      dataPathRoot, pathSeparator, arrayChildBlockHookType, logicGatePathRoot, filter_GTE, toFqPath,
     } = RootProxy;
 
     const isArray = clientUtils.isNumber(key);
@@ -2587,16 +2654,14 @@ class RootProxy {
 
     const fqPath = toFqPath({ isArray, isMap: !isArray, parent: fqParent, prop: key });
 
-    const { hookList } = this.getHookList(fqPath, 'gte', false, false, this.#dataPathHooks);
+    const { hookList } = this.getHookList(fqPath, filter_GTE, false, this.#dataPathHooks);
 
-    if (pruneLogicGates) {
-      Object.entries(hookList)
-        .forEach(([k, v]) => {
-          v.forEach(({ type, path }) => {
+    if (deep) {
+      Object.values(hookList)
+        .forEach(arr => {
+          arr.forEach(({ type, path }) => {
             if (type == arrayChildBlockHookType && path.startsWith(logicGatePathRoot)) {
-              const v = this.#dataPathHooks[path];
-              assert(v);
-              hookList[path] = v;
+              hookList[path] = this.#dataPathHooks[path];
             }
           })
         });
@@ -2605,15 +2670,18 @@ class RootProxy {
     this.pruneHooks0(
       hookList,
       ({ canonicalPath }) =>
-        // Prune all logic gates added above
-        !canonicalPath.startsWith(logicGatePathRoot) &&
-        !clientUtils.isCanonicalArrayIndex(canonicalPath.split(pathSeparator).join('.'), parent)
+        (deep ?
+          // Prune all logic gates added above
+          canonicalPath.startsWith(logicGatePathRoot) : false) ||
+        clientUtils.isCanonicalArrayIndex(canonicalPath.split(pathSeparator).join('.'), parent),
+      deep,
     )
   }
 
   updateCollChild({ parent, key, info, dataPathHooks }) {
     const {
-      dataPathRoot, pathSeparator, arrayChildBlockHookType, logicGatePathPrefix, dataPathPrefix, pathProperty, toFqPath, setObjectPath,
+      dataPathRoot, pathSeparator, arrayChildBlockHookType, logicGatePathPrefix, dataPathPrefix, pathProperty,
+      filter_GTE, toFqPath, setObjectPath,
     } = RootProxy;
 
     const isArray = clientUtils.isNumber(key);
@@ -2623,7 +2691,7 @@ class RootProxy {
     const fqPath = toFqPath({ isArray, isMap: !isArray, parent: fqParent, prop: key });
     const newFqPath = (isArray && (info.index != undefined)) ? toFqPath({ isArray, parent: fqParent, prop: `${info.index}` }) : null;
 
-    const { hookList } = this.getHookList(fqPath, 'gte', false, false, dataPathHooks);
+    const { hookList } = this.getHookList(fqPath, filter_GTE, false, dataPathHooks);
 
     Object.entries(hookList)
       .forEach(([k, v]) => {
@@ -2655,55 +2723,54 @@ class RootProxy {
         // Update associated blockData
 
         arr
+          .filter(({ type }) => type == arrayChildBlockHookType)
           .forEach((hook) => {
-            const { type, path, blockDataKey } = hook;
+            const { path, blockDataKey } = hook;
 
-            if (type == arrayChildBlockHookType) {
-              // Update associated blockData
+            // Update associated blockData
 
-              const blockDataList = (() => {
-                if (path.match(logicGatePathPrefix)) {
+            const blockDataList = (() => {
+              if (path.match(logicGatePathPrefix)) {
 
-                  const gateId = path.replace(logicGatePathPrefix, '');
-                  const gateInfo = this.#logicGates[gateId];
+                const gateId = path.replace(logicGatePathPrefix, '');
+                const gateInfo = this.#logicGates[gateId];
 
-                  const { blockData, arrayBlockPath } = gateInfo;
+                const { blockData, arrayBlockPath } = gateInfo;
 
-                  assert(arrayBlockPath == k);
+                assert(arrayBlockPath == k);
 
-                  if (newFqPath) {
-                    gateInfo.arrayBlockPath = gateInfo.arrayBlockPath.replace(
-                      fqPath, newFqPath,
-                    );
-                  }
-
-                  return [blockData]
-                } else {
-                  assert(path.startsWith(fqPath));
-
-                  if (newFqPath) {
-                    hook.path = path.replace(fqPath, newFqPath);
-                  }
-
-                  return dataPathHooks[path]
-                    .filter(({ blockData }) => blockData && Object.keys(blockData).includes(blockDataKey))
-                    .map(({ blockData }) => blockData);
-                }
-              })()
-
-              blockDataList.forEach((blockData) => {
-                const o = blockData[blockDataKey];
-                assert(o);
-
-                if (info.index != undefined) {
-                  o.index = info.index;
+                if (newFqPath) {
+                  gateInfo.arrayBlockPath = gateInfo.arrayBlockPath.replace(
+                    fqPath, newFqPath,
+                  );
                 }
 
-                if (info.length != undefined) {
-                  o.length = info.length;
+                return [blockData];
+              } else {
+                assert(path.startsWith(fqPath));
+
+                if (newFqPath) {
+                  hook.path = path.replace(fqPath, newFqPath);
                 }
-              });
-            }
+
+                return dataPathHooks[path]
+                  .filter(({ blockData }) => blockData && Object.keys(blockData).includes(blockDataKey))
+                  .map(({ blockData }) => blockData);
+              }
+            })()
+
+            blockDataList.forEach((blockData) => {
+              const o = blockData[blockDataKey];
+              assert(o);
+
+              if (info.index != undefined) {
+                o.index = info.index;
+              }
+
+              if (info.length != undefined) {
+                o.length = info.length;
+              }
+            });
           });
 
         // Update key in <dataPathHooks>, if applicable
@@ -2711,9 +2778,13 @@ class RootProxy {
         if (newFqPath) {
           const p = k.replace(fqPath, newFqPath);
 
+          arr.forEach(hook => {
+            this.#hooksMap.set(hook, p);
+          });
+
           if (this.#dataPathHooks[p]) {
-            arr.forEach(e => {
-              this.#dataPathHooks[p].push(e);
+            arr.forEach(hook => {
+              this.#dataPathHooks[p].push(hook);
             });
           } else {
             this.createHooksArray(p, [...arr]);
@@ -2722,14 +2793,33 @@ class RootProxy {
       });
   }
 
-  addToChangeSet(changeSet, p, filter = 'gte', opts) {
+  #ensureNoOpenHandle(path) {
+    this.#openHandles.forEach(p => {
+      if (path.startsWith(p)) {
+        this.component.throwError(
+          `This operation cannot continue because there is currently an open handle on path "${p}"`
+        );
+      }
+    });
+  }
+
+  #ensureNonDiscreteContext() {
+    if (this.#discreteMode) {
+      this.component.throwError(
+        `This operation cannot continue in a discrete context`
+      );
+    }
+  }
+
+  addToChangeSet(changeSet, p, filter = RootProxy.filter_GTE, opts) {
     const { dataPathRoot, pathSeparator } = RootProxy;
+
     changeSet.push({
       path: `${dataPathRoot}${pathSeparator}${p}`, filter, opts,
     });
   }
 
-  static setObjectAsPruned(obj, __nestedCompReferences) {
+  static setObjectAsPruned(obj) {
 
     const { prunedProperty } = RootProxy;
     const { visitObject } = clientUtils;
@@ -2740,17 +2830,9 @@ class RootProxy {
 
     const visitComponent = (val) => {
       addPrunedPropery(val.getInput());
-      val.getInternalMeta().referenceKey = addComponentReference(val);
 
       visitObject(val.getInput(), visitor);
     };
-
-    const addComponentReference = (val) => {
-      const { randomString } = clientUtils
-      const refKey = randomString();
-      __nestedCompReferences[refKey] = val;
-      return refKey;
-    }
 
     const visitor = (key, val) => {
       switch (true) {
@@ -2778,21 +2860,62 @@ class RootProxy {
     }
   }
 
-  simpleSetMutationHandler(changeSet, obj, prop, newValue) {
+  isPathImmutable(fqPath0) {
+    const sPath0 = clientUtils.toCanonicalPath(fqPath0);
+    const immutablePaths = this.component.immutablePaths();
+
+    return immutablePaths[fqPath0] || immutablePaths[sPath0];
+  }
+
+  isCollectionInView(sPath) {
+    return this.component.getRenderedCollections().includes(sPath);
+  }
+
+  hasCollectionInView(sPath) {
+    const properties = this.getPathMetadata(sPath);
+    const { hasCollectionInView } = properties;
+
+    return hasCollectionInView !== undefined ?
+      hasCollectionInView :
+      properties.hasCollectionInView = (() => {
+        if (this.isCollectionInView(sPath)) {
+          return true;
+        }
+
+        for (const p of this.component.getRenderedCollections()) {
+          if (p.startsWith(sPath)) {
+            return true;
+          }
+        }
+        return false;
+      })();
+  }
+
+  static createSimpleSetMutationOp(obj, key, value) {
+    const { mutationType_SET, pathProperty, toFqPath } = RootProxy;
+
+    return {
+      type: mutationType_SET, obj, key, val: value,
+      leafs: [{
+        parentObject: obj,
+        path: toFqPath({ parent: obj[pathProperty], prop: key }),
+        key, value,
+      }],
+    };
+  }
+
+  simpleSetMutationHandler(obj, prop, newValue) {
 
     const {
-      dataPathRoot, pathSeparator, pathProperty, typeProperty, mapType, isMapProperty, mapKeyPrefix,
-      isNullProperty, lastProperty, collChildSetHookType, collChildDetachHookType, arrayChildReorderHookType,
-      getMapWrapper, toFqPath, getDataVariables, addDataVariablesToObject, setObjectAsPruned,
+      dataPathRoot, pathSeparator, pathProperty, isMapProperty, mapKeyPrefix,
+      firstProperty, lastProperty, keyProperty, indexProperty, collChildSetHookType,
+      collChildDetachHookType, arraySpliceHookType, filter_EQ, filter_GTE, mutationType_SET,
+      mutationType_SPLICE, mutationType_DELETE, toFqPath, getDataVariables, setObjectAsPruned,
+      createSimpleSetMutationOp,
     } = RootProxy;
 
     const parent = obj[pathProperty];
 
-    if (obj[isNullProperty]) {
-      return this.tryOrLogError(
-        () => { throw TypeError(`[${parent}] Cannot set properties of null (setting '${prop}')`) }
-      )
-    }
 
     const isArray = Array.isArray(obj);
     const isMap = !isArray && obj[isMapProperty];
@@ -2807,10 +2930,10 @@ class RootProxy {
             assert(typeof newValue == 'number');
             if (newValue < obj.length) {
               for (let i = obj.length - 1; i >= newValue; i--) {
-                this.simpleSetMutationHandler(changeSet, obj, i, undefined);
+                this.simpleSetMutationHandler(obj, i, undefined);
               }
             } else if (newValue > obj.length) {
-              this.simpleSetMutationHandler(changeSet, obj, newValue - 1, null);
+              this.simpleSetMutationHandler(obj, newValue - 1, null);
             }
             return true;
 
@@ -2833,9 +2956,9 @@ class RootProxy {
           this.component.logger.error(`Invalid key: ${prop} for map: ${obj[pathProperty]}`);
           return false;
         }
-        if (!prop.startsWith(mapKeyPrefix)) {
-          prop = `${mapKeyPrefix}${prop}`
-        }
+
+        // <obj> is wrapped with our map wrapper, hence this should be true
+        assert(prop.startsWith(mapKeyPrefix));
 
       default:
         if (!prop || !prop.length || prop.constructor.name !== 'String') {
@@ -2844,7 +2967,7 @@ class RootProxy {
         }
 
         // Data variables need to set using Object.defineProperty(...) inorder for them to be
-        // proproly setup, i.e. configurable: true/false, enumerable: false , e.t.c
+        // properly setup, i.e. configurable: true/false, enumerable: false , e.t.c
         assert(!prop.startsWith('@'));
 
         break;
@@ -2855,14 +2978,11 @@ class RootProxy {
     if (oldValue === undefined) {
       assert(
         isCollection,
-        // In toCanonicalObject(...), we always default missing object properties to null,
-        // so if oldValue === undefined it means that <prop> is invalid
+        // In #toCanonicalTree(...), we always default known object properties that are missing
+        // to either null OR a non-undefined value defined by a component initializer, hence if 
+        // oldValue === undefined, it means that <prop> is invalid
         `${parent ? `[${parent}] ` : ''}Property "${prop}" does not exist`
       );
-    }
-
-    if (oldValue && oldValue[isNullProperty]) {
-      oldValue = null;
     }
 
     if (oldValue === newValue) {
@@ -2874,60 +2994,31 @@ class RootProxy {
 
     const fqPath = `${dataPathRoot}${pathSeparator}${fqPath0}`;
 
+    const sPath0 = clientUtils.toCanonicalPath(fqPath0);
+
+    // Perform Validations
+
+    if (this.isPathImmutable(fqPath0)) {
+      this.component.logger.error(`Path "${fqPath0}" is immutable`);
+      return false;
+    }
 
     if (!isCollection && !this.#dataPathHooks[fqPath]) {
-
       // Notice that we are doing this check, after we check if oldValue is a component, not before. This is because
       // if we do it before, this error will be thrown if <fqPath> resolved to a component (for components, we do not
       // add an entry to dataPathHooks), which will not provide a descriptive error
 
-      this.component.logger.error(`Unknown path: ${fqPath}`);
+      this.component.logger.error(`Unknown path "${fqPath}"`);
       return false;
     }
 
-    // This is used to hold component references, so that when hookOptions is "deep cloned", it will maintain the 
-    // component references (if applicable) instead of being transformed to component.toJSON() in the resulting json
-    const __nestedCompReferences = {};
-
-    if (isCollection) {
-
-      if (newValue === undefined) {
-        this.addToChangeSet(
-          changeSet,
-          parent, 'eq',
-          {
-            hookType: collChildDetachHookType,
-            hookOptions: { childKey: `${prop}`, internal: { __nestedCompReferences }, oldValue }
-          });
-
-        if (isArray) {
-          const offsetIndexes = {};
-
-          for (let i = prop + 1; i < obj.length; i++) {
-            offsetIndexes[i] = i - 1;
-          }
-
-          this.addToChangeSet(
-            changeSet,
-            parent, 'eq',
-            {
-              hookType: arrayChildReorderHookType,
-              hookOptions: { offsetIndexes }
-            });
-        }
-
-      } else {
-        this.addToChangeSet(
-          changeSet,
-          parent, 'eq',
-          {
-            hookType: collChildSetHookType,
-            hookOptions: { childKey: `${prop}`, oldValue }
-          });
-      }
+    if (this.hasCollectionInView(sPath0)) {
+      this.#ensureNonDiscreteContext();
     }
 
-    this.addToChangeSet(changeSet, fqPath0);
+    if (isCollection && this.isCollectionInView(parent)) {
+      this.#ensureNoOpenHandle(parent);
+    }
 
     const collDef = isCollection ? this.getCollectionDefinition(parent) : false;
 
@@ -2977,77 +3068,164 @@ class RootProxy {
         }
       }
 
-      o.offset = o.elementRemoved ? -1 : 1 + o.sparseIndexes.length;
+      o.offsetIndexes = {};
 
-      const {
-        removedNonLastElement, removedLastElement, addedElementWithSparseIndexes, newElementAdded, elementRemoved, sparseIndexes,
-      } = o;
-
-      if (newElementAdded || elementRemoved) {
-        this.addToChangeSet(changeSet, toFqPath({ parent, prop: 'length' }));
-      }
-
-      if (newElementAdded && length > 0) {
-        this.addToChangeSet(
-          changeSet,
-          toFqPath({
-            parent: toFqPath({ parent, prop: length - 1 }),
-            prop: lastProperty,
-          }),
-        );
-      }
-
-      if (removedLastElement && index > 0) {
-        this.addToChangeSet(
-          changeSet,
-          toFqPath({
-            parent: toFqPath({ parent, prop: index - 1 }),
-            prop: lastProperty,
-          }),
-        );
-      }
-
-      if (removedNonLastElement) {
-        // Add all indexes after the <index> to <changeSet>
-        // Note: a changeSet has already been added above for <index> via fqPath0, 
-        // hence start at <index + 1>
-
-        for (let i = index + 1; i < length; i++) {
-          this.addToChangeSet(
-            changeSet,
-            toFqPath({ parent, prop: i }),
-          );
+      if (o.removedNonLastElement) {
+        for (let i = prop + 1; i < obj.length; i++) {
+          o.offsetIndexes[i] = i - 1;
         }
       }
 
-      for (let i of sparseIndexes) {
-        // Add sparse index to <changeSet>
-        this.addToChangeSet(
-          changeSet,
-          toFqPath({ parent, prop: i }),
-        );
-
-        this.addToChangeSet(
-          changeSet,
-          parent, 'eq',
-          {
-            hookType: collChildSetHookType,
-            hookOptions: { childKey: `${i}`, oldValue: undefined }
-          });
-      }
+      o.offset = o.elementRemoved ? -1 : 1 + o.sparseIndexes.length;
 
       return o;
     })();
 
-
     const {
-      newElementAdded, elementRemoved, removedNonLastElement, keys, index, length, offset, sparseIndexes, type,
+      newElementAdded, elementRemoved, removedNonLastElement, removedLastElement, keys, index, length, offset, sparseIndexes, offsetIndexes, type,
     } = collInfo || {};
 
 
-    if (collInfo) {
+    // REGISTER CHANGE SETS
 
-      // HOOK RE-BALANCING
+    const mutationList = [];
+    const changeSet = [];
+
+    const changedPaths = [];
+
+    const addSimpleSetMutation = (obj, key, value) => {
+      if (typeof obj == "object") {
+        mutationList.push(
+          createSimpleSetMutationOp(obj, key, value)
+        );
+      }
+    }
+
+    if (isCollection) {
+
+      const childKey = isMap ? prop.replace(mapKeyPrefix, '') : `${prop}`;
+
+      if (newValue === undefined) {
+
+        const deletedElements = [{ childKey }];
+
+        if (isArray) {
+
+          this.addToChangeSet(
+            changeSet,
+            parent, filter_EQ,
+            {
+              hookType: arraySpliceHookType,
+              hookOptions: { deletedElements, offsetIndexes, newIndexes: [] }
+            },
+          );
+
+        } else {
+
+          this.addToChangeSet(
+            changeSet,
+            parent, filter_EQ,
+            {
+              hookType: collChildDetachHookType,
+              hookOptions: deletedElements[0],
+            });
+        }
+
+      } else {
+
+        this.addToChangeSet(
+          changeSet,
+          parent, filter_EQ,
+          {
+            hookType: collChildSetHookType,
+            hookOptions: { childKey, oldValue, sparseIndexes }
+          });
+      }
+
+      changedPaths.push(fqPath0);
+
+    } else {
+      this.addToChangeSet(changeSet, fqPath0);
+    }
+
+    if (newElementAdded || elementRemoved) {
+      this.addToChangeSet(changeSet, toFqPath({ parent, prop: 'length' }), filter_EQ);
+    }
+
+    if (newElementAdded && length > 0) {
+
+      addSimpleSetMutation(
+        obj[length - 1], lastProperty, false,
+      );
+
+      this.addToChangeSet(
+        changeSet,
+        toFqPath({
+          parent: toFqPath({ parent, prop: length - 1 }),
+          prop: lastProperty,
+        }),
+        filter_EQ,
+      );
+    }
+
+    if (removedLastElement && index > 0) {
+
+      addSimpleSetMutation(
+        obj[index - 1], lastProperty, true,
+      );
+
+      this.addToChangeSet(
+        changeSet,
+        toFqPath({
+          parent: toFqPath({ parent, prop: index - 1 }),
+          prop: lastProperty,
+        }),
+        filter_EQ,
+      );
+    }
+
+    if (removedNonLastElement) {
+
+      Object.entries(offsetIndexes).forEach((i, j) => {
+
+        if (j == 0) {
+          addSimpleSetMutation(
+            obj[i], firstProperty, true,
+          );
+        }
+
+        addSimpleSetMutation(
+          obj[i], keyProperty, `${j}`,
+        );
+
+        addSimpleSetMutation(
+          obj[i], indexProperty, j,
+        );
+
+        changedPaths.push(
+          toFqPath({ parent, prop: i })
+        );
+      });
+    }
+
+    if (sparseIndexes) {
+      sparseIndexes.forEach(i => {
+        changedPaths.push(
+          toFqPath({ parent, prop: i })
+        );
+      });
+    }
+
+    changedPaths.forEach(p => {
+      this.addToChangeSet(changeSet, p, filter_GTE, {
+        hookFilter: ({ canonicalPath }) => !clientUtils.isCanonicalArrayIndex(canonicalPath.split(pathSeparator).join('.'), parent),
+      });
+    })
+
+
+    // HOOK RE-BALANCING
+
+    if (collInfo) {
 
       const newLength = length + offset;
 
@@ -3072,7 +3250,7 @@ class RootProxy {
           for (let i = index; i < length - 1; i++) {
             assert(removedNonLastElement);
 
-            this.pruneCollChild({ parent, key: keys[i], pruneLogicGates: i == index });
+            this.pruneCollChild({ parent, key: keys[i], deep: i == index });
 
             this.updateCollChild({
               parent, key: keys[i + 1], info: { index: i, length: newLength }, dataPathHooks: this.getDataPathHooks(),
@@ -3090,151 +3268,77 @@ class RootProxy {
     // DO SET
 
 
-    if (type == 'array') {
+    const elements = [{
+      path: fqPath0,
+      prop,
+      value: (newValue === undefined && !collDef) ? null : newValue,
+      dataVariables: (newValue !== undefined && collDef) ? this.getDataVariablesForSimpleSetOperation(collInfo) : null
+    }];
+
+    if (sparseIndexes) {
+
       for (let i of sparseIndexes) {
-        // Add null to sparse indexes
-        this.addNullCollectionMember(
-          obj, i,
-          collDef.$ref ? {
+        elements.push({
+          path: toFqPath({ parent, prop: i }),
+          prop: i,
+          value: null,
+          dataVariables: {
             first: i == 0,
             last: false,
             key: `${i}`,
             index: i,
-          } : null
-        );
+          }
+        });
       }
     }
 
-    if (newValue != undefined) {
 
-      if (['Object', 'Array'].includes(newValue.constructor.name)) {
+    for (let i = 0; i < elements.length; i++) {
+      const { path, prop, value, dataVariables } = elements[i];
 
-        if (collDef) {
-          addDataVariablesToObject(
-            newValue,
-            this.getDataVariablesForSimpleSetOperation(collInfo),
-          )
-        }
+      const leafs = [];
 
-        const b = this.tryOrLogError(
-          () => {
-            newValue = this.#toCanonicalObject({
-              path: fqPath0,
-              obj: newValue
-            });
-          }
-        );
+      const { error, mutationType, value: val } = this.#getMutationType({
+        path, value, parentObject: obj, collDef, dataVariables, leafs,
+      });
 
-        if (!b) {
-          return false;
-        }
-
-        if (newValue[typeProperty] == mapType) {
-          newValue = getMapWrapper(newValue);
-        }
-
-        newValue = this.getObserverProxy(newValue);
-
-      } else {
-
-        const b = this.tryOrLogError(
-          () => this.validateSchema(fqPath, newValue)
-        );
-
-        if (!b) {
-          return false;
-        }
-
-        if (collDef) {
-          this.addHookForScalarCollectionMember(fqPath0);
-        } else {
-          this.createHooksArray(fqPath);
-        }
+      if (error) {
+        return false;
       }
 
-      obj[prop] = newValue;
-
-    } else {
-
-      if (collDef) {
-
-        switch (true) {
-
-          case newValue === undefined:
-
-            if (isArray) {
-              obj.splice(prop, 1);
-            } else {
-              delete obj[prop];
-            }
-
-            if (collDef.$ref) {
-              // We need to run in a privileged context because we are attempting to modify data variables
-              // on objects that are already wrapped by the observer proxy
-              RootProxy.#runPriviledged(() => {
-
-                const keys = Object.keys(obj);
-
-                for (let i = collInfo.index; i < (collInfo.length - 1); i++) {
-                  const k = keys[i];
-                  addDataVariablesToObject(
-                    obj[k],
-                    {
-                      first: i == 0,
-                      last: i == keys.length - 1,
-                      key: k,
-                      index: i,
-                    }
-                  )
-                }
-              });
-            }
-            break;
-
-          case newValue === null:
-            this.addNullCollectionMember(
-              obj, prop,
-              collDef.$ref ? this.getDataVariablesForSimpleSetOperation(collInfo) : null,
-            );
-            break;
-        }
-
-      } else {
-
-        if (newValue === undefined) {
-          // Object properties cannot have "undefined", change to null
-          newValue = null;
-        }
-
-        this.createHooksArray(fqPath);
-
-        obj[prop] = newValue;
+      switch (mutationType) {
+        case mutationType_SET:
+          mutationList.push({ type: mutationType_SET, obj, key: prop, val, leafs });
+          break;
+        case mutationType_SPLICE:
+          mutationList.push({ type: mutationType, obj, key: prop, delCount: 1, repl: [] })
+          break;
+        case mutationType_DELETE:
+          mutationList.push({ type: mutationType, obj, key: prop })
+          break;
       }
     }
 
     if (oldValue && typeof oldValue == 'object') {
-      setObjectAsPruned(oldValue, __nestedCompReferences);
+      setObjectAsPruned(oldValue);
     }
+
+    this.#executeMutations({ mutationList, changeSet });
 
     return true;
   }
 
-  arraySpliceMutationHandler(changeSet, obj, index, delCount, ...replElements) {
+  arraySpliceMutationHandler(obj, index, delCount, ...replElements) {
 
     const {
-      dataPathRoot, pathSeparator, pathProperty, typeProperty, isNullProperty, lastProperty, collChildDetachHookType, arrayChildReorderHookType,
-      toFqPath, setObjectAsPruned,
+      pathProperty, firstProperty, lastProperty, keyProperty, indexProperty, arraySpliceHookType,
+      mutationType_SET, mutationType_SPLICE, filter_EQ, filter_GTE, pathSeparator, toFqPath, setObjectAsPruned,
+      createSimpleSetMutationOp,
     } = RootProxy;
 
     const { isNumber, peek } = clientUtils;
 
     const parent = obj[pathProperty];
-
-    if (obj[isNullProperty]) {
-      return this.tryOrLogError(
-        () => { throw TypeError(`[${parent}] Cannot read properties of null (reading 'splice')`) }
-      )
-    }
 
     assert(Array.isArray(obj));
 
@@ -3297,21 +3401,33 @@ class RootProxy {
     }
 
 
-
-
     const length = obj.length;
-
 
 
     // REGISTER CHANGE SETS
 
     const changedPaths = [];
 
+    const mutationList = [];
+    const changeSet = [];
+
+    const addSimpleSetMutation = (obj, key, value) => {
+      if (typeof obj == "object") {
+        mutationList.push(
+          createSimpleSetMutationOp(obj, key, value)
+        );
+      }
+    }
+
     if (offset != 0) {
       changedPaths.push(toFqPath({ parent, prop: 'length' }));
     }
 
-    if (index == length) {
+    if (index == length && replElements.length) {
+      addSimpleSetMutation(
+        obj[length - 1], lastProperty, false,
+      );
+
       changedPaths.push(
         toFqPath({
           parent: toFqPath({ parent, prop: length - 1 }),
@@ -3320,49 +3436,86 @@ class RootProxy {
       );
     }
 
-    // This is used to hold component references, so that when hookOptions is "deep cloned", it will maintain the 
-    // component references (if applicable) instead of being transformed to component.toJSON() in the resulting json
-    const __nestedCompReferences = {};
+    if (index > 0 && index == length - 1 && offset < 0) {
 
-    delIndexes.forEach(i => {
+      addSimpleSetMutation(
+        obj[index + offset], lastProperty, true,
+      );
 
-      this.addToChangeSet(
-        changeSet,
-        parent, 'eq',
-        {
-          hookType: collChildDetachHookType,
-          hookOptions: {
-            childKey: `${i}`,
-            internal: { __nestedCompReferences },
-            oldValue: obj[i],
-          }
-        });
+      changedPaths.push(
+        toFqPath({
+          parent: toFqPath({ parent, prop: index - 1 }),
+          prop: lastProperty,
+        })
+      );
+    }
 
+
+    [...new Set(changedPaths)].forEach(p => {
+      this.addToChangeSet(changeSet, p, filter_EQ);
+    });
+    changedPaths.splice(0);
+
+
+    Object.entries(offsetIndexes)
+      .forEach(([i, j]) => {
+
+        if (i == 0) {
+          addSimpleSetMutation(
+            obj[i], firstProperty, false,
+          );
+        }
+
+        if (j == 0) {
+          addSimpleSetMutation(
+            obj[i], firstProperty, true,
+          );
+        }
+
+        addSimpleSetMutation(
+          obj[i], keyProperty, `${j}`,
+        );
+
+        addSimpleSetMutation(
+          obj[i], indexProperty, j,
+        );
+
+        changedPaths.push(
+          toFqPath({ parent, prop: Number(i) })
+        );
+
+        changedPaths.push(
+          toFqPath({ parent, prop: j })
+        );
+      });
+
+    newIndexes.forEach(i => {
       changedPaths.push(
         toFqPath({ parent, prop: i })
       );
     });
 
-    this.addToChangeSet(
-      changeSet,
-      parent, 'eq',
-      {
-        hookType: arrayChildReorderHookType,
-        hookOptions: { offsetIndexes, newIndexes }
-      });
+    const deletedElements = delIndexes.map(i => {
+      changedPaths.push(
+        toFqPath({ parent, prop: i })
+      );
 
-    newIndexes.forEach(i => {
-      changedPaths.push(toFqPath({ parent, prop: i }));
+      return { childKey: `${i}` };
     });
 
-    Object.entries(offsetIndexes)
-      .forEach(([k, v]) => {
-        changedPaths.push(toFqPath({ parent, prop: Number(k) }));
-        changedPaths.push(toFqPath({ parent, prop: v }));
+    this.addToChangeSet(
+      changeSet,
+      parent, filter_EQ,
+      {
+        hookType: arraySpliceHookType,
+        hookOptions: { deletedElements, offsetIndexes, newIndexes }
       });
 
+
     [...new Set(changedPaths)].forEach(p => {
-      this.addToChangeSet(changeSet, p)
+      this.addToChangeSet(changeSet, p, filter_GTE, {
+        hookFilter: ({ canonicalPath }) => !clientUtils.isCanonicalArrayIndex(canonicalPath.split(pathSeparator).join('.'), parent),
+      });
     })
 
 
@@ -3382,7 +3535,7 @@ class RootProxy {
           break;
 
         case delIndexes.includes(i):
-          this.pruneCollChild({ parent, key: i, pruneLogicGates: true });
+          this.pruneCollChild({ parent, key: i, deep: true });
           break;
 
         case offsetIndexes[i] !== undefined && offset < 0:
@@ -3421,29 +3574,27 @@ class RootProxy {
     // DO SET
 
 
+
+
     let hasError = false;
 
-    replElements = replElements.map((newValue, i) => {
+    const collDef = this.getCollectionDefinition(parent);
+
+    const leafsList = [];
+
+    replElements = replElements.map((value, i) => {
 
       if (hasError) {
         return;
       }
 
-      const {
-        mapType, addDataVariablesToObject, getMapWrapper,
-      } = RootProxy;
-
-      const setValue0 = (val) => {
-        replElements[i] = newValue = val;
-      }
 
       const idx = index + i;
 
-      const fqPath0 = toFqPath({ parent, prop: idx });
-      const fqPath = `${dataPathRoot}${pathSeparator}${fqPath0}`;
+      const path = toFqPath({ parent, prop: idx });
 
-      if (newValue === undefined || (newValue && newValue[isNullProperty])) {
-        setValue0(null)
+      if (value === undefined) {
+        value = null;
       }
 
       const dataVariables = {
@@ -3453,104 +3604,74 @@ class RootProxy {
         index: idx,
       };
 
-      if (newValue != null) {
+      leafsList.push([]);
 
-        if (['Object', 'Array'].includes(newValue.constructor.name)) {
+      const { error, mutationType, value: val } = this.#getMutationType({ path, value, parentObject: obj, collDef, dataVariables, leafs: leafsList[i], });
 
-          const b = this.tryOrLogError(
-            () => {
-              newValue = this.#toCanonicalObject({
-                path: fqPath0,
-                obj: newValue
-              })
-            }
-          );
-
-          if (!b) {
-            hasError = true;
-            return;
-          }
-
-          addDataVariablesToObject(
-            newValue, dataVariables,
-          )
-
-          if (newValue[typeProperty] == mapType) {
-            newValue = getMapWrapper(newValue);
-          }
-
-          newValue = this.getObserverProxy(newValue);
-
-        } else {
-
-          const b = this.tryOrLogError(
-            () => this.validateSchema(fqPath, newValue)
-          );
-
-          if (!b) {
-            hasError = true;
-            return;
-          }
-
-          this.addHookForScalarCollectionMember(fqPath0);
-        }
-
-      } else {
-
-        this.addNullCollectionMember(
-          obj, idx, dataVariables, (val) => newValue = val
-        );
+      if (error) {
+        hasError = true;
+        return;
       }
 
-      return newValue;
+      assert(mutationType == mutationType_SET);
+
+      return val;
     });
+
 
     if (hasError) {
       return false;
     }
 
-    const deletedElements = delIndexes.map(i => obj[i]);
+    mutationList.push({
+      type: mutationType_SPLICE,
+      obj, key: index,
+      delCount: delIndexes.length,
+      repl: replElements,
+      leafsList,
+    });
 
-    obj.splice(index, delIndexes.length, ...replElements);
+    const removedElements = delIndexes.map(i => {
+      const e = obj[i];
 
-    return deletedElements.map(e => {
       if (e && typeof e == 'object') {
-        setObjectAsPruned(e, __nestedCompReferences);
+        setObjectAsPruned(e);
       }
       return e;
     });
+
+    this.#executeMutations({ mutationList, changeSet });
+
+    return removedElements;
   }
 
-  arrayReorderMutationHandler(changeSet, obj, offsetIndexes, fnName) {
+  arrayReorderMutationHandler(obj, offsetIndexes) {
 
     const {
-      dataPathRoot, pathSeparator, pathProperty, isNullProperty, arrayChildReorderHookType, toFqPath,
+      dataPathRoot, pathSeparator, pathProperty, arraySpliceHookType, filter_EQ, filter_GTE, toFqPath,
     } = RootProxy;
 
     const parent = obj[pathProperty];
 
-    if (obj[isNullProperty]) {
-      return this.tryOrLogError(
-        () => { throw TypeError(`[${parent}] Cannot read properties of null (reading '${fnName}')`) }
-      )
-    }
-
     assert(Array.isArray(obj));
-
-
 
     // REGISTER CHANGE SETS
 
+    const changeSet = [];
+
     this.addToChangeSet(
-      changeSet,
-      parent, 'eq',
+      changeSet, parent, filter_EQ,
       {
-        hookType: arrayChildReorderHookType,
-        hookOptions: { offsetIndexes, shuffle: true }
+        hookType: arraySpliceHookType,
+        hookOptions: { offsetIndexes, shuffle: true, newIndexes: [], deletedElements: [] }
       });
 
     for (let i = 0; i < obj.length; i++) {
-      this.addToChangeSet(changeSet, toFqPath({ parent, prop: i }));
+      this.addToChangeSet(
+        changeSet, toFqPath({ parent, prop: i }), filter_GTE, {
+          hookFilter: ({ canonicalPath }) => !clientUtils.isCanonicalArrayIndex(canonicalPath.split(pathSeparator).join('.'), parent)
+        }
+      );
     }
 
 
@@ -3561,7 +3682,7 @@ class RootProxy {
     for (let i = 0; i < obj.length; i++) {
       const fqPath = `${dataPathRoot}${pathSeparator}${toFqPath({ parent, prop: i })}`;
 
-      const { hookList } = this.getHookList(fqPath, 'gte', false, false, this.getDataPathHooks());
+      const { hookList } = this.getHookList(fqPath, filter_GTE, false, this.getDataPathHooks());
       Object.assign(dataPathHooks, hookList);
 
       this.pruneCollChild({ parent, key: i });
@@ -3574,6 +3695,276 @@ class RootProxy {
           parent, key: Number(k), info: { index: v }, dataPathHooks,
         });
       });
+
+    if (this.component.isMounted()) {
+      this.#updateDOM({ changeSet });
+    } else {
+      this.#throwComponentNotMounted(`reorder.${parent}`);
+    }
+  }
+
+  #executeMutations({ mutationList, changeSet }) {
+    const {
+      mutationType_SET, mutationType_SPLICE, mutationType_DELETE, pathProperty, typeProperty, mapType,
+      dataPathRoot, pathSeparator, toFqPath, setDataVariable,
+    } = RootProxy;
+
+    const changes = [];
+
+    mutationList.forEach((mutation) => {
+      const { type: mutationType, obj, key, val, delCount, repl, leafs, leafsList } = mutation;
+
+      const addToChanges = ({ path, key, spliceIndex, val, willPrune, leafs, mutationType }) => {
+
+        const add0 = (opts) => {
+          // Todo: should we prune #randomValues here?
+
+          changes.push(opts);
+        };
+
+        // Note: <spliceIndex> is passed in when <obj> is an array, in order to make it possible for observers 
+        // to be able to mirror changes made in <obj> into a secondary array, such that the caller can 
+        // recursively run a splice on the secondary array and maintain equality with the primary array: <obj>
+
+        add0({
+          mutationType, path, oldValue: willPrune ? val : undefined,
+          currentValue: willPrune ? undefined : val,
+          parentObject: obj, key, spliceIndex, primary: true,
+        });
+
+        if (willPrune) {
+          if (val && ['Array', 'Object'].includes(val.constructor.name)) {
+
+            this.#visitObject(val, (path, val, obj, key) => {
+              add0({
+                mutationType, path, oldValue: val, currentValue: undefined,
+                parentObject: obj, key,
+              });
+            })
+          }
+        } else {
+          leafs.forEach(({ path, key, value, parentObject }) => {
+            add0({
+              mutationType, path, oldValue: undefined, currentValue: value,
+              parentObject, key,
+            });
+          });
+        }
+      }
+
+      switch (mutationType) {
+        case mutationType_SET:
+          (() => {
+            if (obj && ['Array', 'Object'].includes(obj.constructor.name)) {
+
+              const isArray = Array.isArray(obj);
+              const isMap = !isArray && obj[typeProperty] == mapType;
+
+              const path = toFqPath({ isArray, isMap, parent: obj[pathProperty], prop: key });
+              const spliceIndex = isArray ? key : undefined;
+
+              if (obj[key] !== undefined) {
+                addToChanges({ mutationType, path, key, spliceIndex, val: obj[key], willPrune: true });
+              } else {
+                assert(isArray || isMap);
+              }
+
+              addToChanges({ mutationType, path, key, spliceIndex, val, leafs });
+
+              if (key.startsWith('@')) {
+                setDataVariable(obj, key, val)
+              } else {
+                obj[key] = val;
+              }
+            }
+          })()
+          break;
+
+        case mutationType_SPLICE:
+          assert(Array.isArray(obj));
+
+          for (let i = 0; i < delCount; i++) {
+            const idx = key + i;
+            const path = toFqPath({ isArray: true, parent: obj[pathProperty], prop: idx });
+
+            addToChanges({ mutationType, path, key: idx, spliceIndex: key, val: obj[idx], willPrune: true });
+          }
+
+          for (let i = repl.length - 1; i >= 0; i--) {
+            const idx = key + i;
+            const path = toFqPath({ isArray: true, parent: obj[pathProperty], prop: idx });
+
+            addToChanges({ mutationType, path, key: idx, spliceIndex: key, val: repl[i], leafs: leafsList[i] });
+          }
+
+          const deletedElements = obj.splice(key, delCount, ...repl);
+          assert(deletedElements.length == delCount);
+
+          break;
+
+        case mutationType_DELETE:
+          assert(obj[typeProperty] == mapType);
+
+          const path = toFqPath({ isMap: true, parent: obj[pathProperty], prop: key });
+
+          addToChanges({ mutationType, path, key, val: obj[key], willPrune: true });
+
+          delete obj[key];
+          break;
+      }
+    });
+
+    const exclusionSet = new Set();
+    const finalizers = [];
+
+    const afterMount = (fn) => finalizers.push(fn);
+
+    changes.forEach((changeInfo) => {
+      const { path, oldValue, currentValue, parentObject, key, spliceIndex } = changeInfo;
+
+      const sPath = clientUtils.toCanonicalPath(path);
+      const isCollChild = this.isCollectionObject(parentObject);
+
+      const parent = parentObject[pathProperty];
+      const sParent = clientUtils.toCanonicalPath(parent);
+
+      const eventNamePrefix = (currentValue == undefined) ? 'remove' : 'insert';
+
+      const handle = (isCollChild && this.isCollectionInView(sParent)) ? parent : this.hasCollectionInView(sPath) ? path : null;
+
+      [path, sPath]
+        .map(p => `${eventNamePrefix}.${p}`)
+        .forEach(evtName => {
+
+          const dispatchEvent = () => {
+
+            if (handle) {
+              this.#openHandles.push(handle);
+            }
+
+            const { defaultPrevented } = this.component.dispatchEvent(
+              evtName, {
+              path, key, value: (oldValue !== undefined) ? oldValue : currentValue,
+              parentObject, spliceIndex, afterMount,
+            },
+            );
+
+            if (handle) {
+              const h = this.#openHandles.pop();
+              assert(h == handle);
+            }
+
+            if (!handle && defaultPrevented) {
+              exclusionSet.add(`${dataPathRoot}${pathSeparator}${path}`);
+            }
+          }
+
+          dispatchEvent();
+        });
+    });
+
+    if (this.component.isComponentRendered()) {
+      this.#updateDOM({ changeSet, finalizers, exclusionSet });
+    } else {
+      // No need to make any DOM changes
+    }
+  }
+
+  #throwComponentNotMounted(change) {
+    this.component.throwError(
+      `The change "${change}" needs to bubble to the DOM but could not because ${reason}`
+    )
+  }
+
+  isCollectionObject(obj) {
+    const { typeProperty, mapType } = RootProxy;
+    return Array.isArray(obj) || (obj && obj[typeProperty] == mapType);
+  }
+
+  #getMutationType({ path, value, parentObject, collDef, dataVariables, leafs }) {
+    const {
+      dataPathRoot, typeProperty, mapType, pathSeparator, mutationType_SET, mutationType_SPLICE,
+      mutationType_DELETE, addDataVariablesToObject, getMapWrapper, setObjectParentRef,
+    } = RootProxy;
+
+    if (value !== undefined) {
+      value = this.invokeTransformers(path, value);
+    }
+
+    if (value != undefined) {
+
+      if (['Object', 'Array'].includes(value.constructor.name)) {
+
+        if (collDef) {
+          addDataVariablesToObject(
+            value, dataVariables,
+          )
+        }
+
+        const b = this.tryOrLogError(
+          () => {
+            value = this.#toCanonicalTree({
+              path, obj: value, leafs, parentObject,
+            });
+          }
+        );
+
+        if (!b) {
+          return { error: true };
+        }
+
+        if (value[typeProperty] == mapType) {
+          value = getMapWrapper(value);
+        }
+
+        value = this.#getObserverProxy(value);
+
+      } else {
+
+        const b = this.tryOrLogError(
+          () => {
+            this.validateSchema(path, value, parentObject);
+          }
+        );
+
+        if (!b) {
+          return { error: true };
+        }
+
+
+        if (collDef) {
+          this.addHookForScalarCollectionMember(path);
+        } else {
+          this.createHooksArray(`${dataPathRoot}${pathSeparator}${path}`);
+        }
+      }
+
+      if (typeof value == 'object') {
+        setObjectParentRef(value, parentObject)
+      }
+
+    } else {
+
+      if (collDef) {
+
+        switch (true) {
+
+          case value === undefined:
+            return {
+              mutationType: (collDef.collectionType = 'array') ? mutationType_SPLICE : mutationType_DELETE,
+            }
+
+          case value === null:
+            this.addHookForScalarCollectionMember(path)
+            break;
+        }
+
+      } else {
+        this.createHooksArray(`${dataPathRoot}${pathSeparator}${path}`);
+      }
+    }
+
+    return { mutationType: mutationType_SET, value };
   }
 
   /**
@@ -3587,50 +3978,6 @@ class RootProxy {
     } catch (e) {
       this.component.logger.error(`Uncaught ${e.constructor.name}: ${e.message}`);
       return false;
-    }
-  }
-
-  addNullCollectionMember(obj, prop, dataVariables, consumer) {
-
-    const {
-      pathProperty, createNullObject, toFqPath, addDataVariablesToObject
-    } = RootProxy;
-
-    const parent = obj[pathProperty];
-
-    const collDef = this.getCollectionDefinition(parent);
-    assert(collDef);
-
-    const p = toFqPath({ parent, prop });
-
-    if (collDef.$ref) {
-      const o = createNullObject();
-
-      assert(dataVariables);
-      addDataVariablesToObject(o, dataVariables);
-
-      this.#toCanonicalObject({
-        path: p,
-        obj: o
-      });
-
-      const r = this.getObserverProxy(o);
-
-      if (consumer) {
-        consumer(r);
-      } else {
-        obj[prop] = r;
-      }
-
-    } else {
-
-      if (consumer) {
-        consumer(null);
-      } else {
-        obj[prop] = null;
-      }
-
-      this.addHookForScalarCollectionMember(p)
     }
   }
 
@@ -3655,8 +4002,7 @@ class RootProxy {
     );
   }
 
-  getObserverProxy(object) {
-    const { rawProperty } = RootProxy;
+  #getObserverProxy(object) {
 
     if (!this.component.dataBindingEnabled()) {
       return object;
@@ -3665,16 +4011,22 @@ class RootProxy {
     return new Proxy(object, {
 
       deleteProperty: (obj, prop) => {
-        if (prop.startsWith('@')) {
+
+        const dv = prop.startsWith('@');
+
+        if (dv || this.isPrunedObject(obj)) {
 
           // Meta properties can only be modified in privilegedMode
-          if (this.component.isInitialized() && !RootProxy.#isPriviledgedMode()) {
+          if (dv && this.component.isSealed() && !RootProxy.#isPriviledgedMode()) {
             this.component.throwError(`Permission denied to modify ${prop}`);
           }
+
           delete obj[prop];
           return true;
         }
-        return this.mutate((changeSet) => this.simpleSetMutationHandler(changeSet, obj, prop, undefined));
+
+
+        return this.simpleSetMutationHandler(obj, prop, undefined);
       },
 
       get: (obj, prop) => {
@@ -3684,38 +4036,42 @@ class RootProxy {
 
             case 'splice':
               return (index, delCount, ...replElements) => {
-                this.ensureCanMutate(obj);
 
-                return this.mutate(
-                  (changeSet) => this.arraySpliceMutationHandler(changeSet, obj, index, delCount, ...replElements)
-                )
+                if (this.isPrunedObject(obj)) {
+                  return obj.splice(index, delCount, ...replElements);
+                }
+
+                return this.arraySpliceMutationHandler(obj, index, delCount, ...replElements);
               };
 
             case 'unshift':
               return (...elements) => {
-                this.ensureCanMutate(obj);
 
-                this.mutate(
-                  (changeSet) => this.arraySpliceMutationHandler(changeSet, obj, 0, 0, ...elements)
-                )
+                if (this.isPrunedObject(obj)) {
+                  return obj.unshift(...elements);
+                }
+
+                this.arraySpliceMutationHandler(obj, 0, 0, ...elements);
 
                 return obj.length;
               };
 
             case 'shift':
               return () => {
-                this.ensureCanMutate(obj);
 
-                const deletedElements = this.mutate(
-                  (changeSet) => this.arraySpliceMutationHandler(changeSet, obj, 0, 1)
-                )
+                if (this.isPrunedObject(obj)) {
+                  return obj.shift();
+                }
 
-                return deletedElements[0];
+                return this.arraySpliceMutationHandler(obj, 0, 1)[0];
               };
 
             case 'reverse':
               return () => {
-                this.ensureCanMutate(obj);
+
+                if (this.isPrunedObject(obj)) {
+                  return obj.reverse();
+                }
 
                 const offsetIndexes = {};
 
@@ -3725,16 +4081,17 @@ class RootProxy {
 
                 obj.reverse();
 
-                this.mutate(
-                  (changeSet) => this.arrayReorderMutationHandler(changeSet, obj, offsetIndexes, 'reverse')
-                )
-
+                this.arrayReorderMutationHandler(obj, offsetIndexes);
                 return obj;
+
               };
 
             case 'sort':
               return (sortFn) => {
-                this.ensureCanMutate(obj);
+
+                if (this.isPrunedObject(obj)) {
+                  return obj.sort(sortFn);
+                }
 
                 const arr = [...obj];
 
@@ -3746,50 +4103,31 @@ class RootProxy {
                   offsetIndexes[i] = obj.indexOf(arr[i]);
                 }
 
-                this.mutate(
-                  (changeSet) => this.arrayReorderMutationHandler(changeSet, obj, offsetIndexes, 'sort')
-                )
-
+                this.arrayReorderMutationHandler(obj, offsetIndexes);
                 return obj;
               };
           }
         }
 
-        switch (prop) {
-          case rawProperty:
-            this.ensurePrivilegedMode();
-            return obj;
-
-          default:
-            return obj[prop];
-        }
+        return obj[prop];
       },
 
       set: (obj, prop, newValue) => {
-        this.ensureCanMutate(obj);
 
-        return this.mutate((changeSet) => {
-          this.simpleSetMutationHandler(changeSet, obj, prop, newValue)
+        if (this.isPrunedObject(obj)) {
+          obj[prop] = newValue;
           return true;
-        });
+        }
+
+        this.simpleSetMutationHandler(obj, prop, newValue)
+        return true;
       },
     });
   }
 
-  ensureCanMutate(obj) {
-    const { pathProperty, prunedProperty } = RootProxy;
-
-    const path = obj[pathProperty]
-
-    if (!this.canMutate()) {
-      this.component.throwError(`Unable to perform mutation on "${path}"`);
-    }
-
-    if (obj[prunedProperty]) {
-      this.component.throwError(
-        `Object "${path}" has been pruned and cannot be modified`
-      );
-    }
+  isPrunedObject(obj) {
+    const { prunedProperty } = RootProxy;
+    return obj[prunedProperty];
   }
 
   getInfoFromPath(path, noOpValue) {
@@ -3811,13 +4149,17 @@ class RootProxy {
       const arr = [...pathArray];
       arr.pop();
 
+      const parent = arr.join('.');
+
       const emptyRet = {
+        parentPath: parent,
         parentObject: null,
         value: noOpValue,
+        childKey: dataVariable,
       };
 
       const coll = value(
-        clientUtils.getParentFromPath(arr)
+        clientUtils.getPathStringInfo(arr).parent,
       );
 
       if (!coll) {
@@ -3828,8 +4170,6 @@ class RootProxy {
         const isArray = Array.isArray(coll);
 
         assert(isArray || isMap);
-
-        const parent = arr.join('.');
 
         const collKeys = coll instanceof Map ? Array.from(coll.keys()) : Object.keys(coll);
 
@@ -3858,15 +4198,19 @@ class RootProxy {
           }
         })();
 
-        return { parentObject, value: v };
+        return {
+          parentPath: parent, parentObject,
+          childKey: dataVariable, value: v
+        };
       }
     }
 
+    const { parent, key: childKey } = clientUtils.getPathStringInfo(pathArray);
+
     return {
-      parentObject: value(
-        clientUtils.getParentFromPath(pathArray)
-      ) || null,
-      value: value(path),
+      parentPath: parent,
+      parentObject: value(parent) || null,
+      childKey, value: value(path),
     };
   }
 
@@ -3874,13 +4218,10 @@ class RootProxy {
     return o !== Object(o) || o instanceof BaseComponent;
   }
 
-  canMutate() {
-    return !this.processingDataUpdate;
-  }
-
-  getHookList(path, filter, addLogicGates, transitive, dataPathHooks) {
+  getHookList(path, filter, addLogicGates, dataPathHooks) {
     const {
       gateParticipantHookType, logicGatePathRoot, pathSeparator, dataPathRoot, dataPathPrefix,
+      filter_EQ, filter_GTE, filter_GT,
     } = RootProxy;
 
     const pathList = [];
@@ -3888,7 +4229,7 @@ class RootProxy {
     const hooksPaths = [];
     const hookList = {};
 
-    const addPath = (path, addToPathList = true, visitParents = true) => {
+    const addPath = (path, addToPathList = true) => {
 
       if (!hooksPaths.includes(path)) {
         hooksPaths.push(path);
@@ -3906,26 +4247,16 @@ class RootProxy {
             hooksPaths.push(`${logicGatePathRoot}${pathSeparator}${gateId}`)
           });
       }
-
-      if (transitive && visitParents) {
-        // We are visiting the parent paths so that we can populate <hookList> with hooks that will be
-        // needed by triggerHooks(...) if <transitive> is true
-
-        clientUtils.getParentPaths(path)
-          .forEach(parent => {
-            addPath(parent, false, false);
-          });
-      }
     }
 
     switch (filter) {
-      case 'eq':
+      case filter_EQ:
         addPath(path);
         break;
-      case 'gte':
+      case filter_GTE:
         addPath(path);
-      case 'gt':
-        this.#pathTree[path.replace(dataPathPrefix, '')]
+      case filter_GT:
+        this.#pathTrie.search(path.replace(dataPathPrefix, ''))
           .forEach(p => {
             addPath(`${dataPathRoot}${pathSeparator}${p}`);
           });
@@ -3939,38 +4270,40 @@ class RootProxy {
     return { pathList, hookList };
   }
 
-  mutate(fn) {
+  #updateDOM({ changeSet, finalizers, exclusionSet }) {
+    assert(this.component.isMounted());
 
-    const { getCanonicalSegments: segs } = clientUtils;
+    if (this.#discreteMode) return;
 
-    assert(this.canMutate());
-
-    this.processingDataUpdate = true;
-    const changeSet = [];
-
-    const ret = fn(changeSet);
-
-    this.processingDataUpdate = false;
+    const promises = [];
 
     const hookInfo = changeSet
-      .map(({ path, filter, addLogicGates = true, transitive = true }) => this.getHookList(path, filter, addLogicGates, transitive, this.getDataPathHooks()));
+      .map(({ path, filter, addLogicGates = true }) => ({
+        ...this.getHookList(path, filter, addLogicGates, this.getDataPathHooks()),
+        filterSpec: { path, filter }
+      }));
 
     changeSet
       .forEach(({ opts }, i) => {
-        const { pathList, hookList } = hookInfo[i];
+        const { pathList, hookList, filterSpec } = hookInfo[i];
 
         pathList
-          .sort((x, y) => segs(x).length - segs(y).length)
-          .forEach(path => {
-            this.triggerHooks({
-              fqPath: path,
-              hookList,
-              ...opts,
-            })
+          .filter(p => !exclusionSet || !exclusionSet.has(p))
+          .forEach(p => {
+            promises.push(
+              this.triggerHooks({
+                fqPath: p,
+                hookList,
+                filterSpec,
+                ...opts,
+              })
+            )
           });
       });
 
-    return ret;
+    Promise.all(promises).then(() => {
+      finalizers.forEach((fn) => fn());
+    });
   }
 
   static toDefinitionName(path) {
@@ -4060,29 +4393,37 @@ class RootProxy {
 
   static addDataVariables(obj, first, last, key, index, random) {
     const {
-      firstProperty, lastProperty, keyProperty, indexProperty, randomProperty,
+      firstProperty, lastProperty, keyProperty, indexProperty, randomProperty, setDataVariable,
     } = RootProxy;
 
-    Object.defineProperty(obj, firstProperty, { value: first, enumerable: false, configurable: true, });
-    Object.defineProperty(obj, lastProperty, { value: last, enumerable: false, configurable: true, });
-    Object.defineProperty(obj, keyProperty, { value: key, enumerable: false, configurable: true, });
-    Object.defineProperty(obj, indexProperty, { value: index, enumerable: false, configurable: true, });
-    Object.defineProperty(obj, randomProperty, { value: random, enumerable: false, configurable: true, });
+    setDataVariable(obj, firstProperty, first);
+    setDataVariable(obj, lastProperty, last);
+    setDataVariable(obj, keyProperty, key);
+    setDataVariable(obj, indexProperty, index);
+    setDataVariable(obj, randomProperty, random);
 
     return [
       firstProperty, lastProperty, keyProperty, indexProperty, randomProperty,
     ];
   }
 
+  static setDataVariable(obj, prop, value) {
+    Object.defineProperty(obj, prop, { value, enumerable: false, configurable: true, });
+  }
+
   /**
    * This constructs a key that can be used to make a call to {dataPathHooks}
    * @returns String
    */
-  static toFqPath({ isArray, isMap, parent, prop }) {
+  static toFqPath({ type, isArray, isMap, parent, prop }) {
 
     switch (true) {
-      case Number.isInteger(prop):
+      case Number.isInteger(prop) || type == 'array':
         isArray = true;
+        break;
+
+      case type == 'map':
+        isMap = true;
         break;
 
       case prop.startsWith('@'):
@@ -4093,46 +4434,8 @@ class RootProxy {
     return `${parent}${isArray ? `[${prop}]` : isMap ? `["${prop}"]` : `${parent.length ? '.' : ''}${prop}`}`;
   }
 
-  registerHookSelector(path, { selector, opaque }) {
-    // Note: an opaque hook means that the path where it's registered does not exclusively own the selector. An
-    // example of opaque hooks are the attribute related hooks, because there may be multiple attribute-based
-    // hooks for the same selector
-
-    const { nodeList } = this.component.getEmitContext();
-
-    if (selector && !opaque) {
-      assert(!nodeList[selector] || nodeList[selector] == path);
-
-      nodeList[selector] = path;
-    }
-  }
-
-  addToPathTree(path) {
-    const { globalsPathPrefix } = RootProxy;
-
-    if (!path || path.match(globalsPathPrefix) || this.#dataPathKeys.includes(path)) {
-      return;
-    }
-
-    const subPaths = [];
-
-    this.#dataPathKeys.forEach(k => {
-
-      if (k.startsWith(path)) {
-        subPaths.push(k);
-      }
-
-      if (path.startsWith(k)) {
-        this.#pathTree[k].push(path);
-      }
-    });
-
-    this.#pathTree[path] = [...new Set(subPaths)];
-    this.#dataPathKeys.push(path);
-  }
-
   createHooksArray(path, initial = []) {
-    const { isHookProperty, dataPathPrefix } = RootProxy;
+    const { isHookProperty, dataPathPrefix, globalsPathPrefix } = RootProxy;
 
     const arr = new Proxy(initial, {
       get: (object, key) => {
@@ -4146,16 +4449,18 @@ class RootProxy {
       set: (object, key, value) => {
 
         if (clientUtils.isNumber(key)) {
-          assert(typeof value == 'object' && value.canonicalPath);
+          assert(value.constructor.name == 'Object' && value.canonicalPath);
 
-          if (this.component.hasEmitContext()) {
+          value.__time = new Date();
 
-            this.registerHookSelector(path, value);
-            value.__time = new Date();
+          const { blockId } = value;
 
-          } else {
-            assert(value.__time);
+          if (blockId) {
+            const arr = this.#blocks[blockId] || (this.#blocks[blockId] = []);
+            arr.push(value);
           }
+
+          this.#hooksMap.set(value, path);
         }
 
         object[key] = value;
@@ -4165,21 +4470,14 @@ class RootProxy {
     });
 
     if (path.match(dataPathPrefix)) {
-      this.addToPathTree(
-        path.replace(dataPathPrefix, '')
-      );
+      const p = path.replace(dataPathPrefix, '');
+
+      if (p && !p.match(globalsPathPrefix)) {
+        this.#pathTrie.insert(p);
+      }
     }
 
     this.#dataPathHooks[path] = arr;
-  }
-
-  static createNullObject() {
-    const { isNullProperty } = RootProxy;
-
-    const o = {};
-    Object.defineProperty(o, isNullProperty, { value: true, configurable: false, writable: false, enumerable: false });
-
-    return o;
   }
 
   addHookForScalarCollectionMember(prop) {
@@ -4195,20 +4493,21 @@ class RootProxy {
     this.createHooksArray(k);
   }
 
-  validateSchema(path, value) {
+  validateSchema(path, value, parentObj) {
 
     if (value === null) {
       return;
     }
 
-    const { toDefinitionName } = RootProxy;
+    const { toDefinitionName, isMapObject } = RootProxy;
 
     const schemaDefinitions = this.getSchemaDefinitions();
-    const k = toDefinitionName(clientUtils.toCanonicalPath(path))
 
     const {
       $ref, type, additionalProperties, items, component, enum: enum0
-    } = schemaDefinitions[k];
+    } = schemaDefinitions[
+      toDefinitionName(clientUtils.toCanonicalPath(path))
+      ];
 
     const ensureType = (constructorName) => {
       if (value.constructor.name != constructorName) {
@@ -4292,19 +4591,69 @@ class RootProxy {
       default:
         throw Error(`Unknown schema type "${type[0]}"`);
     }
+
+    if (parentObj && isMapObject(parentObj)) {
+
+      const { parent, key } = clientUtils.getPathStringInfo(path);
+
+      const { keyType } = schemaDefinitions[
+        toDefinitionName(clientUtils.toCanonicalPath(parent))
+      ];
+
+      if (keyType != 'String') {
+        const allowedKeys = this.getEnum(keyType);
+
+        if (!allowedKeys.includes(`${key}`)) {
+          this.component.throwError(
+            `ValidationError - Expected map "${parent}" to have any of the keys ${allowedKeys}, but instead found key "${key}"`
+          );
+        }
+      }
+    }
   }
 
-  invokeInitializers(path, obj) {
+  getInitializerForPath(path, sPath) {
+    if (!sPath) {
+      sPath = clientUtils.toCanonicalPath(path);
+    }
+
     const initializers = this.component.getInitializers();
+
+    const [initializer] = initializers[path] || initializers[sPath] || [];
+    return initializer;
+  }
+
+  invokeTransformers(path, val) {
+    assert(val !== undefined);
 
     const sPath = clientUtils.toCanonicalPath(path);
 
+    const initializer = this.getInitializerForPath(path, sPath);
+
+    if (val == null && initializer) {
+      val = (typeof initializer == 'function') ? initializer() : initializer;
+    }
+
+    const transformers = this.component.getTransformers();
+
     const fnList = [...new Set([
-      ...initializers[path] || [],
-      ...initializers[sPath] || [],
+      ...transformers[path] || [],
+      ...transformers[sPath] || [],
     ])];
 
-    fnList.forEach(fn => fn(obj));
+    let v = val;
+
+    fnList.forEach(fn => {
+      let y = fn(v);
+
+      if (y === undefined) {
+        y = null;
+      }
+
+      v = y;
+    });
+
+    return v;
   }
 
   static setObjectPath({ obj, path }) {
@@ -4312,19 +4661,54 @@ class RootProxy {
     Object.defineProperty(obj, pathProperty, { value: path, configurable: true, enumerable: false });
   }
 
-  #toCanonicalObject({ path, obj, root = true }) {
+  static setObjectParentRef(value, parentObject) {
+    const { parentRefProperty } = RootProxy;
+
+    if (['Array', 'Object'].includes(value.constructor.name)) {
+      Object.defineProperty(value, parentRefProperty, { value: parentObject, configurable: false, enumerable: false });
+    } else {
+      assert(value instanceof BaseComponent);
+      value.addMetadata('parentRef', parentObject);
+    }
+  }
+
+  #visitObject(obj, visitor) {
+    const { typeProperty, mapType, pathProperty, toFqPath } = RootProxy;
+
+    assert(
+      ['Array', 'Object'].includes(obj.constructor.name) &&
+      obj[pathProperty] && typeof visitor == "function"
+    );
+
+    const isArray = Array.isArray(obj);
+    const isMap = !isArray && obj[typeProperty] === mapType;
+
+    for (let prop of Object.keys(obj)) {
+      const val = obj[prop];
+      assert(val !== undefined);
+
+      const p = toFqPath({ isArray, isMap, parent: obj[pathProperty], prop });
+
+      visitor(p, val, obj, prop);
+
+      if (val && ['Array', 'Object'].includes(val.constructor.name)) {
+        this.#visitObject(val, visitor);
+      }
+    }
+
+    return obj;
+  }
+
+  #toCanonicalTree({ path, obj, leafs, parentObject, root = true }) {
 
     const {
-      dataPathRoot, pathSeparator, dataPathPrefix, typeProperty, mapType, mapKeyPrefix, mapKeyPrefixRegex, pathProperty, isNullProperty,
-      getMapWrapper, addDataVariables, getReservedObjectKeys, toFqPath, getReservedMapKeys, createNullObject, getDataVariables, setObjectPath,
+      dataPathRoot, pathSeparator, dataPathPrefix, typeProperty, mapType, mapKeyPrefix, mapKeyPrefixRegex, pathProperty,
+      getMapWrapper, addDataVariables, getReservedObjectKeys, toFqPath, getReservedMapKeys, getDataVariables,
+      setObjectPath, setObjectParentRef,
     } = RootProxy;
 
     if (obj[pathProperty]) {
       obj = clientUtils.cloneComponentInputData(obj);
-    }
-
-    if (root) {
-      this.invokeInitializers(path, obj);
     }
 
     assert(!path.match(dataPathPrefix));
@@ -4332,10 +4716,6 @@ class RootProxy {
     setObjectPath({ obj, path });
 
     this.createHooksArray(`${dataPathRoot}${pathSeparator}${path}`);
-
-    if (obj[isNullProperty]) {
-      return obj;
-    }
 
     const reservedObjectKeys = getReservedObjectKeys();
 
@@ -4376,32 +4756,29 @@ class RootProxy {
       case obj.constructor.name == 'Object':
         const def = this.getObjectDefiniton(path);
 
-        const keys = Object.keys(obj);
+        if (!def) {
+          // Validation error will likely be thrown below, break
+          break;
+        }
 
-        // Ensure that all keys are valid properties defined in the schema
-        keys.forEach(k => {
-          if (!def.required.includes(k)) {
-            this.component.throwError(`Unknown property (parent=${path ? path : 'root'}): ${k}`);
-          }
-        });
+        const keys = Object.keys(obj);
 
         // Add missing properties
         def.required
           .filter(p => !p.startsWith('@') && !keys.includes(p))
           .forEach(p => {
             obj[p] = (() => {
+              // Todo: changes made here should be synchronized wih the server
+
               // Assign a default value based on the data type
               const { type } = def.properties[p];
 
-              const defaultValue = this.component.getDefaultValues()[
-                clientUtils.toCanonicalPath(toFqPath({ parent: path, prop: p }))
-              ];
-
-              if (defaultValue !== undefined) {
-                return typeof defaultValue == 'function' ? defaultValue() : defaultValue;
+              if (!type || ['array', 'string', 'object'].includes(type[0])) {
+                return null;
               }
 
-              if (!type || ['array', 'string', 'object'].includes(type[0])) {
+              if (this.getInitializerForPath(toFqPath({ parent: path, prop: p }))) {
+                // We need to return null, so that invokeTransformers(...) will apply the defined initializer
                 return null;
               }
 
@@ -4411,14 +4788,18 @@ class RootProxy {
                 case 'boolean':
                   return false;
                 default:
-                  this.component.throwError(`[${path}] Unknown type: ${type[0]} for propery "${p}"`);
+                  this.component.throwError(`[${path}] Unknown type: ${type[0]} for property "${p}"`);
               }
             })();
           });
         break;
     }
 
-    const isMap = !isArray && obj[typeProperty] === mapType;
+    if (root && path) {
+      this.validateSchema(path, obj, parentObject);
+    }
+
+    const isMap = !isArray && (obj[typeProperty] === mapType);
 
     const isCollection = isArray || isMap;
 
@@ -4440,24 +4821,19 @@ class RootProxy {
 
     for (let i = 0; i < iterateKeys.length; i++) {
       const prop = iterateKeys[i];
-
-      assert(obj[prop] !== undefined);
-
       const p = toFqPath({ isArray, isMap, parent: path, prop });
 
-      if (obj[prop] != null && typeof obj[prop] == 'object') {
-        this.invokeInitializers(p, obj[prop]);
+      if (obj[prop] === undefined) {
+        this.component.throwError(`Path "${p}" cannot have "undefined" as it's value`);
       }
 
       if (!prop.startsWith('@')) {
-        this.validateSchema(p, obj[prop]);
+        obj[prop] = this.invokeTransformers(p, obj[prop]);
+
+        this.validateSchema(p, obj[prop], obj);
       }
 
       if (isCollection) {
-
-        if (obj[prop] === null && isCollection.$ref) {
-          obj[prop] = createNullObject();
-        }
 
         switch (true) {
           case prop.startsWith('@'):
@@ -4492,13 +4868,13 @@ class RootProxy {
       // eslint-disable-next-line default-case
       switch (true) {
         case !isEmpty && ['Object', 'Array'].includes(obj[prop].constructor.name):
-          obj[prop] = this.#toCanonicalObject({ path: p, obj: obj[prop], root: false });
+          obj[prop] = this.#toCanonicalTree({ path: p, obj: obj[prop], parentObject: obj, leafs, root: false });
 
           if (obj[prop][typeProperty] == mapType) {
             obj[prop] = getMapWrapper(obj[prop]);
           }
 
-          obj[prop] = this.getObserverProxy(obj[prop]);
+          obj[prop] = this.#getObserverProxy(obj[prop]);
 
           break;
 
@@ -4508,24 +4884,30 @@ class RootProxy {
           this.createHooksArray(`${dataPathRoot}${pathSeparator}${p}`);
           break;
       }
+
+      if (obj[prop] && (typeof obj[prop] == 'object')) {
+        setObjectParentRef(obj[prop], obj);
+      }
+
+      leafs.push({ path: p, key: prop, value: obj[prop], parentObject: obj })
     }
 
     return obj;
   }
 
   static getReservedObjectKeys() {
-    const { isMapProperty, isNullProperty, rawProperty } = RootProxy;
-    return [isMapProperty, isNullProperty, rawProperty];
+    const { isMapProperty, parentRefProperty } = RootProxy;
+    return [isMapProperty, parentRefProperty];
   }
 
   static getReservedMapKeys() {
-    const { mapSizeProperty, mapKeysProperty } = RootProxy;
-    return [mapSizeProperty, mapKeysProperty];
+    const { mapSizeProperty, mapKeysProperty, mapIndexOfProperty } = RootProxy;
+    return [mapSizeProperty, mapKeysProperty, mapIndexOfProperty];
   }
 
   static getMapWrapper(obj) {
     const {
-      typeProperty, mapType, mapKeyPrefix, isMapProperty, mapSizeProperty, mapKeysProperty
+      typeProperty, mapType, mapKeyPrefix, isMapProperty, mapSizeProperty, mapKeysProperty, mapIndexOfProperty,
     } = RootProxy;
 
     assert(obj[typeProperty] == mapType)
@@ -4535,6 +4917,14 @@ class RootProxy {
     RootProxy.#runPriviledged(() => {
       delete obj[typeProperty];
     })
+
+    // Props can start with "@" if <obj> is also a collection child, and the user wants to 
+    // access data variable(s)
+    const toKey = (prop) => `${prop.startsWith('@') || prop.startsWith(mapKeyPrefix)
+      ? '' : mapKeyPrefix}${prop}`;
+
+    const getKeys = (obj) => Reflect.ownKeys(obj)
+      .filter(k => typeof k != 'symbol' && k.startsWith(mapKeyPrefix));
 
     return new Proxy(obj, {
       get(obj, prop) {
@@ -4554,44 +4944,47 @@ class RootProxy {
             return Object.keys(obj).length;
 
           case prop == mapKeysProperty:
-            return () => Reflect.ownKeys(obj)
-              .filter(k => typeof k != 'symbol' && k.startsWith(mapKeyPrefix))
+            return () => getKeys(obj)
               .map(k => k.replace(mapKeyPrefix, ''));
+
+          case prop == mapIndexOfProperty:
+            return (k) => getKeys(obj).indexOf(toKey(k));
 
           case typeof prop == 'symbol':
             return obj[prop];
 
           default:
             assert(typeof prop == 'string');
-
-            // Props can start with "@" if <obj> is also a collection
-            // child, and the user wants to access data variable(s)
-            return obj[
-              `${prop.startsWith('@') || prop.startsWith(mapKeyPrefix)
-                ? '' : mapKeyPrefix}${prop}`
-            ]
+            return obj[toKey(prop)]
         }
       },
       set(obj, prop, newValue) {
 
         assert(!Object.getPrototypeOf(obj)[prop]);
+        assert(typeof prop == 'string');
 
-        // Props can start with "@" if <obj> is also a collection
-        // child, and the user wants to update data variable(s)
-        obj[
-          `${prop.startsWith('@') || prop.startsWith(mapKeyPrefix)
-            ? '' : mapKeyPrefix}${prop}`
-        ] = newValue;
+        obj[toKey(prop)] = newValue;
 
         // Note: according to the JS spec, (see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy/Proxy/set),
         // proxy.set() should return a boolean value, hence instead of returning <newValue> which
         // is the default behaviour, we will always return true
 
         return true;
+      },
+      deleteProperty(obj, prop) {
+
+        assert(!Object.getPrototypeOf(obj)[prop]);
+        assert(typeof prop == 'string');
+
+        return delete obj[toKey(prop)];
       }
     })
   }
 
+  static isMapObject(obj) {
+    const { isMapProperty, typeProperty, mapType } = RootProxy;
+    return obj[typeProperty] == mapType || obj[isMapProperty];
+  }
 }
 
 module.exports = RootProxy;

@@ -1,15 +1,15 @@
 
 {{#*inline "render_base" inline}}
-<div role="status" class="slds-spinner 
-  {{size ? 'slds-spinner_${size}' : '' transform='sizeTransform'}}
-  {{delayed ? 'slds-spinner_delayed' : ''}}
-  {{color ? 'slds-spinner_${color}' : ''}}
-  {{inline ? 'slds-spinner_inline' : ''}}
-  ">
-    <span class="slds-assistive-text">{{assistiveText}}</span>
-    <div class="slds-spinner__dot-a"></div>
-    <div class="slds-spinner__dot-b"></div>
-</div>
+  <div role="status" class="slds-spinner 
+    {{size ? 'slds-spinner_${size}' : '' transform='sizeTransform'}}
+    {{delayed ? 'slds-spinner_delayed' : ''}}
+    {{color ? 'slds-spinner_${color}' : ''}}
+    {{inline ? 'slds-spinner_inline' : ''}}"
+  >
+      <span class="slds-assistive-text">{{assistiveText}}</span>
+      <div class="slds-spinner__dot-a"></div>
+      <div class="slds-spinner__dot-b"></div>
+  </div>
 {{/inline}}
 
 

@@ -75,6 +75,11 @@
       ]
     }
   },
+  "events": {
+    "bump": {
+      "clientOnly": true
+    }
+  },
   "sample": {
     "nullifyRandomly": []
   },

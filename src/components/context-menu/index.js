@@ -16,17 +16,21 @@ class ContextMenu extends components.OverlayComponent {
         this.getInput().positions[0];
     }
 
-    hooks() {
-        return {
-            ['afterMount.menu']: ({ newValue }) => this.onMenuChange(newValue)
-        }
+    afterMount() {
+        this.on('insert.menu', ({ value: menu }) => {
+            if (!menu) return;
+
+            this.onMenuChange(menu);
+        });
     }
 
     async onMount() {
         const { getInstances } = ContextMenu;
         const { menu } = this.getInput();
 
-        await this.setupMenus(menu);
+        if (menu) {
+            await this.setupMenus(menu);
+        }
 
         this.on('bodyClick', () => {
             this.hide();
@@ -45,12 +49,8 @@ class ContextMenu extends components.OverlayComponent {
         const defaultSupported = this.getDefaultSupportedPositions();
 
         if (positions && positions.length) {
-            positions.forEach(p => {
-                if (!defaultSupported.includes(p)) {
-                    this.throwError(`Unknown position "${p}"`);
-                }
-            })
-            return [...positions];
+            const arr = positions.filter(p => defaultSupported.includes(p));
+            return [...(arr.length ? arr : defaultSupported)];
         } else {
             return defaultSupported;
         }
@@ -362,7 +362,7 @@ class ContextMenu extends components.OverlayComponent {
 
         const { containsSubMenu } = ContextMenu;
 
-        await component.load({ container: container.id });
+        await component.load({ container: `#${container.id}` });
 
         const menuSelector = `#${component.getElementId()} > .slds-dropdown`;
         const menuNode = document.querySelector(menuSelector);

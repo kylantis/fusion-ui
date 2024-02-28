@@ -12,11 +12,11 @@
     },
     "multiSelect": {
       "type": "Boolean",
-      "defaultValue": false
+      "defaultValue": true
     },
     "selectedOptions": {
       "type": "Pill",
-      "isNull": false,
+      "isNull": true,
       "clientOnly": true
     },
     "placeholderText": {

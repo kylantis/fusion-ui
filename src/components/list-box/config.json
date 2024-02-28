@@ -31,10 +31,7 @@
     },
     "type": {
       "type": "String",
-      "allowed": [
-        "horizontal",
-        "vertical"
-      ],
+      "allowed": "alignment",
       "defaults": [
         "undefined"
       ]
@@ -53,8 +50,7 @@
       ]
     },
     "groups_$.loading": {
-      "type": "Boolean",
-      "defaultValue": true
+      "type": "Boolean"
     },
     "groups_$.items_$.disabled": {
       "type": "boolean",
@@ -91,7 +87,7 @@
     },
     "groups_$.items_$.selected": {
       "type": "boolean",
-      "defaultValue": false
+      "defaultValue": true
     },
     "groups_$.items_$.identifier": {
       "type": "string",
@@ -108,6 +104,7 @@
   },
   "events": {
     "itemsUpdate": {
+      "clientOnly": true,
       "parameters": {
         "allItems": {
           "type": {
@@ -132,9 +129,10 @@
     "nullifyRandomly": [
       "groups_$.loading",
       "groups_$.items_$.icon",
-      "items_$.icon"
+      "items_$.icon",
+      "groups_$.items_$.selected"
     ]
   },
-  "useCollectionLengthProperty": false,
+  "useCollectionLengthProperty": true,
   "escapeDynamicHtml": false
 }

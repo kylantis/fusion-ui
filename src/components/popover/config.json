@@ -5,7 +5,11 @@
       "type": "String",
       "defaults": [
         null
-      ]
+      ],
+      "clientOnly": true
+    },
+    "targetComponent": {
+      "type": "componentRef"
     },
     "role": {
       "type": "String",
