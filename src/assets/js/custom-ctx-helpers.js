@@ -4,23 +4,23 @@ module.exports = {
         const _this = this;
         return (value, invert, options, ctx) => {
 
-            const { hash: { hook, hookPhase, hookOrder, outerTransform }, loc } = options;
+            const { hash: { hook, hookPhase, hookOrder, transform, nodeIndex }, loc } = options;
 
-            const nodeId = _this.getSyntheticNodeId();
+            const nodeId = nodeIndex ? this.getNodeIdFromIndex(nodeIndex, loc) : null;
 
             if (hook) {
                 _this.registerHook(`#${nodeId}`, hook, hookPhase, hookOrder, loc, options.data.state.blockData);
             }
 
-            if (outerTransform) {
-                assert(nodeId);
-
-                _this.registerTransform(nodeId, outerTransform);
+            if (transform) {
+                _this.registerTransform(
+                    _this.nodeIdTransformSelector(nodeId), transform
+                );
             }
 
             const b = _this.analyzeConditionValue(value);
 
-            _this.getEmitContext().blockStack.push(loc);
+            _this.startBlockContext({ loc });
 
             const renderedValue = (() => {
                 if (invert ? !b : b) {
@@ -30,7 +30,7 @@ module.exports = {
                 }
             })();
 
-            _this.getEmitContext().blockStack.pop();
+            _this.endBlockContext();
 
             _this.getEmitContext().write(renderedValue);
 
@@ -48,26 +48,26 @@ module.exports = {
             }
 
             const { loc, fn, inverse, hash } = options;
-            const { blockParam, hook, hookPhase, hookOrder, outerTransform } = hash;
+            const { blockParam, hook, hookPhase, hookOrder, transform, nodeIndex } = hash;
             assert(blockParam);
 
-            const nodeId = _this.getSyntheticNodeId();
+            const nodeId = nodeIndex ? this.getNodeIdFromIndex(nodeIndex, loc) : null;
 
             if (hook) {
                 _this.registerHook(`#${nodeId}`, hook, hookPhase, hookOrder, loc, options.data.state.blockData);
             }
 
-            if (outerTransform) {
-                assert(nodeId);
-
-                _this.registerTransform(nodeId, outerTransform);
+            if (transform) {
+                _this.registerTransform(
+                    _this.nodeIdTransformSelector(nodeId), transform
+                );
             }
 
             if (clientUtils.isFunction(context)) {
                 context = context.call(this);
             }
 
-            _this.getEmitContext().blockStack.push(loc);
+            _this.startBlockContext({ loc });
 
             const renderedValue = (() => {
                 if (!clientUtils.isEmpty(context)) {
@@ -89,7 +89,7 @@ module.exports = {
                 }
             })();
 
-            _this.getEmitContext().blockStack.pop();
+            _this.endBlockContext();
 
             _this.getEmitContext().write(renderedValue);
 
@@ -105,17 +105,11 @@ module.exports = {
             }
 
             const { fn, inverse, hash, loc } = options;
-            const { blockParam, hook, hookPhase, hookOrder, outerTransform, predicate } = hash;
+            const { blockParam, hook, hookPhase, hookOrder, transform, predicate, nodeIndex, opaqueWrapper } = hash;
             assert(blockParam);
 
-            const nodeId = _this.getSyntheticNodeId();
-
-            if (outerTransform) {
-                assert(nodeId);
-
-                _this.registerTransform(nodeId, outerTransform);
-            }
-
+            const nodeId = nodeIndex ? this.getNodeIdFromIndex(nodeIndex, loc) : null;
+            
             let i = 0,
                 ret = '',
                 data;
@@ -127,8 +121,6 @@ module.exports = {
             if (options.data) {
                 data = clientUtils.createFrame(options.data);
             }
-
-            _this.getEmitContext().blockStack.push(loc);
 
             if (context && typeof context === 'object') {
 
@@ -149,23 +141,43 @@ module.exports = {
 
                     const isNull = currentValue == null || (predicate ? !_this[predicate].bind(_this)(currentValue) : false);
 
-                    const markup = isNull ?
-                        '' :
-                        fn(
-                            currentValue,
-                            {
-                                data,
-                                // Handlebars wants us to add "blockParams", so let's make the engine happy even though we
-                                // know calls to blockParams have been transformed at compile time to access the corresponding
-                                // data variables
-                                blockParams: [currentValue, field]
-                            })
+                    const func = () => {
+
+                        _this.startBlockContext({ loc });
+
+                        const markup = isNull ?
+                            '' :
+                            fn(
+                                currentValue,
+                                {
+                                    data,
+                                    // Handlebars wants us to add "blockParams", so let's make the engine happy even though we
+                                    // know calls to blockParams have been transformed at compile time to access the corresponding
+                                    // data variables
+                                    blockParams: [currentValue, field]
+                                });
+
+                        _this.endBlockContext();
+
+                        _this.getEmitContext().write(markup);
+
+                        return markup;
+                    }
+
+                    const memberNodeId = clientUtils.randomString();
+                    const markup = nodeId ? _this.execBlockIteration(func, opaqueWrapper, field, memberNodeId, loc) : func();
 
                     ret = ret + markup;
 
                     if (hook) {
-                        _this.registerHook(`#${nodeId} > :nth-child(${index + 1})`, hook, hookPhase, hookOrder, loc, options.data.state.blockData);
+                        _this.registerHook(`#${memberNodeId}`, hook, hookPhase, hookOrder, loc, options.data.state.blockData);
                     }
+
+                    if (transform) {
+                        _this.registerTransform(
+                            _this.nodeIdTransformSelector(memberNodeId), transform
+                        );
+                    }        
                 }
 
                 if (Array.isArray(context)) {
@@ -205,15 +217,10 @@ module.exports = {
 
             if (i === 0) {
                 ret = inverse(this);
+                _this.getEmitContext().write(ret);
             }
 
-            const renderedValue = ret;
-
-            _this.getEmitContext().blockStack.pop();
-
-            _this.getEmitContext().write(renderedValue);
-
-            return renderedValue;
+            return ret;
         }
     }
 };

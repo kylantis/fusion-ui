@@ -11,6 +11,15 @@
       "defaultValue": true
     }
   },
+  "behaviours": {
+    "setActiveNavItem": {
+      "parameters": {
+        "navItemId": {
+          "type": "string"
+        }
+      }
+    }
+  },
   "sample": {
     "nullifyRandomly": []
   },

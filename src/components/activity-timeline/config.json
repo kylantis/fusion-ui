@@ -2,7 +2,7 @@
   "enableTypeMerging": true,
   "collections": {
     "items": {
-      "minLength": 5,
+      "minLength": 10,
       "singularType": "Item"
     },
     "items.$_.summary.parts": {

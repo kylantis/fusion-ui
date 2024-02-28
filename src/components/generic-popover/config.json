@@ -60,5 +60,25 @@
       "footer.rightButton"
     ]
   },
-  "escapeDynamicHtml": false
+  "escapeDynamicHtml": false,
+  "behaviours": {
+    "addFeedbackState": {
+      "parameters": {
+        "feedbackState": {
+          "type": {
+            "$ref": "feedbackState"
+          }
+        }
+      }
+    },
+    "removeFeedbackState": {
+      "parameters": {
+        "feedbackState": {
+          "type": {
+            "$ref": "feedbackState"
+          }
+        }
+      }
+    }
+  }
 }

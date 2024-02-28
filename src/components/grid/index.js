@@ -1,21 +1,40 @@
 
 class Grid extends components.GridElement {
 
-    onMount() {
-        const { columns } = this.getInput();
-
+    beforeRender() {
+        
         if (this.hasBump()) {
-            columns.forEach(gridElement => {
-                gridElement.setCol(false);
-            });
+            this.#removeCols();
         }
+
+        this.on('insert.columns_$', ({ value }) => {
+            if (!value) return;
+
+            value.setCol(true);
+            value.on('bump', () => {
+                this.#removeCols();
+            });
+        });
+    }
+
+    #removeCols() {
+        const { columns = [] } = this.getInput();
+
+        columns.forEach(gridElement => {
+            gridElement.setCol(false);
+        });
     }
 
     hasBump() {
         const { columns = [] } = this.getInput();
-        return columns.filter(({ bump }) => bump)[0];
-    }
 
+        for (let column of columns) {
+            if (column && column.bump) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 
 module.exports = Grid;

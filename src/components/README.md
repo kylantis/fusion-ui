@@ -97,7 +97,6 @@ The compiler will make best effort to perform ahead of time partial inlining. Th
  - `BaseComponent`
  - `Handlebars`
  - `appContext`
- - `isServer`
  - `rootComponent`
 
  They are used internally to provide framework functionality, and making any modifications to these properties will break all your components.

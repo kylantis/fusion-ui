@@ -75,6 +75,14 @@
         null
       ]
     },
+    "groups_$.items_$.leftMargin": {
+      "type": "Boolean",
+      "clientOnly": true
+    },
+    "groups_$.items_$.rightMargin": {
+      "type": "Boolean",
+      "clientOnly": true
+    },
     "groups_$.items_$.leftIcon": {
       "type": "Icon",
       "isNull": false
@@ -100,6 +108,52 @@
       "defaults": [
         "bottom"
       ]
+    }
+  },
+  "events": {
+    "click": {
+      "parameters": {
+        "identifier": {
+          "type": "string"
+        }
+      }
+    },
+    "select": {
+      "parameters": {
+        "identifier": {
+          "type": "string"
+        }
+      }
+    },
+    "unselect": {
+      "parameters": {
+        "identifier": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "behaviours": {
+    "selectItem": {
+      "parameters": {
+        "identifier": {
+          "type": "string"
+        }
+      }
+    },
+    "unselectItem": {
+      "parameters": {
+        "identifier": {
+          "type": "string"
+        }
+      }
+    },
+    "renderSubMenu": {
+      "parameters": {
+        "identifier": {
+          "type": "string"
+        }
+      }
     }
   },
   "sample": {

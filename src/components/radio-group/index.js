@@ -1,7 +1,7 @@
 
 class RadioGroup extends components.MultiOptionFormElement {
 
-    beforeLoad() {
+    beforeRender() {
         const input = this.getInput();
         input.type = "radio";
     }

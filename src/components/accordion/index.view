@@ -1,23 +1,18 @@
+
 <ul class="slds-accordion">
 
-    {{#each items hook='addClickListener' hookPhase='onMount' as |item i|}}
-
+{{#each items hook='addClickListener' hookPhase='onMount' as |item i|}}
+    
     <li class="slds-accordion__list-item">
         <section class="slds-accordion__section {{@first ? 'slds-is-open' : ''}}">
             <div class="slds-accordion__summary">
-                
                 <h2 class="slds-accordion__summary-heading">
-                    
                     <button class="slds-button slds-button_reset slds-accordion__summary-action"
                         aria-controls="{{@random}}" aria-expanded="{{@first ? 'true' : 'false'}}" title="{{title}}" type="button">
-                        
                         {{> ButtonIconSvg iconType='utility' iconName='switch' cssClass='slds-accordion__summary-action-icon slds-button__icon_left'}}
-
                         <span class="slds-accordion__summary-content">{{title}}</span>
                     </button>
-
                 </h2>
-
             </div>
             <div class="slds-accordion__content {{bodyPadding ? 'slds-p-${bodyPadding}' : ''}}" id="{{@random}}">
                 {{component alias="body"}}
@@ -26,6 +21,6 @@
         </section>
     </li>
 
-    {{/each}}
+{{/each}}
 
 </ul>

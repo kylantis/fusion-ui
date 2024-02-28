@@ -6,12 +6,6 @@
     }
   },
   "scalars": {
-    "items_$.title": {
-      "type": "String",
-      "defaults": [
-        "Accordion Summary"
-      ]
-    },
     "expandSingle": {
       "type": "Boolean",
       "defaultValue": false
@@ -28,6 +22,10 @@
       "defaults": [
         "horizontal_medium"
       ]
+    },
+    "items_$.title": {
+      "type": "String",
+      "defaults": []
     }
   },
   "escapeDynamicHtml": false

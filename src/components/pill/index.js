@@ -1,9 +1,49 @@
 
 class Pill extends components.LightningComponent {
 
-    getDefaultValues() {
+    #identifiers = [];
+
+    onMount() {
+        this.on('remove.items_$', ({ value: item }) => {
+            if (!item) return;
+
+            const { identifier } = item;
+
+            const index = this.#identifiers.indexOf(identifier);
+            assert(index >= 0);
+
+            this.#identifiers.splice(index, 1);
+        });
+    }
+
+    immutablePaths() {
+        return ['items_$.identifier'];
+    }
+
+    cloneInlineComponents() {
+        const { itemPredicate } = this.getInput();
+        return itemPredicate ? true : [
+            'items[0].avatar',
+            'items[0].icon',
+        ]
+    }
+
+    initializers() {
         return {
-            ['items_$.identifier']: () => this.randomString()
+            ['items_$.identifier']: () => this.randomString(),
+            ['alignment']: () => 'horizontal',
+        };
+    }
+
+    transformers() {
+        return {
+            ['items_$.identifier']: (identifier) => {
+                if (this.#identifiers.includes(identifier)) {
+                    identifier = this.randomString();
+                }
+                this.#identifiers.push(identifier);
+                return identifier;
+            },
         };
     }
 

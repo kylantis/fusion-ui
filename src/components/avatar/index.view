@@ -25,7 +25,7 @@
                 {{../groupRole ? 'slds-avatar-grouped__initials' : ''}}
                 {{inverse ? 'slds-avatar__initials_inverse' : ''}}"
                 {{../title ? "title='${../title}'" : ''}}>
-                    {{name transform='verifyInitialsLength'}}
+                    {{name transform='truncateInitials'}}
                 </abbr>
             {{/with}}
         {{/if}}

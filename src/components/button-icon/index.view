@@ -4,7 +4,7 @@
     {{type ? 'slds-button_icon-${type}' : ''}}
     {{useCurrentColor ? 'slds-button_icon-current-color' : ''}}
     {{container ? 'slds-button_icon-container' : ''}}
-    {{selected ? "slds-is-selected" : "" transform='ensureIconContainer'}}
+    {{selected ? "slds-is-selected" : ""}}
     {{size ? 'slds-button_icon-${size}' : ''}}
     {{warning ? "slds-button_icon-warning" : ""}}
     {{error ? "slds-button_icon-error" : ""}}
@@ -15,7 +15,7 @@
  {{disabled ? "disabled=''" : ""}}
  >
 
-    {{> ButtonIconSvg 
+    {{> ButtonIconSvg
             iconName iconType hint cssClass=svgCssClass 
             foreground=(((not useCurrentColor) and svgForeground) ? svgForeground : null)
             foregroundColor=(((not useCurrentColor) and svgForegroundColor) ? svgForegroundColor : null)

@@ -13,10 +13,15 @@ class WebRenderer extends CustomCtxRenderer {
     });
   }
 
+  // #API
+  isHeadlessContext() {
+    return self.appContext.server;
+  }
+
   load(opts) {
     let deps = [];
     // eslint-disable-next-line no-restricted-globals
-    if (!global.isServer) {
+    if (!this.isHeadlessContext()) {
       deps = [
         this.loadCSSDependencies(),
         this.loadJSDependencies(),

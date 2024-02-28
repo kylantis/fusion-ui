@@ -50,6 +50,7 @@ class Accordion extends components.LightningComponent {
      * @param {HTMLElement} node 
      */
     addClickListener({ node }) {
+
         const li = node.querySelector(':scope > li');
 
         if (!this.active) {

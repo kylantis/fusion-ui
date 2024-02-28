@@ -14,7 +14,8 @@ class LightningComponent extends BaseComponent {
 
     getNode() {
         const n = super.getNode0();
-        return n.children.length ? n.querySelector(':scope > :nth-child(1)') : n;
+        assert(n);
+        return (n.children.length == 1) ? n.querySelector(':scope > :nth-child(1)') : n;
     }
 
     toggleCssClass(predicate, className) {
@@ -33,28 +34,62 @@ class LightningComponent extends BaseComponent {
         }
     }
 
+    #getCssRuleNameToShow() {
+        return 'lightning-transition-in';
+    }
+
+    #getCssRuleNameToHide() {
+        return 'lightning-transition-out';
+    }
+
+    /**
+     * This method is to used by subclasses that need to inline the "visibility" styles needed
+     * for the show() and hide() behaviours. To provide more context, there are cases
+     * where higher specificity is needed, hence the need to inline these rules using
+     * the id selector which carries the highest weight in CSS specificity
+     * 
+     * @param {string} targetId 
+     * @returns {string}
+     */
+    getInlineStylesForVisibility(targetId) {
+        const s = (document.querySelector(`#${targetId}`) == this.getNode())
+            ? '' : ' ';
+
+        return `
+        <style>
+            .${this.#getCssRuleNameToShow()}${s}#${targetId} {
+                visibility: visible;
+                transition: visibility 0.3s ease-in;
+            }
+
+            .${this.#getCssRuleNameToHide()}${s}#${targetId} {
+                visibility: hidden;
+                transition: visibility 0.3s ease-in;
+            }
+        </style>
+        `;
+    }
+
     show() {
         this.show0(this.getNode());
     }
 
     show0(node) {
-        this.toggleCssClass0(node, false, 'lightning-transition-out');
-        this.toggleCssClass0(node, true, 'lightning-transition-in');
+        this.toggleCssClass0(node, false, this.#getCssRuleNameToHide());
+        this.toggleCssClass0(node, true, this.#getCssRuleNameToShow());
     }
-    
+
     hide() {
-       this.hide0(this.getNode());
+        this.hide0(this.getNode());
     }
 
     hide0(node) {
-        this.toggleCssClass0(node, false, 'lightning-transition-in');
-        this.toggleCssClass0(node, true, 'lightning-transition-out');
+        this.toggleCssClass0(node, false, this.#getCssRuleNameToShow());
+        this.toggleCssClass0(node, true, this.#getCssRuleNameToHide());
     }
 
     async setTooltipText(title) {
-        if (this.isHeadlessContext() || !title) {
-            return;
-        }
+        if (!title) return;
 
         if (this.tooltip) {
 
@@ -105,7 +140,7 @@ class LightningComponent extends BaseComponent {
 
     async refreshTooltip() {
         if (this.tooltip) {
-            await this.tooltip.refresh();
+            await this.tooltip.setPosition();
         }
     }
 

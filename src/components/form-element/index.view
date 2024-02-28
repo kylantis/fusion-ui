@@ -63,7 +63,7 @@ readonly is false, so that this edit icon does not display on top of it --}}
         {{> ?standalone_classes}}"
   >
 
-    {{#if readonly neq undefined innerTransform='labelTransform' transient=true}}
+    {{#if readonly neq undefined transform='labelTransform' transient=true}}
       <label class="slds-form-element__label {{displayOnlyControl ? "slds-assistive-text" : ""}}" 
         {{hasInputElement ? "for='${@root.componentId}_input'" : ''}}
         id="{{@root.componentId}}_label"
@@ -103,7 +103,7 @@ readonly is false, so that this edit icon does not display on top of it --}}
 
 
 {{#*inline "render_compound" visible=true}}
-  <fieldset class="slds-form-element {{padding ? 'slds-p-${padding}' : ''}} {{margin ? 'slds-m-${margin}' : ''}} {{visible ? "slds-visible" : "slds-hidden"}} {{> ?compound_classes}}">
+  <fieldset class="slds-form-element {{padding ? 'slds-p-${padding}' : ''}} {{margin ? 'slds-m-${margin}' : ''}} {{visible ? "slds-visible" : "slds-hidden"}} {{required ? 'slds-is-required' : ''}} {{> ?compound_classes}}">
     
     <legend class="slds-form-element__legend slds-form-element__label {{displayOnlyControl ? "slds-assistive-text" : ""}}">
       {{> render_title}}

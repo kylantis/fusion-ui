@@ -1,13 +1,10 @@
 
 class MultiOptionFormElement extends components.FormElement {
 
+    #items = {};
+
     static isAbstract() {
         return true;
-    }
-
-    beforeCompile() {
-        this.getInput().cssClass;
-        this.getInput().items[0].name;
     }
 
     beforeRender() {
@@ -20,14 +17,19 @@ class MultiOptionFormElement extends components.FormElement {
         if (!this.isCompound()) {
 
             // This is needed because {{> render_standalone}} does not access "items_$.required", rather it only
-            // uses "required"
+            // uses "required". However, any future updates needs to be done directly on input.required
+
             const [item] = items;
             if (!input.required && item.required) {
                 input.required = true;
             }
         }
 
-        // input.readonly = true;
+        this.on('remove.items_$', ({ value: item }) => {
+            if (!item) return;
+
+            delete this.getItems()[this.getItemInputId(item)];
+        });
     }
 
     isLoadable() {
@@ -46,42 +48,13 @@ class MultiOptionFormElement extends components.FormElement {
         return super.isLoadable();
     }
 
-    onMount() {
-        const { required } = this.getInput();
-        if (required) {
-            this.toggleRequiredClass(true);
-        }
-    }
-
-    hooks() {
-        return {
-            ['items_$']: async (evt) => {
-                const { newValue, oldValue } = evt;
-                if (newValue === undefined) {
-                    const inputId = this.getItemInputId(oldValue);
-                    delete this.getItems()[inputId];
-                }
-            },
-            ['afterMount.required']: (evt) => {
-                const { newValue: required } = evt;
-                this.toggleRequiredClass(required);
-            }
-        }
-    }
-
-    toggleRequiredClass(required) {
-        if (this.isCompound()) {
-            this.toggleFormElementCssClass(required, 'slds-is-required');
-        }
-    }
-
     isCompound() {
         const { items } = this.getInput();
         return super.isCompound() || items.length > 1;
     }
 
     getItems() {
-        return this.items || (this.items = {});
+        return this.#items;
     }
 
     isMultiCheckable() {
@@ -105,20 +78,14 @@ class MultiOptionFormElement extends components.FormElement {
 
     getItemInputId(item) {
         const { randomProperty } = BaseComponent.CONSTANTS;
+        
         const id = `${this.getId()}${this.isCompound() ? `-${item[randomProperty]}` : ''}`;
         return `${id}_input`;
     }
 
-    registerCompoundItem({ blockData }) {
-        const { index } = blockData['items'];
-        const { items } = this.getInput();
-
-        const item = items[index];
-        this.registerItem(item);
-    }
-
     getCheckedItems() {
-        return Object.values(this.getItems()).filter(({ checked: c }) => c);
+        const { items } = this.getInput();
+        return items.filter(({ checked: c }) => c);
     }
 
     getCheckedItem() {

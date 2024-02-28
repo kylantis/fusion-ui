@@ -2,21 +2,28 @@
 class Avatar extends components.LightningComponent {
 
     beforeRender() {
-        const input = this.getInput();
-        const { initials, size } = input;
 
         // Note: This can be removed if you don't want it
-        if (size == 'large' && this.isMobile()) {
-            input.size = 'medium';
-        }
+       
+        this.on('insert.size', ({ value: size, parentObject }) => {
+            if (size == 'large' && this.isMobile()) {
+                parentObject.size = 'medium';
+            }
+        });
     }
 
-    verifyInitialsLength(name) {
+    initializers() {
+        return {
+            ['initials.name']: '',
+        };
+    }
+
+    truncateInitials(name) {
         if (name.length > 2) {
-            this.throwError(`Initial "${name}" should have a maxLength of 2`);
+            return name.slice(0, 2)
         }
         return name;
     }
-    
+
 }
 module.exports = Avatar;

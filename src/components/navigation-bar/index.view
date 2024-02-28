@@ -1,42 +1,44 @@
-
-
-
 <div class="slds-context-bar">
 
   <nav class="slds-context-bar__secondary">
-
     <ul class="slds-grid">
 
-      {{#each items hook='registerNavItem' hookPhase='onMount' as |item itemIndex|}}
+      {{#each items hook='itemHook' hookPhase='onMount' as |item itemIndex|}}
 
-      {{component Menu alias="subMenu"}}
+        {{#*inline "item_decorator" runtime=true }}
+          {{component Menu alias="subMenu"}}
 
-      {{#if ../useDivider }}
-      <div class="slds-context-bar__item--divider-left"></div>
-      {{/if}}
-      
-      <li class="slds-context-bar__item slds-context-bar__dropdown-trigger slds-dropdown-trigger"
-        identifier="{{identifier}}" role="presentation">
-        <a class="slds-context-bar__label-action" title="{{title}}">
-          <span class="slds-assistive-text">{{assistiveText ? assistiveText : title}}</span>
-          <span class="slds-truncate" title="{{title}}">{{title}}</span>
-        </a>
+          {{#if ../useDivider }}
+            <div class="slds-context-bar__item--divider-left"></div>
+          {{/if}}
+          
+          <li class="slds-context-bar__item slds-context-bar__dropdown-trigger slds-dropdown-trigger"
+            data-id="{{id}}" data-has-submenu="{{subMenu ? true : false}}" role="presentation"
+            onclick="{{fn "navItemClickListener"}}(event)"
+          >
+            <a class="slds-context-bar__label-action" title="{{title}}">
+              <span class="slds-assistive-text">{{assistiveText ? assistiveText : title}}</span>
+              <span class="slds-truncate" title="{{title}}">{{title}}</span>
+            </a>
 
-        {{!-- <span class="slds-hint-parent"></span> --}}
+            {{!-- <span class="slds-hint-parent"></span> --}}
 
-        {{#if subMenu}}
-        <div class="slds-context-bar__icon-action slds-p-left_none">
-            {{> Icon type='utility' name='chevrondown' size="xx-small"}}
-            <span class="slds-assistive-text">Open menu item submenu</span>
-        </div>
-        {{> subMenu size='xx-small' }}
-        {{/if}}
-      </li>
+            {{#if subMenu}}
+              <div class="slds-context-bar__icon-action slds-p-left_none">
+                  {{> Icon type='utility' name='chevrondown' size="xx-small"}}
+                  <span class="slds-assistive-text">Open menu item submenu</span>
+              </div>
+              {{> subMenu size='xx-small' }}
+            {{/if}}
+
+          </li>
+        {{/inline}}
+
+        {{> item_decorator}}
 
       {{/each}}
 
     </ul>
   </nav>
 
-  
 </div>
