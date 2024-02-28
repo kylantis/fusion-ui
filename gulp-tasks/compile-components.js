@@ -14,15 +14,17 @@ const { getAllComponentNames, peek } = require('../lib/utils');
 const componentNameArgPrefix = '--component=';
 const segmentArg = '--segment';
 const performPurgeArg = '--performPurge';
+const fromWatchArg = '--fromWatch';
 
 let componentName;
 let componentList;
 let performPurge;
-
-const nodeArgs = process.argv.slice(2);
+let fromWatch;
 
 const processNodeArgs = () => {
-  nodeArgs.forEach(arg => {
+  const args = process.argv.slice(3);
+
+  for (const arg of args) {
     switch (true) {
       case arg.startsWith(componentNameArgPrefix):
         componentName = arg.replace(componentNameArgPrefix, '');
@@ -33,8 +35,13 @@ const processNodeArgs = () => {
       case arg == performPurgeArg:
         performPurge = true;
         break;
+      case arg == fromWatchArg:
+        fromWatch = true;
+        break;
+      case arg == '--':
+        return;
     }
-  });
+  }
 }
 
 processNodeArgs();
@@ -49,7 +56,7 @@ const distFolder = 'dist/components';
 const __cpq = global.__cpq || (global.__cpq = []);
 
 // eslint-disable-next-line func-names
-const gulpTransform = ({ fromWatch, componentList, performPurge } = {}) => {
+const gulpTransform = ({ componentList, performPurge } = {}) => {
   return through.obj(async (vinylFile, _encoding, callback) => {
     const file = vinylFile.clone();
 
@@ -175,17 +182,14 @@ gulp.task('compile-components:watch', () => {
   )
 
   watcher.on('change', (path) => {
-    gulp.src(path)
-      .pipe(through.obj(async (chunk, enc, cb) => {
-        const vinylFile = chunk.clone();
-        vinylFile.base = pathLib.join(process.env.PWD, srcFolder);
-        if (componentName) {
-          vinylFile.base += `/${componentName}`;
-        }
-        cb(null, vinylFile);
-      }))
-      .pipe(gulpTransform({ fromWatch: true, performPurge: false }))
 
-      .pipe(gulp.dest(`${distFolder}${componentName ? `/${componentName}` : ''}`))
+    const [componentName] = path.replace(`${srcFolder}/`, '').split('/');
+    const args = [`${componentNameArgPrefix}${componentName}`, segmentArg, fromWatchArg];
+
+    spawn(
+      'npm', ['run', 'compile-component', '--silent', '--', '--silent', ...args],
+      { stdio: "inherit" }
+    )
+
   });
 });

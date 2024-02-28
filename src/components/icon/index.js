@@ -1,43 +1,32 @@
 
 class Icon extends components.TextCompanion {
 
-    static SOLID_STATE_CHANGE_EVT = 'solidStateChange';
-
     events() {
-        const { SOLID_STATE_CHANGE_EVT } = Icon;
-        return [SOLID_STATE_CHANGE_EVT];
+        return ['solidStateChange'];
     }
 
-    hooks() {
-        const { SOLID_STATE_CHANGE_EVT } = Icon;
-        return {
-            ['beforeMount.type']: (evt) => {
-                const { newValue } = evt;
-                if (this.#willChangeSolidState('type', newValue)) {
-                    this.dispatchEvent(SOLID_STATE_CHANGE_EVT, this);
+    afterMount() {
+        this.on(
+            this.getSolidStateIntrinsicProperties()
+                .map(p => `insert.${p}`)
+                .join('|'),
+            ({ key, value }) => {
+                if (this.#willChangeSolidState(key, value)) {
+                    this.dispatchEvent('solidStateChange', this);
                 }
-            },
-            ['beforeMount.foreground']: (evt) => {
-                const { newValue } = evt;
-                if (this.#willChangeSolidState('foreground', newValue)) {
-                    this.dispatchEvent(SOLID_STATE_CHANGE_EVT, this);
-                }
-            },
-            ['beforeMount.solid']: (evt) => {
-                const { newValue } = evt;
-                if (this.#willChangeSolidState('solid', newValue)) {
-                    this.dispatchEvent(SOLID_STATE_CHANGE_EVT, this);
-                }
-            }
-        }
+            });
     }
-    
-    getDefaultValues() {
+
+    initializers() {
         const { type } = this.getInput();
         return {
             foreground: type == 'utility' ? 'text-default' : null,
             solid: true,
         };
+    }
+
+    getSolidStateIntrinsicProperties() {
+        return ['type', 'solid']
     }
 
     /**

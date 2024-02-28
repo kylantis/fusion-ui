@@ -80,17 +80,6 @@
       "type": "ButtonIconSvg",
       "isNull": false
     },
-    "states.$_.title": {
-      "type": "String",
-      "defaults": [
-        "Shop Apparel",
-        "Promote Shop",
-        "Orchestrate",
-        "Transform",
-        "Transition",
-        "Visualize"
-      ]
-    },
     "selectState": {
       "type": "String",
       "allowed": [
@@ -101,6 +90,10 @@
       "defaults": [
         null
       ]
+    },
+    "states.$_.title": {
+      "type": "String",
+      "defaults": []
     }
   },
   "sample": {

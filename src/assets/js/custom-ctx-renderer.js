@@ -159,7 +159,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     const { fn, hash, loc } = options;
 
-    const { blockParam, hook, hookPhase, hookOrder, outerTransform } = hash;
+    const { blockParam, hook, hookPhase, hookOrder, transform } = hash;
 
     if (scope) {
       assert(blockParam);
@@ -182,23 +182,21 @@ class CustomCtxRenderer extends RootCtxRenderer {
       options.data = clientUtils.createFrame(options.data);
     }
 
-    if (outerTransform) {
-      assert(nodeId);
-
-      this.registerTransform(nodeId, outerTransform);
+    if (transform) {
+      this.registerTransform(nodeId, transform);
     }
 
     Object.keys(hash).forEach(k => {
       options.data[k] = this.wrapDataWithProxy(hash[k]);
     })
 
-    this.getEmitContext().blockStack.push(loc);
+    this.startBlockContext({ loc });
 
     const renderedValue = fn(
       this.wrapDataWithProxy(ctx), { data: options.data },
     );
 
-    this.getEmitContext().blockStack.pop();
+    this.endBlockContext();
 
     this.getEmitContext().write(renderedValue);
 
@@ -207,30 +205,25 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
   resolveMustacheInCustom({ options, params }) {
 
-    const { textNodeHookType } = RootProxy;
-
     let { hash: { hook, hookPhase, hookOrder, transform }, loc } = options;
 
+    if (transform) {
+      transform = this.wrapTransform(transform);
+    }
+    
     let [value] = params;
 
-    const bindContext = this.getCurrentBindContext();
-    const isTextNodeBindContext = bindContext && bindContext.type == textNodeHookType;
+    const bindContext = this.popDataStack();
 
-    if (!isTextNodeBindContext && value instanceof BaseComponent) {
-      this.logger.warn(
-        `[${getLine({ loc })}] Component "${value.getId()}" needs a bind context inorder to render properly`
-      );
-    }
-
-    if (isTextNodeBindContext) {
+    if (bindContext) {
       const { selector } = bindContext;
 
       if (value instanceof Promise || value instanceof BaseComponent) {
         value = this.render({
           data: value,
-          target: selector.replace('#', ''),
+          target: selector,
           transform,
-          options,
+          loc,
         })
 
         transform = null;
@@ -239,6 +232,11 @@ class CustomCtxRenderer extends RootCtxRenderer {
       if (hook) {
         this.registerHook(selector, hook, hookPhase, hookOrder, loc, options.data.state.blockData);
       }
+
+    } else if (value instanceof BaseComponent) {
+      this.logger.warn(
+        `[${getLine({ loc })}] Component "${value.getId()}" needs a bind context inorder to render properly`
+      );
     }
 
     if (transform) {

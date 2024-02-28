@@ -1,15 +1,7 @@
 
 class ButtonIcon extends components.TextCompanion {
 
-    beforeCompile() {
-    }
-
-    hooks() {
-        return {};
-    }
-
-    beforeRender() {
-
+    onMount() {
         // Todo: Ensure that the attribute "aria-pressed" is set to true or false, depending on its 
         // state. This is applicable to the types: border, border-filled, border-inverse
     }
@@ -44,20 +36,6 @@ class ButtonIcon extends components.TextCompanion {
         const { type, container } = this.getInput();
         return container || ["border", "border-filled", "border-inverse"].includes(type);
     }
-
-    ensureBareIcon(v) {
-        if (this.isIconContainer()) {
-            this.throwError(`"${arguments[0]}" cannot be used with an icon container`);
-        }
-        return v;
-    }
-
-    ensureIconContainer(v) {
-        if (v && !this.isIconContainer()) {
-            this.throwError(`[selected OR size] property cannot be used with a bare icon`);
-        }
-
-        return v;
-    }
 }
+
 module.exports = ButtonIcon;

@@ -29,27 +29,10 @@ class FormElement extends components.LightningComponent {
         return layoutType == 'compound';
     }
 
-    setupFormElement() {  
+    setupFormElement() {
     }
 
     loadStandaloneControl() {
-    }
-
-    hooks() {
-        return {
-            ['afterMount.error']: (evt) => {
-                const { newValue: error } = evt;
-                this.toggleErrorClass(!!error);
-            },
-            ['afterMount.readonly']: (evt) => {
-                const { newValue: readonly } = evt;
-                this.toggleReadOnlyClass(readonly);
-            },
-            ['afterMount.editable']: (evt) => {
-                const { newValue: editable } = evt;
-                this.toggleEditableClass(editable);
-            },
-        }
     }
 
     events() {
@@ -80,11 +63,12 @@ class FormElement extends components.LightningComponent {
         return this.node.querySelector(':scope .slds-form-element');
     }
 
-    labelTransform(nodes) {
+    labelTransform(node) {
         const { readonly } = this.getInput();
+        const { content: { children } } = node;
 
         if (readonly) {
-            nodes
+            children
                 .filter(({ nodeType }) => nodeType == 'tag')
                 .forEach(({ content }) => {
                     // Convert "label" tag to "span" tag
@@ -140,20 +124,24 @@ class FormElement extends components.LightningComponent {
         }
     }
 
-    onMount() {
-        const { error, readonly, editable } = this.getInput();
+    beforeRender() {
+        this.on('insert.error', ({ value, afterMount }) => {
+            afterMount(() => {
+                this.toggleErrorClass(value);
+            })
+        });
 
-        if (error) {
-            this.toggleErrorClass(true);
-        }
+        this.on('insert.readonly', ({ value, afterMount }) => {
+            afterMount(() => {
+                this.toggleReadOnlyClass(value);
+            })
+        });
 
-        if (readonly) {
-            this.toggleReadOnlyClass(readonly);
-        }
-
-        if (editable) {
-            this.toggleEditableClass(true);
-        }
+        this.on('insert.editable', ({ value, afterMount }) => {
+            afterMount(() => {
+                this.toggleEditableClass(value);
+            })
+        });
     }
 
     getPopupWidgetContainer() {

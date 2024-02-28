@@ -1,8 +1,8 @@
 {{style url="/components/activity_timeline/style.min.css"}}
 
 {{!-- 
-This inline partial is used to render a sentence. A sentence contains an array of
-parts, and each part is either plain text or a link 
+  This inline partial is used to render a sentence. A sentence contains an array of
+  parts, and each part is either plain text or a link 
 --}}
 {{#*inline "render_sentence" sentence}}
 
@@ -25,133 +25,130 @@ parts, and each part is either plain text or a link
 
 <ul class="slds-timeline">
 
-  {{#each items
-          hook='setupExpandBtn, setupContextMenu'
-          hookPhase='onMount, afterMount' 
-    as |item|
-  }}
+  {{#each items hook='setupExpandBtn' as |item|}}
 
     {{component Icon alias="icon"}}
     {{component Menu alias="actions"}}
 
+    <li identifier="{{@key}}">
 
-  <li identifier="{{@key}}">
+      <style></style>
 
-    {{!-- Use a helper function to get the stylesheet declarations for this block, if any --}}
-    {{getItemStyle @key lineColor}}
+      <div class="slds-timeline__item_expandable {{lineColor ? 'slds-timeline__item_lc_${@key}' : '' }} {{expanded ? 'slds-is-open': ''}}">
+        
+        {{#if assistiveText}}
+          <span class="slds-assistive-text">{{assistiveText}}</span>
+        {{/if}}
 
-    <div
-      class="slds-timeline__item_expandable {{lineColor ? 'slds-timeline__item_lc_${@key}' : '' }} {{expanded ? 'slds-is-open': ''}}">
-      {{#if assistiveText}}
-        <span class="slds-assistive-text">{{assistiveText}}</span>
-      {{/if}}
-      <div class="slds-media">
-        <div class="slds-media__figure">
+        <div class="slds-media">
 
-          {{#if expandable}}
-            {{> ButtonIcon 
-                  iconType='utility' iconName='switch' 
-                  svgCssClass="slds-timeline__details-action-icon"
-                  ref="${@key}-expand-button"
-            }}
-          {{/if}}
+          <div class="slds-media__figure">
+            {{#if expandable}}
+              {{> ButtonIcon 
+                    iconType='utility' iconName='switch' 
+                    svgCssClass="slds-timeline__details-action-icon"
+                    ref="${@key}-expand-button"
+              }}
+            {{/if}}
 
-          {{> icon}}
-        </div>
-        <div class="slds-media__body">
+            {{> icon}}
+          </div>
 
-          <div class="slds-grid slds-grid_align-spread slds-timeline__trigger">
+          <div class="slds-media__body">
 
-          {{#with title as |title|}}
-            {{component Link alias="main"}}
+            <div class="slds-grid slds-grid_align-spread slds-timeline__trigger">
 
-            <div class="slds-grid slds-grid_vertical-align-center slds-truncate_container_75 slds-no-space">
-              {{#each left as |i j|}}
-                  {{component TextCompanion alias="."}}
-                  {{> . marginRight=((hasInputProperty . "marginRight") ? undefined : "x-small")}}
-              {{/each}}
+            {{#with title as |title|}}
+              {{component Link alias="main"}}
 
-              <h3 class="slds-truncate">
-                  <strong>
-                    {{> main cssClass="slds-truncate"}}
-                  </strong>
-              </h3>
-              <div class="slds-no-flex">
-                {{#each right as |i j|}}
+              <div class="slds-grid slds-grid_vertical-align-center slds-truncate_container_75 slds-no-space">
+                {{#each left as |i j|}}
                     {{component TextCompanion alias="."}}
-                    {{> . marginLeft=((hasInputProperty . "marginLeft") ? undefined : "x-small")}}
+                    {{> . marginRight=((hasInputProperty . "marginRight") ? undefined : "x-small")}}
                 {{/each}}
+
+                <h3 class="slds-truncate">
+                    <strong>
+                      {{> main cssClass="slds-truncate"}}
+                    </strong>
+                </h3>
+                <div class="slds-no-flex">
+                  {{#each right as |i j|}}
+                      {{component TextCompanion alias="."}}
+                      {{> . marginLeft=((hasInputProperty . "marginLeft") ? undefined : "x-small")}}
+                  {{/each}}
+                </div>
+              </div>
+
+            {{/with}}
+
+              <div class="slds-timeline__actions slds-timeline__actions_inline">
+                <p class="slds-timeline__date">{{date}}</p>
+
+                {{#if actions}}
+                  {{> ButtonIcon 
+                        iconType='utility' iconName='down' 
+                        size="x-small" type="border-filled"
+                        ref="${@key}-actions-trigger-button"
+                  }}
+                {{/if}}
+
               </div>
             </div>
 
-          {{/with}}
 
-            <div class="slds-timeline__actions slds-timeline__actions_inline">
-              <p class="slds-timeline__date">{{date}}</p>
-
-              {{#if actions}}
-                {{> ButtonIcon 
-                      iconType='utility' iconName='down' 
-                      size="x-small" type="border-filled"
-                      ref="${@key}-actions-trigger-button"
-                }}
-              {{/if}}
-
-            </div>
-          </div>
+            <p class="slds-m-horizontal_xx-small">
+              {{> render_sentence sentence=summary }}
+            </p>
 
 
-          <p class="slds-m-horizontal_xx-small">
-            {{> render_sentence sentence=summary }}
-          </p>
-
-
-          <article
-            class="slds-box slds-timeline__item_details slds-theme_shade slds-m-top_x-small slds-m-horizontal_xx-small slds-p-around_medium"
-            id="item-{{@root.componentId}}-{{@key}}" aria-hidden="false">
-            <ul class="slds-list_horizontal slds-wrap">
+            <article
+              class="slds-box slds-timeline__item_details slds-theme_shade slds-m-top_x-small slds-m-horizontal_xx-small slds-p-around_medium"
+              id="{{@root.componentId}}-{{@random}}-article" aria-hidden="false">
               
-              {{#each properties as |property|}}
-                {{component Link alias="."}}
-                <li class="slds-grid slds-grid_vertical slds-size_1-of-2 slds-p-bottom_small">
-                  <span class="slds-text-title slds-p-bottom_x-small">{{@key}}</span>
-                  <span class="slds-text-body_medium slds-truncate">
-                    {{> . cssClass="slds-truncate"}}
-                  </span>
-                </li>
-              {{/each}}
-              
-              
-            </ul>
-            <div>
-              <span class="slds-text-title">Description</span>
-              <p class="slds-p-top_x-small">
-                {{> render_sentence sentence=description }}
-                </p>
-            </div>
+              <ul class="slds-list_horizontal slds-wrap">
+                
+                {{#each properties as |property|}}
+                  {{component Link alias="."}}
+                  <li class="slds-grid slds-grid_vertical slds-size_1-of-2 slds-p-bottom_small">
+                    <span class="slds-text-title slds-p-bottom_x-small">{{@key}}</span>
+                    <span class="slds-text-body_medium slds-truncate">
+                      {{> . cssClass="slds-truncate"}}
+                    </span>
+                  </li>
+                {{/each}}
+                
+              </ul>
 
-            {{!-- <button class="slds-button slds-button_neutral slds-m-top_small">
-              <svg class="slds-button__icon slds-button__icon_left" aria-hidden="true">
-                <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#world"></use>
+              <div>
+                <span class="slds-text-title">Description</span>
+                <p class="slds-p-top_x-small">
+                  {{> render_sentence sentence=description }}
+                  </p>
+              </div>
+
+              {{!-- <button class="slds-button slds-button_neutral slds-m-top_small">
+                <svg class="slds-button__icon slds-button__icon_left" aria-hidden="true">
+                  <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#world"></use>
+                  </svg>
+                Public Sharing
+              </button> --}}
+
+            </article>
+
+            {{!-- <div class="slds-grid slds-text-color_error slds-m-top_x-small slds-m-horizontal_xx-small" id="task-item-error-41">
+              <span class="slds-icon_container slds-icon-utility-error" title="Error Occurred">
+                <svg class="slds-icon slds-icon-text-error slds-icon_x-small slds-m-right_xx-small" aria-hidden="true">
+                  <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#error"></use>
                 </svg>
-              Public Sharing
-            </button> --}}
-
-          </article>
-
-          {{!-- <div class="slds-grid slds-text-color_error slds-m-top_x-small slds-m-horizontal_xx-small" id="task-item-error-41">
-            <span class="slds-icon_container slds-icon-utility-error" title="Error Occurred">
-              <svg class="slds-icon slds-icon-text-error slds-icon_x-small slds-m-right_xx-small" aria-hidden="true">
-                <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#error"></use>
-              </svg>
-            <span class="slds-assistive-text">Error Occurred</span>
-            </span>
-            <p>There was an error loading the details</p>
-          </div> --}}
+              <span class="slds-assistive-text">Error Occurred</span>
+              </span>
+              <p>There was an error loading the details</p>
+            </div> --}}
+          </div>
         </div>
       </div>
-    </div>
-  </li>
+    </li>
 
   {{/each}}
 

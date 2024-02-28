@@ -8,13 +8,12 @@ class Input extends components.FormElement {
             });
     }
 
-    hooks() {
-        return {
-            ['afterMount.value']: (evt) => {
-                const { newValue: value } = evt;
+    afterMount() {
+        this.on('insert.value', ({ value, afterMount }) => {
+            afterMount(() => {
                 this.dispatchEvent('change', value);
-            }
-        };
+            })
+        });
     }
 
     getInputElement() {

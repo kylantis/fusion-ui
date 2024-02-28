@@ -4,27 +4,24 @@ class GenericPopover extends components.Popover {
     beforeRender() {
         const input = this.getInput();
         input.closeIcon = true;
+
+        this.on('insert.feedbackState', ({ value: feedbackState, afterMount }) => {
+            if (!feedbackState) return;
+
+            afterMount(() => {
+                this.addFeedbackState(feedbackState);
+            });
+        });
+
+        this.on('remove.feedbackState', ({ value: feedbackState }) => {
+            if (!feedbackState) return;
+
+            this.removeFeedbackState(feedbackState);
+        });
     }
 
-    afterMount() {
-        const { feedbackState } = this.getInput();
-
-        if (feedbackState) {
-            this.addFeedbackState(feedbackState);
-        }
-    }
-
-    hooks() {
-        return {
-            feedbackState: ({ oldValue, newValue }) => {
-                if (oldValue) {
-                    this.removeFeedbackState(oldValue);
-                }
-                if (newValue) {
-                    this.addFeedbackState(newValue);
-                }
-            }
-        }
+    behaviours() {
+        return ['addFeedbackState', 'removeFeedbackState'];
     }
 
     addFeedbackState(feedbackState) {

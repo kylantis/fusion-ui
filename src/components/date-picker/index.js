@@ -88,6 +88,60 @@ class DatePicker extends components.Input {
         this.#ensureStartDateIsValid();
     }
 
+    afterMount() {
+
+        this.on('insert.displayOnHover', ({ value }) => {
+            this.toggleDisplayOnHover(value);
+        });
+
+        this.on('insert.readonly', ({ value }) => {
+            if (value) {
+                this.hideDatePickerContainer();
+            }
+        });
+
+        this.on('insert.rangeStart', () => {
+            this.#ensureRangeStartIsValid();
+            this.#ensureRangeEndIsValid();
+            this.#ensureStartDateIsValid();
+            this.refreshValue();
+        });
+
+        this.on('insert.rangeEnd', () => {
+            this.#ensureRangeEndIsValid();
+            this.#ensureStartDateIsValid();
+            this.refreshValue();
+        });
+
+        this.on('insert.startDate', () => {
+            this.#ensureStartDateIsValid();
+            this.refreshValue();
+        });
+
+        const _this = this;
+
+        this.on('insert.value', function () {
+            // We don't want this event to bubble to the DOM because:
+            // * If on mobile: the change was already on the DOM before this hook was called
+            // * If on desktop: the change was made because  <input.value> was programmatically updated and the user is not expected
+            //                  to see an an ISO string or some other weird value in the input element. Instead, we will update the DOM
+            //                  ourselves in refreshValue()
+            
+            this.preventDefault();
+
+            _this.refreshValue();
+
+            const { value } = _this.getInput();
+
+            if (value) {
+                // The change went through, dispatch select event
+                const date = _this.createDate(value);
+
+                _this.dispatchEvent('select', date.getDate(), date.getMonth() + 1, date.getFullYear());
+            }
+        });
+    }
+
     #setDefaultRangeStart() {
         // default to epoch
         this.getInput().rangeStart = new Date(0).toISOString();
@@ -124,7 +178,7 @@ class DatePicker extends components.Input {
             !rangeStart ||
             !this.isValidIsoDateString(rangeStart)
         ) {
-            this.set0(() => {
+            this.executeDiscrete(() => {
                 this.#setDefaultRangeStart();
             });
 
@@ -150,7 +204,7 @@ class DatePicker extends components.Input {
             !this.isValidIsoDateString(rangeEnd) ||
             !this.#isDateWithinRange(rangeEnd, rangeStart)
         ) {
-            this.set0(() => {
+            this.executeDiscrete(() => {
                 this.#setDefaultRangeEnd();
             });
 
@@ -178,7 +232,7 @@ class DatePicker extends components.Input {
             !this.#isDateWithinRange(startDate, rangeStart) ||
             !this.#isDateWithinRange(startDate, null, rangeEnd)
         ) {
-            this.set0(() => {
+            this.executeDiscrete(() => {
                 input.startDate = null;
             });
             return false;
@@ -191,7 +245,7 @@ class DatePicker extends components.Input {
         const { value, startDate, rangeStart, rangeEnd } = input;
 
         const cb = (start, end) => {
-            this.set0(() => {
+            this.executeDiscrete(() => {
                 input.value = null;
             });
             if (notify) {
@@ -289,71 +343,7 @@ class DatePicker extends components.Input {
     }
 
     events() {
-        return [
-            'select'
-        ];
-    }
-
-    hooks() {
-        return {
-            ['afterMount.displayOnHover']: (evt) => {
-                const { newValue: displayOnHover } = evt;
-
-                this.toggleDisplayOnHover(displayOnHover);
-            },
-            ['afterMount.readonly']: (evt) => {
-                const { newValue: readonly } = evt;
-
-                if (readonly) {
-                    this.hideDatePickerContainer();
-                }
-            },
-            ['beforeMount.rangeStart']: () => {
-
-                this.#ensureRangeStartIsValid();
-
-                this.#ensureRangeEndIsValid();
-
-                this.#ensureStartDateIsValid();
-
-                this.refreshValue();
-            },
-            ['beforeMount.rangeEnd']: () => {
-
-                this.#ensureRangeEndIsValid();
-
-                this.#ensureStartDateIsValid();
-
-                this.refreshValue();
-            },
-            ['beforeMount.startDate']: () => {
-
-                this.#ensureStartDateIsValid();
-
-                this.refreshValue();
-            },
-            ['beforeMount.value']: (evt) => {
-
-                // We don't want this event to bubble to the DOM because:
-                // * If on mobile: the change was already on the DOM before this hook was called
-                // * If on desktop: the change was made because  <input.value> was programmatically updated and the user is not expected
-                //                  to see an an ISO string or some other weird value in the input element. Instead, we will update the DOM
-                //                  ourselves in refreshValue()
-
-                evt.preventDefault();
-
-                this.refreshValue();
-
-                const { value } = this.getInput();
-
-                if (value) {
-                    // The change went through, dispatch select event
-                    const date = this.createDate(value);
-
-                    this.dispatchEvent('select', date.getDate(), date.getMonth() + 1, date.getFullYear());
-                }
-            }
-        }
+        return ['select'];
     }
 
     getDatePickerContainer() {

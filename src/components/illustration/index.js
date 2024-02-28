@@ -1,7 +1,7 @@
 
 class Illustration extends components.LightningComponent {
 
-    getDefaultValues() {
+    initializers() {
         return {
             size: 'small',
         }

@@ -1,7 +1,7 @@
 
 class IconSvg extends components.LightningComponent {
 
-    getDefaultValues() {
+    initializers() {
         const { type } = this.getInput();
         return {
             foreground: type == 'utility' ? 'text-default' : null,

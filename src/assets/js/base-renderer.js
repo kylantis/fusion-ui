@@ -11,11 +11,11 @@ class BaseRenderer {
 
   #isRoot;
 
-  #initialized;
+  #sealed;
 
   #config;
 
-  #internalMeta;
+  #metadata;
 
   constructor({ id, input, logger, config = {} } = {}) {
     if (!id) {
@@ -45,18 +45,20 @@ class BaseRenderer {
 
     this.setInput(input);
 
-    this.#config = Object.seal({
+    this.#config = {
       ...BaseRenderer.getDefaultConfig(),
       ...config,
-    });
+    };
 
-    // Create root proxy
-    // eslint-disable-next-line no-undef
-    RootProxy.create(this);
+    this.#metadata = {};
+  }
 
-    this.#internalMeta = {};
-
-    this.#initialized = true;
+  init() {
+    if (!this.proxyInstance) {
+      // Create root proxy
+      // eslint-disable-next-line no-undef
+      RootProxy.create(this);
+    }
   }
 
   createDefaultLogger() {
@@ -77,8 +79,12 @@ class BaseRenderer {
     }
   }
 
-  getInternalMeta() {
-    return this.#internalMeta;
+  addMetadata(key, value) {
+    Object.defineProperty(this.#metadata, key, { value, configurable: true, enumerable: false });
+  }
+
+  getMetaData() {
+    return this.#metadata;
   }
 
   static getDefaultConfig() {
@@ -88,6 +94,10 @@ class BaseRenderer {
       allowHooksForNonExistentPaths: true,
       serialization: {},
     }
+  }
+
+  addConfig(k, v) {
+    this.#config[k] = v;
   }
 
   getConfig() {
@@ -119,17 +129,18 @@ class BaseRenderer {
   }
 
   setInput(input) {
-    if (this.#initialized) {
+    if (this.#sealed) {
       throw Error(`[${this.#id}] The root object cannot be modified`);
     }
     this.#input = input;
   }
 
-  isInitialized() {
-    return this.#initialized;
+  isSealed() {
+    return this.#sealed;
   }
 
-  load() {
+  seal() {
+    this.#sealed = true;
   }
 
   evaluateExpression(code, scope) {
@@ -143,20 +154,13 @@ class BaseRenderer {
    */
   toJSON() {
     const { serialization, loadable } = this.#config;
-    const { referenceKey } = this.getInternalMeta();
-    const { objectReferenceKey } = clientUtils
 
-    const o = {};
-
-    if (referenceKey) {
-      o[objectReferenceKey] = referenceKey;
-    } else {
-      o['@type'] = this.constructor.className || this.constructor.name;
-      o['@data'] = this.#input;
-      o['@loadable'] = serialization.loadable !== undefined ? !!serialization.loadable : loadable;
-    }
-
-    return o;
+    return {
+      ['@component']: true,
+      ['@type']: this.constructor.className || this.constructor.name,
+      ['@data']: this.#input,
+      ['@loadable']: serialization.loadable !== undefined ? !!serialization.loadable : loadable,
+    };
   }
 
   #createId() {

@@ -9,7 +9,8 @@
   class="
     slds-dropdown 
     {{length ? length : '' transform='lengthTransform'}}
-    {{fluid ? 'slds-dropdown_fluid' : ''}}" 
+    {{fluid ? 'slds-dropdown_fluid' : ''}}"
+  style="{{not groups.length ? 'display: none;' : ''}}"
   role="listbox" aria-label="" tabindex="0" aria-busy="false"
   >
   {{!-- Todo: Why is "aria-busy" above always false? --}}

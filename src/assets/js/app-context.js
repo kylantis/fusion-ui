@@ -179,7 +179,7 @@ class AppContext {
       self.Component = component;
     }
 
-    return component.load({ container: container.id })
+    return component.load({ container: `#${container.id}` })
       .then(() => {
         if (!AppContext.#initialized) {
           AppContext.#initialized = true;

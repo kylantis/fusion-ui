@@ -41,9 +41,13 @@
 
 {{#if (items.length gt 1) or itemPredicate}}
     <div class="slds-pill_container">
-        {{#each items predicate='itemPredicateFn' innerTransform='moveWrapperToFirstChild' as |item itemIndex|}}
-            {{> base_pill item}}
-        {{/each}}
+        <ul class="slds-listbox slds-listbox_{{alignment}}">
+            {{#each items predicate='itemPredicateFn' as |item itemIndex|}}
+                <li class="slds-listbox-item">
+                    {{> base_pill item}}
+                </li>
+            {{/each}}
+         </ul>
     </div>
 {{else}}
     {{#if items.[0]}}

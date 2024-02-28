@@ -26,7 +26,7 @@
       "minLength": 10,
       "singularType": "Row"
     },
-    "rows.$_.cells": {
+    "rows_$.cells": {
       "minLength": 5,
       "singularType": "Cell"
     }
@@ -73,51 +73,45 @@
       "type": "Boolean",
       "defaultValue": true
     },
-    "columns.$_.resizable": {
-      "type": "Boolean",
-      "defaultValue": true
-    },
-    "columns.$_.sortable": {
-      "type": "Boolean",
-      "defaultValue": true
-    },
-    "columns.$_.icon": {
-      "type": "Icon",
-      "isNull": false
-    },
-    "rows.$_.selected": {
-      "type": "Boolean",
-      "defaultValue": false
-    },
-    "rows.$_.rowsSelectable": {
-      "type": "Boolean",
-      "defaultValue": true
-    },
-    "rows.$_.actions": {
-      "type": "Menu",
-      "isNull": false
-    },
     "hasActions": {
       "type": "Boolean",
       "defaultValue": false,
       "clientOnly": true
     },
-    "rows.$_.cells_$.component": {
+    "rows_$.id": {
+      "type": "String",
+      "defaults": [
+        null
+      ]
+    },
+    "rows_$.selected": {
+      "type": "Boolean",
+      "defaultValue": false
+    },
+    "rows_$.rowsSelectable": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "rows_$.actions": {
+      "type": "Menu",
+      "isNull": false
+    },
+    "rows_$.cells_$.component": {
       "type": "componentRef",
       "isNull": true,
       "defaults": [
         "Link"
       ]
     },
-    "rows.$_.cells_$.control": {
+    "rows_$.cells_$.control": {
       "type": "FormElement",
       "isNull": false
     },
-    "rows.$_.cells_$.value.icon": {
+    "rows_$.cells_$.value.icon": {
       "type": "Icon",
       "isNull": true
     },
-    "rows.$_.cells_$.value.text": {
+    "rows_$.cells_$.value.text": {
       "type": "String",
       "defaults": [
         "Action items",
@@ -154,6 +148,18 @@
         "$13,000",
         "$5,000,000"
       ]
+    },
+    "columns.$_.resizable": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "columns.$_.sortable": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "columns.$_.icon": {
+      "type": "Icon",
+      "isNull": false
     }
   },
   "behaviours": {
@@ -182,7 +188,7 @@
   "sample": {
     "nullifyRandomly": [
       "columns.$_.icon",
-      "rows.$_.cells_$.control"
+      "rows_$.cells_$.control"
     ]
   },
   "useCollectionLengthProperty": true,

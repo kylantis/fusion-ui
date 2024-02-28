@@ -1,6 +1,13 @@
 
 class Menu extends components.LightningComponent {
 
+    #identifiers = [];
+    
+    #items = {};
+    #selectedItems = [];
+
+    static #iconMarkupCache = {};
+
     beforeCompile() {
         this.getInput().overlay;
 
@@ -14,6 +21,28 @@ class Menu extends components.LightningComponent {
         this.getInput().groups[0].required
     }
 
+    onMount() {
+
+        this.on('remove.groups_$.items_$', ({ value: item }) => {
+            if (!item) return;
+
+            const { identifier } = item;
+
+            const index = this.#identifiers.indexOf(identifier);
+            assert(index >= 0);
+
+            this.#identifiers.splice(index, 1);
+
+
+            this.#removeFromSelectedItems(identifier);
+            delete this.#items[identifier];
+        });
+    }
+
+    immutablePaths() {
+        return ['groups_$.items_$.identifier'];
+    }
+
     static itemClassName() {
         return 'slds-dropdown__item';
     }
@@ -22,12 +51,48 @@ class Menu extends components.LightningComponent {
         return ['click', 'select', 'unselect'];
     }
 
+    behaviours() {
+        return ['selectItem', 'unselectItem', 'renderSubMenu'];
+    }
+
+    initializers() {
+        return {
+            ['groups_$.checkIconPosition']: 'left',
+            ['groups_$.items_$.identifier']: () => this.randomString(),
+            ['groups_$.items_$.subMenuX']: 'right',
+            ['groups_$.items_$.leftMargin']: true,
+            ['groups_$.items_$.rightMargin']: true,
+        };
+    }
+
+    transformers() {
+        return {
+            ['groups_$.items_$.identifier']: (identifier) => {
+                if (this.#identifiers.includes(identifier)) {
+                    identifier = this.randomString();
+                }
+                this.#identifiers.push(identifier);
+
+                return identifier;
+            },
+        };
+    }
+
     getItems() {
-        return this.items || (this.items = {})
+        return this.#items;
     }
 
     getSelectedItems() {
-        return this.selectedItems || (this.selectedItems = []);
+        return this.#selectedItems;
+    }
+
+    #removeFromSelectedItems(identifier) {
+        const selectedItems = this.getSelectedItems();
+        const idx = selectedItems.indexOf(identifier);
+
+        if (idx >= 0) {
+            selectedItems.splice(idx, 1);
+        }
     }
 
     unselectItem(identifier, transitive = false) {
@@ -36,21 +101,26 @@ class Menu extends components.LightningComponent {
         const selectedItems = this.getSelectedItems();
 
         const item = items[identifier];
+
+        if (!item) {
+            return;
+        }
+
         const {
-            checkIconContainer, leftIconContainer, leftIcon,
-            rightIconContainer, rightIcon, group
+            group: { role, checkIconPosition, required },
+            checkIconContainer, leftIconContainer, leftIcon, rightIconContainer, rightIcon,
         } = item
 
         assert(item.isSelected && selectedItems.includes(identifier));
 
-        if (group.role == 'radio' && !transitive && group.required) {
+        if (role == 'radio' && !transitive && required) {
             // We need to have at least one item
             return;
         }
 
         checkIconContainer.innerHTML = '';
 
-        switch (group.checkIconPosition) {
+        switch (checkIconPosition) {
             case 'left':
                 if (leftIcon) {
                     assert(checkIconContainer == leftIconContainer);
@@ -66,7 +136,7 @@ class Menu extends components.LightningComponent {
         }
 
         item.isSelected = false;
-        selectedItems.splice(selectedItems.indexOf(identifier), 1);
+        this.#removeFromSelectedItems(identifier);
 
         this.dispatchEvent('unselect', identifier)
     }
@@ -78,16 +148,22 @@ class Menu extends components.LightningComponent {
 
         const item = items[identifier];
 
+        if (!item) {
+            return;
+        }
+
+        const { group: { role }, checkIconContainer, checkIconMarkup } = item;
+
         switch (true) {
 
             case !item.isSelected:
 
-                if (item.group.role == 'radio' && selectedItems.length) {
+                if (role == 'radio' && selectedItems.length) {
                     // Only one item can be selected at a time, unselect the previous
                     this.unselectItem(selectedItems[selectedItems.length - 1], true);
                 }
 
-                item.checkIconContainer.innerHTML = item.checkIconMarkup
+                checkIconContainer.innerHTML = checkIconMarkup;
 
                 item.isSelected = true;
                 selectedItems.push(identifier);
@@ -102,168 +178,158 @@ class Menu extends components.LightningComponent {
         }
     }
 
-    createIcon({ type, name, level, x }) {
+    async #getIconMarkup({ type, name, feedbackState }) {
         const input = {
             type,
             name,
-            useCurrentColor: level && level == 'warning',
+            useCurrentColor: feedbackState && feedbackState == 'warning',
             size: 'xx-small',
         };
 
-        if (x === 'left') {
-            input.marginRight = 'x-small';
-        } else {
-            input.marginLeft = 'small';
+        const cacheId = `${type}-${name}-${feedbackState}`;
+
+        let markup = Menu.#iconMarkupCache[cacheId];
+
+        if (markup) {
+            return markup;
         }
 
-        return new components.Icon({ input });
+        const icon = new components.Icon({ input });
+
+        await icon.load();
+
+        markup = icon.getNode().outerHTML;
+
+        icon.destroy();
+
+        Menu.#iconMarkupCache[cacheId] = markup;
+
+        return markup;
+    }
+
+    renderSubMenu(identifier) {
+        const items = this.getItems();
+
+        const item = items[identifier];
+
+        if (!item) {
+            return;
+        }
+
+        const { blockData, subMenu, li } = item;
+
+        if (subMenu) {
+
+            if (children.length == 1) {
+
+                this.executeWithBlockData(() => {
+                    this.renderDecorator('submenu-decorator', (htmlString) => {
+
+                        const range = document.createRange();
+                        const node = range.createContextualFragment(htmlString);
+
+                        li.appendChild(
+                            node.querySelector('.slds-dropdown')
+                        );
+                    });
+                }, blockData);
+            }
+
+            assert(children.length == 2);
+
+        } else {
+            const { children } = li;
+
+            if (children.length > 1) {
+                // Remove submenu from DOM
+                children[1].remove();
+            }
+
+            assert(children.length == 1);
+        }
     }
 
     /**
      * Block Hook that processes new items added to this menu
      * @param {HTMLElement} node 
      */
-    async setupMenuItem({ node, blockData }) {
+    async itemHook({ node, blockData }) {
 
-        const wrapperCssClass = BaseComponent.getWrapperCssClass();
         const { pathSeparator } = BaseComponent.CONSTANTS;
 
-        const _this = this;
-
         const li = node.querySelector(':scope > li');
-
-        const { overlay } = this.getInput();
-
-        li.setAttribute(this.getOverlayAttribute(), !!overlay)
-
-        const { index: groupIndex } = blockData['groups'];
-
-        const { index: itemIndex } = blockData[`groups_$${pathSeparator}items`];
-
-        const group = this.getInput()['groups'][groupIndex];
-        let {
-            selected: initiallySelected, level,
-            subMenu, subMenuX
-        } = group.items[itemIndex];
-
-        let { role, checkIconPosition = 'left', required } = group;
-
-        if (subMenu) {
-            role = 'presentation';
-            subMenuX = subMenuX || 'right';
-        }
-
         const items = this.getItems();
 
         const identifier = li.getAttribute('identifier');
 
-        if (!identifier) {
-            const msg = `[${this.getId()}] Empty item identifier`;
-            throw Error(msg)
+        const { overlay, groups } = this.getInput();
+
+        li.setAttribute(this.getOverlayAttribute(), !!overlay)
+
+        const { index: groupIndex } = blockData['groups'];
+        const { index: itemIndex } = blockData[`groups_$${pathSeparator}items`];
+
+        const group = groups[groupIndex];
+        const groupItem = group.items[itemIndex];
+
+        let { selected, feedbackState, subMenu, subMenuX, leftIcon, rightIcon } = groupItem;
+
+        let { role, checkIconPosition, required } = group;
+
+        if (subMenu) {
+            role = 'presentation';
         }
 
         const item = {
             group: { role, checkIconPosition, required },
-            leftIconContainer: li.querySelector(`:scope > a > span > .${wrapperCssClass}`),
-            rightIconContainer: li.querySelector(`:scope > a > .${wrapperCssClass}`),
-            hasSubMenu: !!subMenu
-        }
-
-        // Depending on checkIconPosition, if the leftIconContainer or rightIconContainer
-        // is available, the contents will be overwritten by the check icon if the item
-        // is selectable, hence we want to store the actual icon div element, which we can
-        // then re-insert in the container if the item is unselected at a later time
-
-        if (item.leftIconContainer) {
-            item.leftIcon = item.leftIconContainer.querySelector(`:scope > div.${wrapperCssClass}`)
-        }
-
-        if (item.rightIconContainer) {
-            item.rightIcon = item.rightIconContainer.querySelector(`:scope > div.${wrapperCssClass}`)
+            leftIconContainer: li.querySelector('.left-icon-container'),
+            rightIconContainer: li.querySelector('.right-icon-container'),
+            leftIcon: leftIcon ? leftIcon.getNode() : null,
+            rightIcon: rightIcon ? rightIcon.getNode() : null,
+            subMenu, blockData, li,
         }
 
         items[identifier] = item;
 
-        const createContainerDiv = () => {
-            const elem = document.createElement('div');
-            elem.id = this.randomString();
-            elem.className = wrapperCssClass;
+        switch (true) {
+            case role != 'presentation':
 
-            return elem;
+                item.checkIconContainer = (checkIconPosition == 'left') ? item.leftIconContainer : item.rightIconContainer;
+
+                item.checkIconMarkup = await this.#getIconMarkup({
+                    type: 'utility',
+                    name: 'check',
+                    feedbackState,
+                });
+
+                if (selected) {
+                    this.selectItem(identifier)
+                }
+                break;
+
+            case !!subMenu:
+                // Add the caret icon (either to the left or right),  replacing whatever icon exists
+
+                ((subMenuX == 'left') ? item.leftIconContainer : item.rightIconContainer)
+                    .innerHTML = await this.#getIconMarkup({
+                        type: 'utility',
+                        name: `chevron${subMenuX}`,
+                        feedbackState,
+                    });
+
+                this.renderSubMenu(identifier);
+                break;
         }
 
-        if (role != 'presentation') {
-
-            // Based on the checkIconPosition specified, select the appropriate icon container
-            let checkIconContainer = checkIconPosition === 'left' ? item.leftIconContainer : item.rightIconContainer
-
-            if (!checkIconContainer) {
-                // This item does not have an icon, manually create an icon container
-                // Note that: since this container is only  being created for the purpose
-                // of adding selection support, we will only be creating a container either
-                // on the left or right side, depending on the checkIconPosition setting
-
-                checkIconContainer = createContainerDiv();
-
-                if (checkIconPosition === 'left') {
-                    li.querySelector(':scope > a > span').prepend(checkIconContainer);
-                } else {
-                    li.querySelector(':scope > a').append(checkIconContainer);
-                }
-            }
-
-            item.checkIconContainer = checkIconContainer;
-
-            const checkIcon = this.createIcon({
-                type: 'utility',
-                name: 'check',
-                level,
-                x: checkIconPosition
-            });
-
-            await checkIcon.load();
-
-            item.checkIconMarkup = checkIcon.getNode().outerHTML;
-
-            checkIcon.destroy();
-
-            if (initiallySelected) {
-                this.selectItem(identifier)
-            }
-        } else if (subMenu) {
-
-            // Add the caret icon (either to the left or right), 
-            // replacing whatever icon exists
-
-            let caretContainer = subMenuX === 'left' ? item.leftIconContainer : item.rightIconContainer
-
-            if (!caretContainer) {
-                caretContainer = createContainerDiv();
-
-                if (subMenuX === 'left') {
-                    li.querySelector(':scope > a > span').prepend(caretContainer);
-                } else {
-                    li.querySelector(':scope > a').append(caretContainer);
-                }
-            }
-
-            const caret = this.createIcon({
-                type: 'utility',
-                name: `chevron${subMenuX}`,
-                level,
-                x: subMenuX,
-            });
-
-            await caret.load({ container: caretContainer.id });
-
-            // Move the sub-menu directly into <li>
-
-            const subMenuElement = li.querySelector(`:scope > :nth-child(2) > .${wrapperCssClass} > .${wrapperCssClass} > .slds-dropdown`);
-            li.removeChild(
-                li.querySelector(':scope > :nth-child(2)')
-            )
-            li.append(subMenuElement);
+        if (!leftIcon) {
+            groupItem.leftMargin = false;
         }
+
+        if (!rightIcon) {
+            groupItem.rightMargin = false;
+        }
+
+        const _this = this;
 
         li.addEventListener('click', function () {
 
@@ -277,7 +343,7 @@ class Menu extends components.LightningComponent {
                 _this.selectItem(identifier)
             }
 
-            if (item.hasSubMenu) {
+            if (item.subMenu) {
                 li.querySelector(':scope > a').setAttribute('aria-expanded', true);
             }
         });
@@ -287,7 +353,7 @@ class Menu extends components.LightningComponent {
             const identifier = this.getAttribute('identifier');
             const item = items[identifier];
 
-            if (item.hasSubMenu) {
+            if (item.subMenu) {
                 li.querySelector(':scope > a').setAttribute('aria-expanded', true);
             }
         });
@@ -297,7 +363,7 @@ class Menu extends components.LightningComponent {
             const identifier = this.getAttribute('identifier');
             const item = items[identifier];
 
-            if (item.hasSubMenu) {
+            if (item.subMenu) {
                 li.querySelector(':scope > a').removeAttribute('aria-expanded');
             }
         });

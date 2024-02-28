@@ -27,14 +27,12 @@ class Drawer extends components.LightningComponent {
         if (showByDefault) {
             this.openDrawer();
         }
-    }
 
-    hooks() {
-        return {
-            ['afterMount.size']: () => {
+        this.on('insert.size', ({ afterMount }) => {
+            afterMount(() => {
                 this.normalizeSize();
-            },
-        }
+            });
+        });
     }
 
     events() {
@@ -51,13 +49,7 @@ class Drawer extends components.LightningComponent {
         const selector = overlay ? ':scope .slds-c-overlay-drawer' :
             ':scope .slds-c-drawer-container .slds-c-drawer';
 
-        const node = this.node.querySelector(selector);
-
-        if (!node) {
-            this.throwError(`Could not find main drawer node "${selector}"`);
-        }
-
-        return node;
+        return this.node.querySelector(selector);
     }
 
     toggleDrawer() {

@@ -1,28 +1,5 @@
 <nav class="slds-nav-vertical" {{label ? "aria-label=\" ${label}\"" : "" }}>
-        {{#each sections as |section sectionIndex|}}
-
-        {{#*inline "render_item" item}}
-            {{component Badge alias="item.badge"}}
-
-            <li class="slds-nav-vertical__item {{item.active ? " slds-is-active" : "" }}">
-                <a onclick="{{fn "onClick"}}('{{item.id}}')" class="slds-nav-vertical__action"
-                    aria-current="true">
-
-                    {{#if item.icon}}
-                        {{> Icon 
-                                name=item.icon type='utility' size="x-small" 
-                                cssClass="slds-line-height_reset" marginRight="x-small"
-                        }}
-                    {{/if}}
-
-                    {{item.name}}
-
-                    {{#if item.badge}}
-                        {{> item.badge cssClass="slds-col_bump-left" }}
-                    {{/if}}
-                </a>
-            </li>
-        {{/inline}}
+    {{#each sections as |section sectionIndex|}}
 
         <div class="slds-nav-vertical__section">
 
@@ -30,52 +7,76 @@
                 <h2 id="{{id}}-header" class="slds-nav-vertical__title">{{name}}</h2>
             {{/if}}
 
-            {{!-- Main Pane--}}
+            {{#*inline "render_item" item}}
+                {{component Badge alias="item.badge"}}
+                
+                {{onItemRender item.id}}
+
+                <li class="slds-nav-vertical__item {{item.active ? " slds-is-active" : "" }}">
+                    <a onclick="{{fn "onItemClick"}}('{{item.id}}')" class="slds-nav-vertical__action"
+                        aria-current="true">
+
+                        {{#if item.icon}}
+                            {{> Icon 
+                                    name=item.icon type='utility' size="x-small" 
+                                    cssClass="slds-line-height_reset" marginRight="x-small"
+                            }}
+                        {{/if}}
+
+                        {{item.name}}
+
+                        {{#if item.badge}}
+                            {{> item.badge cssClass="slds-col_bump-left" }}
+                        {{/if}}
+                    </a>
+                </li>
+            {{/inline}}
+
+
             <div>
                 <ul aria-describedby="{{id}}-header">
-                    {{#each items hook='registerNavItem' hookPhase='onMount'as |item itemIndex|~}}
+                    {{#each items as |item itemIndex|~}}
                         {{#if itemIndex lt @root.truncateSize}}
                             {{> render_item item}}
                         {{/if}}
-                    {{~/each}}
+                    {{/each}}
                 </ul>
             </div>
 
+
             {{#if items.length gt @root.truncateSize}}
 
-            {{!-- Overflow Pane--}}
-            <div class="slds-nav-vertical__overflow">
+                <div class="slds-nav-vertical__overflow">
 
-                {{#with overflow}}
-                <button
-                    class="slds-button slds-button_reset slds-nav-vertical__action slds-nav-vertical__action_overflow"
-                    aria-controls="{{../id}}-overflow" aria-expanded="{{expanded ? true : false}}" onclick="{{fn "toggleOverflowArea"}}('{{@../index}}')">
+                    {{#with overflow}}
+                        <button
+                            class="slds-button slds-button_reset slds-nav-vertical__action slds-nav-vertical__action_overflow"
+                            aria-controls="{{../id}}-overflow" aria-expanded="{{expanded ? true : false}}" onclick="{{fn "toggleOverflowArea"}}('{{@../index}}')">
 
-                    {{> ButtonIconSvg iconType='utility' iconName='chevronright' cssClass='slds-button__icon_left'}}
+                            {{> ButtonIconSvg iconType='utility' iconName='chevronright' cssClass='slds-button__icon_left'}}
 
-                    <span class="slds-nav-vertical__action-text">
-                        {{var label = (expanded ? "Show Less" : "Show More") inline=true}}
+                            <span class="slds-nav-vertical__action-text">
+                                {{var label = (expanded ? "Show Less" : "Show More") inline=true}}
 
-                        {{label}}
-                        <span class="slds-assistive-text">{{label}}</span>
-                    </span>
-                </button>
-                {{/with}}
+                                {{label}}
+                                <span class="slds-assistive-text">{{label}}</span>
+                            </span>
+                        </button>
+                    {{/with}}
 
-                <div id="{{id}}-overflow" class="slds-{{overflow.expanded ? "show" : "hide"}}">
-                    <ul aria-describedby="{{id}}-header">
-                    {{#each items hook='registerNavItem' hookPhase='onMount' as |item itemIndex|~}}
-                        {{#if itemIndex gte @root.truncateSize}}
-                            {{> render_item item}}
-                        {{/if}}
-                    {{~/each}}
-                    </ul>
+                    <div id="{{id}}-overflow" class="slds-{{overflow.expanded ? "show" : "hide"}}">
+                        <ul aria-describedby="{{id}}-header">
+                        {{#each items as |item itemIndex|~}}
+                            {{#if itemIndex gte @root.truncateSize}}
+                                {{> render_item item}}
+                            {{/if}}
+                        {{/each}}
+                        </ul>
+                    </div>
                 </div>
-            </div>
 
             {{/if}}
-
         </div>
-        {{/each}}
-
-    </nav>
+        
+    {{/each}}
+</nav>
