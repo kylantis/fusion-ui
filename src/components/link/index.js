@@ -1,6 +1,10 @@
 
 class Link extends components.LightningComponent {
 
+    eagerlyInline() {
+        return true;
+    }
+    
     events() {
         return ['click'];
     }

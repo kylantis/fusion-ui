@@ -1,6 +1,7 @@
 
 /* eslint-disable no-underscore-dangle */
 
+const tailArrayIndexSegment = /\[[0-9]+\]$/g;
 const arrayIndexSegment = /\[[0-9]+\]/g;
 
 // Note: The reason why we are using .+ instead of \w+ is because map keys are actually
@@ -15,8 +16,58 @@ const defaultMapKey = /^\$_\w+$/g
 const segment = /(\[[0-9]+\])|(\["\$_.+?"\])/g;
 const segmentWithCanonical = /(\[[0-9]+\])|(\["\$_.+?"\])|(_\$)/g;
 
+const internedStringsMetadata = { groupIndexes: {} };
+
+
 module.exports = {
-  arrayIndexSegment, mapKeySegment,
+  tailArrayIndexSegment, arrayIndexSegment, mapKeySegment,
+
+  toFqPath({ type, isArray, isMap, parent, prop }) {
+    switch (true) {
+      case Number.isInteger(prop) || type == 'array':
+        isArray = true;
+        break;
+
+      case type == 'map':
+        isMap = true;
+        break;
+
+      case prop.startsWith('@'):
+        isArray = isMap = false;
+        break;
+    }
+
+    return `${parent}${isArray ? `[${prop}]` : isMap ? `["${prop}"]` : `${parent.length ? '.' : ''}${prop}`}`;
+  },
+
+  getLastSegment(pathArray) {
+    if (typeof pathArray == 'string') {
+      pathArray = pathArray.split('.');
+    };
+
+    const segments = clientUtils.getSegments({ original: pathArray.at(-1) });
+    return segments.at(-1);
+  },
+
+  getAllSegments(pathArray) {
+    if (typeof pathArray == 'string') {
+      pathArray = pathArray.split('.');
+    };
+
+    const arr = [];
+
+    pathArray.forEach((p, i) => {
+      if (i) {
+        arr.push('.');
+      }
+      clientUtils.getSegments({ original: p })
+        .forEach(s => {
+          arr.push(s);
+        });
+    });
+
+    return arr;
+  },
 
   getPathStringInfo(pathArray) {
     const { mapKeyPrefixRegex } = RootProxy;
@@ -103,16 +154,41 @@ module.exports = {
     return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
   },
 
-  randomString: () => {
-    const length = 8;
-    let result = '';
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-    const charactersLength = characters.length;
-    // eslint-disable-next-line no-plusplus
-    for (let i = 0; i < length; i++) {
-      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+
+
+  randomString: (groupName, length = 8) => {
+    const { _internedStringPool } = global;
+    const { groupIndexes } = internedStringsMetadata;
+
+    const generateNew = (groupName) => {
+      if (groupName) {
+        console.warn(
+          `_internedStringPool has been exhausted, group "${groupName}" needs a larger pool`
+        );
+      }
+
+      let result = '';
+
+      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+      const charactersLength = characters.length;
+      // eslint-disable-next-line no-plusplus
+      for (let i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+      }
+      return result;
     }
-    return result;
+
+    if (!groupName || !_internedStringPool) {
+      return generateNew();
+    }
+
+    if (!groupIndexes[groupName]) {
+      groupIndexes[groupName] = -1;
+    }
+
+    const idx = groupIndexes[groupName] += 1;
+
+    return _internedStringPool[idx] || generateNew(groupName);
   },
 
   visitObject(obj, visitor) {
@@ -382,20 +458,25 @@ module.exports = {
 
   toCanonicalPath0: (fqPath) => {
     const separator = '.';
-    return fqPath.split(separator)
-      .map(p => clientUtils.getSegments({
-        original: p,
-      }).map((segment) => {
-        switch (true) {
-          case !!segment.match(arrayIndexSegment):
-            return '_$';
-          case !!segment.match(mapKeySegment):
-            return `${separator}$_`;
-          case segment.startsWith('$_'):
-            return '$_';
-          default: return segment;
-        }
-      }).join('')).join(separator);
+
+    return (typeof fqPath == 'string' ? fqPath.split(separator) : fqPath)
+      .map(
+        p => clientUtils.getSegments({
+          original: p,
+        })
+          .map((segment) => {
+            switch (true) {
+              case !!segment.match(arrayIndexSegment):
+                return '_$';
+              case !!segment.match(mapKeySegment):
+                return `${separator}$_`;
+              case segment.startsWith('$_'):
+                return '$_';
+              default: return segment;
+            }
+          })
+          .join('')
+      ).join(separator);
   },
 
   isCanonicalArrayIndex: (path, parent) => {
@@ -431,12 +512,6 @@ module.exports = {
     return obj;
   },
 
-  createFrame(object) {
-    const frame = clientUtils.extend({}, object);
-    frame._parent = object;
-    return frame;
-  },
-
   isEmpty(value) {
     if (!value && value !== 0) {
       return true;
@@ -461,11 +536,11 @@ module.exports = {
     return results;
   },
 
-  getLine: (stmt, range = true) => {
-    const { loc: { source, start, end } = {} } = stmt;
+  getLine: (stmt, range = true, useProgramId = false) => {
+    const { loc: { programId, source, start, end } = {} } = stmt;
 
     // Note: we need to do "+ 1" to column because hbs is 0-based but most IDEs are 1-based
-    return `${source} ${start.line}:${start.column + 1}${range ? ` - ${(end.source && end.source != source) ? `${end.source} ` : ''}${end.line}:${end.column + 1}` : ''}`;
+    return `${useProgramId ? programId : source} ${start.line}:${start.column + 1}${range ? ` - ${(end.source && end.source != source) ? `${end.source} ` : ''}${end.line}:${end.column + 1}` : ''}`;
   },
 
   getRandomInt: (min = 10000, max = 99999) => {
@@ -486,84 +561,82 @@ module.exports = {
       .join(' ');
   },
 
-  createImmutableProxy (obj) {
-    const fn = () => {
-      throw Error("Object is immutable");
-    };
+  wrapPromise(promise) {
+    let isResolved = false;
+    let isRejected = false;
+    let isPending = true;
 
-    return new Proxy(obj, {
-      set: fn,
-      deleteProperty: fn,
-      defineProperty: fn,
-      setPrototypeOf: fn,
-      preventExtensions: fn
-    });
+    const wrappedPromise = promise.then(
+      value => {
+        isResolved = true;
+        isPending = false;
+        return value;
+      },
+      error => {
+        isRejected = true;
+        isPending = false;
+        throw error || Error();
+      }
+    );
+
+    wrappedPromise.isResolved = () => isResolved;
+    wrappedPromise.isRejected = () => isRejected;
+    wrappedPromise.isPending = () => isPending;
+
+    return wrappedPromise;
   },
 
-  createNewTrie() {
-    class TrieNode {
-      constructor() {
-        this.children = {};
-        this.isEndOfWord = false;
-        this.isInserted = false;
-        this.words = [];
+  createThenable: () => ({
+    then: function (onFulfilled, onRejected) {
+      try {
+        onFulfilled();
+      } catch (error) {
+        if (onRejected) {
+          onRejected(error);
+        }
+      }
+    }
+  }),
+
+  scaleArrayToTotal: (arr, cumulativeTotal) => {
+
+    const minInitial = Math.min(...arr);
+
+    // Step 1: Normalize the array such that the minimum becomes 1
+    let normalizedArray = arr.map(num => (num - minInitial) + 1);
+
+    // Step 2: Calculate the sum of the normalized array
+    let sumNormalized = normalizedArray.reduce((acc, num) => acc + num, 0);
+
+    // Step 3: Scale the normalized array to sum to the cumulativeTotal
+    let scaledArray = normalizedArray.map(num => (num / sumNormalized) * cumulativeTotal);
+
+    // Step 4: Ensure all numbers are whole numbers and adjust to make the sum exact
+    let resultingArray = scaledArray.map(num => Math.floor(num));
+
+    // Calculate the sum of the resulting array after flooring
+    let currentSum = resultingArray.reduce((acc, num) => acc + num, 0);
+
+    // Calculate the difference to reach the desired cumulative total
+    let difference = cumulativeTotal - currentSum;
+
+    // Adjust the array to account for the difference
+    for (let i = 0; i < resultingArray.length && difference != 0; i++) {
+      let add = Math.sign(difference);  // +1 if difference is positive, -1 if negative
+      resultingArray[i] += add;
+      difference -= add;
+    }
+
+    // Ensure there are no zeros in the resulting array
+    for (let i = 0; i < resultingArray.length; i++) {
+      if (resultingArray[i] === 0) {
+        // Find the maximum element to decrease
+        let maxIndex = resultingArray.indexOf(Math.max(...resultingArray));
+        resultingArray[maxIndex]--;
+        resultingArray[i]++;
       }
     }
 
-    class Trie {
-      constructor() {
-        this.root = new TrieNode();
-      }
-
-      bulkInsert(words) {
-        for (const word of words) {
-          this.insert(word);
-        }
-      }
-
-      insert(word) {
-        let node = this.root;
-        for (const char of word) {
-          if (!node.children[char]) {
-            node.children[char] = new TrieNode();
-          }
-          node = node.children[char];
-        }
-        if (!node.isInserted) {
-          node.isInserted = true;
-          node.words.push(word);
-        }
-        node.isEndOfWord = true;
-      }
-
-      search(prefix) {
-        if (prefix === "") {
-          // Return all stored words when searching for an empty string
-          return this.collectWords(this.root);
-        }
-
-        let node = this.root;
-        for (const char of prefix) {
-          if (!node.children[char]) {
-            return []; // No words with this prefix
-          }
-          node = node.children[char];
-        }
-        return this.collectWords(node).filter(word => word !== prefix);
-      }
-
-      collectWords(node) {
-        const result = [];
-        if (node.isEndOfWord) {
-          result.push(...node.words);
-        }
-        for (const childNode of Object.values(node.children)) {
-          result.push(...this.collectWords(childNode));
-        }
-        return result;
-      }
-    }
-
-    return new Trie();
+    return resultingArray;
   }
 };

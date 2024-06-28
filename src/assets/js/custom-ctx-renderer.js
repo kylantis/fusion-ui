@@ -9,14 +9,20 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
   static partialNameHash = '__name';
 
+  #decorators = {};
+
+  #stack = [];
+
   constructor({
     id, input, logger, config,
   } = {}) {
     super({
       id, input, logger, config,
     });
+  }
 
-    this.decorators = {};
+  isCustomContext() {
+    return !!this.#stack.length;
   }
 
   getHandlebarsHelpers() {
@@ -37,22 +43,20 @@ class CustomCtxRenderer extends RootCtxRenderer {
   }
 
   storeContext({ options, ctx }) {
-    // eslint-disable-next-line no-undef
-    const { emptyString } = RootProxy;
     const { partialIdHash } = CustomCtxRenderer;
 
     const { hash, fn } = options;
-    this.decorators[hash[partialIdHash]] = {
+    this.#decorators[hash[partialIdHash]] = {
       fn,
       data: ctx,
     };
 
-    return emptyString;
+    return '';
   }
 
   loadContext({ options, ctx }) {
     // eslint-disable-next-line no-undef
-    const { emptyObject, emptyString } = RootProxy;
+    const { emptyObject } = RootProxy;
     const {
       partialIdHash,
       // partialNameHash,
@@ -64,10 +68,10 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     if (hash[partialIdHash]) {
       // eslint-disable-next-line no-undef
-      assert(fn(emptyObject) === emptyString);
+      assert(fn(emptyObject) === '');
 
       // The referenced partial is an inline partial
-      const decorator = this.decorators[hash[partialIdHash]];
+      const decorator = this.#decorators[hash[partialIdHash]];
 
       fn = decorator.fn;
 
@@ -75,7 +79,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
       // ctx = decorator.data; Todo: VERIFY AND REMOVE THIS LINE
     }
 
-    // this.logger.debug(`Loading partial {{> ${partialName} }}`);
+    // this.logger.debug(null, `Loading partial {{> ${partialName} }}`);
 
     return this.renderBlock({
       ctx,
@@ -159,17 +163,17 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     const { fn, hash, loc } = options;
 
-    const { blockParam, hook, hookPhase, hookOrder, transform } = hash;
+    const { scopeVar, hook, hookPhase, hookOrder, transform } = hash;
 
     if (scope) {
-      assert(blockParam);
+      assert(scopeVar);
 
-      // The compiler added a special hashkey known as <blockParam> that contains
+      // The compiler added a special hashkey known as <scopeVar> that contains
       // the data variable qualifier used by subpaths, hence prune from <hash> and
       // inject as data variable
-      delete hash.blockParam;
+      delete hash.scopeVar;
 
-      hash[blockParam] = ctx;
+      hash[scopeVar] = ctx;
 
       if (state) {
         hash.state = state;
@@ -179,7 +183,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
         this.registerHook(`#${nodeId}`, hook, hookPhase, hookOrder, loc, (state || options.data.state).blockData);
       }
 
-      options.data = clientUtils.createFrame(options.data);
+      options.data = TemplateRuntime.createFrame(options.data);
     }
 
     if (transform) {
@@ -192,9 +196,13 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     this.startBlockContext({ loc });
 
+    this.#stack.push({ loc });
+
     const renderedValue = fn(
       this.wrapDataWithProxy(ctx), { data: options.data },
     );
+
+    this.#stack.pop();
 
     this.endBlockContext();
 
@@ -235,7 +243,8 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     } else if (value instanceof BaseComponent) {
       this.logger.warn(
-        `[${getLine({ loc })}] Component "${value.getId()}" needs a bind context inorder to render properly`
+        loc,
+        `Component "${value.getId()}" needs a bind context inorder to render properly`
       );
     }
 
@@ -302,7 +311,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
     const expr = condition
       .map((part) => {
 
-        const variableName = global.clientUtils.randomString();
+        const variableName = this.randomString('varName');
 
         switch (true) {
           case part == null:

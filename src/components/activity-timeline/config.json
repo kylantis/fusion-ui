@@ -5,25 +5,25 @@
       "minLength": 10,
       "singularType": "Item"
     },
-    "items.$_.summary.parts": {
+    "items_$.summary.parts": {
       "minLength": 5,
       "singularType": {
         "$ref": "Sentence.parts"
       }
     },
-    "items.$_.description.parts": {
+    "items_$.description.parts": {
       "minLength": 1,
       "singularType": {
         "$ref": "Sentence.parts"
       }
     },
-    "items.$_.title.left": {
+    "items_$.title.left": {
       "minLength": 1
     },
-    "items.$_.title.right": {
+    "items_$.title.right": {
       "minLength": 1
     },
-    "items.$_.properties": {
+    "items_$.properties": {
       "minLength": 2,
       "defaultKeys": [
         "Name",
@@ -40,19 +40,25 @@
     }
   },
   "scalars": {
-    "items.$_.expanded": {
+    "items_$.identifier": {
+      "type": "String",
+      "defaults": [
+        null
+      ]
+    },
+    "items_$.expanded": {
       "type": "Boolean",
       "defaultValue": false
     },
-    "items.$_.expandable": {
+    "items_$.expandable": {
       "type": "Boolean",
       "defaultValue": true
     },
-    "items.$_.assistiveText": {
+    "items_$.assistiveText": {
       "type": "String",
       "defaults": []
     },
-    "items.$_.lineColor": {
+    "items_$.lineColor": {
       "type": "String",
       "allowed": "cssColor",
       "defaults": [
@@ -65,21 +71,21 @@
         "Plum"
       ]
     },
-    "items.$_.icon": {
+    "items_$.icon": {
       "type": "Icon",
       "isNull": false
     },
-    "items.$_.actions": {
+    "items_$.actions": {
       "type": "Menu",
       "isNull": false
     },
-    "items.$_.summary.parts_$.link": {
+    "items_$.summary.parts_$.link": {
       "type": {
         "$ref": "Sentence.parts_$.link"
       },
       "isNull": false
     },
-    "items.$_.summary.parts_$.text": {
+    "items_$.summary.parts_$.text": {
       "type": {
         "$ref": "Sentence.parts_$.text"
       },
@@ -113,13 +119,13 @@
         "proactively exploit B2B solutions"
       ]
     },
-    "items.$_.description.parts_$.link": {
+    "items_$.description.parts_$.link": {
       "type": {
         "$ref": "Sentence.parts_$.link"
       },
       "isNull": true
     },
-    "items.$_.description.parts_$.text": {
+    "items_$.description.parts_$.text": {
       "type": {
         "$ref": "Sentence.parts_$.text"
       },
@@ -128,28 +134,28 @@
         "Create the deployments assets prior to production validation and release"
       ]
     },
-    "items.$_.title.main": {
+    "items_$.title.main": {
       "type": "Link",
       "isNull": false
     },
-    "items.$_.title.left_$": {
+    "items_$.title.left_$": {
       "type": "TextCompanion",
       "isNull": false,
       "defaults": [
         "CheckboxBase"
       ]
     },
-    "items.$_.title.right_$": {
+    "items_$.title.right_$": {
       "type": "TextCompanion",
       "isNull": false
     },
-    "items.$_.date": {
+    "items_$.date": {
       "type": "String",
       "defaults": [
         "9:00am | 3/20/17"
       ]
     },
-    "items.$_.properties.$_": {
+    "items_$.properties.$_": {
       "type": "Link",
       "isNull": false
     },
@@ -163,7 +169,7 @@
   "sample": {
     "count": 1,
     "nullifyRandomly": [
-      "items.$_.summary.parts_$.link"
+      "items_$.summary.parts_$.link"
     ]
   },
   "escapeDynamicHtml": false,
@@ -171,5 +177,6 @@
     "SharedType0": {
       "className": "Sentence"
     }
-  }
+  },
+  "hookAccessRate": 1
 }

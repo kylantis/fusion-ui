@@ -56,7 +56,7 @@
                             {{> ButtonIconSvg iconType='utility' iconName='chevronright' cssClass='slds-button__icon_left'}}
 
                             <span class="slds-nav-vertical__action-text">
-                                {{var label = (expanded ? "Show Less" : "Show More") inline=true}}
+                                {{var label = (expanded ? "Show Less" : "Show More") clone=true}}
 
                                 {{label}}
                                 <span class="slds-assistive-text">{{label}}</span>

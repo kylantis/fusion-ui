@@ -49,5 +49,6 @@
     }
   },
   "sample": {},
-  "escapeDynamicHtml": false
+  "escapeDynamicHtml": false,
+  "hookAccessRate": 2
 }

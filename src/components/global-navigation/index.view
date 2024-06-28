@@ -65,7 +65,7 @@
       {{component Icon alias="icon"}}
 
       {{#if ../useDivider }}
-      <div class="slds-context-bar__item--divider-left"></div>
+        <div class="slds-context-bar__item--divider-left"></div>
       {{/if}}
 
       <li

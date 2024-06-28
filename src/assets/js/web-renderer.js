@@ -15,7 +15,7 @@ class WebRenderer extends CustomCtxRenderer {
 
   // #API
   isHeadlessContext() {
-    return self.appContext.server;
+    return !self.appContext || self.appContext.server;
   }
 
   load(opts) {
@@ -59,20 +59,19 @@ class WebRenderer extends CustomCtxRenderer {
   }
 
   loadCSSDependencies() {
-    const timeout = 5000;
     // eslint-disable-next-line consistent-return
     return new Promise((resolve, reject) => {
       const loaded = [];
       let styles = [...new Set(this.cssDependencies())];
       // Filter styles that have previously loaded
       styles = styles
-        .filter(style => !WebRenderer.#loadedStyles.includes(style));
+        .filter(url => !WebRenderer.#loadedStyles.includes(url));
 
       if (!styles.length) {
         return resolve([]);
       }
 
-      styles.forEach((url) => {
+      styles.forEach(url => {
         if (WebRenderer.#loadedStyles.includes(url)) {
           return;
         }
@@ -86,7 +85,7 @@ class WebRenderer extends CustomCtxRenderer {
         const _this = this;
         link.onload = function () {
           loaded.push(this.href);
-          // _this.logger.info(`Loaded ${this.href}`);
+          // _this.logger.info(null, `Loaded ${this.href}`);
           if (loaded.length === styles.length) {
             resolve();
           }
@@ -96,12 +95,6 @@ class WebRenderer extends CustomCtxRenderer {
 
         WebRenderer.#loadedStyles.push(url);
       });
-      // eslint-disable-next-line consistent-return
-      setTimeout(() => {
-        if (loaded.length < styles.length) {
-          return reject(styles[loaded.length].url);
-        }
-      }, timeout);
     });
   }
 

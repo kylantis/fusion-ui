@@ -114,5 +114,6 @@
       "defaultValue": false
     }
   },
-  "escapeDynamicHtml": false
+  "escapeDynamicHtml": false,
+  "hookAccessRate": 2
 }

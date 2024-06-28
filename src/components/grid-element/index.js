@@ -6,18 +6,24 @@ class GridElement extends components.LightningComponent {
         this.getInput().order[0];
     }
 
-    beforeRender() {
-        this.on('insert.bump', ({ value, initial }) => {
-            const grid = this.getGrid();
-            
-            if (grid) {
-                if (value && !initial) {
-                    this.dispatchEvent('bump');
+    eventHandlers() {
+        return {
+            ['insert.bump']: ({ value, initial }) => {
+                const grid = this.getGrid();
+
+                if (grid) {
+                    if (value && !initial) {
+                        this.dispatchEvent('bump');
+                    }
+                } else if (value) {
+                    this.getInput().bump = null;
                 }
-            } else if (value) {
-                this.getInput().bump = null;
             }
-        });
+        }
+    }
+
+    beforeRender() {
+        this.on('insert.bump', 'insert.bump');
     }
 
     events() {

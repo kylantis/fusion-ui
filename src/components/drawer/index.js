@@ -21,6 +21,16 @@ class Drawer extends components.LightningComponent {
         }
     }
 
+    eventHandlers() {
+        return {
+            ['insert.size']: ({ afterMount }) => {
+                afterMount(() => {
+                    this.normalizeSize();
+                });
+            }
+        }
+    }
+
     afterMount() {
         const { showByDefault } = this.getInput();
 
@@ -28,11 +38,7 @@ class Drawer extends components.LightningComponent {
             this.openDrawer();
         }
 
-        this.on('insert.size', ({ afterMount }) => {
-            afterMount(() => {
-                this.normalizeSize();
-            });
-        });
+        this.on('insert.size', 'insert.size');
     }
 
     events() {

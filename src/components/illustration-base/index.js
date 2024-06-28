@@ -5,15 +5,12 @@ class IllustrationBase extends components.LightningComponent {
         this.getInput().name;
     }
 
-    onMount() {
+    async onMount() {
         const { name } = this.getInput();
 
-        if (!name) {
-            return;
-        }
+        if (!name) return;
 
-        const decorator = this.getDecorator(`${name}_svg`);
-        this.renderDecorator(decorator, this.getNode());
+        this.renderDecorator(`${name}_svg`, this.getNode());
     }
 }
 module.exports = IllustrationBase;

@@ -11,7 +11,7 @@
       {{required ? "required=''" : "" }}
       class="slds-input {{(not readonly and hasWidget) ? "hasWidget" : ""}}"
       style="{{readonly ? 'box-shadow: none;' : ''}}"
-      {{(value and not hasWidget) ? "value=\"${value}\"" : "" }}
+      value="{{((value neq null) and not hasWidget) ? value : "" }}"
       {{required ? "required=''" : "" }}
       {{disabled ? "disabled=''" : "" }}
       {{(readonly or hasWidget) ? "readonly=''" : "" }}
@@ -19,7 +19,7 @@
       {{message ? "aria-describedby=\"${@root.componentId}_message\"" : "" }}
       {{error ? "aria-invalid=\"true\"" : ""}}
       {{(not readonly and placeholder) ? "placeholder=\"${placeholder}\"" : ""}}
-      onchange="{{fn "onChange"}}(event)"
+      oninput="{{fn "onChange"}}(event)"
     >
 {{/inline}}
 

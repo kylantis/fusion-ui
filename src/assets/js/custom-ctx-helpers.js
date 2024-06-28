@@ -48,8 +48,9 @@ module.exports = {
             }
 
             const { loc, fn, inverse, hash } = options;
-            const { blockParam, hook, hookPhase, hookOrder, transform, nodeIndex } = hash;
-            assert(blockParam);
+            const { scopeVar, hook, hookPhase, hookOrder, transform, nodeIndex } = hash;
+            
+            assert(scopeVar);
 
             const nodeId = nodeIndex ? this.getNodeIdFromIndex(nodeIndex, loc) : null;
 
@@ -74,16 +75,10 @@ module.exports = {
                     let data;
 
                     if (options.data) {
-                        data = clientUtils.createFrame(options.data);
-                        data[blockParam] = context;
+                        data = TemplateRuntime.createFrame(options.data);
+                        data[scopeVar] = context;
                     }
-                    return fn(context, {
-                        data,
-                        // Handlebars wants us to add "blockParams", so let's make the engine happy even though we
-                        // know calls to blockParams have been transformed at compile time to access the corresponding
-                        // data variables
-                        blockParams: [context]
-                    });
+                    return fn(context, { data });
                 } else {
                     return inverse(this);
                 }
@@ -100,13 +95,16 @@ module.exports = {
     each() {
         const _this = this;
         return function (context, options) {
+            const { randomString } = BaseComponent;
+
             if (!options) {
                 _this.throwError('Must pass iterator to #each block');
             }
 
             const { fn, inverse, hash, loc } = options;
-            const { blockParam, hook, hookPhase, hookOrder, transform, predicate, nodeIndex, opaqueWrapper } = hash;
-            assert(blockParam);
+            const { scopeVar, indexVar,  hook, hookPhase, hookOrder, transform, predicate, nodeIndex, opaqueWrapper } = hash;
+            
+            assert(scopeVar && indexVar);
 
             const nodeId = nodeIndex ? this.getNodeIdFromIndex(nodeIndex, loc) : null;
             
@@ -119,7 +117,7 @@ module.exports = {
             }
 
             if (options.data) {
-                data = clientUtils.createFrame(options.data);
+                data = TemplateRuntime.createFrame(options.data);
             }
 
             if (context && typeof context === 'object') {
@@ -134,9 +132,10 @@ module.exports = {
                         data.index = index;
                         data.first = index === 0;
                         data.last = !!last;
-                        data.random = clientUtils.randomString();
+                        data.random = _this.randomString('random');
 
-                        data[blockParam] = currentValue;
+                        data[scopeVar] = currentValue;
+                        data[indexVar] = index;
                     }
 
                     const isNull = currentValue == null || (predicate ? !_this[predicate].bind(_this)(currentValue) : false);
@@ -149,13 +148,7 @@ module.exports = {
                             '' :
                             fn(
                                 currentValue,
-                                {
-                                    data,
-                                    // Handlebars wants us to add "blockParams", so let's make the engine happy even though we
-                                    // know calls to blockParams have been transformed at compile time to access the corresponding
-                                    // data variables
-                                    blockParams: [currentValue, field]
-                                });
+                                { data });
 
                         _this.endBlockContext();
 
@@ -164,7 +157,7 @@ module.exports = {
                         return markup;
                     }
 
-                    const memberNodeId = clientUtils.randomString();
+                    const memberNodeId = randomString('nodeId');
                     const markup = nodeId ? _this.execBlockIteration(func, opaqueWrapper, field, memberNodeId, loc) : func();
 
                     ret = ret + markup;

@@ -1,23 +1,32 @@
 
 class Grid extends components.GridElement {
 
-    beforeRender() {
-        
-        if (this.hasBump()) {
-            this.#removeCols();
+    eventHandlers() {
+        return {
+            ['insert.columns_$']: ({ value }) => {
+                if (!value) return;
+
+                value.setCol(true);
+
+                value.on(
+                    'bump', new EventHandler(() => {
+                        this.removeCols();
+                    }, this)
+                )
+            }
         }
-
-        this.on('insert.columns_$', ({ value }) => {
-            if (!value) return;
-
-            value.setCol(true);
-            value.on('bump', () => {
-                this.#removeCols();
-            });
-        });
     }
 
-    #removeCols() {
+    beforeRender() {
+
+        if (this.hasBump()) {
+            this.removeCols();
+        }
+
+        this.on('insert.columns_$', 'insert.columns_$');
+    }
+
+    removeCols() {
         const { columns = [] } = this.getInput();
 
         columns.forEach(gridElement => {

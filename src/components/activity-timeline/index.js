@@ -1,48 +1,64 @@
 class ActivityTimeline extends components.LightningComponent {
 
+    #identifiers = [];
+
     beforeCompile() {
         // compile ContextMenu first because this component depends on it
         components.ContextMenu;
+
+        this.getInput().items[0].lineColor;
+    }
+
+    eventHandlers() {
+        return {
+            ['insert.items_$.actions']: ({ value: actions, parentObject, afterMount }) => {
+                if (!actions) return;
+
+                const { identifier } = parentObject;
+
+                afterMount(() => {
+                    this.#addContextMenu(identifier, actions);
+                });
+            },
+            ['remove.items_$.actions']: ({ value, parentObject, afterMount }) => {
+                if (!value) return;
+
+                const { identifier } = parentObject;
+
+                afterMount(() => {
+                    this.#removeContextMenu(identifier);
+                });
+            },
+            ['insert.items_$.lineColor']: ({ value: lineColor, parentObject, afterMount }) => {
+                const { identifier } = parentObject;
+
+                afterMount(() => {
+                    this.getLineColorStyleElement(identifier).innerHTML = lineColor ? this.getLineColorStyleRule(identifier, lineColor) : '';
+                });
+            },
+            ['insert.items_$.expanded']: ({ value: expanded, parentObject: { identifier }, afterMount }) => {
+
+                afterMount(() => {
+                    this.getExpandButton(identifier).getButton()
+                        .setAttribute("aria-expanded", expanded);
+
+                    const { classList } = this.getTimelineItem(identifier);
+
+                    if (expanded) {
+                        classList.add('slds-is-open');
+                    } else {
+                        classList.remove('slds-is-open');
+                    }
+                });
+            }
+        }
     }
 
     beforeRender() {
-        
-        this.on('insert.items.$_.actions', ({ value: actions, parentObject, afterMount }) => {
-            if (!actions) return;
-
-            const { ['@key']: identifier } = parentObject;
-
-            afterMount(() => {
-                this.#addContextMenu(identifier, actions);
-            });
-        });
-
-        this.on('remove.items.$_.actions', ({ value, parentObject, afterMount }) => {
-            if (!value) return;
-
-            const { ['@key']: identifier } = parentObject;
-
-            afterMount(() => {
-                this.#removeContextMenu(identifier);
-            });
-        });
-
-        this.on('insert.items.$_.lineColor', ({ value: lineColor, parentObject, afterMount }) => {
-            const { ['@key']: identifier } = parentObject;
-
-            afterMount(() => {
-                this.getLineColorStyleElement(identifier).innerHTML = lineColor ? this.getLineColorStyleRule(identifier, lineColor) : '';
-            });
-        });
-
-        this.on('insert.items.$_.expanded', ({ value: expanded, parentObject, afterMount }) => {
-            const { ['@key']: identifier } = parentObject;
-
-            afterMount(() => {
-                this.getExpandButton(identifier).getButton()
-                    .setAttribute("aria-expanded", expanded);
-            });
-        });
+        this.on('insert.items_$.actions', 'insert.items_$.actions');
+        this.on('remove.items_$.actions', 'remove.items_$.actions');
+        this.on('insert.items_$.lineColor', 'insert.items_$.lineColor');
+        this.on('insert.items_$.expanded', 'insert.items_$.expanded');
     }
 
     onMount() {
@@ -50,7 +66,7 @@ class ActivityTimeline extends components.LightningComponent {
         // Todo: There are other components we need to do this for. 
         // Scan SLDS CSS file for .slds-is-open
 
-        const nodeId = `${this.getId()}-ul`;
+        const nodeId = `${this.getElementId()}-ul`;
 
         this.getNode().id = nodeId;
 
@@ -61,6 +77,29 @@ class ActivityTimeline extends components.LightningComponent {
             )
                 .children[0]
         );
+    }
+
+    initializers() {
+        return {
+            ['items_$.identifier']: () => this.randomString(),
+        };
+    }
+
+    transformers() {
+        return {
+            ['items_$.identifier']: (identifier) => {
+                if (this.#identifiers.includes(identifier)) {
+                    identifier = this.randomString();
+                }
+                this.#identifiers.push(identifier);
+
+                return identifier;
+            },
+        };
+    }
+
+    immutablePaths() {
+        return ['items_$.identifier'];
     }
 
     getNode() {
@@ -104,25 +143,39 @@ class ActivityTimeline extends components.LightningComponent {
         delete this.contextMenus[identifier];
     }
 
+    #getItem(identifier) {
+        const { items } = this.getInput();
+        return items.filter(item => item.identifier == identifier)[0];
+    }
+
     setupExpandBtn({ node }) {
 
-        const { items } = this.getInput();
         const identifier = node.querySelector(':scope > li').getAttribute('identifier');
 
-        const item = items[identifier];
+        const item = this.#getItem(identifier);
 
         this.onceInlineComponentLoad(
             this.getExpandButtonRef(identifier),
             () => {
                 const expandBtn = this.getExpandButton(identifier)
 
-                expandBtn.on('click', () => {
-                    item.expanded = !item.expanded;
-                });
+                expandBtn.on('click', new EventHandler(
+                    () => {
+                        _item.expanded = !_item.expanded;
+                    },
+                    null,
+                    { _item: item },
+                ));
 
-                expandBtn.on('load', () => {
-                    expandBtn.getButton().setAttribute("aria-controls", this.getArticle(identifier).id);
-                });
+                expandBtn.on('load', new EventHandler(
+                    function () {
+                        this.component.getButton().setAttribute(
+                            "aria-controls", _this.getArticle(_identifier).id
+                        );
+                    },
+                    null,
+                    { _this: this, _identifier: identifier },
+                ));
             }
         );
     }

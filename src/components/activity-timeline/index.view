@@ -25,16 +25,20 @@
 
 <ul class="slds-timeline">
 
-  {{#each items hook='setupExpandBtn' as |item|}}
+  {{#each items hook='setupExpandBtn' as |item itemIndex|}}
 
     {{component Icon alias="icon"}}
     {{component Menu alias="actions"}}
 
-    <li identifier="{{@key}}">
+    <li identifier="{{identifier}}">
 
-      <style></style>
+      <style>
+        .slds-timeline__item_lc_{{identifier}} {
+            visibility: hidden;
+        }
+      </style>
 
-      <div class="slds-timeline__item_expandable {{lineColor ? 'slds-timeline__item_lc_${@key}' : '' }} {{expanded ? 'slds-is-open': ''}}">
+      <div class="slds-timeline__item_expandable slds-timeline__item_lc_{{identifier}} {{expanded ? 'slds-is-open': ''}}">
         
         {{#if assistiveText}}
           <span class="slds-assistive-text">{{assistiveText}}</span>
@@ -47,7 +51,7 @@
               {{> ButtonIcon 
                     iconType='utility' iconName='switch' 
                     svgCssClass="slds-timeline__details-action-icon"
-                    ref="${@key}-expand-button"
+                    ref="${identifier}-expand-button"
               }}
             {{/if}}
 
@@ -89,7 +93,7 @@
                   {{> ButtonIcon 
                         iconType='utility' iconName='down' 
                         size="x-small" type="border-filled"
-                        ref="${@key}-actions-trigger-button"
+                        ref="${identifier}-actions-trigger-button"
                   }}
                 {{/if}}
 

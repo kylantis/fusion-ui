@@ -7,6 +7,16 @@ class MultiOptionFormElement extends components.FormElement {
         return true;
     }
 
+    eventHandlers() {
+        return {
+            ['remove.items_$']: ({ value: item }) => {
+                if (!item) return;
+
+                delete this.getItems()[this.getItemInputId(item)];
+            }
+        }
+    }
+
     beforeRender() {
         const input = this.getInput();
         const { items } = input;
@@ -25,23 +35,19 @@ class MultiOptionFormElement extends components.FormElement {
             }
         }
 
-        this.on('remove.items_$', ({ value: item }) => {
-            if (!item) return;
-
-            delete this.getItems()[this.getItemInputId(item)];
-        });
+        this.on('remove.items_$', 'remove.items_$');
     }
 
     isLoadable() {
         const { type, items } = this.getInput();
 
         if (!type) {
-            this.logger.warn(`[${this.getId()}] A type needs to be specified`);
+            this.logger.warn(null, `A type needs to be specified`);
             return false;
         }
 
         if (!items.length) {
-            this.logger.warn(`[${this.getId()}] At least one option needs to be provided`);
+            this.logger.warn(null, `At least one option needs to be provided`);
             return false;
         }
 
@@ -78,7 +84,7 @@ class MultiOptionFormElement extends components.FormElement {
 
     getItemInputId(item) {
         const { randomProperty } = BaseComponent.CONSTANTS;
-        
+
         const id = `${this.getId()}${this.isCompound() ? `-${item[randomProperty]}` : ''}`;
         return `${id}_input`;
     }

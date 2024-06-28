@@ -1,7 +1,7 @@
 const fs = require('fs');
 const pathLib = require('path');
 
-const babel = require('@babel/core');
+const UglifyJS = require('uglify-js');
 const gulp = require('gulp');
 
 const through = require('through2');
@@ -15,6 +15,14 @@ const distFolder = `dist/${basePath}`;
 
 const watchTarget = [`${srcFolder}/**/*.js`, `!${srcFolder}/**/*.min.js`];
 
+const removeInternalSegment = () => {
+  return through.obj(async (vinylFile, _encoding, callback) => {
+    const file = vinylFile.clone();
+
+    file.path = file.path.replace('/__internal', '');
+    callback(null, file);
+  });
+}
 
 const factory = () => through.obj((chunk, enc, cb) => {
 
@@ -30,32 +38,39 @@ const factory = () => through.obj((chunk, enc, cb) => {
 
   const vinylFile = chunk.clone();
 
-  const { contents, base, relative, basename } = vinylFile;
+  const { contents, base, relative, basename, path } = vinylFile;
 
   const minifiedRelative = toMinifiedName(relative);
   const minifiedBaseName = toMinifiedName(basename);
 
   const contentString = contents.toString();
 
-  const result = babel.transformSync(contentString, {
-    sourceFileName: basename,
-    sourceMaps: true,
-  });
+  const { error, code, map } = UglifyJS.minify(
+    {
+      [basename]: contentString,
+    },
+    {
+      sourceMap: {
+        filename: minifiedBaseName,
+        url: `/${basePath}/${minifiedRelative}.map`,
+      },
+      compress: true,
+      mangle: false,
+    });
+  if (error) {
+    throw Error(error);
+  }
 
   vinylFile.path = pathLib.join(base, minifiedRelative);
-  vinylFile.contents = Buffer.from(`${result.code}
-//# sourceMappingURL=${minifiedBaseName}.map
-//# sourceURL=/${basePath}/${minifiedRelative}`);
+  vinylFile.contents = Buffer.from(
+    `${code}\n//# sourceURL=/${basePath}/${minifiedRelative}`
+);
 
-  // Write non-minified js file
   writeFile(pathLib.join(distFolder, relative), contentString)
 
-  // Write .map file  
-  delete result.map.sourcesContent;
-  result.map.file = minifiedBaseName;
   writeFile(
     pathLib.join(distFolder, `${minifiedRelative}.map`),
-    JSON.stringify(result.map),
+    map,
   )
 
   cb(null, vinylFile);
@@ -75,6 +90,7 @@ const addPipes = (path, relativize) => {
   }
 
   return stream
+    .pipe(removeInternalSegment())
     .pipe(factory())
     .pipe(gulp.dest(distFolder));
 };

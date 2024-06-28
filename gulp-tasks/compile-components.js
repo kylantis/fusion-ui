@@ -9,7 +9,7 @@ const gulp = require('gulp');
 const through = require('through2');
 
 const { processFile } = require('../lib/template-processor');
-const { getAllComponentNames, peek } = require('../lib/utils');
+const { getAllComponentNames } = require('../lib/utils');
 
 const componentNameArgPrefix = '--component=';
 const segmentArg = '--segment';
@@ -53,21 +53,11 @@ if (!componentList) {
 const srcFolder = 'src/components';
 const distFolder = 'dist/components';
 
-const __cpq = global.__cpq || (global.__cpq = []);
-
 // eslint-disable-next-line func-names
 const gulpTransform = ({ componentList, performPurge } = {}) => {
   return through.obj(async (vinylFile, _encoding, callback) => {
     const file = vinylFile.clone();
-
     const dir = pathLib.dirname(file.path);
-
-    if (__cpq.length) {
-      const dir = peek(__cpq);
-      console.info(`Currently processing ${dir} - please try again shortly`);
-
-      return callback(null, file);
-    }
 
     if (fs.existsSync(pathLib.join(dir, '.skip'))) {
       return callback(null, file);
@@ -82,17 +72,12 @@ const gulpTransform = ({ componentList, performPurge } = {}) => {
       }
     }
 
-    __cpq.push(dir);
-
     const { assetId, metadata, error = null } = await processFile({
       dir,
       fromGulp: true,
       fromWatch,
       srcComponentList: componentList,
     });
-
-    __cpq.pop();
-
 
     // write precompiled template
     file.basename = 'metadata.min.js';
@@ -118,7 +103,13 @@ gulp.task('compile-component', async () => {
     throw Error(`Required argument: ${componentNameArgPrefix}`)
   }
 
-  return gulp.src(pathLib.join(srcFolder, componentName, 'index.view'))
+  const viewFile = pathLib.join(srcFolder, componentName, 'index.view');
+
+  if (!fs.existsSync(viewFile)) {
+    throw Error(`Could not find view file "${viewFile}"`)
+  }
+
+  return gulp.src(viewFile)
     .pipe(
       gulpTransform({ componentList, performPurge })
     )
@@ -129,45 +120,31 @@ gulp.task('compile-components', gulp.series(componentList
   .map((name, i) => {
     const taskName = `compile-component-${name}`;
 
-    if (!componentName) {
-      // We are compiling all components, we need to move each compilation task to a new process
+    const args = [`${componentNameArgPrefix}${name}`, segmentArg];
 
-      const args = [`${componentNameArgPrefix}${name}`, segmentArg];
-
-      if (i == 0) {
-        args.push(performPurgeArg);
-      }
-
-      gulp.task(taskName, () => {
-        return new Promise((resolve, reject) => {
-
-          const childProcess = spawn(
-            'npm', ['run', 'compile-component', '--silent', '--', '--silent', ...args],
-            { stdio: "inherit" }
-          );
-
-          childProcess.on('close', (code) => {
-            if (code == 0) {
-              resolve();
-            } else {
-              const err = Error(`Exception thrown while running ${taskName}, see above for stack trace`);
-              err.stack = ' ';
-              reject(err);
-            }
-          });
-        })
-      });
-
-    } else {
-      // We are compiling only one component, [componentName]
-
-      gulp.task(taskName, () => gulp.src(pathLib.join(srcFolder, name, 'index.view'))
-        .pipe(
-          gulpTransform({ componentList })
-        )
-        .pipe(gulp.dest(pathLib.join(distFolder, name)))
-      )
+    if (i == 0) {
+      args.push(performPurgeArg);
     }
+
+    gulp.task(taskName, () => {
+      return new Promise((resolve, reject) => {
+
+        const childProcess = spawn(
+          'npm', ['run', 'compile-component', '--silent', '--', '--silent', ...args],
+          { stdio: "inherit" }
+        );
+
+        childProcess.on('close', (code) => {
+          if (code == 0) {
+            resolve();
+          } else {
+            const err = Error(`Exception thrown while running ${taskName}, see above for stack trace`);
+            err.stack = ' ';
+            reject(err);
+          }
+        });
+      })
+    });
 
     return taskName;
   })));
@@ -182,14 +159,20 @@ gulp.task('compile-components:watch', () => {
   )
 
   watcher.on('change', (path) => {
+    if (global.__cwp) return;
+
+    global.__cwp = true;
 
     const [componentName] = path.replace(`${srcFolder}/`, '').split('/');
     const args = [`${componentNameArgPrefix}${componentName}`, segmentArg, fromWatchArg];
 
-    spawn(
+    const childProcess = spawn(
       'npm', ['run', 'compile-component', '--silent', '--', '--silent', ...args],
       { stdio: "inherit" }
-    )
-
+    );
+    
+    childProcess.on('close', (code) => {
+      global.__cwp = false;
+    });
   });
 });

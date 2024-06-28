@@ -136,10 +136,8 @@ class OverlayComponent extends components.LightningComponent {
         }
     }
 
-    getPosition(containerRect) {
+    getPosition(containerRect, avaiablePositions = this.getSupportedPositions(), allowNull) {
         const { isPositionAvailable } = OverlayComponent;
-
-        const avaiablePositions = this.getSupportedPositions();
 
         if (this.isPointerBased()) {
             for (const p of [...avaiablePositions]) {
@@ -160,6 +158,9 @@ class OverlayComponent extends components.LightningComponent {
         })();
 
         if (!position) {
+            if (allowNull) {
+                return null;
+            }
             position = this.getAnyPosition(containerRect);
         }
 
@@ -170,6 +171,7 @@ class OverlayComponent extends components.LightningComponent {
         );
 
         cssStyles.position = 'absolute';
+        cssStyles.transform = `translate(0)`;
 
         const container = this.getContainer();
 
@@ -203,7 +205,7 @@ class OverlayComponent extends components.LightningComponent {
     }
 
     getContainer() {
-        return this.container ? document.getElementById(this.container) : null;
+        return this.container ? document.querySelector(this.container) : null;
     }
 
     getContainerOffset() {

@@ -50,7 +50,7 @@
                 </th>
 
                 {{#each columns opaqueWrapper=true as |column|}}
-                    {{var resizable = (../resizableColumns or resizable) inline=true}}
+                    {{var resizable = (../resizableColumns or resizable) clone=true}}
 
                     <th aria-label="{{@key}}" aria-sort="none" class="{{resizable ? "slds-is-resizable" : ""}} {{sortable ? "slds-is-sortable" : ""}} slds-cell_action-mode" scope="col">
                     

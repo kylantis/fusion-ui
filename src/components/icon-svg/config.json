@@ -483,5 +483,6 @@
       "allowed": "iconColor"
     }
   },
-  "escapeDynamicHtml": false
+  "escapeDynamicHtml": false,
+  "hookAccessRate": 1
 }

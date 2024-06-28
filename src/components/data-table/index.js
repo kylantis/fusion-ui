@@ -8,43 +8,48 @@ class DataTable extends components.LightningComponent {
         components.ContextMenu;
     }
 
+    eventHandlers() {
+        return {
+            ['insert.rows_$.actions']: ({ value: actions, parentObject, afterMount }) => {
+                if (!actions) return;
+
+                const { id: rowId } = parentObject;
+
+                this.#setHasActions0(true);
+
+                afterMount(() => {
+                    this.#addContextMenu(rowId, actions);
+                });
+            },
+            ['remove.rows_$.actions']: ({ value, afterMount }) => {
+                if (!value) return;
+
+                const { id: rowId } = parentObject;
+
+                this.setHasActions();
+
+                afterMount(() => {
+                    this.#removeContextMenu(rowId);
+                });
+            },
+            ['remove.rows_$']: ({ value: row }) => {
+                // We have an initializer for "rows_$", so we know it will never be null
+                assert(row);
+
+                const { id } = row;
+
+                const index = this.#rowIds.indexOf(id);
+                assert(index >= 0);
+
+                this.#rowIds.splice(index, 1);
+            }
+        }
+    }
+
     beforeRender() {
-
-        this.on('insert.rows_$.actions', ({ value: actions, parentObject, afterMount, initial }) => {
-            if (!actions) return;
-
-            const { id: rowId } = parentObject;
-
-            this.#setHasActions0(true);
-
-            afterMount(() => {
-                this.#addContextMenu(rowId, actions);
-            });
-        });
-
-        this.on('remove.rows_$.actions', ({ value, afterMount }) => {
-            if (!value) return;
-
-            const { id: rowId } = parentObject;
-
-            this.setHasActions();
-
-            afterMount(() => {
-                this.#removeContextMenu(rowId);
-            });
-        });
-
-        this.on('remove.rows_$', ({ value: row, afterMount }) => {
-            // We have an initializer for "rows_$", so we know it will never be null
-            assert(row);
-
-            const { id } = row;
-
-            const index = this.#rowIds.indexOf(id);
-            assert(index >= 0);
-
-            this.#rowIds.splice(index, 1);
-        });
+        this.on('insert.rows_$.actions', 'insert.rows_$.actions');
+        this.on('remove.rows_$.actions', 'remove.rows_$.actions');
+        this.on('remove.rows_$', 'remove.rows_$');
     }
 
     setHasActions() {
@@ -78,8 +83,6 @@ class DataTable extends components.LightningComponent {
             ['bordered']: true,
             ['rowsSelectable']: true,
             ['resizableColumns']: true,
-            ['columns.$_']: () => ({}),
-            ['rows_$']: () => ({ id: this.randomString() }),
             ['rows_$.id']: () => this.randomString(),
             ['rows_$.cells_$']: () => ({ value: { text: '' } }),
         }
@@ -164,7 +167,7 @@ class DataTable extends components.LightningComponent {
             return;
         }
 
-        const selector = `#${this.getId()}-resize-handle-${this.replaceWhitespace(columnName)}`
+        const selector = `#${this.getElementId()}-resize-handle-${this.replaceWhitespace(columnName)}`
 
         return this.getNode().querySelector(selector);
     }

@@ -8,12 +8,18 @@ class Input extends components.FormElement {
             });
     }
 
+    eventHandlers() {
+        return {
+            ['insert.value']: ({ value, afterMount }) => {
+                afterMount(() => {
+                    this.dispatchEvent('change', value);
+                })
+            }
+        }
+    }
+
     afterMount() {
-        this.on('insert.value', ({ value, afterMount }) => {
-            afterMount(() => {
-                this.dispatchEvent('change', value);
-            })
-        });
+        this.on('insert.value', 'insert.value');
     }
 
     getInputElement() {
@@ -34,7 +40,10 @@ class Input extends components.FormElement {
 
     onChange(evt) {
         const { value } = evt.target;
-        this.getInput().value = value;
+
+        this.executeDiscrete(() => {
+            this.getInput().value = value;
+        });
     }
 
     getWidgetElementId() {

@@ -1,3 +1,5 @@
+{{style url="/components/icon/style.min.css"}}
+
 <span class="slds-icon_container
         {{!-- RTL Support --}}
         {{rtl ? "slds-icon_flip" : ""}}

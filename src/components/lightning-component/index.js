@@ -1,8 +1,23 @@
 class LightningComponent extends BaseComponent {
 
+    static rootFontSize;
+
     beforeCompile() {
         this.getInput().cssStyle;
         this.getInput().cssClass;
+    }
+
+    beforeRender() {
+        const { rootFontSize } = LightningComponent;
+
+        if (!rootFontSize) {
+            LightningComponent.rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        }
+    }
+
+    static getRootFontSize() {
+        const { rootFontSize } = LightningComponent;
+        return rootFontSize;
     }
 
     behaviours() {
@@ -240,12 +255,12 @@ class LightningComponent extends BaseComponent {
     }
 
     events() {
-        return ['bodyClick'];
+        return [];
     }
 
     behaviours() {
         return [
-            'dispatchBodyClickEventForAll', 'setHtmlAttribute', 'removeHtmlAttribute',
+            'setHtmlAttribute', 'removeHtmlAttribute',
         ];
     }
 
@@ -263,17 +278,6 @@ class LightningComponent extends BaseComponent {
             return;
         }
         node.removeAttribute(name);
-    }
-
-    dispatchBodyClickEventForAll() {
-        const { dispatchBodyClickEventForAll } = LightningComponent;
-        return dispatchBodyClickEventForAll();
-    }
-
-    static dispatchBodyClickEventForAll() {
-        const { getAllComponents } = BaseComponent;
-        Object.values(getAllComponents())
-            .forEach(i => i.dispatchEvent('bodyClick'));
     }
 
     getOverlayAttribute() {
@@ -296,7 +300,7 @@ class LightningComponent extends BaseComponent {
                 return;
             }
 
-            this.dispatchBodyClickEventForAll();
+            BaseComponent.dispatchEvent('bodyClick');
         });
     }
 }

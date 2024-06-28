@@ -1,37 +1,30 @@
 /**
  * Gulp stylesheets task file
  */
-const path = require('path');
-
+const pathLib = require('path');
 const gulp = require('gulp');
 const sass = require('gulp-sass')(require('sass'));
 const sourcemaps = require('gulp-sourcemaps');
 const rename = require('gulp-rename');
 const through = require('through2');
-const pathLib = require('path');
+const gulpif = require('gulp-if');
+const streamCombiner = require('stream-combiner2');
 
-const renameConfig = {
-  suffix: '.min',
-};
 
 const srcFolder = 'src/components';
-const watchTarget = `${srcFolder}/**/*.scss`;
-
 const distFolder = 'dist/components';
 
-require('fs').createReadStream
-
-const gulpTransform = () => {
+const renameComponentAssetId = () => {
   return through.obj(async (vinylFile, _encoding, callback) => {
     const file = vinylFile.clone();
 
-    const dir = path.dirname(file.path);
-    const componentsFolder = path.dirname(dir);
+    const dir = pathLib.dirname(file.path);
+    const componentsFolder = pathLib.dirname(dir);
 
-    const assetId = path.relative(componentsFolder, dir)
+    const assetId = pathLib.relative(componentsFolder, dir)
       .replace(/-/g, '_');
 
-    file.path = path.join(componentsFolder, assetId, file.basename);
+    file.path = pathLib.join(componentsFolder, assetId, file.basename);
     callback(null, file);
   });
 }
@@ -49,24 +42,37 @@ const addPipes = (path, relativize) => {
     );
   }
 
+  const isScssFile = (vinylFile) => vinylFile.path.endsWith('.scss');
+
   return stream
-    .pipe(sourcemaps.init())
-    .pipe(sass(
-      {
-        outputStyle: 'compressed',
-        includePaths: ['node_modules/normalize-scss/sass/'],
-      },
-    ).on('error', sass.logError))
-    .pipe(sourcemaps.write())
-    .pipe(rename(renameConfig))
-    .pipe(gulpTransform())
+    .pipe(
+      gulpif(
+        isScssFile,
+        streamCombiner.obj(
+          sourcemaps.init(),
+          sass(
+            {
+              outputStyle: 'compressed',
+              includePaths: ['node_modules/normalize-scss/sass/'],
+            },
+          ).on('error', sass.logError),
+          sourcemaps.write(),
+          rename({ suffix: '.min' })
+        ),
+      )
+    )
+    .pipe(renameComponentAssetId())
     .pipe(gulp.dest(distFolder))
 };
 
-gulp.task('compile-component-syles', () => addPipes(watchTarget));
+gulp.task('compile-component-syles', () => addPipes([
+  `${srcFolder}/**/*.scss`, `${srcFolder}/**/*.css`,
+]));
 
 gulp.task('compile-component-syles:watch', () => {
-  const watcher = gulp.watch(watchTarget, { ignoreInitial: true });
+  const watcher = gulp.watch(
+    `${srcFolder}/**/*.{css,scss}`, { ignoreInitial: true }
+  );
 
   watcher.on('change', (path) => addPipes(path, true));
 });

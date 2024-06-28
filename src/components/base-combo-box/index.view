@@ -1,3 +1,4 @@
+{{style url="/components/base_combo_box/style.min.css"}}
 
 {{component ListBox alias="options"}}
 {{component Pill alias="selectedOptions"}}

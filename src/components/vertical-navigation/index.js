@@ -15,6 +15,39 @@ class VerticalNavigation extends components.LightningComponent {
         this.getInput().sections[0].items[0].rendered;
     }
 
+    eventHandlers() {
+        return {
+            ['remove.sections_$']: ({ value: section }) => {
+                if (!section) return;
+
+                const { id } = section;
+
+                this.#sectionIds.splice(
+                    this.#sectionIds.indexOf(id), 1
+                );
+            },
+            ['insert.sections_$.items_$']: ({ value: item, parentObject }) => {
+                if (!item) return;
+
+                const { id: sectionId } = parentObject['@parentRef'];
+
+                item.sectionId = sectionId;
+                this.#items[item.id] = item;
+            },
+            ['remove.sections_$.items_$']: ({ value: item }) => {
+                if (!item) return;
+
+                const { id } = item;
+
+                this.#itemIds.splice(
+                    this.#itemIds.indexOf(id), 1
+                );
+
+                delete this.#items[id];
+            }
+        }
+    }
+
     beforeRender() {
         const { DEFAULT_TRUNCATE_SIZE } = VerticalNavigation;
 
@@ -24,36 +57,9 @@ class VerticalNavigation extends components.LightningComponent {
             input.truncateSize = DEFAULT_TRUNCATE_SIZE;
         }
 
-        this.on('remove.sections_$', ({ value: section }) => {
-            if (!section) return;
-
-            const { id } = section;
-
-            this.#sectionIds.splice(
-                this.#sectionIds.indexOf(id), 1
-            );
-        });
-
-        this.on('insert.sections_$.items_$', ({ value: item, parentObject }) => {
-            if (!item) return;
-
-            const { id: sectionId } = parentObject['@parentRef'];
-
-            item.sectionId = sectionId;
-            this.#items[item.id] = item;
-        });
-
-        this.on('remove.sections_$.items_$', ({ value: item }) => {
-            if (!item) return;
-
-            const { id } = item;
-
-            this.#itemIds.splice(
-                this.#itemIds.indexOf(id), 1
-            );
-
-            delete this.#items[id];
-        });
+        this.on('remove.sections_$', 'remove.sections_$');
+        this.on('insert.sections_$.items_$', 'insert.sections_$.items_$');
+        this.on('remove.sections_$.items_$', 'remove.sections_$.items_$');
     }
 
     immutablePaths() {

@@ -3,13 +3,37 @@ class NavigationBar extends components.LightningComponent {
 
     #itemsBlockData = {};
 
-    onMount() {
-        this.on('remove.items_$', ({ value: item }) => {
-            if (!item) return;
+    eventHandlers() {
+        return {
+            ['remove.items_$']: ({ value: item }) => {
+                if (!item) return;
 
-            const { id } = item;
-            delete this.#itemsBlockData[id];
-        });
+                const { id } = item;
+                delete this.#itemsBlockData[id];
+            },
+            ['splice.items']: ({ offsetIndexes, newLength }) => {
+                Object.values(this.#itemsBlockData)
+                    .forEach(blockData => {
+                        const entry = blockData['items'];
+                        const j = offsetIndexes[entry.index];
+
+                        if (j !== undefined) {
+                            entry.index = j;
+                        }
+
+                        entry.length = newLength;
+                    });
+            }
+        }
+    }
+
+    immutablePaths() {
+        return ['items_$.id'];
+    }
+
+    onMount() {
+        this.on('remove.items_$', 'remove.items_$');
+        this.on('splice.items', 'splice.items');
     }
 
     events() {
@@ -26,11 +50,22 @@ class NavigationBar extends components.LightningComponent {
         }
     }
 
-    navItemClickListener(evt) {
-        const { target } = evt;
+    transformers() {
+        return {
+            ['items_$.id']: (id) => {
+                if (this.#itemsBlockData[id]) {
+                    id = this.randomString();
+                }
+                return id;
+            },
+        };
+    }
 
-        const itemId = target.getAttribute('data-id');
-        const hasSubMenu = target.getAttribute('data-has-submenu');
+    navItemClickListener(evt) {
+        const { currentTarget } = evt;
+
+        const itemId = currentTarget.getAttribute('data-id');
+        const hasSubMenu = currentTarget.getAttribute('data-has-submenu');
 
         // If this item has a submenu, this handler will be triggered
         // when item(s) on the submenu are clicked
@@ -64,17 +99,12 @@ class NavigationBar extends components.LightningComponent {
         return false;
     }
 
-    closeSubMenu(itemId) {
+    async closeSubMenu(itemId) {
         const li = this.getNode().querySelector(`li[data-id='${itemId}']`);
-
         if (!li) return;
 
         const blockData = this.#itemsBlockData[itemId];
-        const decorator = this.getDecorator('item_decorator');
-
-        this.executeWithBlockData(() => {
-            this.renderDecorator(decorator, li.parentNode);
-        }, blockData);
+        this.renderDecorator('item_decorator', li.parentNode, blockData);
     }
 
 }

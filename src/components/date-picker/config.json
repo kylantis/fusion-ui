@@ -54,5 +54,6 @@
     "nullifyRandomly": []
   },
   "useCollectionLengthProperty": false,
-  "escapeDynamicHtml": false
+  "escapeDynamicHtml": false,
+  "hookAccessRate": 2
 }

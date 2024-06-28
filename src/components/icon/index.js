@@ -5,23 +5,43 @@ class Icon extends components.TextCompanion {
         return ['solidStateChange'];
     }
 
+    beforeRender() {
+        const input = this.getInput();
+        if (!input.size) {
+            input.size = "small";
+        }
+    }
+
+    eagerlyInline() {
+        return true;
+    }    
+
+    eventHandlers() {
+        return {
+            ['solidStateChangeDispatch']: ({ key, value }) => {
+                if (this.#willChangeSolidState(key, value)) {
+                    this.dispatchEvent('solidStateChange', this);
+                }
+            }
+        }
+    }
+
     afterMount() {
         this.on(
             this.getSolidStateIntrinsicProperties()
                 .map(p => `insert.${p}`)
                 .join('|'),
-            ({ key, value }) => {
-                if (this.#willChangeSolidState(key, value)) {
-                    this.dispatchEvent('solidStateChange', this);
-                }
-            });
+            'solidStateChangeDispatch'
+        );
     }
 
     initializers() {
         const { type } = this.getInput();
+
         return {
-            foreground: type == 'utility' ? 'text-default' : null,
-            solid: true,
+            ['foreground']: type == 'utility' ? 'text-default' : null,
+            ['solid']: true,
+            ['size']: 'small'
         };
     }
 
@@ -52,11 +72,49 @@ class Icon extends components.TextCompanion {
         return type != 'utility' && (solid || solid == undefined);
     }
 
-    beforeRender() {
-        const input = this.getInput();
-        if (!input.size) {
-            input.size = "small";
+    static getIconSize(opts) {
+
+        const { getRootFontSize } = components.LightningComponent;
+        const { getMarginSizesInRem } = components.TextCompanion;
+        const { getIconSvgSizesInRem } = components.IconSvg;
+
+        const fontSize = getRootFontSize();
+
+        const { marginTop, marginBottom, marginLeft, marginRight, size } = opts;
+
+        const toPx = (rem, transform) => {
+            let ret = 0;
+
+            [...Array.isArray(rem) ? rem : [rem]]
+                .filter(r => r)
+                .forEach(r => {
+                    r = transform(r);
+                    assert(typeof r == 'number');
+                    ret += r * fontSize;
+                });
+
+            return ret;
         }
+
+        const svgSizeTransform = (size) => getIconSvgSizesInRem()[size];
+        const svgSize = toPx(size, svgSizeTransform);
+
+        const ret = {
+            width: svgSize,
+            height: svgSize,
+        };
+
+        const marginSizeTransform = (size) => getMarginSizesInRem()[size];
+
+        [marginTop, marginBottom].forEach(rem => {
+            ret.height += toPx(rem, marginSizeTransform);
+        });
+
+        [marginLeft, marginRight].forEach(rem => {
+            ret.width += toPx(rem, marginSizeTransform);
+        });
+
+        return ret;
     }
 }
 module.exports = Icon;

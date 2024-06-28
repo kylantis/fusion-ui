@@ -6,6 +6,10 @@ class ButtonIcon extends components.TextCompanion {
         // state. This is applicable to the types: border, border-filled, border-inverse
     }
 
+    eagerlyInline() {
+        return false;
+    }
+
     getButton() {
         return this.node ? this.node.querySelector(':scope > button') : null;
     }
