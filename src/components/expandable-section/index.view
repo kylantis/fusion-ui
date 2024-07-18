@@ -1,5 +1,5 @@
 
-<div class="slds-section {{(expanded or (not collapsible) ) ? " slds-is-open" : "" }}">
+<div class="slds-section {{(expanded or (not collapsible) ) ? "slds-is-open" : "" }}">
     
     {{#if collapsible}}
         <h3 class="slds-section__title">
@@ -18,7 +18,7 @@
         </h3>
     {{/if}}
 
-    <div aria-hidden="{{expanded ? " false" : "true" }}"
+    <div aria-hidden="{{expanded ? "false" : "true" }}"
         class="slds-section__content {{bodyPadding ? 'slds-p-${bodyPadding}' : ''}}" id="{{@random}}-content">
         {{component alias="body"}}
         {{> body}}

@@ -1,8 +1,14 @@
 
 class SidebarLayout extends components.Drawer {
 
-    // this.getContentContainerSelector()
+    // Maintain reference to input data for our "navigation" component
+    // to prevent garbage collection
+    #navigationInput;
 
+    useWeakRef() {
+        return false;
+    }
+    
     beforeRender() {
         const input = this.getInput();
 
@@ -46,6 +52,8 @@ class SidebarLayout extends components.Drawer {
                         },
                         this,
                     ));
+
+                this.#navigationInput = navigation.getInput();
 
                 return navigation;
             }

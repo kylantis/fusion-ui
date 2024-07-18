@@ -29,6 +29,10 @@ class Menu extends components.OverlayComponent {
         this.getInput().groups[0].items[0].subMenuY;
     }
 
+    useWeakRef() {
+        return false;
+    }
+
     eventHandlers() {
         return {
             ['remove.groups_$.items_$']: ({ value: item }) => {
@@ -451,7 +455,7 @@ class Menu extends components.OverlayComponent {
         const x = (role == 'presentation') ? subMenuX : checkIconX;
         const container = (x == 'left') ? leftIconContainer : rightIconContainer;
 
-        const futures = await this.renderDecorator(`${x}Icon`, container, blockData);
+        const futures = await this.renderDecorator(`${x}IconDecorator`, container, blockData);
         await Promise.all(futures);
     }
 
@@ -619,6 +623,18 @@ class Menu extends components.OverlayComponent {
         if (predicate()) {
             // Display submenu
             li.querySelector(':scope > a').setAttribute('aria-expanded', true);
+        }
+    }
+
+    isVisible() {
+        const { overlay, isSubMenu } = this.getInput();
+
+        switch (true) {
+            case isSubMenu: return false;
+            case !overlay: return true;
+            default:
+                const { classList } = this.getNode();
+                return classList.contains('visible');
         }
     }
 

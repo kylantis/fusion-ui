@@ -9,6 +9,10 @@ class Drawer extends components.LightningComponent {
         return true;
     }
 
+    useWeakRef() {
+        return false;
+    }
+    
     beforeRender() {
         const input = this.getInput();
 

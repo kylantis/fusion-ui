@@ -239,5 +239,5 @@ function template(component, metadata, templateSpec, helpers) {
 }
 
 module.exports = {
-    __esModule: true, template, createFrame, NOOP,
+    template, createFrame, NOOP
 };

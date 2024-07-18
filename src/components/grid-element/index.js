@@ -9,17 +9,30 @@ class GridElement extends components.LightningComponent {
     eventHandlers() {
         return {
             ['insert.bump']: ({ value, initial }) => {
-                const grid = this.getGrid();
+                if (initial) return;
 
-                if (grid) {
-                    if (value && !initial) {
-                        this.dispatchEvent('bump');
-                    }
-                } else if (value) {
-                    this.getInput().bump = null;
-                }
+                this.dispatchEvent('bump', value);
             }
         }
+    }
+
+    onMount() {
+        const grid = this.getGrid();
+
+        if (grid) {
+            this.getNode().classList.add(
+                GridElement.#getGridMarkerCssClass(grid)
+            )
+        }
+    }
+
+    transformers() {
+        return {
+            ['bump']: (value) => {
+                const grid = this.getGrid();
+                return grid ? value : null;
+            }
+        };
     }
 
     beforeRender() {
@@ -32,15 +45,37 @@ class GridElement extends components.LightningComponent {
 
     getGrid() {
         const parent = this.getInlineParent();
-        return (parent && (parent instanceof components.Grid)) ? parent : null;
+        return (parent instanceof components.Grid) ? parent : null;
     }
 
     setCol(col) {
-        this.getInput().col = col;
+        const input = this.getInput();
+
+        if (input) {
+            input.col = col;
+        } else {
+            GridElement.toggleCol(
+                this.getNode(), col
+            )
+        }
     }
 
     concatTranform(arr) {
         return arr ? arr.filter(a => a).map(a => `slds-${a}`).join(' ') : arr;
+    }
+
+    static #getGridMarkerCssClass(grid) {
+        return `for-grid-${grid.getId()}`;
+    }
+
+    static getGridElementNodeList(grid) {
+        return document.querySelectorAll(
+            `.${GridElement.#getGridMarkerCssClass(grid)}`
+        );
+    }
+
+    static toggleCol(node, col) {
+        GridElement.toggleCssClass0(node, col, 'slds-col');
     }
 }
 

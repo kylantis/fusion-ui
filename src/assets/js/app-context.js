@@ -15,9 +15,24 @@ class AppContext {
 
   static #staticFilePattern = /\.(?:[a-zA-Z0-9]+)(\?.*)?$/i;
 
+  #loadedStyles = [];
+  #loadedScripts = [];
+
   #logger;
   #userGlobals;
   #staticCache;
+
+  #assetId;
+  #className;
+  #parents;
+  #rootComponent;
+  #componentList;
+
+  #alphaList = {};
+  #omegaList = {};
+
+  #bootConfigs = {};
+  #refMetadata;
 
   #dbSpec;
 
@@ -27,11 +42,20 @@ class AppContext {
   #finalizers = [];
   #loaded;
 
-  constructor({ logger, userGlobals }) {
+  #indexedDbReady = false;
+
+  constructor({ logger, userGlobals, assetId, className, parents, bootConfig, componentList }) {
 
     this.#logger = logger;
     this.#userGlobals = (userGlobals == '{{userGlobals}}') ? {} : userGlobals;
     this.#staticCache = new K_Cache('static-cache', 1);
+
+    this.#assetId = assetId;
+    this.#className = className;
+    this.#parents = parents;
+
+    this.#bootConfigs[className] = bootConfig;
+    this.#componentList = this.#parseComponentList(componentList);
 
     this.testMode = window.location.hostname == 'localhost';
 
@@ -44,6 +68,14 @@ class AppContext {
     this.#readUserGlobals();
   }
 
+  #parseComponentList(str) {
+    const markerStart = '<componentList>';
+    const markerEnd = '</componentList>';
+
+    const jsonStr = str.substring(markerStart.length, str.length - markerEnd.length);
+    return JSON.parse(jsonStr);
+  }
+
   isLoaded() {
     return this.#loaded;
   }
@@ -54,6 +86,10 @@ class AppContext {
 
   getUserGlobals() {
     return this.#userGlobals;
+  }
+
+  getRootComponent() {
+    return this.#rootComponent;
   }
 
   #addPolyfills() {
@@ -85,12 +121,18 @@ class AppContext {
   static unsafeEval(code, scope = {}) {
     const { require } = scope;
 
-    const exports = {};
+    const DEF = {};
+
+    const exports = DEF;
     const module = { exports };
 
     const r = eval(code);
 
-    return module.exports.__esModule ? module.exports : r;
+    if (module.exports.__esModule) {
+      return module.exports.default || exports;
+    }
+
+    return (module.exports != DEF) ? module.exports : r;
   }
 
   static evaluate(code, scope = {}, thisObject) {
@@ -168,6 +210,10 @@ class AppContext {
     const database = this.#dbConnections[dbName];
     const { connections } = database;
 
+    if (!this.#indexedDbReady) {
+      return connections[0];
+    }
+
     database.currentIndex++;
 
     if (database.currentIndex == connections.length) {
@@ -187,7 +233,7 @@ class AppContext {
   }
 
   getDbWorker(dbName) {
-    return this.#dbWorkers[dbName];
+    return this.#indexedDbReady ? this.#dbWorkers[dbName] : null;
   }
 
   getDatabaseConnection(dbName) {
@@ -198,7 +244,7 @@ class AppContext {
     return new Promise((resolve, reject) => {
       openRequest.onerror = event => reject(event.target.error);
       openRequest.onsuccess = event => {
-          resolve(event.target.result);
+        resolve(event.target.result);
       };
     });
   }
@@ -222,48 +268,258 @@ class AppContext {
     return Promise.all(promises);
   }
 
-  async start({ rootComponent, data }) {
-    await Promise.all([
-      this.#setupSessionSocket(),
-      this.#loadDependencies(),
-      this.#loadEnums(),
-    ]);
+  #findAllComponentClassesInSampleString(sampleString) {
+    const word = ` new components['`;
+    const classNames = {};
+
+    AppContext.#findWordMatches(sampleString, word)
+      .forEach(i => {
+        let buf = '';
+        let c;
+
+        let idx = i + word.length;
+
+        while ((c = sampleString[idx]) != '\'') {
+          buf += c;
+          idx++;
+        }
+
+        classNames[buf] = true;
+      });
+
+    return Object.keys(classNames);
+  }
+
+  async load({ data, dynamicBootConfig, runtimeBootConfig }) {
+
+    let htmlDepsPromise;
+    let alphaListPromise;
+    let alphaBootConfigsPromise;
+
+    const samplesStringPromise = this.testMode ?
+      this.fetch({ url: `/components/${this.#assetId}/samples.js`, process: false }) :
+      null;
+
+    const baseDepsPromise = this.#loadBaseDependencies();
+    const enumPromise = this.#loadEnums();
+
+    const depsPromise = this.#loadDependencies();
+    const sessionSocketPromise = this.#setupSessionSocket();
 
 
-    const componentsInfo = await this.#loadComponentClasses();
+    const loadBootConfig = (bootConfig) => {
+      htmlDepsPromise = this.#loadCssAndJsDependencies(bootConfig);
+      alphaListPromise = Promise.resolve();
 
-    setTimeout(() => {
-      this.#pruneExistingDatabases();
-    }, AppContext.INITIAL_LOAD_TIME_SEC * 1000);
+      alphaBootConfigsPromise = Promise.all(
+        Object.entries(bootConfig.renderTree)
+          .map(([assetId, className]) => {
+            this.#alphaList[className] = assetId;
+            return this.#addBootConfig(assetId, className)
+          })
+      );
 
-    const startTime = performance.now();
-    await this.#setupDatabases(componentsInfo);
-    const endTime = performance.now()
+      this.#alphaList[this.#className] = this.#assetId;
+    }
 
-    this.#logger.info(`DB setup completed after ${endTime - startTime} milliseconds`);
+    if (dynamicBootConfig) {
+      if (this.testMode) {
 
+        let htmlDepsResolve;
+        let alphaListResolve;
+        let alphaBootConfigsResolve;
+
+        htmlDepsPromise = new Promise(resolve => htmlDepsResolve = resolve);
+        alphaListPromise = new Promise(resolve => alphaListResolve = resolve);
+        alphaBootConfigsPromise = new Promise(resolve => alphaBootConfigsResolve = resolve);
+
+        samplesStringPromise.then(sampleString => {
+
+          const classNames = [...new Set([
+            ...this.#findAllComponentClassesInSampleString(sampleString),
+            ...[...this.#parents].reverse(),
+          ])];
+
+          const htmlDepsPromises = [];
+
+          let cssDeps = {};
+          let jsDeps = {};
+
+          Promise.all(
+            classNames.map(async className => {
+              if (className == this.#className) return;
+
+              const assetId = this.#componentList[className];
+              const bootConfig = await this.#addBootConfig(assetId, className);
+
+              const _bootConfigPromises = [];
+
+              Object.entries(bootConfig.renderTree)
+                .forEach(([assetId, className]) => {
+                  this.#alphaList[className] = assetId;
+
+                  _bootConfigPromises.push(
+                    this.#addBootConfig(assetId, className)
+                  )
+                });
+
+              const cssDependencies = bootConfig.cssDependencies
+                .filter(({ url }) => !cssDeps[url])
+                .map(dep => {
+                  cssDeps[dep.url] = true;
+                  return dep;
+                });
+
+              const jsDependencies = bootConfig.jsDependencies
+                .filter(({ url }) => !jsDeps[url])
+                .map(dep => {
+                  jsDeps[dep.url] = true;
+                  return dep;
+                });
+
+              htmlDepsPromises.push(
+                this.#loadCssAndJsDependencies({ cssDependencies, jsDependencies })
+              );
+
+              await Promise.all(_bootConfigPromises);
+            })
+          )
+            .then(() => {
+              classNames.forEach(className => {
+                const assetId = this.#componentList[className];
+                this.#alphaList[className] = assetId;
+              });
+              this.#alphaList[this.#className] = this.#assetId;
+
+              alphaListResolve();
+              alphaBootConfigsResolve();
+
+              Promise.all(htmlDepsPromises).then(() => {
+                htmlDepsResolve();
+              });
+            });
+        })
+
+      } else {
+        loadBootConfig(runtimeBootConfig)
+      }
+    } else {
+      loadBootConfig(
+        this.#bootConfigs[this.#className]
+      )
+    }
+
+    const omegaBootConfigsPromise = alphaListPromise
+      .then(() => Promise.all(
+        Object.entries(this.#componentList)
+          .filter(([className]) => !this.#alphaList[className])
+          .map(([className, assetId]) => {
+            this.#omegaList[className] = assetId;
+            return this.#addBootConfig(assetId, className)
+          })
+      )
+      );
+
+
+    self.components = {};
+
+    const alphaComponentClassesPromise = alphaListPromise
+      .then(() => this.#loadComponentClasses(this.#alphaList, baseDepsPromise));
+
+    const samplesPromise = alphaComponentClassesPromise.then(async () => {
+      if (this.testMode) {
+        return AppContext.unsafeEval(await samplesStringPromise);
+      }
+    });
+
+    const dbSetupPromise = Promise.all([alphaBootConfigsPromise, omegaBootConfigsPromise, baseDepsPromise])
+      .then(() => {
+
+        setTimeout(() => {
+          this.#pruneExistingDatabases();
+        }, AppContext.INITIAL_LOAD_TIME_SEC * 1000);
+
+        const startTime = performance.now();
+        this.#setupDatabases();
+        const endTime = performance.now()
+
+        this.#logger.info(`DB setup completed after ${endTime - startTime} milliseconds`);
+      });
+
+
+    // htmlDepsPromise
+    await Promise.all([alphaComponentClassesPromise, dbSetupPromise, enumPromise, depsPromise, sessionSocketPromise])
+
+
+    await this.#loadRootComponent(data, await samplesPromise);
+
+
+    this.#setupComponentsNodePruneTask();
 
     this.#finalizers.forEach(fn => {
       fn();
     });
+
     this.#finalizers = null;
+    this.#bootConfigs = null;
+    this.#refMetadata = null;
 
-    this.#setupComponentsNodePruneTask();
+    setTimeout(async () => {
+      console.info('start connectDatabase');
 
-    this.#loadRootComponent(
-      rootComponent, componentsInfo[rootComponent].assetId, data,
-    ).then(() => {
+      await this.#connectDatabase();
 
+      console.info('finish connectDatabase');
+    }, 10000);
+  }
 
-      // start moving moving in memory records to real indexeddb
+  async #connectDatabase() {
 
+    await Promise.all(
+      Object.entries(this.#dbConnections)
+        .map(([dbName, { connections }]) =>
+          connections[0].createPersistenceLayer()
+            .then(() => {
+              const promises = [];
 
-    });
+              for (let i = 1; i < connections.length; i++) {
+                promises.push(
+                  connections[i].createPersistenceLayer()
+                );
+              }
+
+              promises.push(
+                this.#createDbWorker(dbName)
+              );
+
+              return Promise.all(promises);
+            }))
+    );
+
+    this.#indexedDbReady = true;
+  }
+
+  #loadComponentClasses(list, preLoadPromise) {
+    return this.#fetchComponentsData(list)
+      .then(async (componentsData) => {
+
+        if (preLoadPromise) {
+          await preLoadPromise;
+        }
+
+        componentsData.forEach(([...args]) => {
+          this.#loadComponentClass(...args);
+        });
+
+        this.#addComponentConstructorPruneFinalizer(
+          Object.keys(list)
+        );
+      });
   }
 
   #setupComponentsNodePruneTask() {
     setInterval(() => {
-      Object.entries(global.components).forEach(([k, { instanceIndex }]) => {
+      Object.entries(self.components).forEach(([k, { instanceIndex }]) => {
 
         for (let i = 0; i <= instanceIndex; i++) {
           // see BaseRenderer.#createId()
@@ -277,41 +533,92 @@ class AppContext {
     }, 60 * 5 * 1000);
   }
 
-  #getDbQuotaScore(componentsInfo) {
-    const refCount = {};
+  #getRefMetadata() {
+    if (this.#refMetadata) return this.#refMetadata;
 
-    const addComponentRefCount = (className) => {
-      const { hspuMetadata: { componentRefCount } } = componentsInfo[className].config;
+    const refCount = {};
+    const tree = {};
+
+    const addComponentRefCount = (parents, className) => {
+      const { hspuMetadata: { componentRefCount } } = this.#bootConfigs[className];
 
       refCount[className]++;
 
+      if (parents) {
+        parents = [...parents, className];
+      }
+
       Object.entries(componentRefCount).forEach(([k, v]) => {
-        assert(Number.isSafeInteger(v));
+        assert(Number.isSafeInteger(v) && v > 0);
+
+        if (parents) {
+          parents.forEach(p => {
+            tree[p].push(k);
+          });
+        }
 
         const execIteration = (k == className) ? () => {
           refCount[className]++;
-        } : () => {
-          addComponentRefCount(k);
+        } : (i) => {
+          addComponentRefCount((i == 0) ? parents : null, k);
         };
 
         for (let i = 0; i < v; i++) {
-          execIteration();
+          execIteration(i);
         }
       });
     }
 
-    Object.keys(componentsInfo).forEach(n => {
-      refCount[n] = 0;
-    })
-
-    Object.keys(componentsInfo).forEach(className => {
-      addComponentRefCount(className);
+    Object.keys(this.#bootConfigs).forEach(className => {
+      refCount[className] = 0;
+      tree[className] = []
     });
+
+    Object.keys(this.#bootConfigs).forEach(className => {
+      addComponentRefCount([], className);
+    });
+
+    Object.keys(this.#bootConfigs).forEach(className => {
+      tree[className] = [...new Set(tree[className])]
+    });
+
+    this.#refMetadata = { refCount, tree };
+    return this.#refMetadata;
+  }
+
+  #loadCssAndJsDependencies(bootConfig) {
+    const { cssDependencies, jsDependencies } = bootConfig;
+
+    return Promise.all([
+      this.loadCSSDependencies(cssDependencies),
+      this.loadJSDependencies(jsDependencies)
+    ]);
+  }
+
+  #fetchBootConfig(assetId) {
+    return this.fetch({
+      url: `/components/${assetId}/boot-config.json`, asJson: true,
+    });
+  }
+
+  async #addBootConfig(assetId, className) {
+    let bootConfig = this.#bootConfigs[className];
+
+    if (!bootConfig) {
+      bootConfig = await this.#fetchBootConfig(assetId);
+      this.#bootConfigs[className] = bootConfig;
+    }
+
+    return bootConfig;
+  }
+
+  #getDbQuotaScore() {
+    const { refCount } = this.#getRefMetadata();
 
     const quotaScore = {};
 
     Object.entries(refCount).forEach(([k, v]) => {
-      const { hspuMetadata: { size }, isAbstract } = componentsInfo[k].config;
+      const { hspuMetadata: { size }, isAbstract } = this.#bootConfigs[k];
       quotaScore[k] = v * ((isAbstract && size > 1) ? 1 : size);
     });
 
@@ -323,9 +630,8 @@ class AppContext {
     throw Error(msg);
   }
 
-  async #setupDatabases(componentsInfo) {
+  #setupDatabases() {
     const { DB_COUNT, BUCKET_COUNT_PER_DB, DB_NAME_PREFIX } = AppContext;
-    const { getRandomInt, scaleArrayToTotal } = clientUtils;
 
     if (BUCKET_COUNT_PER_DB < DB_COUNT || BUCKET_COUNT_PER_DB % DB_COUNT != 0) {
       this.#throwError(`Incorrect DB params specified`);
@@ -333,14 +639,14 @@ class AppContext {
 
     const totalBucketCount = DB_COUNT * BUCKET_COUNT_PER_DB;
 
-    const quotaScore = this.#getDbQuotaScore(componentsInfo);
+    const quotaScore = this.#getDbQuotaScore();
     const quotaScoreEntries = Object.entries(quotaScore);
 
     if (totalBucketCount < quotaScoreEntries.length) {
       this.#throwError(`Expected totalBucketCount to be at least ${quotaScoreEntries.length}`);
     }
 
-    const storesToCreate = scaleArrayToTotal(
+    const storesToCreate = AppContext.#scaleArrayToTotal(
       quotaScoreEntries.map(([k, v]) => v), totalBucketCount,
     );
 
@@ -368,7 +674,7 @@ class AppContext {
     const dbNames = [];
 
     for (let i = 0; i < DB_COUNT; i++) {
-      dbNames.push(`${DB_NAME_PREFIX}_${getRandomInt(0, 100000)}`);
+      dbNames.push(`${DB_NAME_PREFIX}_${AppContext.#getRandomInt(0, 100000)}`);
     }
 
     const dbSpec = {
@@ -407,8 +713,6 @@ class AppContext {
       });
 
 
-    const promises = [];
-
     Object.entries(dbSpec.spec).forEach(([k, v]) => {
       const { bucketNames } = v;
       const groups = {};
@@ -444,13 +748,8 @@ class AppContext {
       delete v.bucketNames;
       v.groups = groups;
 
-      promises.push(
-        this.#createDatabaseConnections(k, storeInfoList, promises)
-          .then(() => this.#createDbWorker(k))
-      );
+      this.#createDatabaseConnections(k, storeInfoList)
     });
-
-    await Promise.all(promises);
 
     // const dbSpec = {
     //   groups: {
@@ -491,7 +790,7 @@ class AppContext {
     )
   }
 
-  async #createDatabaseConnections(dbName, storeInfoList, promises) {
+  #createDatabaseConnections(dbName, storeInfoList) {
     const { CONNECTIONS_PER_DB } = AppContext;
 
     if (CONNECTIONS_PER_DB < 1) {
@@ -500,18 +799,13 @@ class AppContext {
 
     const connections = [];
 
-    const connection = new K_IndexedDB(dbName);
-    await connection.connect(storeInfoList);
+    const connection = new K_Database(dbName, storeInfoList);
+    connection.createInMemoryLayer();
 
     connections.push(connection);
 
     for (let i = 1; i < CONNECTIONS_PER_DB; i++) {
-      const connection = new K_IndexedDB(dbName);
-
-      promises.push(
-        connection.connect()
-      )
-
+      const connection = new K_Database(dbName);
       connections.push(connection);
     }
 
@@ -523,26 +817,38 @@ class AppContext {
   #getDependencies() {
     return [
       '/assets/js/lib/event_handler.min.js',
-      '/assets/js/lib/indexed_db.min.js',
       '/assets/js/lib/trie.min.js',
       // '/assets/js/data/interned_strings_6480.js',
 
-      '/assets/js/client-bundle.min.js',
+      // Todo: REMOVE
+      '/assets/js/client-bundles/hyntax.min.js',
       { url: '/assets/js/client-utils.min.js', namespace: 'clientUtils' },
       { url: '/assets/js/template-runtime.min.js', namespace: 'TemplateRuntime' },
       { url: '/assets/js/custom-ctx-helpers.min.js', namespace: 'customCtxHelpers' },
-      '/assets/js/proxy.min.js',
+    ];
+  }
+
+  #getBaseDependencies() {
+    return [
+      '/assets/js/lib/database.min.js',
+      { url: '/assets/js/lib/lokijs.min.js', namespace: 'Loki' },
+      '/assets/js/lib/loki_database.min.js',
+
       '/assets/js/base-renderer.min.js',
       '/assets/js/root-ctx-renderer.min.js',
       '/assets/js/custom-ctx-renderer.min.js',
       '/assets/js/web-renderer.min.js',
+      '/assets/js/proxy.min.js',
       '/assets/js/base-component.min.js',
-      { url: '/assets/js/web_workers/db_web_worker.min.js', process: false },
-    ];
+    ]
   }
 
   #loadDependencies() {
     return this.fetchAll(this.#getDependencies());
+  }
+
+  #loadBaseDependencies() {
+    return this.fetchAll(this.#getBaseDependencies());
   }
 
   #loadEnums() {
@@ -553,7 +859,9 @@ class AppContext {
     });
   }
 
-  #loadComponentClass(name, assetId, config, metadata, src, testSrc) {
+  #loadComponentClass(name, schema, metadata, src, testSrc) {
+    assert(!self.components[name]);
+
     const componentClass = this.#processScript({
       contents: src,
     });
@@ -582,36 +890,25 @@ class AppContext {
       self.components[name] = componentTestClass;
     }
 
-    self.components[name].schema = config.schema;
-    self.components[name].metadata = metadata;
+    this.getComponentClassMetadataMap()[name] = {
+      schema, metadata,
+    }
   }
 
-  #pruneComponentConstructor(className) {
-    const constructor = self.components[className];
-
-    delete constructor.schema;
-    delete constructor.metadata;
+  getComponentClassMetadataMap() {
+    return global.componentClassMetadata || (global.componentClassMetadata = {});
   }
 
-  async #loadComponentClasses() {
+  async #fetchComponentsData(list) {
     const { testMode } = this;
 
-    const list = await this.fetch({
-      url: '/components/list.json',
-      asJson: true,
-    });
-
-    self.components = {};
-    self.templates = {};
-
-    const componentsInfo = await Promise.all(
+    return Promise.all(
       Object.keys(list).map((name) => {
         const assetId = list[name];
         return Promise.all([
           name,
-          assetId,
           this.fetch({
-            url: `/components/${assetId}/config.json`,
+            url: `/components/${assetId}/schema.json`,
             asJson: true,
           }),
           this.fetch({
@@ -626,25 +923,8 @@ class AppContext {
             process: false,
           }) : null,
         ]);
-      }))
-      .then(componentsData => {
-        const componentsInfo = {};
-
-        componentsData.forEach(async (args) => {
-          this.#loadComponentClass(...args);
-
-          const [name, assetId, config] = args;
-          componentsInfo[name] = { assetId, config };
-        })
-
-        return componentsInfo;
-      });
-
-    this.#addComponentConstructorPruneFinalizer(
-      Object.keys(self.components)
+      })
     );
-
-    return componentsInfo;
   }
 
   #addComponentConstructorPruneFinalizer(componentNames) {
@@ -660,18 +940,24 @@ class AppContext {
     });
   }
 
-  async #loadRootComponent(rootComponent, assetId, data) {
+  #pruneComponentConstructor(className) {
+    const classMetadata = this.getComponentClassMetadataMap()[className];
+
+    delete classMetadata.schema;
+    delete classMetadata.metadata;
+  }
+
+  async #loadRootComponent(data, samples) {
     const { testMode } = this;
 
     let component;
 
     if (testMode) {
-      const sampleData = await this.fetch(`/components/${assetId}/samples.js`);
 
-      component = new self.components[rootComponent]({
+      component = new self.components[this.#className]({
         input:
-          sampleData[
-          self.clientUtils.getRandomInt(0, sampleData.length - 1)
+          samples[
+          self.clientUtils.getRandomInt(0, samples.length - 1)
           ],
       });
 
@@ -688,7 +974,17 @@ class AppContext {
     document.body.appendChild(container);
 
     this.#loaded = true;
-    this.rootComponent = component;
+    this.#rootComponent = component;
+
+    component.on('preload', ({ futures }) => {
+      futures.push(
+        new Promise(resolve => {
+          requestAnimationFrame(() => {
+            this.#loadComponentClasses(this.#omegaList).then(resolve)
+          });
+        })
+      )
+    });
 
     return component.load({ container: `#${container.id}` });
   }
@@ -726,10 +1022,10 @@ class AppContext {
 
       const args = [url, { method: 'GET' }];
 
+      // url.match(AppContext.#staticFilePattern) ? ... : self.fetch(...args);
+
       const data = await (
-        url.match(AppContext.#staticFilePattern) ?
-          useCache ? this.#staticCache.fetchWithCache(...args) : this.#staticCache.addToCache(...args) :
-          self.fetch(...args)
+        useCache ? this.#staticCache.fetchWithCache(...args) : this.#staticCache.addToCache(...args)
       );
 
       if (data.ok) {
@@ -768,6 +1064,148 @@ class AppContext {
 
       return result;
     });
+  }
+
+  loadCSSDependencies(requests) {
+    // eslint-disable-next-line consistent-return
+    return new Promise((resolve, reject) => {
+      const loaded = [];
+
+      let styles = [
+        ...new Set(
+          requests
+            .filter(({ screenTargets }) => !screenTargets || screenTargets.includes(AppContext.#getScreenSize()))
+            .map(({ url }) => url)
+        )
+      ];
+      // Filter styles that have previously loaded
+      styles = styles
+        .filter(url => !this.#loadedStyles.includes(url));
+
+      if (!styles.length) {
+        return resolve([]);
+      }
+
+      styles.forEach(url => {
+        if (this.#loadedStyles.includes(url)) {
+          return;
+        }
+
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = url;
+        link.type = 'text/css';
+        link.async = true;
+        // eslint-disable-next-line func-names
+        const _this = this;
+        link.onload = function () {
+          loaded.push(this.href);
+          // _this.logger.info(null, `Loaded ${this.href}`);
+          if (loaded.length === styles.length) {
+            resolve();
+          }
+        };
+        link.onerror = () => reject(link.href);
+        document.body.appendChild(link);
+
+        this.#loadedStyles.push(url);
+      });
+    });
+  }
+
+  loadJSDependencies(requests) {
+    const dependencies = requests.map((req) => {
+      if (req.constructor.name === 'String') {
+        return { url: req };
+      }
+      return req;
+    })
+      .filter(({ screenTargets }) => !screenTargets || screenTargets.includes(AppContext.#getScreenSize()))
+      .filter(({ url }) => !this.#loadedScripts.includes(url))
+
+    return this.fetchAll(dependencies)
+      .then(() => {
+        dependencies.forEach(({ url }) => {
+          if (!this.#loadedScripts.includes(url)) {
+            this.#loadedScripts.push(url);
+          }
+        })
+      });
+  }
+
+  static #getScreenSize() {
+    const width = window.innerWidth;
+
+    if (width <= 767) {
+      return 'mobile';
+    } else if (width <= 1024) {
+      return 'tablet';
+    } else {
+      return 'desktop';
+    }
+  }
+
+
+  // Utility methods
+
+  static #findWordMatches(str, word) {
+    const arr = [];
+    let currentIndex = str.indexOf(word);
+
+    while (currentIndex !== -1) {
+      arr.push(currentIndex);
+      currentIndex = str.indexOf(word, currentIndex + 1);
+    }
+
+    return arr;
+  }
+
+  static #scaleArrayToTotal(arr, cumulativeTotal) {
+
+    const minInitial = Math.min(...arr);
+
+    // Step 1: Normalize the array such that the minimum becomes 1
+    let normalizedArray = arr.map(num => (num - minInitial) + 1);
+
+    // Step 2: Calculate the sum of the normalized array
+    let sumNormalized = normalizedArray.reduce((acc, num) => acc + num, 0);
+
+    // Step 3: Scale the normalized array to sum to the cumulativeTotal
+    let scaledArray = normalizedArray.map(num => (num / sumNormalized) * cumulativeTotal);
+
+    // Step 4: Ensure all numbers are whole numbers and adjust to make the sum exact
+    let resultingArray = scaledArray.map(num => Math.floor(num));
+
+    // Calculate the sum of the resulting array after flooring
+    let currentSum = resultingArray.reduce((acc, num) => acc + num, 0);
+
+    // Calculate the difference to reach the desired cumulative total
+    let difference = cumulativeTotal - currentSum;
+
+    // Adjust the array to account for the difference
+    for (let i = 0; i < resultingArray.length && difference != 0; i++) {
+      let add = Math.sign(difference);  // +1 if difference is positive, -1 if negative
+      resultingArray[i] += add;
+      difference -= add;
+    }
+
+    // Ensure there are no zeros in the resulting array
+    for (let i = 0; i < resultingArray.length; i++) {
+      if (resultingArray[i] === 0) {
+        // Find the maximum element to decrease
+        let maxIndex = resultingArray.indexOf(Math.max(...resultingArray));
+        resultingArray[maxIndex]--;
+        resultingArray[i]++;
+      }
+    }
+
+    return resultingArray;
+  }
+
+  static #getRandomInt(min = 10000, max = 99999) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 }
 

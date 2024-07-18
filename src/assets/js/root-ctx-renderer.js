@@ -749,19 +749,21 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   async getMetadata() {
-    if (!this.constructor.metadata) {
+    const classMmetadata = self.appContext.getComponentClassMetadataMap()[this.getComponentName()];
+
+    if (!classMmetadata.metadata) {
       assert(!this.isHeadlessContext());
 
-      this.constructor.metadata = await self.appContext.fetch(
+      classMmetadata.metadata = await self.appContext.fetch(
         `/components/${this.getAssetId()}/metadata.min.js`
       );
 
       setTimeout(() => {
-        this.constructor.metadata = null;
-      }, 5000);
+        classMmetadata.metadata = null;
+      }, 30000);
     }
 
-    return this.constructor.metadata;
+    return classMmetadata.metadata;
   }
 
   async getRenderedHtml({ token }) {
@@ -843,6 +845,7 @@ class RootCtxRenderer extends BaseRenderer {
     this.node.classList.add(htmlWrapperCssClassname);
     this.node.setAttribute('__component', this.getId())
 
+    parentNode.appendChild(this.node);
 
     // const startTime = performance.now();
 
@@ -863,16 +866,17 @@ class RootCtxRenderer extends BaseRenderer {
 
     const { futures, resolve } = renderContext;
 
+    resolve();
+
+    if (this.getComponentName() == 'ActivityTimeline') {
+      // alert();
+    }
 
     this.dispatchEvent('beforeMount');
 
     futures.push(
       this.invokeLifeCycleMethod('beforeMount')
     )
-
-
-    parentNode.appendChild(this.node);
-
 
     if (domRelayTimeout > 0) {
       await new Promise((resolve) => {
@@ -889,8 +893,6 @@ class RootCtxRenderer extends BaseRenderer {
 
     this.dispatchEvent('templateRender', renderContext);
 
-    resolve();
-
     futures.push(
       this.triggerInitialHooks('onMount')
     )
@@ -900,30 +902,50 @@ class RootCtxRenderer extends BaseRenderer {
     )
 
     this.dispatchEvent('onMount');
-
     await Promise.all(futures);
-    futures.splice(0)
+    futures.splice(0);
+
+    if (this.getComponentName() == 'ActivityTimeline') {
+      // alert();
+    }
 
     assert(Object.keys(this.syntheticContext).length == 0);
 
-    this.dispatchEvent('load', renderContext);
+    this.dispatchEvent('preload', renderContext);
+    await Promise.all(futures);
+    futures.splice(0);
 
+
+    this.dispatchEvent('load', renderContext);
     await Promise.all(futures);
     futures.splice(0);
 
     this.#mounted = true;
 
-    this.dispatchEvent('afterMount');
+    const rootComponent = this.#getRootComponent();
 
-    this.triggerInitialHooks('afterMount');
+    if (this != rootComponent && !rootComponent.isMounted()) {
+      this.#getRootComponent().on('load', () => {
+        this.dispatchEvent('afterMount');
+      });
+    } else {
+      this.dispatchEvent('afterMount');
+    }
 
-    this.invokeLifeCycleMethod('afterMount');
+    futures.push(
+      this.triggerInitialHooks('afterMount')
+    );
+
+    futures.push(
+      this.invokeLifeCycleMethod('afterMount')
+    );
 
     this.#hooks = null;
 
     this.pruneLifecycleEventHandlers();
 
     await Promise.all(futures);
+    futures.splice(0);
 
     RootCtxRenderer.#instancesMap.set(this.getId(), this);
   }
@@ -938,8 +960,13 @@ class RootCtxRenderer extends BaseRenderer {
     });
   }
 
+  #getRootComponent() {
+    const { appContext } = self;
+    return appContext.rootComponent || appContext.getRootComponent();
+  }
+
   isRootComponent() {
-    return this == self.appContext.rootComponent;
+    return this == this.#getRootComponent();
   }
 
   refreshNode() {
@@ -963,7 +990,7 @@ class RootCtxRenderer extends BaseRenderer {
    */
   isLifecycleEvent(evtName) {
     const evtNames = [
-      'beforeRender', 'templateRender', 'onMount',
+      'beforeRender', 'beforeMount', 'templateRender', 'onMount', 'preload',
       'load', 'afterMount', 'render', 'attributeBindContext',
     ];
 
@@ -1002,11 +1029,17 @@ class RootCtxRenderer extends BaseRenderer {
     }
   }
 
-  async invokeLifeCycleMethod(name, ...args) {
+  invokeLifeCycleMethod(name, ...args) {
     const methods = this.recursivelyGetMethods(name);
+    const promises = [];
+
     for (const fn of methods) {
-      await fn(...args)
+      promises.push(
+        fn(...args)
+      )
     }
+
+    return Promise.all(promises);
   }
 
   recursivelyInvokeMethod(names, classPredicate, ...args) {
@@ -2270,10 +2303,12 @@ class RootCtxRenderer extends BaseRenderer {
       if (attrValueGroups && !this.isHeadlessContext()) {
         this.#addAttributeValueObserver = true;
 
-        this.onContextFinalization(() => {
-          const node = document.querySelector(`#${this.getElementId()} #${nodeId}`);
-          node.dataset.attrValueGroups = attrValueGroups;
-        });
+        // Todo: uncomment
+
+        // this.onContextFinalization(() => {
+        //   const node = document.querySelector(`#${this.getElementId()} #${nodeId}`);
+        //   node.dataset.attrValueGroups = attrValueGroups;
+        // });
       }
     }
 
@@ -2601,9 +2636,6 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   getPathValue({ path, includePath = false, lenientResolution, indexResolver }) {
-    // Todo: If path == '', set lenientResolution to false, because 
-    // this.getInput() will always exist
-
     return this.resolvePath({
       fqPath: path,
       includePath,
@@ -2951,9 +2983,13 @@ class RootCtxRenderer extends BaseRenderer {
     return name && name.startsWith(RootProxy.syntheticMethodPrefix);
   }
 
-  getSyntheticMethod({
-    name,
-  }) {
+  getSyntheticMethod({ name }) {
+    // eslint-disable-next-line no-undef
+    const f = this[`${RootProxy.syntheticMethodPrefix}${name}`];
+    return f ? f.bind(this) : null;
+  }
+
+  static getSyntheticMethod({ name }) {
     // eslint-disable-next-line no-undef
     const f = this[`${RootProxy.syntheticMethodPrefix}${name}`];
     return f ? f.bind(this) : null;
@@ -3549,7 +3585,7 @@ class RootCtxRenderer extends BaseRenderer {
       clone = clone.includes(canonicalPath.split(pathSeparator).join('.'));
     }
 
-    if (!clone && componentSpec.getMetaData().loaded) {
+    if (!clone && componentSpec.getMetaInfo().loaded) {
 
       if (!this.isHeadlessContext()) {
         this.throwError(
@@ -3591,7 +3627,7 @@ class RootCtxRenderer extends BaseRenderer {
           });
       }
 
-      componentSpec.addMetadata('loaded', true);
+      componentSpec.addMetaInfo('loaded', true);
     }
 
     this.addEventHandlers({ handlers, component });

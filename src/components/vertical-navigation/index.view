@@ -1,7 +1,7 @@
 <nav class="slds-nav-vertical" {{label ? "aria-label=\" ${label}\"" : "" }}>
     {{#each sections as |section sectionIndex|}}
 
-        <div class="slds-nav-vertical__section">
+        <div class="slds-nav-vertical__section" data-index="{{sectionIndex}}">
 
             {{#if name}}
                 <h2 id="{{id}}-header" class="slds-nav-vertical__title">{{name}}</h2>
@@ -48,10 +48,12 @@
 
                 <div class="slds-nav-vertical__overflow">
 
-                    {{#with overflow}}
+                    {{#if overflow}}
+                        {{var expanded = overflow.expanded}}
+
                         <button
                             class="slds-button slds-button_reset slds-nav-vertical__action slds-nav-vertical__action_overflow"
-                            aria-controls="{{../id}}-overflow" aria-expanded="{{expanded ? true : false}}" onclick="{{fn "toggleOverflowArea"}}('{{@../index}}')">
+                            aria-controls="section-{{sectionIndex}}-overflow" aria-expanded="{{expanded ? true : false}}" onclick="{{fn "toggleOverflowArea"}}('{{sectionIndex}}')">
 
                             {{> ButtonIconSvg iconType='utility' iconName='chevronright' cssClass='slds-button__icon_left'}}
 
@@ -62,17 +64,17 @@
                                 <span class="slds-assistive-text">{{label}}</span>
                             </span>
                         </button>
-                    {{/with}}
 
-                    <div id="{{id}}-overflow" class="slds-{{overflow.expanded ? "show" : "hide"}}">
-                        <ul aria-describedby="{{id}}-header">
-                        {{#each items as |item itemIndex|~}}
-                            {{#if itemIndex gte @root.truncateSize}}
-                                {{> render_item item}}
-                            {{/if}}
-                        {{/each}}
-                        </ul>
-                    </div>
+                        <div id="section-{{sectionIndex}}-overflow" class="slds-{{expanded ? "show" : "hide"}}">
+                            <ul aria-describedby="{{id}}-header">
+                            {{#each items as |item itemIndex|~}}
+                                {{#if itemIndex gte @root.truncateSize}}
+                                    {{> render_item item}}
+                                 {{/if}}
+                            {{/each}}
+                            </ul>
+                        </div>
+                    {{/if}}
                 </div>
 
             {{/if}}

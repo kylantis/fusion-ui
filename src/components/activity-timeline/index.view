@@ -28,12 +28,13 @@
   {{#each items hook='setupExpandBtn' as |item itemIndex|}}
 
     {{component Icon alias="icon"}}
-    {{component Menu alias="actions"}}
+    {{component Menu alias="actions" transient=true}}
+    {{component ContextMenu}}
 
     <li identifier="{{identifier}}">
 
       <style>
-        .slds-timeline__item_lc_{{identifier}} {
+        .slds-timeline__item_lc_{{identifier}}:after {
             visibility: hidden;
         }
       </style>

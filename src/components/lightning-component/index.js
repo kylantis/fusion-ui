@@ -2,6 +2,10 @@ class LightningComponent extends BaseComponent {
 
     static rootFontSize;
 
+    static isAbstract() {
+        return true;
+    }
+
     beforeCompile() {
         this.getInput().cssStyle;
         this.getInput().cssClass;
@@ -38,9 +42,12 @@ class LightningComponent extends BaseComponent {
     }
 
     toggleCssClass0(node, predicate, className) {
-        if (!node) {
-            return;
-        }
+        LightningComponent.toggleCssClass0(node, predicate, className);
+    }
+
+    static toggleCssClass0(node, predicate, className) {
+        if (!node) return;
+
         const { classList } = node;
         if (predicate) {
             classList.add(className);
@@ -221,10 +228,6 @@ class LightningComponent extends BaseComponent {
 
     getTooltipHoverTarget() {
         return this.getTooltipTarget();
-    }
-
-    static isAbstract() {
-        return true;
     }
 
     getLoader() {

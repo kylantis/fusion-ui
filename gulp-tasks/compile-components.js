@@ -114,6 +114,9 @@ gulp.task('compile-component', async () => {
       gulpTransform({ componentList, performPurge })
     )
     .pipe(gulp.dest(pathLib.join(distFolder, componentName)))
+    .on('end', () => {
+      process.exit(0);
+    });
 });
 
 gulp.task('compile-components', gulp.series(componentList
@@ -171,7 +174,7 @@ gulp.task('compile-components:watch', () => {
       { stdio: "inherit" }
     );
     
-    childProcess.on('close', (code) => {
+    childProcess.on('exit', () => {
       global.__cwp = false;
     });
   });

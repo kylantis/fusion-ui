@@ -6,6 +6,10 @@ class Popover extends components.OverlayComponent {
         this.getInput().nubbin;
     }
 
+    useWeakRef() {
+        return false;
+    }
+    
     initializers() {
         return {
             nubbin: true,
@@ -41,7 +45,7 @@ class Popover extends components.OverlayComponent {
             this.getBoundingClientRectOffset0(rect)
         );
 
-        fn(this.getNode());
+        fn();
 
         if (nubbin) {
             this.addNubbinCssClass(position);
@@ -100,7 +104,7 @@ class Popover extends components.OverlayComponent {
     // getCssPosition(containerRect, position, area) {
     //     Try 24 Pixels as the offset
 
-    
+
     // }
 
     getShowToggleClass() {
@@ -137,6 +141,21 @@ class Popover extends components.OverlayComponent {
 
         // After popover has been hidden, we want to have it stacked under (not just hidden)
         setTimeout(() => node.style.zIndex = -1, 300)
+    }
+
+    useContainer() {
+        return true;
+    }
+
+    getOverlayNode() {
+        return this.getNode();
+    }
+
+    isVisible() {
+        const node = this.getNode();
+        const { style, classList } = node;
+
+        return this.isMounted() && style.visibility != 'hidden' && !classList.contains(this.getHideToggleClass());
     }
 
     getSupportedPositions() {

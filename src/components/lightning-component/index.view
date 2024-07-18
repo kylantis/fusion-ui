@@ -1,3 +1,3 @@
-{{style url="/components/lightning_component/salesforce-lightning-design-system.min.css"}}
-{{style url="/components/lightning_component/salesforce-lightning-design-system_touch.min.css" predicate='isMobile'}}
+{{style url="/components/lightning_component/assets/salesforce-lightning-design-system.min.css"}}
+{{style url="/components/lightning_component/assets/salesforce-lightning-design-system_touch.min.css" screenTarget='mobile|tablet'}}
 {{style url="/components/lightning_component/style.min.css"}}

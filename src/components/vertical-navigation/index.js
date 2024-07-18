@@ -70,6 +70,8 @@ class VerticalNavigation extends components.LightningComponent {
         return {
             ['sections_$.id']: () => this.randomString(),
             ['sections_$.items_$.id']: () => this.randomString(),
+            ['sections_$.overflow']: () => { },
+            ['sections_$.overflow.expanded']: false,
         }
     }
 
@@ -128,10 +130,51 @@ class VerticalNavigation extends components.LightningComponent {
     }
 
     toggleOverflowArea(sectionIndex) {
-        const { sections } = this.getInput();
+        const input = this.getInput();
 
-        const { overflow } = sections[Number(sectionIndex)];
-        overflow.expanded = !overflow.expanded;
+        if (input) {
+            const { sections } = input;
+
+            const { overflow } = sections[Number(sectionIndex)];
+            overflow.expanded = !overflow.expanded;
+
+        } else {
+
+            const node = this.getNode().querySelector(`.slds-nav-vertical__section[data-index='${sectionIndex}']`);
+
+            if (!node || !node.querySelector('.slds-nav-vertical__overflow')) return;
+
+            const btn = node.querySelector('.slds-nav-vertical__action_overflow');
+            if (!btn) return; // overflow is disabled
+
+            const currentValue = btn.getAttribute('aria-expanded') == 'true';
+            const newLabel = !currentValue ? 'Show Less' : 'Show More';
+
+            btn.setAttribute('aria-expanded', !currentValue);
+            btn.querySelector('.slds-nav-vertical__action-text').childNodes
+                .forEach((node, i) => {
+                    switch (i) {
+                        case 0:
+                            assert(node.nodeType == Node.TEXT_NODE);
+                            node.textContent = newLabel;
+                            break;
+                        case 1:
+                            assert(node.classList.has('.slds-assistive-text'));
+                            node.innerHTML = newLabel;
+                            break;
+                    }
+                });
+
+            const { classList } = node.querySelector(`#section-${sectionIndex}-overflow`);
+
+            if (!currentValue) {
+                classList.add('slds-show');
+                classList.remove('slds-hide');
+            } else {
+                classList.add('slds-hide');
+                classList.remove('slds-show');
+            }
+        }
     }
 }
 module.exports = VerticalNavigation;

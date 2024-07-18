@@ -36,13 +36,17 @@
               {{> subMenu label=title isSubMenu=true }}
             {{/inline}}
 
-            {{#*inline "leftIcon" runtime=true}}
+            {{#*inline "leftIconDecorator" runtime=true}}
+                {{component Icon alias="leftIcon"}}
+
                 {{#if leftIcon}}
                     {{> leftIcon marginRight='x-small' useCurrentColor=(feedbackState eq 'warning')}}
                 {{/if}}
             {{/inline}}
 
-            {{#*inline "rightIcon" runtime=true}}
+            {{#*inline "rightIconDecorator" runtime=true}}
+                {{component Icon alias="rightIcon"}}
+
                 {{#if rightIcon}}
                   {{> rightIcon marginLeft='small' useCurrentColor=(feedbackState eq 'warning')}}
                 {{/if}}
@@ -56,23 +60,19 @@
 
               <span class="slds-truncate" title="{{title}}">
 
-                {{component Icon alias="leftIcon"}}
-
                 <span class="left-icon-container 
                       {{leftMargin ? 'slds-m-left_small' : ''}}"
                 >
-                    {{> leftIcon}}
+                    {{> leftIconDecorator}}
                 </span>
                 
                 {{title}}
               </span>
-
-              {{component Icon alias="rightIcon"}}
               
               <span class="right-icon-container
                     {{rightMargin ? 'slds-m-right_x-small' : ''}}"
               >
-                  {{> rightIcon}}
+                  {{> rightIconDecorator}}
               </span>
             </a>
 

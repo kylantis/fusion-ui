@@ -14,7 +14,7 @@ class BaseRenderer {
 
   #config;
 
-  #metadata;
+  #metaInfo;
 
   constructor({ id, input, logger, config = {} } = {}) {
     if (!id) {
@@ -28,7 +28,7 @@ class BaseRenderer {
     assert(input && input.constructor.name === 'Object');
 
     this.#id = id;
-    
+
     this.logger = this.createDefaultLogger(
       logger || self.appContext ? self.appContext.getLogger() : console,
     );
@@ -43,7 +43,7 @@ class BaseRenderer {
       ...config,
     };
 
-    this.#metadata = {};
+    this.#metaInfo = {};
   }
 
   inWorker() {
@@ -53,7 +53,7 @@ class BaseRenderer {
   destroy() {
     this.#input = null;
     this.#config = null;
-    this.#metadata = null;
+    this.#metaInfo = null;
     this.proxyInstance = null;
   }
 
@@ -89,12 +89,12 @@ class BaseRenderer {
     }
   }
 
-  addMetadata(key, value) {
-    Object.defineProperty(this.#metadata, key, { value, configurable: true, enumerable: false });
+  addMetaInfo(key, value) {
+    Object.defineProperty(this.#metaInfo, key, { value, configurable: true, enumerable: false });
   }
 
-  getMetaData() {
-    return this.#metadata;
+  getMetaInfo() {
+    return this.#metaInfo;
   }
 
   static getDefaultConfig() {
@@ -124,6 +124,10 @@ class BaseRenderer {
 
   getInput() {
     return this.#input;
+  }
+
+  useWeakRef() {
+    return true;
   }
 
   setInput(input) {
@@ -167,13 +171,13 @@ class BaseRenderer {
     }
 
     const name = this.getComponentName();
-    const { constructor } = this;
+    const classMetadata = self.appContext.getComponentClassMetadataMap()[name];
 
-    if (constructor.instanceIndex === undefined) {
-      constructor.instanceIndex = -1;
+    if (classMetadata.instanceIndex === undefined) {
+      classMetadata.instanceIndex = -1;
     }
 
-    const idx = constructor.instanceIndex += 1;
+    const idx = classMetadata.instanceIndex += 1;
     return `${name}_${idx}`;
   }
 }

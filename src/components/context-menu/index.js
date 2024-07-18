@@ -15,6 +15,12 @@ class ContextMenu extends components.OverlayComponent {
         if (!menu) {
             this.throwError(`A menu instance is required to load this component`);
         }
+
+        // Note: menu.overlay is set to "true" on the template.
+    }
+
+    useWeakRef() {
+        return false;
     }
 
     immutablePaths() {
@@ -100,7 +106,7 @@ class ContextMenu extends components.OverlayComponent {
                     })
                 );
 
-                fn(menu.getNode());
+                fn();
 
                 this.#showMenu();
             }
@@ -125,6 +131,20 @@ class ContextMenu extends components.OverlayComponent {
         input.overlay = true;
 
         menu.showMenu();
+    }
+
+    useContainer() {
+        return true;
+    }
+    
+    getOverlayNode() {
+        const { menu } = this.getInput();
+        return menu.getNode();
+    }
+
+    isVisible() {
+        const { menu } = this.getInput();
+        return menu.isMounted() && menu.isVisible();
     }
 
     getTriggerEvent() {

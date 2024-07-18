@@ -18,13 +18,10 @@ const renameComponentAssetId = () => {
   return through.obj(async (vinylFile, _encoding, callback) => {
     const file = vinylFile.clone();
 
-    const dir = pathLib.dirname(file.path);
-    const componentsFolder = pathLib.dirname(dir);
+    const [componentsFolder] = pathLib.relative(srcFolder, file.path).split('/');
+    const assetId = componentsFolder.replace(/-/g, '_');
 
-    const assetId = pathLib.relative(componentsFolder, dir)
-      .replace(/-/g, '_');
-
-    file.path = pathLib.join(componentsFolder, assetId, file.basename);
+    file.path = file.path.replace(`${srcFolder}/${componentsFolder}`, `${srcFolder}/${assetId}`);
     callback(null, file);
   });
 }

@@ -8,13 +8,12 @@
 
 {{#*inline "render_input_element" eager=true}}
     <input type="{{type}}" id="{{@root.componentId}}_input"
-      {{required ? "required=''" : "" }}
       class="slds-input {{(not readonly and hasWidget) ? "hasWidget" : ""}}"
       style="{{readonly ? 'box-shadow: none;' : ''}}"
       value="{{((value neq null) and not hasWidget) ? value : "" }}"
-      {{required ? "required=''" : "" }}
-      {{disabled ? "disabled=''" : "" }}
-      {{(readonly or hasWidget) ? "readonly=''" : "" }}
+      {{required ? "required='required'" : "" }}
+      {{disabled ? "disabled='disabled'" : "" }}
+      {{(readonly or hasWidget) ? "readonly='readonly'" : "" }}
       {{hasWidget ? "aria-controls='${getWidgetElementId}'" : ""}}
       {{message ? "aria-describedby=\"${@root.componentId}_message\"" : "" }}
       {{error ? "aria-invalid=\"true\"" : ""}}

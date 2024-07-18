@@ -11,10 +11,6 @@ const pathLib = require('path');
 
 
 
-const renameConfig = {
-  suffix: '.min',
-};
-
 const srcFolder = 'src/assets/scss';
 const watchTarget = `${srcFolder}/**/*.scss`;
 
@@ -43,7 +39,7 @@ const addPipes = (path, relativize) => {
       },
     ).on('error', sass.logError))
     .pipe(sourcemaps.write())
-    .pipe(rename(renameConfig))
+    .pipe(rename({ suffix: '.min' }))
     .pipe(gulp.dest(distFolder));
 };
 

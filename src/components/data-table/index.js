@@ -3,11 +3,6 @@ class DataTable extends components.LightningComponent {
 
     #rowIds = [];
 
-    beforeCompile() {
-        // compile ContextMenu first because this component depends on it
-        components.ContextMenu;
-    }
-
     eventHandlers() {
         return {
             ['insert.rows_$.actions']: ({ value: actions, parentObject, afterMount }) => {
@@ -136,6 +131,12 @@ class DataTable extends components.LightningComponent {
 
         contextMenus[rowId] = contextMenu;
 
+        const { container } = components.OverlayComponent.getOverlayConfig() || {};
+
+        if (container) {
+            contextMenu.setContainer(container);
+        }
+        
         await contextMenu.load();
 
         contextMenu.addNode(btn);
@@ -156,20 +157,6 @@ class DataTable extends components.LightningComponent {
 
     getActionsTriggerButton(rowId) {
         return this.getInlineComponent(this.getActionsTriggerButtonRef(rowId));
-    }
-
-    getColumnResizeHandle(index) {
-        const { columns } = this.getInput();
-
-        const columnName = Object.keys(columns).indexOf(index);
-
-        if (!columnName) {
-            return;
-        }
-
-        const selector = `#${this.getElementId()}-resize-handle-${this.replaceWhitespace(columnName)}`
-
-        return this.getNode().querySelector(selector);
     }
 
     replaceWhitespace(idString) {

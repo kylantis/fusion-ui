@@ -43,8 +43,7 @@
       ]
     },
     "sections_$.overflow.expanded": {
-      "type": "Boolean",
-      "defaultValue": false
+      "type": "Boolean"
     },
     "sections_$.items_$.active": {
       "type": "Boolean",

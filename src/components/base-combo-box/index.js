@@ -7,6 +7,10 @@ class BaseComboBox extends components.FormElement {
         this.getInput().placeholderText;
     }
 
+    useWeakRef() {
+        return false;
+    }
+    
     initializers() {
         return {
             ['placeholderText']: () => 'Select Option',

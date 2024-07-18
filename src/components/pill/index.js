@@ -3,6 +3,10 @@ class Pill extends components.LightningComponent {
 
     #identifiers = [];
 
+    useWeakRef() {
+        return false;
+    }
+
     eventHandlers() {
         return {
             ['remove.items_$']: ({ value: item }) => {

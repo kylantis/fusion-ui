@@ -57,5 +57,6 @@
     "nullifyRandomly": []
   },
   "useCollectionLengthProperty": false,
-  "escapeDynamicHtml": false
+  "escapeDynamicHtml": false,
+  "loadAfterCompile": false
 }

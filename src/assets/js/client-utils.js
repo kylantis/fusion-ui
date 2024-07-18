@@ -154,8 +154,6 @@ module.exports = {
     return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
   },
 
-
-
   randomString: (groupName, length = 8) => {
     const { _internedStringPool } = global;
     const { groupIndexes } = internedStringsMetadata;
@@ -598,45 +596,130 @@ module.exports = {
     }
   }),
 
-  scaleArrayToTotal: (arr, cumulativeTotal) => {
+  updateCollChild: async (db, hooklistStoreName, componentId, parent, key, info, timestamp) => {
+    const { toFqPath, isNumber, isCanonicalArrayIndex, toCanonicalPath } = clientUtils;
 
-    const minInitial = Math.min(...arr);
+    const { DEFAULT_PRIMARY_KEY: primaryKey } = K_Database;
 
-    // Step 1: Normalize the array such that the minimum becomes 1
-    let normalizedArray = arr.map(num => (num - minInitial) + 1);
+    const dataPathRoot = 'data';
+    const logicGatePathRoot = 'lg';
+    const pathSeparator = '__';
 
-    // Step 2: Calculate the sum of the normalized array
-    let sumNormalized = normalizedArray.reduce((acc, num) => acc + num, 0);
+    const ARRAY_BLOCK_PATH_INDEX = 'arrayBlockPath_index';
 
-    // Step 3: Scale the normalized array to sum to the cumulativeTotal
-    let scaledArray = normalizedArray.map(num => (num / sumNormalized) * cumulativeTotal);
 
-    // Step 4: Ensure all numbers are whole numbers and adjust to make the sum exact
-    let resultingArray = scaledArray.map(num => Math.floor(num));
+    const isArray = isNumber(key);
 
-    // Calculate the sum of the resulting array after flooring
-    let currentSum = resultingArray.reduce((acc, num) => acc + num, 0);
+    const canonicalParent = toCanonicalPath(parent);
 
-    // Calculate the difference to reach the desired cumulative total
-    let difference = cumulativeTotal - currentSum;
+    const path = toFqPath({ isArray, isMap: !isArray, parent, prop: key });
+    const newPath = (isArray && (info.index != undefined)) ? toFqPath({ isArray, parent, prop: `${info.index}` }) : null;
 
-    // Adjust the array to account for the difference
-    for (let i = 0; i < resultingArray.length && difference != 0; i++) {
-      let add = Math.sign(difference);  // +1 if difference is positive, -1 if negative
-      resultingArray[i] += add;
-      difference -= add;
-    }
+    const rows = await db.equalsQuery(hooklistStoreName, ARRAY_BLOCK_PATH_INDEX, path);
 
-    // Ensure there are no zeros in the resulting array
-    for (let i = 0; i < resultingArray.length; i++) {
-      if (resultingArray[i] === 0) {
-        // Find the maximum element to decrease
-        let maxIndex = resultingArray.indexOf(Math.max(...resultingArray));
-        resultingArray[maxIndex]--;
-        resultingArray[i]++;
-      }
-    }
+    const updates = rows
+      .filter(({ [primaryKey]: id, updatedAt }) => id.startsWith(`${componentId}_`) && updatedAt < timestamp)
+      .map((row) => {
+        const {
+          arrayBlockPath, canonicalPath, owner, blockData, blockStack, participants, canonicalParticipants,
+        } = row;
 
-    return resultingArray;
+        let blockDataKey;
+
+        for (let k of Object.keys(blockData)) {
+          if ((k.includes('[') ? toCanonicalPath(k) : k) == canonicalParent) {
+            blockDataKey = k;
+            break;
+          }
+        }
+
+        assert(blockDataKey);
+
+        if (newPath) {
+
+          const isknownCanonicalPath = p => p.startsWith(`${canonicalParent}_$`) || isCanonicalArrayIndex(p, parent);
+
+          arrayBlockPath.forEach((p, i) => {
+            if (p.startsWith(path)) {
+              arrayBlockPath[i] = p.replace(path, newPath);
+            }
+          });
+
+          if (canonicalPath.startsWith(logicGatePathRoot)) {
+            canonicalParticipants.forEach((p, i) => {
+              if (
+                participants[i].startsWith(path) &&
+                isknownCanonicalPath(p.split(pathSeparator).join('.'))
+              ) {
+                return participants[i] = participants[i].replace(path, newPath);
+              }
+            });
+          } else
+            if (
+              owner.startsWith(`${dataPathRoot}${pathSeparator}${path}`) &&
+              isknownCanonicalPath(canonicalPath.split(pathSeparator).join('.'))
+            ) {
+              row.owner = owner.replace(path, newPath);
+            }
+
+        }
+
+        const updateBlockData = (entry) => {
+          assert(entry);
+
+          if (info.index != undefined) {
+            entry.index = info.index;
+          }
+
+          if (info.length != undefined) {
+            entry.length = info.length;
+          }
+        }
+
+        updateBlockData(blockData[blockDataKey]);
+
+        blockStack
+          .filter(({ blockData }) => blockData)
+          .forEach(({ blockData }) => {
+            const entry = blockData[blockDataKey];
+            if (entry) updateBlockData(entry);
+          });
+
+        return row;
+      });
+
+    await db.put(hooklistStoreName, updates);
+  },
+
+  pruneCollChild: async (db, hooklistStoreName, mustachelistStoreName, componentId, parent, key, timestamp) => {
+    const { toFqPath, isNumber } = clientUtils;
+
+    const { DEFAULT_PRIMARY_KEY: primaryKey } = K_Database;
+
+    const ARRAY_BLOCK_PATH_INDEX = 'arrayBlockPath_index';
+
+
+    const isArray = isNumber(key);
+
+    const path = toFqPath({ isArray, isMap: !isArray, parent, prop: key });
+
+    const rows = await db.equalsQuery(hooklistStoreName, ARRAY_BLOCK_PATH_INDEX, path);
+
+    const mustacheRefIds = [];
+
+    const ids = rows
+      .filter(({ [primaryKey]: id, updatedAt }) => id.startsWith(`${componentId}_`) && updatedAt < timestamp)
+      .map(({ id, mustacheRef }) => {
+        if (mustacheRef) {
+          mustacheRefIds.push(`${componentId}_${mustacheRef}`);
+        }
+        return id
+      });
+
+
+    await Promise.all([
+      db.delete(hooklistStoreName, ids),
+      db.delete(mustachelistStoreName, mustacheRefIds)
+    ]);
   }
 };

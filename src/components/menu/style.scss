@@ -1,7 +1,14 @@
+$box-shadow: 0 4px 18px 0 rgba(0, 0, 0, .16);
+
 .slds-dropdown {
+    &.slds-dropdown_submenu {
+        box-shadow: $box-shadow;
+    }
+
     &.overlay-menu {
         opacity: 0;
         transition: opacity 0.1s ease-in;
+        box-shadow: $box-shadow;
 
         &.visible {
             opacity: 1;

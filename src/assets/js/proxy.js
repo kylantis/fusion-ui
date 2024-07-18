@@ -114,6 +114,9 @@ class RootProxy {
   static mutationType_DELETE = 'delete';
 
 
+  static INDEXEDDB_EQUALS_QUERY_TASK = 'equalsQuery';
+
+  static INDEXEDDB_STARTSWITH_QUERY_TASK = 'startsWithQuery';
 
   static INDEXEDDB_PUT_TASK = 'put';
 
@@ -219,14 +222,16 @@ class RootProxy {
 
     if (!self.appContext || !component.isLoadable0()) return;
 
-    if (!proxy.getSchemaDefinitions()) {
+    if (!proxy.#getSchemaDefinitions()) {
 
-      const schema = component.constructor.schema || (await self.appContext.fetch({
-        url: `/components/${component.getAssetId()}/config.json`,
+      const classMetadata = self.appContext.getComponentClassMetadataMap()[component.getComponentName()];
+
+      const schema = classMetadata.schema || (await self.appContext.fetch({
+        url: `/components/${component.getAssetId()}/schema.json`,
         asJson: true,
-      })).schema;
+      }));
 
-      proxy.setSchemaDefinitions(schema);
+      proxy.#setSchemaDefinitions(schema);
     }
 
     const leafs = [];
@@ -273,21 +278,12 @@ class RootProxy {
     });
   }
 
-  getSchemaDefinitions() {
-    return this.component.constructor.schemaDefinitions;
+  #getSchemaDefinitions() {
+    const { schemaDefinitions } = self.appContext.getComponentClassMetadataMap()[this.component.getComponentName()];
+    return schemaDefinitions;
   }
 
-  static getEnum(enumName) {
-    const arr = self.appContext.enums[enumName];
-
-    if (!arr) {
-      throw Error(`Could not find enum "${enumName}"`);
-    }
-
-    return arr;
-  }
-
-  setSchemaDefinitions(schema) {
+  #setSchemaDefinitions(schema) {
     const {
       pathProperty, firstProperty, lastProperty, keyProperty, indexProperty, randomProperty, getEnum,
     } = RootProxy;
@@ -523,26 +519,27 @@ class RootProxy {
       }
     }
 
-    this.component.constructor.schemaDefinitions = new Proxy(
-      definitions,
-      {
-        // For paths that reference shared types, we want to automatically return
-        // the referenced shared type
-        get: (obj, prop) => {
-          switch (true) {
-            case prop === 'toJSON':
-              return () => obj;
+    self.appContext.getComponentClassMetadataMap()[this.component.getComponentName()]
+      .schemaDefinitions = new Proxy(
+        definitions,
+        {
+          // For paths that reference shared types, we want to automatically return
+          // the referenced shared type
+          get: (obj, prop) => {
+            switch (true) {
+              case prop === 'toJSON':
+                return () => obj;
 
-            default:
-              let v = obj[prop];
+              default:
+                let v = obj[prop];
 
-              if (v.referencesShared) {
-                v = obj[v.$ref.replace(defPrefx, '')];
-              }
-              return v;
-          }
-        },
-      });
+                if (v.referencesShared) {
+                  v = obj[v.$ref.replace(defPrefx, '')];
+                }
+                return v;
+            }
+          },
+        });
 
     // Compatibility note for Ajv
 
@@ -559,6 +556,16 @@ class RootProxy {
     // // Definitions for shared types have a property "shared: true", register this keyword
     // // so that ajv recognizes it in strict mode
     // ajv.addKeyword('shared');
+  }
+
+  static getEnum(enumName) {
+    const arr = self.appContext.enums[enumName];
+
+    if (!arr) {
+      throw Error(`Could not find enum "${enumName}"`);
+    }
+
+    return arr;
   }
 
   createObjectProxy() {
@@ -1968,7 +1975,7 @@ class RootProxy {
                   assert(data instanceof BaseComponent);
 
                   this.component.render({
-                      data, target: selector, transform, loc,
+                    data, target: selector, transform, loc,
                   });
 
                 }, blockData);
@@ -2402,17 +2409,31 @@ class RootProxy {
     return trigger
       .then(() => {
 
-        const { aux } = this.runTask(
-          PRUNE_COLL_CHILD_TASK,
+        const args = [
           HookList.getStoreName(this),
           MustacheStatementList.getStoreName(this),
           this.component.getId(),
           parent,
           key,
           timestamp,
-        );
+        ];
 
-        return aux;
+        if (this.#getDbWorker()) {
+
+          const { aux } = this.runTask(
+            PRUNE_COLL_CHILD_TASK,
+            ...args,
+          );
+
+          return aux;
+
+        } else {
+
+          return clientUtils.pruneCollChild(
+            this.getDbConnection(),
+            ...args,
+          );
+        }
       });
   }
 
@@ -2450,14 +2471,28 @@ class RootProxy {
 
     return trigger.then(() => {
 
-      const { aux } = this.runTask(
-        UPDATE_COLL_CHILD_TASK,
+      const args = [
         HookList.getStoreName(this),
         this.component.getId(),
         parent, key, info, timestamp,
-      );
+      ];
 
-      return aux;
+      if (this.#getDbWorker()) {
+
+        const { aux } = this.runTask(
+          UPDATE_COLL_CHILD_TASK,
+          ...args,
+        );
+
+        return aux;
+
+      } else {
+
+        return clientUtils.updateCollChild(
+          this.getDbConnection(),
+          ...args,
+        );
+      }
     });
   }
 
@@ -3048,7 +3083,7 @@ class RootProxy {
   ) {
 
     const updateDOM = () => {
-      const [parent, changeSet, finalizers=[], exclusionSet] = domUpdateOptions;
+      const [parent, changeSet, finalizers = [], exclusionSet] = domUpdateOptions;
 
       const valueOverrides = {};
 
@@ -3063,7 +3098,11 @@ class RootProxy {
       // console.info(valueOverrides);
 
       this.component.getDomUpdateHooks().forEach(fn => {
-        finalizers.push(fn);
+        finalizers.push(() => {
+          requestAnimationFrame(() => {
+            fn();
+          });
+        });
       });
 
       this.component.pruneDomUpdateHooks();
@@ -4235,7 +4274,7 @@ class RootProxy {
     const { toDefinitionName } = RootProxy;
 
     const defPrefx = '#/definitions/';
-    const schemaDefinitions = this.getSchemaDefinitions();
+    const schemaDefinitions = this.#getSchemaDefinitions();
 
     const k = path.length ?
       toDefinitionName(clientUtils.toCanonicalPath(path)) :
@@ -4260,7 +4299,7 @@ class RootProxy {
 
     const { getSchemaKey } = RootProxy;
 
-    const { additionalProperties } = this.getSchemaDefinitions()[
+    const { additionalProperties } = this.#getSchemaDefinitions()[
       getSchemaKey(path)
     ];
 
@@ -4282,7 +4321,7 @@ class RootProxy {
     if (!path.length) return false;
     const { getSchemaKey } = RootProxy;
 
-    const { items } = this.getSchemaDefinitions()[
+    const { items } = this.#getSchemaDefinitions()[
       getSchemaKey(path)
     ];
 
@@ -4346,7 +4385,7 @@ class RootProxy {
 
     const { toDefinitionName, isMapObject, getEnum } = RootProxy;
 
-    const schemaDefinitions = this.getSchemaDefinitions();
+    const schemaDefinitions = this.#getSchemaDefinitions();
 
     const {
       $ref, type, additionalProperties, items, component, enum: enum0
@@ -4490,7 +4529,7 @@ class RootProxy {
   getDefaultInitializerForPath(sPath) {
     if (!this.component.getNonNullPaths().includes(sPath)) return null;
 
-    const { type } = this.getSchemaDefinitions()[
+    const { type } = this.#getSchemaDefinitions()[
       getSchemaKey(sPath)
     ];
 
@@ -4543,7 +4582,7 @@ class RootProxy {
       Object.defineProperty(value, parentRefProperty, { value: parentObject, configurable: false, enumerable: false });
     } else {
       assert(value instanceof BaseComponent);
-      value.addMetadata('parentRef', parentObject);
+      value.addMetaInfo('parentRef', parentObject);
     }
   }
 
@@ -4870,7 +4909,11 @@ class RootProxy {
 
   #getDbWorker() {
     const { dbName } = this.getDbInfo();
-    return self.appContext.getDbWorker(dbName);
+
+    const ret = self.appContext.getDbWorker(dbName);
+    assert(ret);
+
+    return ret;
   }
 
   runTask(fnName, ...params) {
@@ -4930,8 +4973,48 @@ class RootProxy {
     return ret;
   }
 
+  dbEqualsQuery(storeName, indexName, value) {
+    const { INDEXEDDB_EQUALS_QUERY_TASK } = RootProxy;
+
+    return this.#getDbWorker() ? this.runTask(
+      INDEXEDDB_EQUALS_QUERY_TASK, storeName, indexName, value,
+    ) :
+      this.getDbConnection()
+        .equalsQuery(storeName, indexName, value);
+  }
+
+  dbStartsWithQuery(storeName, indexName, prefix) {
+    const { INDEXEDDB_STARTSWITH_QUERY_TASK } = RootProxy;
+
+    return this.#getDbWorker() ? this.runTask(
+      INDEXEDDB_STARTSWITH_QUERY_TASK, storeName, indexName, prefix,
+    ) :
+      this.getDbConnection()
+        .startsWithQuery(storeName, indexName, prefix);
+  }
+
+  dbPut(storeName, rows) {
+    const { INDEXEDDB_PUT_TASK } = RootProxy;
+
+    return this.#getDbWorker() ? this.runTask(
+      INDEXEDDB_PUT_TASK, storeName, rows,
+    ) :
+      this.getDbConnection()
+        .put(storeName, rows);
+  }
+
+  dbDelete(storeName, ids) {
+    const { INDEXEDDB_DELETE_TASK } = RootProxy;
+
+    return this.#getDbWorker() ? this.runTask(
+      INDEXEDDB_DELETE_TASK, storeName, ids,
+    ) :
+      this.getDbConnection()
+        .delete(storeName, ids);
+  }
+
   static MustacheStatementList = class MustacheStatementList {
-    static primaryKey = K_IndexedDB.DEFAULT_PRIMARY_KEY;
+    static primaryKey = K_Database.DEFAULT_PRIMARY_KEY;
 
     static getStoreName(proxy) {
       const { bucketName } = proxy.getDbInfo();
@@ -4939,14 +5022,12 @@ class RootProxy {
     }
 
     static query(proxy, groupId, id) {
-      const db = proxy.getDbConnection();
-
       const storeName = this.getStoreName(proxy);
       const indexName = groupId ? this.getIndexName('groupId') : null;
 
       const componentId = proxy.component.getId();
 
-      return db.getAll(storeName, indexName, groupId || `${componentId}_${id}`)
+      return proxy.dbEqualsQuery(storeName, indexName, groupId || `${componentId}_${id}`)
         .then(
           rows => rows.filter(
             ({ [this.primaryKey]: id }) => groupId ? id.startsWith(`${componentId}_`) : true,
@@ -4955,7 +5036,6 @@ class RootProxy {
     }
 
     static async put(proxy, rows) {
-      const { INDEXEDDB_PUT_TASK } = RootProxy;
       const storeName = this.getStoreName(proxy);
 
       const componentId = proxy.component.getId();
@@ -4976,9 +5056,7 @@ class RootProxy {
         };
       });
 
-      await proxy.runTask(
-        INDEXEDDB_PUT_TASK, storeName, _rows,
-      );
+      await proxy.dbPut(storeName, _rows);
 
       return ids;
     }
@@ -4989,7 +5067,7 @@ class RootProxy {
   }
 
   static HookList = class HookList {
-    static primaryKey = K_IndexedDB.DEFAULT_PRIMARY_KEY;
+    static primaryKey = K_Database.DEFAULT_PRIMARY_KEY;
 
     static getStoreName(proxy) {
       const { bucketName } = proxy.getDbInfo();
@@ -5007,43 +5085,32 @@ class RootProxy {
     }
 
     static delete(proxy, ids) {
-      const { INDEXEDDB_DELETE_TASK } = RootProxy;
       const storeName = this.getStoreName(proxy);
 
-      return proxy.runTask(
-        INDEXEDDB_DELETE_TASK, storeName, ids,
-      )
+      return proxy.dbDelete(storeName, ids)
     }
 
     static equalsQuery(proxy, colName, value) {
-      const db = proxy.getDbConnection();
-
       const storeName = this.getStoreName(proxy);
       const indexName = this.getIndexName(colName);
 
-      return db.getAll(storeName, indexName, value)
+      return proxy.dbEqualsQuery(storeName, indexName, value)
         .then(rows => rows.filter(
           ({ [this.primaryKey]: id }) => id.startsWith(`${proxy.component.getId()}_`),
         ));
     }
 
     static startsWithQuery(proxy, colName, prefix) {
-      const db = proxy.getDbConnection();
-
       const storeName = this.getStoreName(proxy);
       const indexName = this.getIndexName(colName);
 
-      return db.getAll(
-        storeName, indexName,
-        IDBKeyRange.bound(prefix, prefix + 'uffff', false, false),
-      )
+      return proxy.dbStartsWithQuery(storeName, indexName, prefix)
         .then(rows => rows.filter(
           ({ [this.primaryKey]: id }) => id.startsWith(`${proxy.component.getId()}_`),
         ));
     }
 
     static async put(proxy, rows) {
-      const { INDEXEDDB_PUT_TASK } = RootProxy;
       const storeName = this.getStoreName(proxy);
 
       const componentId = proxy.component.getId();
@@ -5064,9 +5131,7 @@ class RootProxy {
         };
       });
 
-      await proxy.runTask(
-        INDEXEDDB_PUT_TASK, storeName, _rows,
-      );
+      await proxy.dbPut(storeName, _rows);
 
       return ids;
     }

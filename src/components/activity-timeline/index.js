@@ -3,9 +3,6 @@ class ActivityTimeline extends components.LightningComponent {
     #identifiers = [];
 
     beforeCompile() {
-        // compile ContextMenu first because this component depends on it
-        components.ContextMenu;
-
         this.getInput().items[0].lineColor;
     }
 
@@ -129,6 +126,12 @@ class ActivityTimeline extends components.LightningComponent {
 
         contextMenus[identifier] = contextMenu;
 
+        const { container } = components.OverlayComponent.getOverlayConfig() || {};
+
+        if (container) {
+            contextMenu.setContainer(container);
+        }
+
         await contextMenu.load();
 
         contextMenu.addNode(btn);
@@ -143,16 +146,13 @@ class ActivityTimeline extends components.LightningComponent {
         delete this.contextMenus[identifier];
     }
 
-    #getItem(identifier) {
+    getItem(identifier) {
         const { items } = this.getInput();
         return items.filter(item => item.identifier == identifier)[0];
     }
 
     setupExpandBtn({ node }) {
-
         const identifier = node.querySelector(':scope > li').getAttribute('identifier');
-
-        const item = this.#getItem(identifier);
 
         this.onceInlineComponentLoad(
             this.getExpandButtonRef(identifier),
@@ -161,10 +161,25 @@ class ActivityTimeline extends components.LightningComponent {
 
                 expandBtn.on('click', new EventHandler(
                     () => {
-                        _item.expanded = !_item.expanded;
+                        const input = _this.getInput();
+
+                        if (input) {
+                            const item = _this.getItem(_identifier);
+                            item.expanded = !item.expanded;
+                        } else {
+
+                            const btn = _this.getExpandButton(_identifier).getButton();
+                            const currentValue = (btn.getAttribute("aria-expanded") == 'true') ? true : false;
+
+                            btn.setAttribute("aria-expanded", !currentValue);
+
+                            _this.toggleCssClass0(
+                                _this.getTimelineItem(_identifier), !currentValue, 'slds-is-open',
+                            );
+                        }
                     },
                     null,
-                    { _item: item },
+                    { _this: this, _identifier: identifier  },
                 ));
 
                 expandBtn.on('load', new EventHandler(

@@ -100,6 +100,9 @@
 
         <tbody>
             {{#each rows opaqueWrapper=true as |row rowIndex|}}
+                {{component Menu alias="actions"}}
+                {{component ContextMenu}}
+
                 <tr aria-selected="{{rowsSelectable and selected}}" class="slds-hint-parent">
                     
                     <td role="gridcell" {{not ../rowsSelectable ? "style='display: none;'" : ""}}>
@@ -157,8 +160,6 @@
                             </div>
                         </td>
                     {{/each}}
-
-                    {{component Menu alias="actions"}}
 
                     <td role="gridcell" {{not actions ? "style='display: none;'" : ""}}>
                         {{#if actions}}

@@ -192,14 +192,16 @@ class BaseComponent extends WebRenderer {
 
     const future = Promise.resolve(data)
       // eslint-disable-next-line no-shadow
-      .then(async (data) => {
+      .then(async data => {
 
         if (data === undefined) {
           // eslint-disable-next-line no-param-reassign
           data = '';
         }
 
-        if (data instanceof BaseComponent) {
+        const isComponent = data instanceof BaseComponent;
+
+        if (isComponent) {
           extendedFutures.push(
             new Promise((resolve) => {
               data.on('load', resolve);
@@ -207,12 +209,13 @@ class BaseComponent extends WebRenderer {
           )
         }
 
+        let html;
+        let renderContext;
+
+
         const load0 = async () => {
 
-          let html;
-          let renderContext;
-
-          if (data instanceof BaseComponent) {
+          if (isComponent) {
             const ret = await data.getRenderedHtml();
 
             html = ret.htmlString;
@@ -226,6 +229,10 @@ class BaseComponent extends WebRenderer {
             html = this[transform](html);
           }
 
+          assert(html != undefined);
+
+          await promise;
+
           const node = document.querySelector(target);
 
           if (data instanceof BaseComponent) {
@@ -237,17 +244,12 @@ class BaseComponent extends WebRenderer {
           } else {
             node.innerHTML = html;
           }
-        };
+        }
 
-        const eager = () => (data instanceof BaseComponent) && data.eagerlyInline();
-
-        if (this.isRootComponent() || this.isMounted()) {
-
-          await promise;
+        if (isComponent && (this.isRootComponent() || this.isMounted())) {
           await load0();
 
         } else {
-
           this.on('load', ({ futures }) => {
             futures.push(
               load0()
@@ -512,7 +514,7 @@ class BaseComponent extends WebRenderer {
 
 
 
-  // Convert static API to use strings instead
+  // TODO: Convert static event API to use EventHandler instead
 
   static on(event, handler) {
     assert(typeof handler == 'function');
@@ -528,6 +530,14 @@ class BaseComponent extends WebRenderer {
       });
   }
 
+  static removeEventHandler(event, handler) {
+    const handlers = this.#staticHandlers[event];
+    const idx = handlers ? handlers.indexOf(handler) : -1;
+
+    if (idx >= 0) {
+      handlers.splice(idx, 1);
+    }
+  }
 
 
 
@@ -602,11 +612,19 @@ class BaseComponent extends WebRenderer {
     setObjectAsPruned(this);
   }
 
-  s$_jsDependencies() {
+  s$_ownJsDependencies() {
     return [];
   }
 
-  s$_cssDependencies() {
+  s$_ownCssDependencies() {
+    return [];
+  }
+
+  s$_allJsDependencies() {
+    return [];
+  }
+
+  s$_allCssDependencies() {
     return [];
   }
 

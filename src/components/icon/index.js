@@ -5,10 +5,9 @@ class Icon extends components.TextCompanion {
         return ['solidStateChange'];
     }
 
-    beforeRender() {
-        const input = this.getInput();
-        if (!input.size) {
-            input.size = "small";
+    initializers() {
+        return {
+            ['size']: 'small'
         }
     }
 
@@ -64,8 +63,16 @@ class Icon extends components.TextCompanion {
 
     isSolid() {
         const { isSolid0 } = Icon;
-        const { type, solid } = this.getInput();
-        return isSolid0({ type, solid });
+        
+        const input = this.getInput();
+
+        if (input) {
+            const { type, solid } = input;
+            return isSolid0({ type, solid });
+
+        } else {
+            getNode().classList.contains('is-solid-icon');
+        }
     }
 
     static isSolid0({ type, solid }) {

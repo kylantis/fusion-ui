@@ -17,6 +17,10 @@ class FormElement extends components.LightningComponent {
         return true;
     }
 
+    useWeakRef() {
+        return false;
+    }
+    
     isLoadable() {
         if (this.isHeadlessContext()) {
             return true;
