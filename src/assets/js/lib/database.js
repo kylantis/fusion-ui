@@ -1,6 +1,7 @@
 
 class K_Database {
 
+    static #NO_OP = () => {};
     static #resolvedResultSet = Promise.resolve([]);
 
     #deferredDeletes = [];
@@ -20,7 +21,7 @@ class K_Database {
     }
 
     createInMemoryLayer() {
-        this.#lds = new LokiDatabase(this.#databaseName, K_Database.DEFAULT_PRIMARY_KEY, this.#storeInfoList);
+        this.#lds = new self.LokiDatabase(this.#databaseName, K_Database.DEFAULT_PRIMARY_KEY, this.#storeInfoList);
     }
 
     async createPersistenceLayer() {
@@ -81,10 +82,18 @@ class K_Database {
     }
 
     put(storeName, rows) {
-        return this.#idb ? K_Database.#_put(this.#idb, storeName, rows) : this.#lds.put(storeName, rows);
+        const lokiReservedColumns = self.LokiDatabase ? self.LokiDatabase.getReservedColumns() : null;
+        
+        const transform = this.#migrating ? (row) => {
+            lokiReservedColumns.forEach(k => {
+                delete row[k];
+            });
+        } : K_Database.#NO_OP;
+
+        return this.#idb ? K_Database.#_put(this.#idb, storeName, rows, transform) : this.#lds.put(storeName, rows);
     }
 
-    static #_put(dbInstance, storeName, rows) {
+    static #_put(dbInstance, storeName, rows, transform) {
         const transaction = dbInstance.transaction([storeName], 'readwrite', { durability: 'relaxed' });
         const store = transaction.objectStore(storeName);
 
@@ -96,6 +105,7 @@ class K_Database {
             const updatedAt = new Date();
 
             for (const row of rows) {
+                transform(row);
                 row.updatedAt = updatedAt;
                 store.put(row);
             }
@@ -128,9 +138,9 @@ class K_Database {
         return values;
     }
 
-    startsWithQuery(storeName, indexName, prefix) {
+    startsWithQuery(proxyInstance, storeName, indexName, prefix) {
         return K_Database.#combineFetchResults(
-            this.#lds ? Promise.resolve(this.#lds.startsWithQuery(storeName, indexName, prefix)) : K_Database.#resolvedResultSet,
+            this.#lds ? Promise.resolve(this.#lds.startsWithQuery(proxyInstance, storeName, indexName, prefix)) : K_Database.#resolvedResultSet,
             this.#idb ? this.#getAll0(storeName, indexName, IDBKeyRange.bound(prefix, prefix + 'uffff', false, false)) : K_Database.#resolvedResultSet
         )
     }

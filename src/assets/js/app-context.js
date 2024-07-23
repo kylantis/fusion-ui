@@ -13,14 +13,11 @@ class AppContext {
   static BUCKET_COUNT_PER_DB = 50;
   static CONNECTIONS_PER_DB = 1;
 
-  static #staticFilePattern = /\.(?:[a-zA-Z0-9]+)(\?.*)?$/i;
-
   #loadedStyles = [];
   #loadedScripts = [];
 
   #logger;
   #userGlobals;
-  #staticCache;
 
   #assetId;
   #className;
@@ -48,7 +45,6 @@ class AppContext {
 
     this.#logger = logger;
     this.#userGlobals = (userGlobals == '{{userGlobals}}') ? {} : userGlobals;
-    this.#staticCache = new K_Cache('static-cache', 1);
 
     this.#assetId = assetId;
     this.#className = className;
@@ -976,14 +972,10 @@ class AppContext {
     this.#loaded = true;
     this.#rootComponent = component;
 
-    component.on('preload', ({ futures }) => {
+    component.on('afterLoad', ({ futures }) => {
       futures.push(
-        new Promise(resolve => {
-          requestAnimationFrame(() => {
-            this.#loadComponentClasses(this.#omegaList).then(resolve)
-          });
-        })
-      )
+        this.#loadComponentClasses(this.#omegaList)
+      );
     });
 
     return component.load({ container: `#${container.id}` });
@@ -1010,23 +1002,17 @@ class AppContext {
     return result;
   }
 
-  async fetch(req, useCache = true) {
-    const [res] = await this.fetchAll([req], useCache);
+  async fetch(req) {
+    const [res] = await this.fetchAll([req]);
     return res;
   }
 
-  async fetchAll(reqArray, useCache = true) {
+  async fetchAll(reqArray) {
 
     const fetchFn = async ({ url, asJson }) => {
       const resourceType = asJson ? 'json' : 'text';
 
-      const args = [url, { method: 'GET' }];
-
-      // url.match(AppContext.#staticFilePattern) ? ... : self.fetch(...args);
-
-      const data = await (
-        useCache ? this.#staticCache.fetchWithCache(...args) : this.#staticCache.addToCache(...args)
-      );
+      const data = await self.fetch(url, { method: 'GET' });
 
       if (data.ok) {
         return await data[resourceType]();

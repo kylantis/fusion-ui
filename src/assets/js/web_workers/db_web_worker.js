@@ -25,7 +25,7 @@ let currentIndex = -1;
 
 let db;
 
-const connectDatabase = (dbName, numConnections) => {
+const connectDatabase = (dbName) => {
     db = new K_Database(dbName);
     return db.createPersistenceLayer();
 }
@@ -95,7 +95,7 @@ onmessage = async (event) => {
         case 'startsWithQuery':
             (async () => {
                 const [storeName, indexName, prefix] = params;
-                const ret = await db.startsWithQuery(storeName, indexName, prefix);
+                const ret = await db.startsWithQuery(null, storeName, indexName, prefix);
 
                 self.postMessage({ callId, ret });
                 self.postMessage({ callId: auxCallId });

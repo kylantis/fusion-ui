@@ -238,7 +238,11 @@ class RootProxy {
 
     component.setInput(
       proxy.#getObserverProxy(
-        proxy.#toCanonicalTree({ path: '', obj: component.getInput(), leafs })
+        proxy.#toCanonicalTree({ 
+          path: '', obj: component.getInput(), leafs, leafConsumer: ({ path, value }) => {
+            component.getInputMap().set(path, value);
+          }
+        })
       )
     );
 
@@ -776,6 +780,9 @@ class RootProxy {
 
   getLogicGateValue({ gate, blockData }) {
 
+
+    // REWRITE!!!!  
+
     const { table } = this.component.getLogicGates()[gate.canonicalId];
 
     const MUST_GRP = 'MustacheGroup';
@@ -935,15 +942,25 @@ class RootProxy {
     return value;
   }
 
+  #getExecPath(fqPath, lenient) {
+    const { wrapExecStringForLeniency } = RootCtxRenderer;
+
+    let { execPath } = this.component.getRuntimeExecPath({ fqPath });
+
+    if (lenient) {
+      execPath = wrapExecStringForLeniency(execPath);
+    }
+    return execPath;
+  }
+
   /**
    * If this is a PathExpression, convert from a canonical path to
    * it's executable path
    */
-  toExecutablePath(item, lenient, allowSynthetic = true) {
+  toExecutablePath(item, lenient, transform) {
     const {
       dataPathPrefix, literalPrefix, syntheticMethodPrefix, parsePathExpressionLiteralValue,
     } = RootProxy;
-    const { wrapExecStringForLeniency } = RootCtxRenderer;
 
     const MUST_GRP = 'MustacheGroup';
     const BOOL_EXPR = 'BooleanExpression';
@@ -958,16 +975,8 @@ class RootProxy {
 
     const { type, original, operator, left, right, items } = item;
 
-    const getExecPath = (fqPath) => {
-      let execString = this.component.getExecPath0({
-        fqPath,
-        allowSynthetic,
-      });
-
-      if (lenient) {
-        execString = wrapExecStringForLeniency(execString);
-      }
-      return execString;
+    if (!transform) {
+      transform = (p) => this.#getExecPath(p, lenient);
     }
 
     switch (type) {
@@ -1015,7 +1024,7 @@ class RootProxy {
           return {
             type,
             canonicalPath: p,
-            original: getExecPath(p),
+            original: transform(p),
           }
         }
 
@@ -1023,14 +1032,14 @@ class RootProxy {
         return {
           type,
           operator,
-          left: this.toExecutablePath(left, lenient),
-          right: this.toExecutablePath(right, lenient),
+          left: this.toExecutablePath(left, lenient, transform),
+          right: this.toExecutablePath(right, lenient, transform),
         }
 
       case MUST_GRP:
         return {
           type,
-          items: items.map(item => this.toExecutablePath(item, lenient)),
+          items: items.map(item => this.toExecutablePath(item, lenient, transform)),
         }
     }
 
@@ -1038,9 +1047,6 @@ class RootProxy {
   }
 
   getParticipantsFromLogicGate(gate) {
-
-    const { toBindPath } = RootCtxRenderer;
-
     const PATH_EXPR = 'PathExpression';
 
     return gate.participants
@@ -1051,22 +1057,18 @@ class RootProxy {
             type: PATH_EXPR,
             original: path,
           },
-          false,
-          false,
+          null,
+          (p) => this.component.getExecPath0({
+            fqPath: p, allowSynthetic: false
+          }),
         );
 
         if (type.endsWith('Literal')) {
           return null;
         }
 
-        // Since <allowSynthetic> is set to false above, we don't expect a synthetic method invocation
-        assert(
-          !this.component.isSyntheticMethodInvocation(original)
-        );
-
         return {
-          original: toBindPath(original),
-          canonicalPath, loc,
+          original, canonicalPath, loc,
         }
       })
       .filter(e => !!e);
@@ -1163,7 +1165,7 @@ class RootProxy {
       );
     }
 
-    const { path, isRawReturn, includePath, lenientResolution } = this.getTemplatePathInfo(prop);
+    const { path, isRawReturn, includePath, lenient } = this.getTemplatePathInfo(prop);
 
     assert(
       !path.startsWith(`${globalsBasePath}${pathSeparator}`) || isRawReturn
@@ -1171,7 +1173,7 @@ class RootProxy {
 
     // eslint-disable-next-line no-case-declarations
     const v = this.component
-      .getPathValue({ path, includePath, lenientResolution });
+      .getPathValue({ path, includePath, lenient });
 
     const rawValue = this.getRawValueWrapper(
       includePath ? v.value : v
@@ -1219,14 +1221,14 @@ class RootProxy {
     }
 
     // 3. Should enable lenient path resolution?
-    const lenientResolution = path.match(lenientMarker);
-    if (lenientResolution) {
+    const lenient = path.match(lenientMarker);
+    if (lenient) {
       // eslint-disable-next-line no-param-reassign
       path = path.replace(lenientMarker, '');
     }
 
     return {
-      path, isRawReturn, includePath, lenientResolution,
+      path, isRawReturn, includePath, lenient,
     }
   }
 
@@ -2387,7 +2389,7 @@ class RootProxy {
     );
   }
 
-  #getTrieSubPaths(path) {
+  getTrieSubPaths(path) {
     const trie = this.getPathTrie();
     const arr = [];
 
@@ -2453,7 +2455,7 @@ class RootProxy {
     if (newPath) {
       // Update @path, if applicable
 
-      [path, ...this.#getTrieSubPaths(path)]
+      [path, ...this.getTrieSubPaths(path)]
         .forEach(p => {
           const { value: obj } = this.getInfoFromPath(p);
 
@@ -3596,9 +3598,12 @@ class RootProxy {
       const addToChanges = ({ path, key, spliceIndex, val, willPrune, leafs, mutationType }) => {
 
         const add0 = (opts) => {
+          this.component.getInputMap().set(opts.path, opts.currentValue);
+          
+          changes.push(opts);
+
           // Todo: should we prune #randomValues here?
 
-          changes.push(opts);
         };
 
         const addPrimary = () => {
@@ -4194,7 +4199,7 @@ class RootProxy {
 
           visitPath(path);
 
-          this.#getTrieSubPaths(path)
+          this.getTrieSubPaths(path)
             .forEach(p => {
               visitPath(p);
             });
@@ -4206,7 +4211,7 @@ class RootProxy {
         (() => {
           addHooksforPath(path);
 
-          this.#getTrieSubPaths(path)
+          this.getTrieSubPaths(path)
             .forEach(p => {
               addHooksforPath(p);
             });
@@ -4636,7 +4641,7 @@ class RootProxy {
     }
   }
 
-  #toCanonicalTree({ path, obj, leafs, parentObject, initializers, transformers, root = true }) {
+  #toCanonicalTree({ path, obj, leafs, leafConsumer, parentObject, initializers, transformers, root = true }) {
 
     const {
       dataPathPrefix, typeProperty, mapType, mapKeyPrefix, mapKeyPrefixRegex, pathProperty,
@@ -4786,7 +4791,7 @@ class RootProxy {
 
         obj[prop] = this.#toCanonicalTree({
           path: p, obj: obj[prop], parentObject: obj,
-          leafs, initializers, transformers,
+          leafs, leafConsumer, initializers, transformers,
           root: false
         });
 
@@ -4798,6 +4803,10 @@ class RootProxy {
       }
 
       leaf.value = obj[prop];
+
+      if (leafConsumer) {
+        leafConsumer(leaf);
+      }
 
       if (obj[prop] && (typeof obj[prop] == 'object')) {
         setObjectParentRef(obj[prop], obj);
@@ -4909,11 +4918,7 @@ class RootProxy {
 
   #getDbWorker() {
     const { dbName } = this.getDbInfo();
-
-    const ret = self.appContext.getDbWorker(dbName);
-    assert(ret);
-
-    return ret;
+    return self.appContext.getDbWorker(dbName);
   }
 
   runTask(fnName, ...params) {
@@ -4990,7 +4995,7 @@ class RootProxy {
       INDEXEDDB_STARTSWITH_QUERY_TASK, storeName, indexName, prefix,
     ) :
       this.getDbConnection()
-        .startsWithQuery(storeName, indexName, prefix);
+        .startsWithQuery(this, storeName, indexName, prefix);
   }
 
   dbPut(storeName, rows) {

@@ -73,7 +73,7 @@
         "nodemon": "^1.19.4",
         "require-dir": "^1.2.0",
         "require-from-string": "^2.0.2",
-        "restify": "^11.0.0",
+        "restify": "^11.1.0",
         "restify-errors": "^8.0.2",
         "run-sequence": "^2.2.1",
         "sass": "1.43.4",

@@ -32,6 +32,9 @@ class RootCtxRenderer extends BaseRenderer {
 
   static #instancesMap = new Map();
 
+  static #dataBaseExecPathRgx = RegExp(`^${this.#escapeRegex(this.getDataBaseExecPath())}?\.`);
+
+  static #globalsBaseExecPathRgx = RegExp(`^${this.#escapeRegex(this.getGlobalsBaseExecPath())}?\.`);
 
   #dataStack;
 
@@ -249,8 +252,7 @@ class RootCtxRenderer extends BaseRenderer {
 
   getBlockContextObject({ blockId, blockData, loc }) {
     return {
-      blockId, blockData,
-      variables: {}, cache: {},
+      blockId, blockData, variables: {},
       locString: clientUtils.getLine({ loc }, false, true)
     };
   }
@@ -911,11 +913,6 @@ class RootCtxRenderer extends BaseRenderer {
 
     assert(Object.keys(this.syntheticContext).length == 0);
 
-    this.dispatchEvent('preload', renderContext);
-    await Promise.all(futures);
-    futures.splice(0);
-
-
     this.dispatchEvent('load', renderContext);
     await Promise.all(futures);
     futures.splice(0);
@@ -924,8 +921,25 @@ class RootCtxRenderer extends BaseRenderer {
 
     const rootComponent = this.#getRootComponent();
 
+    if (this == rootComponent) {
+      // Since "omega" classes are loaded on 'afterLoad' by appContext, delay by 
+      // 300ms inorder to reduce time-to-LCP
+
+      await new Promise(resolve => {
+        setTimeout(() => {
+          resolve();
+        }, 300);
+      });
+    }
+
+    this.dispatchEvent('afterLoad', renderContext);
+
+    await Promise.all(futures);
+    futures.splice(0);
+
+
     if (this != rootComponent && !rootComponent.isMounted()) {
-      this.#getRootComponent().on('load', () => {
+      this.#getRootComponent().on('afterLoad', () => {
         this.dispatchEvent('afterMount');
       });
     } else {
@@ -990,8 +1004,8 @@ class RootCtxRenderer extends BaseRenderer {
    */
   isLifecycleEvent(evtName) {
     const evtNames = [
-      'beforeRender', 'beforeMount', 'templateRender', 'onMount', 'preload',
-      'load', 'afterMount', 'render', 'attributeBindContext',
+      'beforeRender', 'beforeMount', 'templateRender', 'onMount', 'load',
+      'afterLoad', 'afterMount', 'render', 'attributeBindContext',
     ];
 
     return evtNames.includes(evtName) || evtName.startsWith('inlineComponentInit-');
@@ -1018,15 +1032,7 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   pruneSyntheticCache() {
-    const cache = this.#syntheticCache.pop();
-
-    for (const k in cache) {
-      const name0 = this.toSyntheticCachedName(k);
-      assert(this[name0] instanceof Function);
-
-      delete this[name0];
-      delete cache[k];
-    }
+    this.#syntheticCache.pop();
   }
 
   invokeLifeCycleMethod(name, ...args) {
@@ -1112,7 +1118,7 @@ class RootCtxRenderer extends BaseRenderer {
 
     this.#renderContext.push({
       promise, futures, extendedFutures, resolve, decoratorName, runtimeOptions,
-    })
+    });
 
     this.startSyntheticCacheContext();
   }
@@ -1144,7 +1150,13 @@ class RootCtxRenderer extends BaseRenderer {
    * @param {Function} fn 
    */
   onContextFinalization(fn) {
-    this.once('templateRender', fn);
+    this.once('templateRender', () => {
+      if (global.requestAnimationFrame) {
+        requestAnimationFrame(fn);
+      } else {
+        fn();
+      }
+    });
   }
 
   wrapTransform(transform) {
@@ -1307,7 +1319,7 @@ class RootCtxRenderer extends BaseRenderer {
     return ret;
   }
 
-  getBlockDataInfo() {
+  #getBlockDataInfo() {
     const { blockStack } = this.getEmitContext();
 
     let blockData;
@@ -1326,12 +1338,12 @@ class RootCtxRenderer extends BaseRenderer {
     }
 
     return {
-      arrayBlockPath: this.getArrayBlockPath(blockData),
+      arrayBlockPath: this.getArrayBlockPath(blockData, true),
       blockData,
     };
   }
 
-  getArrayBlockPath(blockData) {
+  getArrayBlockPath(blockData, useCache) {
     const { syntheticBlockKeyPrefix } = RootCtxRenderer;
 
     const ret = [];
@@ -1341,13 +1353,13 @@ class RootCtxRenderer extends BaseRenderer {
 
         if (type == 'array' && !k.startsWith(syntheticBlockKeyPrefix)) {
 
-          const p = this.getExecPath0({
+          const { path } = this.getExecPath({
             fqPath: `${k}[${index}]`,
-            addBasePath: false,
             indexResolver: path => blockData[path].index,
+            useCache,
           });
 
-          ret.push(p);
+          ret.push(path);
         }
       });
 
@@ -1383,7 +1395,7 @@ class RootCtxRenderer extends BaseRenderer {
       // Disable for literals and components
       !!path && !(value instanceof BaseComponent);
 
-    const { arrayBlockPath, blockData } = this.getBlockDataInfo();
+    const { arrayBlockPath, blockData } = this.#getBlockDataInfo();
 
     const conditional0 = (value) => {
 
@@ -1639,7 +1651,7 @@ class RootCtxRenderer extends BaseRenderer {
 
           const markup = nodeId ? this.execBlockIteration(func, opaqueWrapper, key, memberNodeId, loc) : func();
 
-          const { arrayBlockPath, blockData } = this.getBlockDataInfo();
+          const { arrayBlockPath, blockData } = this.#getBlockDataInfo();
 
           this.endBlockContext();
 
@@ -1703,7 +1715,7 @@ class RootCtxRenderer extends BaseRenderer {
     const _blockStack = [...this.getEmitContext().blockStack];
 
     if (dataBinding) {
-      const { arrayBlockPath, blockData } = this.getBlockDataInfo();
+      const { arrayBlockPath, blockData } = this.#getBlockDataInfo();
 
       this.#createHook(
         path,
@@ -2251,7 +2263,7 @@ class RootCtxRenderer extends BaseRenderer {
 
         const blockStack = [...this.getEmitContext().blockStack];
 
-        const { arrayBlockPath, blockData } = this.getBlockDataInfo();
+        const { arrayBlockPath, blockData } = this.#getBlockDataInfo();
 
         (matches || [])
           .forEach(m => {
@@ -2303,12 +2315,10 @@ class RootCtxRenderer extends BaseRenderer {
       if (attrValueGroups && !this.isHeadlessContext()) {
         this.#addAttributeValueObserver = true;
 
-        // Todo: uncomment
-
-        // this.onContextFinalization(() => {
-        //   const node = document.querySelector(`#${this.getElementId()} #${nodeId}`);
-        //   node.dataset.attrValueGroups = attrValueGroups;
-        // });
+        this.onContextFinalization(() => {
+          const node = document.querySelector(`#${this.getElementId()} #${nodeId}`);
+          node.dataset.attrValueGroups = attrValueGroups;
+        });
       }
     }
 
@@ -2559,7 +2569,7 @@ class RootCtxRenderer extends BaseRenderer {
 
         const blockStack = [...this.getEmitContext().blockStack];
 
-        const { arrayBlockPath, blockData } = this.getBlockDataInfo();
+        const { arrayBlockPath, blockData } = this.#getBlockDataInfo();
 
         if (shouldDataBind) {
 
@@ -2579,7 +2589,7 @@ class RootCtxRenderer extends BaseRenderer {
 
         } else if (canDataBind && inlineComponent) {
 
-          const p = `${dataPathRoot}${pathSeparator}${this.getExecPath({ fqPath: bindContext.canonicalPath, addBasePath: false }).path}`;
+          const p = `${dataPathRoot}${pathSeparator}${this.getExecPath({ fqPath: bindContext.canonicalPath }).path}`;
 
           this.#createHook(
             p,
@@ -2619,27 +2629,27 @@ class RootCtxRenderer extends BaseRenderer {
   #createHook(path, hook) {
     const { HookList } = RootProxy;
 
-    // Remove internal data from blockStack, as those are only used internally
-    // to speed up rendering
+    // Remove internal data from blockStack
     hook.blockStack = hook.blockStack.map(block => {
       const ret = { ...block };
 
-      delete ret.cache;
       delete ret.variables;
 
       return ret;
     });
 
-    HookList.add(
-      this.proxyInstance, path, hook,
-    );
+    this.onContextFinalization(() => {
+      HookList.add(
+        this.proxyInstance, path, hook,
+      );
+    });
   }
 
-  getPathValue({ path, includePath = false, lenientResolution, indexResolver }) {
+  getPathValue({ path, includePath = false, lenient, indexResolver }) {
     return this.resolvePath({
       fqPath: path,
       includePath,
-      lenientResolution,
+      lenient,
       indexResolver,
     });
   }
@@ -2739,13 +2749,6 @@ class RootCtxRenderer extends BaseRenderer {
       default:
         throw Error(`Unknown variable: ${dataVariable}`);
     }
-  }
-
-  toRealPath(path) {
-    const { getDataBaseExecPath } = RootCtxRenderer;
-
-    return this.getExecPath0({ fqPath: path, })
-      .replace(`${getDataBaseExecPath()}.`, '');
   }
 
   doBlockInit({ path }) {
@@ -2929,11 +2932,6 @@ class RootCtxRenderer extends BaseRenderer {
       .replace(cachedNameSuffix, '');
   }
 
-  toSyntheticCachedName(name) {
-    const { cachedNameSuffix } = RootCtxRenderer;
-    return `${name}${cachedNameSuffix}`;
-  }
-
   /**
    * This returns an invocation string that can be executed to return data from
    * the provided synthetic method name.
@@ -2943,32 +2941,7 @@ class RootCtxRenderer extends BaseRenderer {
    * @returns 
    */
   createInvocationString(name) {
-    assert(this.isSyntheticMethodName(name));
-
-    const name0 = this.toSyntheticCachedName(name);
-    const cache = this.#syntheticCache[this.#syntheticCache.length - 1];
-
-    if (cache[name] === undefined) {
-
-      cache[name] = Function(
-        `return ${this.createInvocationString0(name)}`
-      ).bind(this)();
-
-      this[name0] = Function(
-        `return this.getCachedSyntheticMethodValue("${name}")`
-      ).bind(this);
-    }
-
-    return this.createInvocationString0(name0);
-  }
-
-  createInvocationString0(name) {
     return `this.${name}()`;
-  }
-
-  getCachedSyntheticMethodValue(name) {
-    const cache = this.#syntheticCache[this.#syntheticCache.length - 1];
-    return cache[name];
   }
 
   isSyntheticMethodInvocation(name) {
@@ -3034,51 +3007,94 @@ class RootCtxRenderer extends BaseRenderer {
     }
   }
 
-  getExecPath({ fqPath, indexResolver, addBasePath, allowSynthetic }) {
-    const result = {
-      execPath: this.getExecPath0({
-        fqPath,
-        indexResolver,
-        addBasePath,
-        allowSynthetic
-      }),
-      path: null,
-    };
+  getRuntimeExecPath({ fqPath, indexResolver, allowSynthetic = true }) {
+    const { pathSeparator, globalsBasePath } = RootProxy;
+    const { getDataBaseExecPath } = RootCtxRenderer;
 
-    result.path =
-      this.isSyntheticMethodInvocation(result.execPath)
-        && !this.isSyntheticMethodName(fqPath)
-        ?
-        // We need a non-invocation path to use in <result.path>
-        this.getExecPath0({
-          fqPath,
-          indexResolver,
-          addBasePath,
-          allowSynthetic: false,
-        })
-        : result.execPath;
+    if (!fqPath) {
+      return {
+        path: fqPath,
+        execPath: getDataBaseExecPath()
+      };
+    }
 
-    return result;
+    if (fqPath.startsWith(`${globalsBasePath}${pathSeparator}`)) {
+      return {
+        path: fqPath,
+        execPath: this.getGlobalsExecPath(fqPath)
+      };
+    }
+
+    let { path, execPath } = this.getExecPath({ fqPath, indexResolver, allowSynthetic });
+
+    if (!this.resolver && !this.isSyntheticMethodInvocation(execPath)) {
+      execPath = `${getDataBaseExecPath()}.${execPath}`
+    }
+
+    return { path, execPath };
   }
 
-  getExecPath0({ fqPath, indexResolver, addBasePath = true, allowSynthetic = true }) {
+  getExecPath({ fqPath, indexResolver, allowSynthetic, useCache }) {
+
+    const execPath = this.getExecPath0({
+      fqPath,
+      indexResolver,
+      allowSynthetic,
+      useCache,
+    });
+
+    let path = null;
+
+    switch (true) {
+      case this.isSyntheticMethodName(fqPath):
+        path = fqPath;
+        break;
+
+      case this.isSyntheticMethodInvocation(execPath):
+        assert(allowSynthetic);
+        path = this.getExecPath0({
+          fqPath,
+          indexResolver,
+          allowSynthetic: false,
+          useCache,
+        });
+        break;
+
+      default:
+        path = execPath;
+        break;
+    }
+
+    return { execPath, path };
+  }
+
+  getExecPath0({ fqPath, indexResolver, allowSynthetic = true, useCache = true }) {
 
     const {
-      pathSeparator, syntheticMethodPrefix, globalsBasePath, getDataVariables, isMapProperty
+      pathSeparator, syntheticMethodPrefix, getDataVariables, isMapProperty
     } = RootProxy;
     const {
-      toObject, getDataBaseExecPath, getExecStringFromValue, getSyntheticAliasFromChildPath
+      toObject, getExecStringFromValue, getSyntheticAliasFromChildPath
     } = RootCtxRenderer;
     const { arrayIndexSegment, mapKeySegment, getSegments0 } = clientUtils;
 
-    if (fqPath === '') {
-      return getDataBaseExecPath();
+    assert(fqPath);
+
+    const runtimeDataPath = !this.resolver && !this.isSyntheticMethodName(fqPath);
+
+    if (!runtimeDataPath) {
+      useCache = false;
     }
 
-    assert(fqPath != globalsBasePath);
+    let cacheKey;
 
-    if (fqPath.startsWith(`${globalsBasePath}${pathSeparator}`)) {
-      return this.getGlobalsExecPath(fqPath);
+    if (useCache) {
+      cacheKey = `execPath_cache${allowSynthetic ? '_Syn' : ''}_${fqPath}`;
+      const variables = this.getVariablesInScope();
+
+      if (variables[cacheKey]) {
+        return variables[cacheKey];
+      }
     }
 
     if (!indexResolver) {
@@ -3086,19 +3102,14 @@ class RootCtxRenderer extends BaseRenderer {
       indexResolver = path => this.blockData[path].index;
     }
 
-    if (this.isSyntheticMethodName(fqPath) || this.resolver) {
-      addBasePath = false;
-    }
-
-    const basePath = addBasePath ? getDataBaseExecPath() : '';
-
     const segments = fqPath.split(pathSeparator);
     const parts = [];
 
-    if (basePath.length) {
-      parts.push(basePath);
+    const addToCache = (resolvedPath) => {
+      if (useCache) {
+        this.addVariableToScope(cacheKey, resolvedPath);
+      }
     }
-
 
     const joinParts = () => parts
       .map((part, index) => {
@@ -3119,15 +3130,6 @@ class RootCtxRenderer extends BaseRenderer {
         }
       })
       .join('');
-
-    const resolveValue = (path) => {
-      const value = this.#resolvePath0({
-        path: `${!this.resolver && !this.isSyntheticMethodInvocation(path) && !addBasePath ?
-          `${getDataBaseExecPath()}.` : ''
-          }${path}`
-      });
-      return value;
-    };
 
     // eslint-disable-next-line no-plusplus
     for (let i = 0; i < segments.length; i++) {
@@ -3154,17 +3156,13 @@ class RootCtxRenderer extends BaseRenderer {
           .concat([parent])
           .join(pathSeparator)
 
-        const path = this.getExecPath0({
-          fqPath: canonicalPath,
-          indexResolver,
-          addBasePath,
-        });
+        const path = this.getExecPath0({ fqPath: canonicalPath, indexResolver, useCache });
 
         // if path ends with w.x.$_abc, part should be x.$_abc, not $_abc,
         // because $_abc should be translated as the index placeholder: _$
         part = path.split(/\.(?!\$_)/g).pop();
 
-        let value = resolveValue(path);
+        let value = this.evalPath({ path });
 
         assert(
           value instanceof Array || (this.resolver ? value instanceof Map : value[isMapProperty]),
@@ -3196,7 +3194,7 @@ class RootCtxRenderer extends BaseRenderer {
             break;
 
           default:
-            throw Error(`Unknown path: ${path.replace(`${basePath}.`, '')}`);
+            throw Error(`Unknown path "${path}"`);
         }
       }
 
@@ -3211,7 +3209,7 @@ class RootCtxRenderer extends BaseRenderer {
         assert(getDataVariables().includes(dataVariable));
         assert(i > 0 && i == segments.length - 1);
 
-        const path = [...addBasePath ? parts.slice(1) : parts].join('.');
+        const path = parts.join('.');
 
         const isArray = !!path.match(RegExp(`${arrayIndexSegment.source}$`));
         const isMap = !!path.match(
@@ -3277,74 +3275,60 @@ class RootCtxRenderer extends BaseRenderer {
           delete this[syntheticMethodName];
         });
 
-        return this.createInvocationString(syntheticMethodName);
+        const ret = this.createInvocationString(syntheticMethodName);
+
+        addToCache(ret);
+
+        return ret;
       }
 
       parts.push(part);
     }
 
-    return joinParts();
+    const ret = joinParts();
+
+    addToCache(ret);
+
+    return ret;
   }
 
-  resolvePath({ fqPath, indexResolver, create, includePath, lenientResolution, stmt }) {
+  resolvePath({ fqPath, indexResolver, includePath, create, lenient, stmt }) {
+    const { dataPathRoot, pathSeparator } = RootProxy;
 
     const arr = fqPath.split('%');
-    let { path, execPath } = this.getExecPath({
+
+    const { path, execPath } = this.getRuntimeExecPath({
       fqPath: arr[0],
       indexResolver,
     });
 
-    if (this.isSyntheticMethodInvocation(path)) {
-      const value = this.evaluateGetterExpression(path);
+    const _path = includePath ? (() => {
+      assert(!this.resolver);
 
-      return includePath ? {
-        path: this.getMethodNameFromInvocationString(path),
-        value
-      } : value;
-    }
+      const prefix = !this.isSyntheticMethodName(path) ?
+        `${dataPathRoot}${pathSeparator}` : '';
 
-    // In some case cases, data paths can resolve to a synthetic method invocation, i.e. when resolving data variables,
-    // hence we need to eagerly evaluate the <execPath> it inorder to derive a <valueOverride>
-    const valueOverride = this.isSyntheticMethodInvocation(execPath) ? this.evalPath(execPath, lenientResolution) : undefined;
+      return prefix + path;
+    })() : null;
 
-    return this.#resolvePath0({
-      path, valueOverride, create, includePath, lenientResolution, stmt,
-      canonicalPath: arr[0], type: arr[1],
-    });
+    const _value = (() => {
+      const suffix = (arr.length > 1 && !this.isSyntheticMethodInvocation(execPath)) ? `%${arr[1]}` : '';
+      return this.evalPath({ path: execPath + suffix, create, lenient, stmt });
+    })();
+
+    return includePath ?
+      {
+        canonicalPath: arr[0],
+        path: _path,
+        value: _value,
+      } :
+      _value;
   }
 
   static wrapExecStringForLeniency(execString, noOpValue) {
     const { getExecStringFromValue } = RootCtxRenderer;
 
     return `this.evalPathLeniently(\`${execString}\`, ${getExecStringFromValue(noOpValue)})`;
-  }
-
-  static toBindPath(path) {
-    const { dataPathRoot, pathSeparator, globalsBasePath } = RootProxy;
-    const { escapeRegExp } = clientUtils;
-    const { getDataBaseExecPath, getGlobalsBaseExecPath } = RootCtxRenderer;
-
-    // Note: <lenientPrefix> is based on wrapExecStringForLeniency(...)
-    const lenientPrefix = 'this.evalPathLeniently(`';
-
-    if (path.startsWith(lenientPrefix)) {
-      path = path.replace(lenientPrefix, '').replace(/`\)$/g, '')
-    }
-
-    let prefix = getDataBaseExecPath();
-    let repl = '';
-
-    if (path.startsWith(getGlobalsBaseExecPath())) {
-      prefix = getGlobalsBaseExecPath();
-      repl = `${globalsBasePath}${pathSeparator}`;
-    }
-
-    path = path.replace(
-      RegExp(`${escapeRegExp(prefix)}\\.?`),
-      repl
-    );
-
-    return `${dataPathRoot}${pathSeparator}${path}`;
   }
 
   evaluateGetterExpression(execString, scope) {
@@ -3373,7 +3357,45 @@ class RootCtxRenderer extends BaseRenderer {
     }
   }
 
-  evalPath(execPath, lenient, loc, scope = {}) {
+  evalPath({ path, lenient, create, stmt }) {
+    const { getDataBaseExecPath, getGlobalsBaseExecPath } = RootCtxRenderer;
+    assert(path);
+
+
+    switch (true) {
+      case this.isSyntheticMethodInvocation(path):
+        const methodName = this.getMethodNameFromInvocationString(path);
+        const cache = this.#syntheticCache.at(-1);
+
+        let ret = cache[methodName];
+
+        if (!ret) {
+          ret = this[methodName].bind(this)();
+          cache[methodName] = ret;
+        }
+
+        return ret;
+
+      case !!this.resolver:
+        return this.resolver.resolve({ path, create, stmt });
+      default:
+
+        const hasDataPrefix = path.startsWith(getDataBaseExecPath());
+        const hasGlobalsPrefix = path.startsWith(getGlobalsBaseExecPath());
+
+        if (hasDataPrefix || !hasGlobalsPrefix) {
+          if (hasDataPrefix) {
+            path = path.replace(RootCtxRenderer.#dataBaseExecPathRgx, '');
+          }
+
+          return path ? this.getInputMap().get(path) : this.getInput();
+        }
+
+        return this.evalPath0(path, lenient);
+    }
+  }
+
+  evalPath0(execPath, lenient, loc, scope = {}) {
     const { getGlobalsBaseExecPath } = RootCtxRenderer;
 
     if (lenient || execPath.startsWith(getGlobalsBaseExecPath())) {
@@ -3391,42 +3413,6 @@ class RootCtxRenderer extends BaseRenderer {
           loc,
         );
       }
-    }
-  }
-
-  #resolvePath0({
-    path, valueOverride, create, includePath, canonicalPath, type, lenientResolution, stmt,
-  }) {
-
-    const { getDataBaseExecPath, getGlobalsBaseExecPath, toBindPath } = RootCtxRenderer;
-
-    const isSynthetic = this.isSyntheticMethodInvocation(path);
-
-    const value = valueOverride !== undefined ?
-      valueOverride :
-      this.resolver && !isSynthetic ?
-        this.resolver.resolve({ path: `${path}${type ? `%${type}` : ''}`, create, stmt })
-        // eslint-disable-next-line no-eval
-        : this.evalPath(path, lenientResolution);
-
-    if (isSynthetic) {
-      // This is a synthetic invocation, i.e. this.s$AbCdEf().a.b...
-      assert(!includePath);
-
-      return value;
-    } else {
-
-      assert(
-        this.resolver ||
-        path.startsWith(getDataBaseExecPath()) ||
-        path.startsWith(getGlobalsBaseExecPath())
-      );
-
-      return includePath ? {
-        path: toBindPath(path),
-        value,
-        canonicalPath,
-      } : value;
     }
   }
 
@@ -3857,6 +3843,10 @@ class RootCtxRenderer extends BaseRenderer {
     });
 
     return initializers;
+  }
+
+  static #escapeRegex(text) {
+    return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
   }
 
   getAssetId() {

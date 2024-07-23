@@ -6,51 +6,32 @@ const mime = require('mime-types');
 
 const server = restify.createServer({
   name: 'Kylantis',
-  versions: ['0.1'],
+  version: '1.0.0'
 });
 
-
-server.get('/*', (req, res, next) => {
-
+const serveStaticFile = (req, res, next) => {
   const filePath = path.join(__dirname, '../dist', req.params['*']);
 
-  fs.stat(filePath, (err, stats) => {
+  fs.access(filePath, fs.constants.F_OK, err => {
     if (err) {
-      if (err.code === 'ENOENT') {
-        return next(new NotFoundError('File not found'));
-      } else {
-        return next(new InternalServerError(err));
-      }
-    }
-
-    const etag = generateETag(stats);
-
-    if (req.headers['if-none-match'] === etag) {
-
-      res.status(304);
-      return res.end();
+      return next(new NotFoundError('File not found'));
     }
 
     const contentType = mime.contentType(path.extname(filePath)) || 'application/octet-stream';
-
+  
     res.setHeader('Content-Type', contentType);
-    res.setHeader('Content-Length', stats.size);
-    res.setHeader('ETag', etag);
-
+    res.setHeader('Cache-Control', `public, max-age=${604800}`); // 1 Week
+   
     const stream = fs.createReadStream(filePath);
-    
+
     stream.on('error', (err) => {
       return next(new InternalServerError(err));
     });
-
+  
     stream.pipe(res);
   });
-});
+};
 
+server.get('/*', serveStaticFile);
 
 server.listen(8090, () => { });
-
-// Function to generate ETag for a file
-function generateETag(stats) {
-  return '"' + stats.size.toString(16) + '-' + stats.ctime.getTime().toString(16) + '"';
-}

@@ -7,6 +7,7 @@ class BaseRenderer {
   #id;
 
   #input;
+  #inputMap = new Map();
 
   #isRoot;
 
@@ -124,6 +125,10 @@ class BaseRenderer {
 
   getInput() {
     return this.#input;
+  }
+
+  getInputMap() {
+    return this.#inputMap;
   }
 
   useWeakRef() {
