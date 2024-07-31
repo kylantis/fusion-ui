@@ -24,13 +24,17 @@ gulp.task('copy-scripts', () => gulp.src(['src/assets/js/**/*.min.js'])
 .pipe(removeInternalSegment())
   .pipe(gulp.dest('dist/assets/js/')));
 
+  gulp.task('copy-scripts-data', () => gulp.src(['src/assets/js/data/**'])
+  .pipe(removeInternalSegment())
+  .pipe(gulp.dest('dist/assets/js/data/')));
+
 gulp.task('copy-pages', () => gulp.src(['src/assets/pages/**/*.html'])
   .pipe(removeInternalSegment())
   .pipe(gulp.dest('dist/assets/pages/')));
 
 gulp.task(
   'copy-assets',
-  gulp.series('copy-fonts', 'copy-styles', 'copy-scripts', 'copy-pages', (callback) => {
+  gulp.series('copy-fonts', 'copy-styles', 'copy-scripts', 'copy-scripts-data', 'copy-pages', (callback) => {
     callback();
   })
 );

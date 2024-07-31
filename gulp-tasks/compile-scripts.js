@@ -13,7 +13,7 @@ const basePath = 'assets/js';
 const srcFolder = `src/${basePath}`;
 const distFolder = `dist/${basePath}`;
 
-const watchTarget = [`${srcFolder}/**/*.js`, `!${srcFolder}/**/*.min.js`];
+const watchTarget = [`${srcFolder}/**/*.js`, `!${srcFolder}/**/*.min.js`, `!${srcFolder}/data/**`];
 
 const removeInternalSegment = () => {
   return through.obj(async (vinylFile, _encoding, callback) => {

@@ -38,7 +38,7 @@ class K_Trie {
     return this.n;
   }
 
-  insert(word) {
+  insert(word, segments) {
     let node = this.getNodeCache()[word];
 
     if (node) {
@@ -49,7 +49,11 @@ class K_Trie {
 
     if (!word) return node;
 
-    for (const segment of this.getSplitter()(word)) {
+    if (!segments) {
+      segments = this.getSplitter()(word);
+    }
+
+    for (const segment of segments) {
       if (!node.getChildren()[segment]) {
         node.getChildren()[segment] = new K_TrieNode(node, segment);
       }

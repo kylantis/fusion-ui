@@ -1,11 +1,12 @@
 
 class K_Database {
 
-    static #NO_OP = () => {};
+    static #NO_OP = () => { };
     static #resolvedResultSet = Promise.resolve([]);
 
     #deferredDeletes = [];
     #migrating;
+    #migrated;
 
     #databaseName;
     #storeInfoList;
@@ -20,39 +21,49 @@ class K_Database {
         this.#storeInfoList = storeInfoList;
     }
 
-    createInMemoryLayer() {
-        this.#lds = new self.LokiDatabase(this.#databaseName, K_Database.DEFAULT_PRIMARY_KEY, this.#storeInfoList);
+    #getLds() {
+        if (this.#migrated) return null;
+
+        if (!this.#lds) {
+            this.#lds = new self.LokiDatabase(this.#databaseName, K_Database.DEFAULT_PRIMARY_KEY, this.#storeInfoList);
+        }
+        return this.#lds;
     }
 
     async createPersistenceLayer() {
         this.#idb = await K_Database.#_connect(this.#databaseName, this.#storeInfoList);
 
         if (this.#storeInfoList) {
-            this.#migrating = true;
 
-            const promises = []
+            if (this.#lds) {
 
-            this.#storeInfoList.forEach(({ storeName }) => {
-                promises.push(
-                    this.put(storeName, this.#lds.all(storeName))
-                )
-            });
+                const promises = []
+                this.#migrating = true;
 
-            await Promise.all(promises);
+                this.#storeInfoList.forEach(({ storeName }) => {
+                    promises.push(
+                        this.put(storeName, this.#lds.all(storeName))
+                    )
+                });
 
-            this.#migrating = false;
+                await Promise.all(promises);
 
-            this.#deferredDeletes.forEach(([storeName, keys]) => {
-                this.delete(storeName, keys);
-            });
+                this.#migrating = false;
 
-            const _lds = this.#lds;
-            this.#lds = null;
-            _lds.dropDatabase();
+                this.#deferredDeletes.forEach(([storeName, keys]) => {
+                    this.delete(storeName, keys);
+                });
+
+                const _lds = this.#lds;
+                _lds.dropDatabase();
+                this.#lds = null;
+            }
 
             this.#deferredDeletes = null;
             this.#storeInfoList = null;
         }
+
+        this.#migrated = true;
     }
 
     static #_connect(databaseName, storeInfoList) {
@@ -83,14 +94,14 @@ class K_Database {
 
     put(storeName, rows) {
         const lokiReservedColumns = self.LokiDatabase ? self.LokiDatabase.getReservedColumns() : null;
-        
+
         const transform = this.#migrating ? (row) => {
             lokiReservedColumns.forEach(k => {
                 delete row[k];
             });
         } : K_Database.#NO_OP;
 
-        return this.#idb ? K_Database.#_put(this.#idb, storeName, rows, transform) : this.#lds.put(storeName, rows);
+        return this.#idb ? K_Database.#_put(this.#idb, storeName, rows, transform) : this.#getLds().put(storeName, rows);
     }
 
     static #_put(dbInstance, storeName, rows, transform) {
@@ -140,14 +151,14 @@ class K_Database {
 
     startsWithQuery(proxyInstance, storeName, indexName, prefix) {
         return K_Database.#combineFetchResults(
-            this.#lds ? Promise.resolve(this.#lds.startsWithQuery(proxyInstance, storeName, indexName, prefix)) : K_Database.#resolvedResultSet,
+            this.#getLds() ? Promise.resolve(this.#getLds().startsWithQuery(proxyInstance, storeName, indexName, prefix)) : K_Database.#resolvedResultSet,
             this.#idb ? this.#getAll0(storeName, indexName, IDBKeyRange.bound(prefix, prefix + 'uffff', false, false)) : K_Database.#resolvedResultSet
         )
     }
 
     equalsQuery(storeName, indexName, eqValue) {
         return K_Database.#combineFetchResults(
-            this.#lds ? Promise.resolve(this.#lds.equalsQuery(storeName, indexName, eqValue)) : K_Database.#resolvedResultSet,
+            this.#getLds() ? Promise.resolve(this.#getLds().equalsQuery(storeName, indexName, eqValue)) : K_Database.#resolvedResultSet,
             this.#idb ? this.#getAll0(storeName, indexName, eqValue) : K_Database.#resolvedResultSet
         )
     }
@@ -180,7 +191,7 @@ class K_Database {
             return;
         }
 
-        return this.#idb ? K_Database.#_delete(this.#idb, storeName, keys) : this.#lds.delete(storeName, keys);
+        return this.#idb ? K_Database.#_delete(this.#idb, storeName, keys) : this.#getLds().delete(storeName, keys);
     }
 
     static #_delete(dbInstance, storeName, keys) {

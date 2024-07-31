@@ -1,34 +1,24 @@
 
+const fs = require('fs');
 const pathLib = require('path');
 const gulp = require('gulp');
-const through = require('through2');
-const rename = require('gulp-rename');
 const { build } = require('esbuild');
 
-gulp.task('generate-client-bundles', () => gulp.src([`gulp-tasks/client-bundles/**.js`])
-  .pipe(
-    through.obj(async (vinylFile, _encoding, callback) => {
-      const file = vinylFile.clone();
-      const dir = pathLib.dirname(file.path);
+gulp.task('generate-client-bundles', () => {
 
-      const { outputFiles: [{ contents }] } = await build({
-        stdin: {
-          contents: new Uint8Array(file.contents),
-          resolveDir: dir,
-        },
-        bundle: true,
-        minify: true,
-        treeShaking: true,
-        sourcemap: false,
-        target: ['chrome58', 'firefox57', 'safari11'],
-        write: false,
-        alias: {
-          'stream': 'stream-browserify',
-        },
-      });
+  const srcFolder = pathLib.resolve(__dirname, 'client-bundles');
+  const entryPoints = fs.readdirSync(srcFolder).map(f => pathLib.join(srcFolder, f));
 
-      file.contents = Buffer.from(contents);
-      callback(null, file);
-    }))
-  .pipe(rename({ suffix: '.min' }))
-  .pipe(gulp.dest('dist/assets/js/client-bundles')));
+  return build({
+    entryPoints,
+    bundle: true,
+    minify: true,
+    treeShaking: true,
+    sourcemap: false,
+    target: ['es2015'],
+    alias: {
+      'stream': 'stream-browserify',
+    },
+    outdir: 'dist/assets/js/client-bundles',
+  });
+})

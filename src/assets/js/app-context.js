@@ -8,10 +8,13 @@ class AppContext {
 
   // com.kylantis.pfe-v1.session_metadata
   static DB_NAME_PREFIX = 'k.ui';
+  static DB_PERSISTENCE_TIMEOUT = 10000;
 
   static DB_COUNT = 5;
   static BUCKET_COUNT_PER_DB = 50;
   static CONNECTIONS_PER_DB = 1;
+  static DEFAULT_PLATFORM_APPID = 'platform';
+  static RTL = false;
 
   #loadedStyles = [];
   #loadedScripts = [];
@@ -40,6 +43,7 @@ class AppContext {
   #loaded;
 
   #indexedDbReady = false;
+  #networkCache;
 
   constructor({ logger, userGlobals, assetId, className, parents, bootConfig, componentList }) {
 
@@ -99,7 +103,9 @@ class AppContext {
   }
 
   #readUserGlobals() {
-    const { DB_COUNT, BUCKET_COUNT_PER_DB, CONNECTIONS_PER_DB } = this.#userGlobals;
+    const {
+      DB_COUNT, BUCKET_COUNT_PER_DB, CONNECTIONS_PER_DB, DEFAULT_PLATFORM_APPID, RTL
+    } = this.#userGlobals;
 
     if (typeof DB_COUNT == 'number') {
       AppContext.DB_COUNT = DB_COUNT;
@@ -111,6 +117,14 @@ class AppContext {
 
     if (typeof CONNECTIONS_PER_DB == 'number') {
       AppContext.CONNECTIONS_PER_DB = CONNECTIONS_PER_DB;
+    }
+
+    if (typeof DEFAULT_PLATFORM_APPID == 'string') {
+      AppContext.DEFAULT_PLATFORM_APPID = DEFAULT_PLATFORM_APPID;
+    }
+
+    if (typeof RTL == 'boolean') {
+      AppContext.RTL = RTL;
     }
   }
 
@@ -131,7 +145,7 @@ class AppContext {
     return (module.exports != DEF) ? module.exports : r;
   }
 
-  static evaluate(code, scope = {}, thisObject) {
+  static unsafeEvaluate(code, scope = {}, thisObject) {
 
     const args = { names: [], values: [] };
 
@@ -286,7 +300,63 @@ class AppContext {
     return Object.keys(classNames);
   }
 
+  async #loadBrotliLibrary() {
+    await this.fetch({ url: '/assets/js/lib/brotli-wasm.min.js', namespace: 'brotli' });
+
+    const { init, compress, decompress } = self.brotli;
+
+    await init('/assets/js/data/brotli_wasm_bg.wasm');
+
+    const textEncoder = new TextEncoder();
+    const textDecoder = new TextDecoder();
+
+    const input = 'some input';
+
+    const uncompressedData = textEncoder.encode(input);
+    const compressedData = compress(uncompressedData);
+    const decompressedData = decompress(compressedData);
+
+    console.log(textDecoder.decode(decompressedData)); // Prints 'some input'
+  }
+
+  async #requestNetworkCacheFile(bootConfig) {
+    if (!bootConfig) return;
+
+    await this.#loadBrotliLibrary();
+
+    this.#networkCache = new Map();
+
+    const { jsDependencies, } = bootConfig;
+
+    const delimeter = ';';
+
+    const fileList = [
+      `/components/${this.#assetId}/samples.js`,
+      ...this.#getBaseDependencies(),
+      '/components/enums.json',
+      ...this.#getDependencies(),
+      `/components/${this.#assetId}/samples.js`,
+      ...jsDependencies,
+      ...Object.values(this.#componentList).map(assetId => `/components/${assetId}/boot-config.json`),
+
+      // Todo: add classes
+
+    ];
+
+    // fileList.forEach(name => {
+    //   assert(!name.includes(delimeter));
+    // });
+
+    const url = fileList.join(delimeter);
+
+
+
+  }
+
+
   async load({ data, dynamicBootConfig, runtimeBootConfig }) {
+
+    // await this.#requestNetworkCacheFile(this.#bootConfigs[this.#className] || dynamicBootConfig);
 
     let htmlDepsPromise;
     let alphaListPromise;
@@ -444,7 +514,7 @@ class AppContext {
 
 
     // htmlDepsPromise
-    await Promise.all([alphaComponentClassesPromise, dbSetupPromise, enumPromise, depsPromise, sessionSocketPromise])
+    // await Promise.all([alphaComponentClassesPromise, dbSetupPromise, enumPromise, depsPromise, sessionSocketPromise])
 
 
     await this.#loadRootComponent(data, await samplesPromise);
@@ -460,13 +530,12 @@ class AppContext {
     this.#bootConfigs = null;
     this.#refMetadata = null;
 
-    setTimeout(async () => {
-      console.info('start connectDatabase');
-
-      await this.#connectDatabase();
-
-      console.info('finish connectDatabase');
-    }, 10000);
+    setTimeout(
+      async () => {
+        await this.#connectDatabase();
+      },
+      AppContext.DB_PERSISTENCE_TIMEOUT,
+    );
   }
 
   async #connectDatabase() {
@@ -495,16 +564,72 @@ class AppContext {
     this.#indexedDbReady = true;
   }
 
-  #loadComponentClasses(list, preLoadPromise) {
-    return this.#fetchComponentsData(list)
-      .then(async (componentsData) => {
+  async #loadComponentClasses(list, preLoadPromise) {
 
-        if (preLoadPromise) {
-          await preLoadPromise;
-        }
+    Object.entries(list)
+      .forEach(async ([className, assetId]) => {
+        const metadataMap = this.getComponentClassMetadataMap()[className] = {};
 
-        componentsData.forEach(([...args]) => {
-          this.#loadComponentClass(...args);
+        this.fetch({
+          url: `/components/${assetId}/schema.json`,
+          asJson: true,
+        }).then(schema => {
+          metadataMap.schema = schema;
+        });
+
+        this.fetch({
+          url: `/components/${assetId}/metadata.min.js`,
+        }).then(metadata => {
+          metadataMap.metadata = metadata;
+        });
+      });
+
+    return Promise.all(
+      Object.entries(list)
+        .map(async ([className, assetId]) => ([
+          className,
+          await this.fetch({
+            url: `/components/${assetId}/index.min.js`,
+            process: false,
+          }),
+          this.testMode ? await this.fetch({
+            url: `/components/${assetId}/index.test.min.js`,
+            process: false,
+          }) : null,
+        ]))
+    )
+      .then(async componentsData => {
+        await preLoadPromise;
+
+        componentsData.forEach(([className, mainSrc, testSrc]) => {
+
+          const componentClass = this.#processScript({
+            contents: mainSrc,
+          });
+
+          self.components[className] = componentClass;
+
+          if (testSrc) {
+            // If we are in test mode, load component test classes, to override the main ones
+            const componentTestClass = this.#processScript({
+              contents: testSrc, scope: {
+                require: (module) => {
+                  switch (module) {
+                    case './index':
+                      return self.components[className];
+                    default:
+                      this.#logger.warn(`Unable to load module "${module_1_1}" in the browser, returning null`);
+                      return null;
+                  }
+                }
+              },
+            });
+
+            // When serializing, toJSON(...) should use the actual className, not the test class
+            componentTestClass.className = className;
+
+            self.components[className] = componentTestClass;
+          }
         });
 
         this.#addComponentConstructorPruneFinalizer(
@@ -796,7 +921,6 @@ class AppContext {
     const connections = [];
 
     const connection = new K_Database(dbName, storeInfoList);
-    connection.createInMemoryLayer();
 
     connections.push(connection);
 
@@ -814,10 +938,8 @@ class AppContext {
     return [
       '/assets/js/lib/event_handler.min.js',
       '/assets/js/lib/trie.min.js',
-      // '/assets/js/data/interned_strings_6480.js',
-
-      // Todo: REMOVE
-      '/assets/js/client-bundles/hyntax.min.js',
+      '/assets/js/data/interned_strings_6480.js',
+      '/assets/js/client-bundles/hyntax.js',
       { url: '/assets/js/client-utils.min.js', namespace: 'clientUtils' },
       { url: '/assets/js/template-runtime.min.js', namespace: 'TemplateRuntime' },
       { url: '/assets/js/custom-ctx-helpers.min.js', namespace: 'customCtxHelpers' },
@@ -840,7 +962,9 @@ class AppContext {
   }
 
   #loadDependencies() {
-    return this.fetchAll(this.#getDependencies());
+    return Promise.all(
+      this.#getDependencies().map(dep => this.fetch(dep))
+    );
   }
 
   #loadBaseDependencies() {
@@ -855,72 +979,8 @@ class AppContext {
     });
   }
 
-  #loadComponentClass(name, schema, metadata, src, testSrc) {
-    assert(!self.components[name]);
-
-    const componentClass = this.#processScript({
-      contents: src,
-    });
-
-    self.components[name] = componentClass;
-
-    if (testSrc) {
-      // If we are in test mode, load component test classes, to override the main ones
-      const componentTestClass = this.#processScript({
-        contents: testSrc, scope: {
-          require: (module) => {
-            switch (module) {
-              case './index':
-                return self.components[name];
-              default:
-                // this.#logger.warn(`Unable to load module "${module}" in the browser, returning null`);
-                return null;
-            }
-          }
-        },
-      });
-
-      // When serializing, toJSON(...) should use the actual className, not the test class
-      componentTestClass.className = name;
-
-      self.components[name] = componentTestClass;
-    }
-
-    this.getComponentClassMetadataMap()[name] = {
-      schema, metadata,
-    }
-  }
-
   getComponentClassMetadataMap() {
     return global.componentClassMetadata || (global.componentClassMetadata = {});
-  }
-
-  async #fetchComponentsData(list) {
-    const { testMode } = this;
-
-    return Promise.all(
-      Object.keys(list).map((name) => {
-        const assetId = list[name];
-        return Promise.all([
-          name,
-          this.fetch({
-            url: `/components/${assetId}/schema.json`,
-            asJson: true,
-          }),
-          this.fetch({
-            url: `/components/${assetId}/metadata.min.js`,
-          }),
-          this.fetch({
-            url: `/components/${assetId}/index.min.js`,
-            process: false,
-          }),
-          testMode ? this.fetch({
-            url: `/components/${assetId}/index.test.min.js`,
-            process: false,
-          }) : null,
-        ]);
-      })
-    );
   }
 
   #addComponentConstructorPruneFinalizer(componentNames) {
@@ -972,7 +1032,7 @@ class AppContext {
     this.#loaded = true;
     this.#rootComponent = component;
 
-    component.on('afterLoad', ({ futures }) => {
+    component.on('loadClasses', ({ futures }) => {
       futures.push(
         this.#loadComponentClasses(this.#omegaList)
       );
@@ -982,9 +1042,7 @@ class AppContext {
   }
 
   #processScript({ contents, scope, namespace }) {
-    const { evaluate, unsafeEval } = AppContext;
-
-    const result = unsafeEval(contents, scope);
+    const result = AppContext.unsafeEval(contents, scope);
 
     // eslint-disable-next-line default-case
     switch (true) {
@@ -992,7 +1050,7 @@ class AppContext {
         namespace = namespace || result.name;
 
       case result instanceof Object && !!namespace:
-        evaluate(
+        AppContext.unsafeEvaluate(
           `self['${namespace}'] = result;`,
           { result }
         );
@@ -1117,6 +1175,23 @@ class AppContext {
           }
         })
       });
+  }
+
+  static #getMaxUrlLength() {
+    const userAgent = navigator.userAgent;
+    if (/Chrome/.test(userAgent) && /Google Inc/.test(userAgent)) {
+      return 2048;
+    } else if (/Firefox/.test(userAgent)) {
+      return 2083;
+    } else if (/Edg/.test(userAgent)) {
+      return 2083;
+    } else if (/Safari/.test(userAgent) && !/Chrome/.test(userAgent)) {
+      return 80000;
+    } else if (/MSIE|Trident/.test(userAgent)) {
+      return 2083;
+    } else {
+      return 'Unknown browser';
+    }
   }
 
   static #getScreenSize() {

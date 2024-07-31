@@ -150,10 +150,6 @@ class BaseRenderer {
     this.#sealed = true;
   }
 
-  evaluateExpression(code, scope) {
-    return AppContext.evaluate(code, scope, this);
-  }
-
   /**
    * This is used to serialize this component instance. It is useful when we need
    * to clone components.

@@ -18,6 +18,6 @@ function generateCharacterStrings(characters, maxLength) {
 }
 
 const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-const result = generateCharacterStrings(characters, 6480);
+const result = generateCharacterStrings(characters, 2704);
 
 console.info(result.length, JSON.stringify(result)); // Default total Output: 2704

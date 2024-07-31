@@ -155,7 +155,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
   captureState() {
     return {
-      blockData: clientUtils.deepClone(this.blockData),
+      blockData: this.cloneBlockData(this.blockData),
     };
   }
 
@@ -218,7 +218,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
     if (transform) {
       transform = this.wrapTransform(transform);
     }
-    
+
     let [value] = params;
 
     const bindContext = this.popDataStack();
@@ -267,13 +267,12 @@ class CustomCtxRenderer extends RootCtxRenderer {
   }
 
   logical() {
-    const { getExecStringFromValue: execString } = RootCtxRenderer;
     const params = Array.from(arguments);
 
     const [left, right, operator] = params;
 
     return this.proxyInstance.evaluateBooleanExpression(
-      execString(left), execString(right), operator,
+      left, right, operator,
     );
   }
 
@@ -288,8 +287,6 @@ class CustomCtxRenderer extends RootCtxRenderer {
   }
 
   ternary() {
-    const { unsafeEval } = AppContext;
-
     const params = Array.from(arguments);
 
     const options = params.pop();
@@ -300,54 +297,8 @@ class CustomCtxRenderer extends RootCtxRenderer {
     const left = params.pop();
     const condition = [...params];
 
-    const AND = 'AND';
-    const OR = 'OR';
-
-    const and = ' && ';
-    const or = ' || ';
-
-    let scope = '';
-
-    const expr = condition
-      .map((part) => {
-
-        const variableName = this.randomString('varName');
-
-        switch (true) {
-          case part == null:
-          case part === undefined:
-          case part.constructor.name == 'Number':
-          case part.constructor.name == 'Boolean':
-            scope += `const ${variableName} = ${part};\n`;
-            return `!!${variableName}`;
-          case part.constructor.name == 'String':
-            switch (part) {
-              case AND:
-                return and;
-              case OR:
-                return or;
-              default:
-                scope += `const ${variableName} = "${part}";\n`;
-                return `!!${variableName}`;
-            }
-          case part === Object(part):
-            scope += `const ${variableName} = ${JSON.stringify(part)};\n`;
-            return `!!${variableName}`;
-        }
-      })
-      .map((part, index) => {
-        if (conditionInversions[index]) {
-          part = `!${part}`
-        }
-        return part;
-      })
-      .join('');
-
-    const b = unsafeEval(`${scope}${expr}`);
-
-    assert(typeof b == 'boolean');
-
-    let val = b ? left : right;
+    let val = this.proxyInstance.evaluateConditionExpression(condition, conditionInversions, null) ?
+      left : right;
 
     if (invert) {
       val = !val;

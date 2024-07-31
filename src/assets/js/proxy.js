@@ -27,6 +27,8 @@ class RootProxy {
 
   static literalPrefix = 'l$_';
 
+  static lenientMarker = /\?$/g;
+
   static emptyObject = {};
 
   static pathProperty = '@path';
@@ -83,6 +85,13 @@ class RootProxy {
   static arraySpliceHookType = 'arraySplice';
 
   static inlineComponentHookType = 'inlineComponent';
+
+
+  static MUST_GRP_EXPR = 'MustacheGroup';
+  static BOOL_EXPR = 'BooleanExpression';
+  static PATH_EXPR = 'PathExpression';
+  static CONDITION_EXPR = 'ConditionExpression';
+  static LOGIC_GATE_EXPR = 'LogicGate';
 
 
   static isMapProperty = '$isMap';
@@ -200,10 +209,6 @@ class RootProxy {
     return this.#pathMetadata[sPath] || (this.#pathMetadata[sPath] = {});
   }
 
-  getValueFromPath(path, noOpValue) {
-    return this.component.evalPathLeniently(`this.getInput()${path.length ? '.' : ''}${path}`, noOpValue);
-  }
-
   static #isPriviledgedMode() {
     return RootProxy.#privilegedMode;
   }
@@ -238,9 +243,9 @@ class RootProxy {
 
     component.setInput(
       proxy.#getObserverProxy(
-        proxy.#toCanonicalTree({ 
+        proxy.#toCanonicalTree({
           path: '', obj: component.getInput(), leafs, leafConsumer: ({ path, value }) => {
-            component.getInputMap().set(path, value);
+            proxy.addToInputMap(path, value);
           }
         })
       )
@@ -257,11 +262,21 @@ class RootProxy {
     }
   }
 
+  lookupInputMap(key) {
+    return this.component.getInputMap().get(key);
+  }
+
+  addToInputMap(key, value) {
+    return this.component.getInputMap().set(key, value);
+  }
+
+  removeFromInputMap(key) {
+    return this.component.getInputMap().delete(key);
+  }
+
   #triggerInitialInsertEvents(leafs) {
 
-    leafs.forEach(({ path, key, value, parentObject }) => {
-      const sPath = clientUtils.toCanonicalPath(path);
-
+    leafs.forEach(({ path, sPath, key, value, parentObject }) => {
       [...(path == sPath) ? [path] : [path, sPath]]
         .map(p => `insert.${p}`)
         .forEach(evtName => {
@@ -411,8 +426,6 @@ class RootProxy {
 
                   visit(def[childProperty]);
 
-                  // This corresponds to the condition in toCanonical(...):
-                  // obj[prop] === Object(obj[prop]) or obj[prop][i] === Object(obj[prop])[i]
                   if (
                     def[childProperty].$ref ||
                     def[childProperty].additionalProperties ||
@@ -573,7 +586,7 @@ class RootProxy {
   }
 
   createObjectProxy() {
-    const { dataPathRoot, dataPathPrefix, logicGatePathPrefix, isRootPath } = RootProxy;
+    const { dataPathRoot, dataPathPrefix, logicGatePathRoot, pathSeparator, logicGatePathPrefix, isRootPath } = RootProxy;
     // eslint-disable-next-line no-underscore-dangle
     const _this = this;
     return new Proxy({}, {
@@ -598,7 +611,7 @@ class RootProxy {
             return _this.createObjectProxy();
 
           case isRootPath(prop):
-            return prop.match(logicGatePathPrefix) ?
+            return prop.startsWith(`${logicGatePathRoot}${pathSeparator}`) ?
               this.resolveLogicPath({ prop: prop.replace(logicGatePathPrefix, '') }) :
               this.resolveDataPath({ prop: prop.replace(dataPathPrefix, '') });
 
@@ -736,13 +749,15 @@ class RootProxy {
    */
   static isRootPath(path) {
     const {
-      dataPathPrefix, syntheticMethodPrefix, logicGatePathPrefix, rawDataPrefix
+      dataPathRoot, logicGatePathRoot, pathSeparator, syntheticMethodPrefix, rawDataPrefix
     } = RootProxy;
 
-    return !!(path.match(dataPathPrefix) ||
+    return !!(
+      path.startsWith(`${dataPathRoot}${pathSeparator}`) ||
       path.startsWith(syntheticMethodPrefix) ||
       path.startsWith(`${rawDataPrefix}${syntheticMethodPrefix}`) ||
-      path.match(logicGatePathPrefix));
+      path.startsWith(`${logicGatePathRoot}${pathSeparator}`)
+    );
   }
 
   getValue(value) {
@@ -760,173 +775,96 @@ class RootProxy {
     }
   }
 
-  evaluateBooleanExpression(left, right, operator, scope = '') {
+  evaluateBooleanExpression(lhs, rhs, operator) {
     const predicates = this.component.getBooleanOperators()[operator];
 
     if (!predicates) {
       this.component.throwError(`Unknown boolean operator: ${operator}`);
     }
+
     for (const fn of predicates) {
-      const b = Function(
-        `${scope} return arguments[0](${left}, ${right})`,
-      )
-        .bind(this.component)(fn);
-
-      if (!b) { return false; }
+      if (!fn(lhs, rhs)) {
+        return false;
+      }
     }
-
     return true;
   }
 
+  evaluateConditionExpression(parts, conditionInversions, table) {
+    const unionOperators = ['AND', 'OR'];
+
+    let op;
+    let b;
+
+    loop:
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+
+      if (
+        part &&
+        (typeof (part.original || part)) == 'string' &&
+        unionOperators.includes(part.original || part)
+      ) {
+        op = part.original || part;
+        continue;
+      }
+
+      let _b;
+
+      const evaluateFn = () => {
+        _b = !!(table ? this.#getExpressionValue(part, table) : part);
+
+        if (conditionInversions[i]) {
+          _b = !_b;
+        }
+      }
+
+      switch (op) {
+        case undefined:
+          evaluateFn();
+          b = _b;
+          break;
+        case 'OR':
+          if (!b) {
+            evaluateFn();
+            b = _b;
+          }
+          if (b) {
+            // short-circuiting in logical OR
+            break loop;
+          }
+          break;
+        case 'AND':
+          if (b) {
+            evaluateFn();
+            b = _b;
+          }
+          if (!b) {
+            break loop;
+          }
+          break;
+      }
+    }
+
+    return b;
+  }
+
   getLogicGateValue({ gate, blockData }) {
+    this.component.pushToEmitContext({ variables: {} });
 
+    const ret = this.getLogicGateValue0({ gate, blockData });
 
-    // REWRITE!!!!  
+    this.component.popEmitContext();
+    return ret;
+  }
+
+  getLogicGateValue0({ gate, blockData }) {
+    const { LOGIC_GATE_EXPR } = RootProxy;
 
     const { table } = this.component.getLogicGates()[gate.canonicalId];
 
-    const MUST_GRP = 'MustacheGroup';
-    const LOGIC_GATE = 'LogicGate';
-    const BOOL_EXPR = 'BooleanExpression';
-    const PATH_EXPR = 'PathExpression';
-    const STR_LITERAL = 'StringLiteral';
-    const BOOL_LITERAL = 'BooleanLiteral';
-    const NUM_LITERAL = 'NumberLiteral';
-    const NULL_LITERAL = 'NullLiteral';
-    const UNDEFINED_LITERAL = 'UndefinedLiteral';
-
-    const AND = 'AND';
-    const OR = 'OR';
-
-    const evaluateExpr = (expr) => {
-      return this.component.evaluateExpression(expr);
-    }
-
-    const getConditionExpr = (parts, invert) => {
-
-      let scope = ``;
-      const and = ' && ';
-      const or = ' || ';
-
-      const getBoolExpr = (expr) => {
-
-        const left = getExpr(expr.left);
-        const right = getExpr(expr.right);
-
-        return this.evaluateBooleanExpression(
-          left, right, expr.operator, scope
-        );
-      }
-
-      const getExpr = (part) => {
-        let variableName = this.component.randomString('varName');
-
-        switch (part.type) {
-          case PATH_EXPR:
-          case BOOL_LITERAL:
-          case NUM_LITERAL:
-          case NULL_LITERAL:
-          case UNDEFINED_LITERAL:
-            scope += `const ${variableName} = ${part.original};\n`;
-            return variableName;
-
-          case BOOL_EXPR:
-            return `(${getBoolExpr(part)})`;
-
-          case STR_LITERAL:
-            switch (part.original) {
-              case AND:
-                return and;
-              case OR:
-                return or;
-              default:
-                scope += `const ${variableName} = \`${part.original}\`;\n`;
-                return variableName;
-            }
-
-          case MUST_GRP:
-            scope += `const ${variableName} = ${getValue(part)};\n`;
-            return variableName;
-
-          case LOGIC_GATE:
-            return `${JSON.stringify(analyzeGate(part))}`;
-        }
-      }
-
-      const expr = `return ${parts
-        .map(getExpr)
-        .map(part => (part != and && part != or) ? `!!${part}` : part)
-        .map((part, index) => `${invert[index] ? '!' : ''}${part}`)
-        .join('')};`;
-
-      return scope + expr;
-    };
-
-    const analyzeCondition = (parts, invert) => {
-      const expr = getConditionExpr(parts, invert);
-      const b = evaluateExpr(expr);
-      assert(typeof b === 'boolean');
-      return b;
-    }
-
-    const getValue = ({ type, original, items, evaluate = true }) => {
-      let expr;
-      switch (type) {
-        case NUM_LITERAL:
-        case BOOL_LITERAL:
-        case PATH_EXPR:
-        case NULL_LITERAL:
-        case UNDEFINED_LITERAL:
-          expr = original;
-          break;
-        case STR_LITERAL:
-          expr = `\`${original.replace(/"/g, '\\"')}\``;
-          break;
-        case MUST_GRP:
-          expr = items.map(item => getValue({
-            type: item.type,
-            original: item.original,
-            evaluate: false
-          })).join(' + ');
-          break;
-      }
-      return evaluate ? evaluateExpr(`return ${expr}`) : expr;
-    };
-
-    const analyzeGate = (item) => {
-
-      assert(item.type == LOGIC_GATE)
-
-      const data = clientUtils.deepClone(table[item.original]);
-
-      const { condition, left, right, invert } = data;
-
-      data.condition = condition.map(c => this.toExecutablePath(c, true));
-
-      data.left = this.toExecutablePath(left);
-      data.right = this.toExecutablePath(right);
-
-      item = analyzeCondition(data.condition, data.conditionInversions) ? data.left : data.right;
-
-      let value = (() => {
-        if (item.type == LOGIC_GATE) {
-          return analyzeGate(item);
-        } else {
-          return getValue(item);
-        }
-      })()
-
-      if (invert) {
-        value = !value;
-      }
-
-      return value;
-    }
-
     const value = this.component.executeWithBlockData(
-      () => {
-        return analyzeGate({ type: LOGIC_GATE, original: 0 })
-      },
+      () => this.#getExpressionValue({ type: LOGIC_GATE_EXPR, original: 0 }, table),
       blockData,
     );
 
@@ -934,141 +872,87 @@ class RootProxy {
 
     if (hook && (initial || (currentValue !== value))) {
       this.component[hook].bind(this.component)(value);
-
-      gate.currentValue = value;
-      gate.initial = false;
     }
 
     return value;
   }
 
-  #getExecPath(fqPath, lenient) {
-    const { wrapExecStringForLeniency } = RootCtxRenderer;
-
-    let { execPath } = this.component.getRuntimeExecPath({ fqPath });
-
-    if (lenient) {
-      execPath = wrapExecStringForLeniency(execPath);
-    }
-    return execPath;
-  }
-
-  /**
-   * If this is a PathExpression, convert from a canonical path to
-   * it's executable path
-   */
-  toExecutablePath(item, lenient, transform) {
+  #getExpressionValue(expr, table) {
     const {
-      dataPathPrefix, literalPrefix, syntheticMethodPrefix, parsePathExpressionLiteralValue,
+      dataPathPrefix, literalPrefix, lenientMarker, MUST_GRP_EXPR, BOOL_EXPR, PATH_EXPR,
+      CONDITION_EXPR, LOGIC_GATE_EXPR, getPathExpressionLiteralValue,
     } = RootProxy;
 
-    const MUST_GRP = 'MustacheGroup';
-    const BOOL_EXPR = 'BooleanExpression';
-    const PATH_EXPR = 'PathExpression';
-    const STR_LITERAL = 'StringLiteral';
-    const BOOL_LITERAL = 'BooleanLiteral';
-    const NUM_LITERAL = 'NumberLiteral';
-    const NULL_LITERAL = 'NullLiteral';
-    const UNDEFINED_LITERAL = 'UndefinedLiteral';
+    switch (true) {
 
-    const lenientMarker = /\?$/g;
+      case expr.type.endsWith('Literal'):
+        return expr.original;
 
-    const { type, original, operator, left, right, items } = item;
+      case expr.type == PATH_EXPR:
+        return (() => {
+          const { original } = expr;
+          let path = original.replace(dataPathPrefix, '');
 
-    if (!transform) {
-      transform = (p) => this.#getExecPath(p, lenient);
-    }
+          if (path.startsWith(literalPrefix)) {
 
-    switch (type) {
-      case PATH_EXPR:
+            return getPathExpressionLiteralValue(path);
+          } else {
 
-        assert(
-          original.match(dataPathPrefix) ||
-          original.startsWith(syntheticMethodPrefix)
-        );
-
-        let p = original.replace(dataPathPrefix, '');
-
-        if (p.startsWith(literalPrefix)) {
-
-          const val = this.component.evaluateExpression(
-            `return ${parsePathExpressionLiteralValue(p)}`
-          );
-
-          const type = (() => {
-            switch (typeof val) {
-              case 'object':
-                return NULL_LITERAL;
-              case 'undefined':
-                return UNDEFINED_LITERAL;
-              case 'number':
-                return NUM_LITERAL;
-              case 'boolean':
-                return BOOL_LITERAL;
-              case 'string':
-                return STR_LITERAL;
-              default:
-                throw Error(`Unknown value: ${val}`);
+            if (path.match(lenientMarker)) {
+              path = path.replace(lenientMarker, '');
             }
-          })();
 
-          return {
-            type,
-            original: val,
+            return this.component.getPathValue({ path });
           }
-        } else {
-          lenient = lenient || p.match(lenientMarker);
-          if (lenient) {
-            p = p.replace(lenientMarker, '');
-          }
-          return {
-            type,
-            canonicalPath: p,
-            original: transform(p),
-          }
-        }
+        })();
 
-      case BOOL_EXPR:
-        return {
-          type,
-          operator,
-          left: this.toExecutablePath(left, lenient, transform),
-          right: this.toExecutablePath(right, lenient, transform),
-        }
+      case expr.type == BOOL_EXPR:
+        return (() => {
+          const { left, right, operator } = expr;
 
-      case MUST_GRP:
-        return {
-          type,
-          items: items.map(item => this.toExecutablePath(item, lenient, transform)),
-        }
+          const lhs = this.#getExpressionValue(left, table);
+          const rhs = this.#getExpressionValue(right, table);
+
+          return this.evaluateBooleanExpression(lhs, rhs, operator);
+        })();
+
+      case expr.type == MUST_GRP_EXPR:
+        return expr.items.map(item => this.#getExpressionValue(item, table)).join('');
+
+      case expr.type == CONDITION_EXPR:
+        return (() => {
+          const { parts, conditionInversions } = expr;
+          return this.evaluateConditionExpression(parts, conditionInversions, table);
+        })();
+
+      case expr.type == LOGIC_GATE_EXPR:
+        return (() => {
+          const { condition, left, right, invert, conditionInversions } = table[expr.original];
+
+          const ret = this.#getExpressionValue({ type: CONDITION_EXPR, parts: condition, conditionInversions }, table) ?
+            this.#getExpressionValue(left, table) : this.#getExpressionValue(right, table);
+
+          return invert ? !ret : ret;
+        })();
+
+      default:
+        this.component.throwError(`Unknown type "${expr.type}"`);
+        break;
     }
-
-    return { ...item };
   }
 
   getParticipantsFromLogicGate(gate) {
-    const PATH_EXPR = 'PathExpression';
+    const { dataPathPrefix, literalPrefix } = RootProxy;
 
     return gate.participants
-      .map(({ original: path, loc }) => {
+      .map(({ original, loc }) => {
 
-        const { canonicalPath, original, type } = this.toExecutablePath(
-          {
-            type: PATH_EXPR,
-            original: path,
-          },
-          null,
-          (p) => this.component.getExecPath0({
-            fqPath: p, allowSynthetic: false
-          }),
-        );
-
-        if (type.endsWith('Literal')) {
-          return null;
-        }
+        const canonicalPath = original.replace(dataPathPrefix, '');
+        if (canonicalPath.startsWith(literalPrefix)) return null;
 
         return {
-          original, canonicalPath, loc,
+          original: this.component.getExecPath({ fqPath: canonicalPath }),
+          canonicalPath, loc,
         }
       })
       .filter(e => !!e);
@@ -1101,7 +985,7 @@ class RootProxy {
       hook: canonicalGate.table[0].hook,
     }
 
-    const v = this.getLogicGateValue({ gate });
+    const v = this.getLogicGateValue0({ gate });
 
     const rawValue = this.getRawValueWrapper(v);
     const value = this.getValue(v);
@@ -1134,35 +1018,36 @@ class RootProxy {
     }
   }
 
-  static parsePathExpressionLiteralValue(prop) {
+  static getPathExpressionLiteralValue(prop) {
     const { literalPrefix } = RootProxy;
     const p = prop.replace(literalPrefix, '');
 
     switch (true) {
       case p == 'null':
+        return null;
       case p == 'undefined':
+        return null;
       case p == 'true':
+        return true;
       case p == 'false':
+        return false;
       case clientUtils.isNumber(p):
-        return p;
+        return Number(p);
       default:
-        return `"${p}"`;
+        return p;
     }
   }
 
   resolveDataPath({ prop }) {
     const {
-      literalPrefix, globalsBasePath, pathSeparator, parsePathExpressionLiteralValue,
+      literalPrefix, globalsBasePath, pathSeparator, getPathExpressionLiteralValue,
     } = RootProxy;
 
     // eslint-disable-next-line no-undef
     assert(prop.constructor.name === 'String');
 
     if (prop.startsWith(literalPrefix)) {
-      // eslint-disable-next-line no-eval
-      return this.component.evaluateExpression(
-        `return ${parsePathExpressionLiteralValue(prop)}`
-      );
+      return getPathExpressionLiteralValue(prop);
     }
 
     const { path, isRawReturn, includePath, lenient } = this.getTemplatePathInfo(prop);
@@ -1347,7 +1232,7 @@ class RootProxy {
 
       consumer(node);
 
-      this.component.dispatchEvent('templateRender');
+      this.component.dispatchEvent('domLoaded');
 
       this.component.pruneLifecycleEventHandlers();
     }
@@ -1631,12 +1516,19 @@ class RootProxy {
 
             case gateParticipantHookType:
               return (async () => {
-                const { parentHook } = hookInfo;
-                const { gateId, gate, blockData } = parentHook;
+                const { HookList } = RootProxy;
+
+                const { parentHook, gateId } = hookInfo;
+                const { gate, blockData } = parentHook;
 
                 this.component.startSyntheticCacheContext();
 
                 const value = this.getLogicGateValue({ gate, blockData });
+
+                gate.initial = false;
+                gate.currentValue = value;
+
+                HookList.put(this, [parentHook]);
 
                 this.component.pruneSyntheticCache();
 
@@ -1793,7 +1685,7 @@ class RootProxy {
 
                     blockData0[canonicalPath].index = i;
 
-                    const blockData = clientUtils.deepClone(blockData0);
+                    const blockData = this.component.cloneBlockData(blockData0);
 
                     const memberNodeId = clientUtils.randomString('nodeId');
 
@@ -2406,7 +2298,17 @@ class RootProxy {
   }
 
   #pruneCollChild({ parent, key, timestamp, trigger }) {
-    const { PRUNE_COLL_CHILD_TASK, HookList, MustacheStatementList } = RootProxy;
+    const { isNumber } = clientUtils;
+    const { PRUNE_COLL_CHILD_TASK, toFqPath, HookList, MustacheStatementList } = RootProxy;
+
+    const isArray = isNumber(key);
+
+    const path = toFqPath({ isArray, isMap: !isArray, parent, prop: key });
+
+    [path, ...this.getTrieSubPaths(path)]
+      .forEach(p => {
+        this.removeFromInputMap(p);
+      });
 
     return trigger
       .then(() => {
@@ -2439,11 +2341,11 @@ class RootProxy {
       });
   }
 
-  #updateCollChild({ parent, key, info, timestamp, trigger }) {
+  #updateCollChild({ parent, key, info, timestamp, trigger, updateInputMap = true }) {
 
-    const { toFqPath, isNumber } = clientUtils;
+    const { isNumber } = clientUtils;
     const {
-      pathProperty, UPDATE_COLL_CHILD_TASK, setObjectPath, HookList,
+      pathProperty, UPDATE_COLL_CHILD_TASK, setObjectPath, toFqPath, HookList,
     } = RootProxy;
 
     const isArray = isNumber(key);
@@ -2453,20 +2355,29 @@ class RootProxy {
       toFqPath({ isArray, parent, prop: `${info.index}` }) : null;
 
     if (newPath) {
-      // Update @path, if applicable
 
       [path, ...this.getTrieSubPaths(path)]
         .forEach(p => {
           const { value: obj } = this.getInfoFromPath(p);
 
+          const _p = p.replace(path, newPath);
+
           if (obj && ['Object', 'Array'].includes(obj.constructor.name)) {
+            // Update @path
 
             assert(obj[pathProperty] == p);
 
             setObjectPath({
               obj,
-              path: p.replace(path, newPath)
+              path: _p
             });
+          }
+
+          if (updateInputMap) {
+
+            const _val = this.lookupInputMap(p);
+            this.removeFromInputMap(p);
+            this.addToInputMap(_p, _val);
           }
         });
     }
@@ -2614,22 +2525,13 @@ class RootProxy {
       })();
   }
 
-  static createSimpleSetMutationOp(obj, key, value) {
-    const { mutationType_SET } = RootProxy;
-
-    return {
-      type: mutationType_SET, obj, key, val: value,
-    };
-  }
-
   #simpleSetMutationHandler(obj, prop, newValue) {
 
     const {
-      pathProperty, isMapProperty, mapKeyPrefix,
-      firstProperty, lastProperty, keyProperty, indexProperty, collChildSetHookType,
-      collChildDetachHookType, arraySpliceHookType, filter_EQ, filter_GTE_COLL_MEMBER, filter_GTE_OBJ_MEMBER,
-      mutationType_SET, mutationType_SPLICE, mutationType_DELETE, toFqPath, getDataVariables,
-      setObjectAsPruned, createSimpleSetMutationOp,
+      pathProperty, isMapProperty, mapKeyPrefix, firstProperty, lastProperty, keyProperty, indexProperty,
+      collChildSetHookType, collChildDetachHookType, arraySpliceHookType, filter_EQ, filter_GTE_COLL_MEMBER,
+      filter_GTE_OBJ_MEMBER, mutationType_SET, mutationType_SPLICE, mutationType_DELETE, toFqPath,
+      getDataVariables, setObjectAsPruned, isScalarDefinition,
     } = RootProxy;
 
     const parent = obj[pathProperty];
@@ -2805,11 +2707,29 @@ class RootProxy {
 
     const changedCollMembers = [];
 
-    const addSimpleSetMutation = (obj, key, value) => {
-      if (typeof obj == "object") {
+    const addSimpleSetMutation = (index, key, val) => {
+      assert(collDef && key.startsWith('@'));
+
+      if (typeof obj[index] == "object") {
         mutationList.push(
-          createSimpleSetMutationOp(obj, key, value)
+          {
+            type: mutationType_SET, obj: obj[index], key, val,
+          }
         );
+      } else {
+        const { collectionType } = collDef;
+
+        const isArray = collectionType == 'array';
+        const isMap = collectionType == 'map';
+
+        const path = toFqPath({
+          parent: toFqPath({
+            isArray, isMap, parent: obj[pathProperty], prop: keys[index]
+          }),
+          key,
+        });
+
+        this.addToInputMap(path, val);
       }
     }
 
@@ -2867,7 +2787,7 @@ class RootProxy {
     if (newElementAdded && length > 0) {
 
       addSimpleSetMutation(
-        obj[length - 1], lastProperty, false,
+        length - 1, lastProperty, false,
       );
 
       this.#addToChangeSet(
@@ -2883,7 +2803,7 @@ class RootProxy {
     if (removedLastElement && index > 0) {
 
       addSimpleSetMutation(
-        obj[index - 1], lastProperty, true,
+        index - 1, lastProperty, true,
       );
 
       this.#addToChangeSet(
@@ -2902,7 +2822,7 @@ class RootProxy {
 
         if (j == 0) {
           addSimpleSetMutation(
-            obj[i], firstProperty, true,
+            i, firstProperty, true,
           );
 
           this.#addToChangeSet(
@@ -2916,11 +2836,11 @@ class RootProxy {
         }
 
         addSimpleSetMutation(
-          obj[i], keyProperty, `${j}`,
+          i, keyProperty, `${j}`,
         );
 
         addSimpleSetMutation(
-          obj[i], indexProperty, j,
+          i, indexProperty, j,
         );
 
         changedCollMembers.push(
@@ -2958,9 +2878,12 @@ class RootProxy {
 
     if (collInfo) {
 
-      // HOOK RE-BALANCING
-
       const newLength = length + offset;
+
+      this.addToInputMap(`${parent}.length`, newLength);
+
+
+      // HOOK RE-BALANCING
 
       const timestamp = new Date();
 
@@ -3050,6 +2973,15 @@ class RootProxy {
         return false;
       }
 
+      if (collDef && isScalarDefinition(collDef)) {
+        // Note: a scalar value is leafless, hence we need to manually add the dataVariables to <inputMap>
+
+        Object.entries(dataVariables)
+          .forEach(([k, v]) => {
+            this.addToInputMap(`${path}.${k}`, v);
+          });
+      }
+
       switch (mutationType) {
         case mutationType_SET:
           mutationList.push({ type: mutationType_SET, obj, key: prop, val, leafs });
@@ -3101,7 +3033,7 @@ class RootProxy {
 
       this.component.getDomUpdateHooks().forEach(fn => {
         finalizers.push(() => {
-          requestAnimationFrame(() => {
+          requestIdleCallback(() => {
             fn();
           });
         });
@@ -3141,8 +3073,8 @@ class RootProxy {
 
     const {
       pathProperty, firstProperty, lastProperty, keyProperty, indexProperty, arraySpliceHookType,
-      mutationType_SET, mutationType_SPLICE, filter_EQ, filter_GTE_COLL_MEMBER, toFqPath, setObjectAsPruned,
-      createSimpleSetMutationOp,
+      mutationType_SET, mutationType_SPLICE, filter_EQ, filter_GTE_COLL_MEMBER, toFqPath,
+      setObjectAsPruned, isScalarDefinition
     } = RootProxy;
 
     const { isNumber, peek } = clientUtils;
@@ -3219,11 +3151,17 @@ class RootProxy {
     const mutationList = [];
     const changeSet = [];
 
-    const addSimpleSetMutation = (obj, key, value) => {
-      if (typeof obj == "object") {
+    const addSimpleSetMutation = (index, key, val) => {
+      assert(key.startsWith('@'));
+
+      if (typeof obj[index] == "object") {
         mutationList.push(
-          createSimpleSetMutationOp(obj, key, value)
+          {
+            type: mutationType_SET, obj: obj[index], key, val,
+          }
         );
+      } else {
+        this.addToInputMap(`${parent}[${index}].${key}`, val);
       }
     }
 
@@ -3235,7 +3173,7 @@ class RootProxy {
       assert(offset > 0);
 
       addSimpleSetMutation(
-        obj[length - 1], lastProperty, false,
+        length - 1, lastProperty, false,
       );
 
       this.#addToChangeSet(
@@ -3253,7 +3191,7 @@ class RootProxy {
     if (index > 0 && offset < 0 && index == newLength) {
 
       addSimpleSetMutation(
-        obj[index - 1], lastProperty, true,
+        index - 1, lastProperty, true,
       );
 
       this.#addToChangeSet(
@@ -3274,7 +3212,7 @@ class RootProxy {
 
 
         addSimpleSetMutation(
-          obj[i], keyProperty, `${j}`,
+          i, keyProperty, `${j}`,
         );
 
         this.#addToChangeSet(
@@ -3285,7 +3223,7 @@ class RootProxy {
 
 
         addSimpleSetMutation(
-          obj[i], indexProperty, j,
+          i, indexProperty, j,
         );
 
         this.#addToChangeSet(
@@ -3298,7 +3236,7 @@ class RootProxy {
         if ([i, j].includes(0)) {
 
           addSimpleSetMutation(
-            obj[i], firstProperty, j == 0,
+            i, firstProperty, j == 0,
           );
 
           this.#addToChangeSet(
@@ -3352,6 +3290,10 @@ class RootProxy {
 
     const promises = [];
 
+
+    this.addToInputMap(`${parent}.length`, newLength);
+
+
     // HOOK RE-BALANCING
 
     const timestamp = new Date();
@@ -3374,7 +3316,8 @@ class RootProxy {
           );
           break;
 
-        case offsetIndexes[i] !== undefined:
+        // Note: The offset-direction must be opposite of the iteration direction
+        case newLength < length && offsetIndexes[i] !== undefined:
           promises.push(
             this.#updateCollChild({
               parent, key: i, info: { index: offsetIndexes[i], length: newLength }, timestamp, trigger: collChildHookUpdatePromise,
@@ -3384,6 +3327,17 @@ class RootProxy {
       }
     }
 
+    if (newLength > length) {
+      for (let i = length - 1; i >= 0; i--) {
+        if (offsetIndexes[i] !== undefined) {
+          promises.push(
+            this.#updateCollChild({
+              parent, key: i, info: { index: offsetIndexes[i], length: newLength }, timestamp, trigger: collChildHookUpdatePromise,
+            })
+          );
+        }
+      }
+    }
 
 
     // DO SET
@@ -3403,6 +3357,8 @@ class RootProxy {
         return;
       }
 
+      const leafs = [];
+      leafsList.push(leafs);
 
       const idx = index + i;
 
@@ -3419,13 +3375,20 @@ class RootProxy {
         index: idx,
       };
 
-      leafsList.push([]);
-
-      const { error, mutationType, value: val } = this.#getMutationType({ path, value, parentObject: obj, collDef, dataVariables, leafs: leafsList[i], });
+      const { error, mutationType, value: val } = this.#getMutationType({ path, value, parentObject: obj, collDef, dataVariables, leafs, });
 
       if (error) {
         hasError = true;
         return;
+      }
+
+      if (collDef && isScalarDefinition(collDef)) {
+        // Note: a scalar value is leafless, hence we need to manually add the dataVariables to <inputMap>
+
+        Object.entries(dataVariables)
+          .forEach(([k, v]) => {
+            this.addToInputMap(`${path}.${k}`, v);
+          });
       }
 
       assert(mutationType == mutationType_SET);
@@ -3482,6 +3445,43 @@ class RootProxy {
     this.#ensureNonDiscreteContext();
     this.#ensureNoOpenHandle(parent);
 
+
+    // We need to eagerly upate inputMap because unlike other mutation handlers, this mutation
+    // handler is called "after" "input" is updated not "before" - and the "inputMap" must exactly
+    // mirror the "input" at all times
+
+    const _inputMap = {};
+
+    Object.entries(offsetIndexes)
+      .forEach(([i, j]) => {
+        const path = `${parent}[${i}]`;
+        const newPath = `${parent}[${j}]`;
+
+        [path, ...this.getTrieSubPaths(path)].forEach(p => {
+          const _p = p.replace(path, newPath);
+
+          const _val = this.lookupInputMap(p);
+          this.removeFromInputMap(p);
+
+          _inputMap[_p] = _val;
+        })
+      });
+
+    Object.entries(_inputMap).forEach(([k, v]) => {
+      this.addToInputMap(k, v);
+    });
+
+
+    const addSimpleSetMutation = (index, key, val) => {
+      assert(key.startsWith('@'));
+
+      if (typeof obj[index] == "object") {
+        obj[index][key] = val;
+      }
+
+      this.addToInputMap(`${parent}[${index}].${key}`, val);
+    }
+
     // REGISTER CHANGE SETS
 
     const changeSet = [];
@@ -3500,9 +3500,7 @@ class RootProxy {
         const p = toFqPath({ parent, prop: i });
 
 
-        addSimpleSetMutation(
-          obj[j], keyProperty, `${j}`,
-        );
+        addSimpleSetMutation(j, keyProperty, `${j}`);
 
         this.#addToChangeSet(
           changeSet,
@@ -3511,9 +3509,7 @@ class RootProxy {
         );
 
 
-        addSimpleSetMutation(
-          obj[j], indexProperty, j,
-        );
+        addSimpleSetMutation(j, indexProperty, j);
 
         this.#addToChangeSet(
           changeSet,
@@ -3524,9 +3520,7 @@ class RootProxy {
 
         if ([i, j].includes(0)) {
 
-          addSimpleSetMutation(
-            obj[j], firstProperty, j == 0,
-          );
+          addSimpleSetMutation(j, firstProperty, j == 0);
 
           this.#addToChangeSet(
             changeSet,
@@ -3538,9 +3532,7 @@ class RootProxy {
 
         if ([i, j].includes(obj.length - 1)) {
 
-          addSimpleSetMutation(
-            obj[j], lastProperty, j == obj.length - 1,
-          );
+          addSimpleSetMutation(j, lastProperty, j == obj.length - 1);
 
           this.#addToChangeSet(
             changeSet,
@@ -3572,6 +3564,7 @@ class RootProxy {
         promises.push(
           this.#updateCollChild({
             parent, key: Number(k), info: { index: v }, timestamp, trigger: collChildHookUpdatePromise,
+            updateInputMap: false,
           })
         );
       });
@@ -3598,12 +3591,13 @@ class RootProxy {
       const addToChanges = ({ path, key, spliceIndex, val, willPrune, leafs, mutationType }) => {
 
         const add0 = (opts) => {
-          this.component.getInputMap().set(opts.path, opts.currentValue);
-          
-          changes.push(opts);
+          const { key, path, currentValue } = opts;
 
-          // Todo: should we prune #randomValues here?
+          this.addToInputMap(path, currentValue);
 
+          if (!key.startsWith('@')) {
+            changes.push(opts);
+          }
         };
 
         const addPrimary = () => {
@@ -3657,6 +3651,14 @@ class RootProxy {
               const isMap = !isArray && obj[typeProperty] == mapType;
 
               const path = toFqPath({ isArray, isMap, parent: obj[pathProperty], prop: key });
+
+              if (key.startsWith('@')) {
+                setDataVariable(obj, key, val);
+
+                this.addToInputMap(path, val);
+                return;
+              }
+
               const spliceIndex = isArray ? key : undefined;
 
               if (obj[key] !== undefined) {
@@ -3667,11 +3669,7 @@ class RootProxy {
 
               addToChanges({ mutationType, path, key, spliceIndex, val, leafs });
 
-              if (key.startsWith('@')) {
-                setDataVariable(obj, key, val)
-              } else {
-                obj[key] = val;
-              }
+              obj[key] = val;
             }
           })()
           break;
@@ -3788,9 +3786,11 @@ class RootProxy {
       mutationType_DELETE, getMapWrapper, setObjectParentRef,
     } = RootProxy;
 
+    const sPath = clientUtils.toCanonicalPath(path);
+
     if (value !== undefined) {
       value = this.invokeTransformers(
-        this.component.getInitializers(), this.component.getTransformers(), path, value, parentObject,
+        this.component.getInitializers(), this.component.getTransformers(), path, sPath, value, parentObject,
       );
     }
 
@@ -3807,7 +3807,7 @@ class RootProxy {
         const b = this.tryOrLogError(
           () => {
             value = this.#toCanonicalTree({
-              path, obj: value, leafs, parentObject,
+              path, sPath, obj: value, leafs, parentObject,
             });
           }
         );
@@ -3826,7 +3826,7 @@ class RootProxy {
 
         const b = this.tryOrLogError(
           () => {
-            this.validateSchema(path, value, parentObject);
+            this.validateSchema(path, sPath, value, parentObject);
           }
         );
 
@@ -3834,7 +3834,7 @@ class RootProxy {
           return { error: true };
         }
 
-        this.#addPathToTrie(path, !!collDef)
+        this.#addPathToTrie(path, null, !!collDef)
       }
 
       if (typeof value == 'object') {
@@ -3850,7 +3850,7 @@ class RootProxy {
         }
 
       } else {
-        this.#addPathToTrie(path, !!collDef)
+        this.#addPathToTrie(path, null, !!collDef)
       }
     }
 
@@ -4156,10 +4156,9 @@ class RootProxy {
               addToHookList(
                 p,
                 {
-                  type: gateParticipantHookType,
+                  type: gateParticipantHookType, gateId,
                   canonicalPath: canonicalParticipants[i],
-                  loc: hook.loc,
-                  parentHook: { ...hook, gateId },
+                  parentHook: hook, loc: hook.loc,
                 }
               )
             });
@@ -4274,16 +4273,13 @@ class RootProxy {
     return `${pathSchemaDefPrefix}.${path.replace(`${dataPathRoot}${pathSeparator}`, '')}`;
   }
 
-  getObjectDefiniton(path) {
-
+  getObjectDefiniton(sPath) {
     const { toDefinitionName } = RootProxy;
 
     const defPrefx = '#/definitions/';
     const schemaDefinitions = this.#getSchemaDefinitions();
 
-    const k = path.length ?
-      toDefinitionName(clientUtils.toCanonicalPath(path)) :
-      this.component.getComponentName();
+    const k = sPath ? toDefinitionName(sPath) : this.component.getComponentName();
 
     let def = schemaDefinitions[k];
 
@@ -4314,12 +4310,21 @@ class RootProxy {
     } : false;
   }
 
-  isScalarArray(path) {
-    const def = this.getArrayDefinition(path);
+  isScalarCollection(sPath) {
+    if (!sPath.length) return false;
 
+    const { getSchemaKey, isScalarDefinition } = RootProxy;
+
+    const schemaKey = getSchemaKey(sPath);
+    const { items, additionalProperties } = this.#getSchemaDefinitions()[schemaKey];
+
+    return isScalarDefinition(items) || isScalarDefinition(additionalProperties)
+  }
+
+  static isScalarDefinition(def) {
     return def && (
-      ['string', 'number', 'boolean'].includes(def.type[0] || def.component
-      ));
+      (def.type && ['string', 'number', 'boolean'].includes(def.type[0])) || def.component
+    );
   }
 
   getArrayDefinition(path) {
@@ -4378,11 +4383,11 @@ class RootProxy {
    * This constructs a key that can be used to make a call to {dataPathHooks}
    * @returns String
    */
-  static toFqPath({ type, isArray, isMap, parent, prop }) {
-    return clientUtils.toFqPath({ type, isArray, isMap, parent, prop });
+  static toFqPath({ type, isArray, isMap, parent, prop, key }) {
+    return clientUtils.toFqPath({ type, isArray, isMap, parent, prop, key });
   }
 
-  validateSchema(path, value, parentObj) {
+  validateSchema(path, sPath, value, parentObj) {
 
     if (value === null) {
       return;
@@ -4395,7 +4400,7 @@ class RootProxy {
     const {
       $ref, type, additionalProperties, items, component, enum: enum0
     } = schemaDefinitions[
-      toDefinitionName(clientUtils.toCanonicalPath(path))
+      toDefinitionName(sPath || clientUtils.toCanonicalPath(path))
       ];
 
     const ensureType = (constructorName) => {
@@ -4522,9 +4527,6 @@ class RootProxy {
     let ret = initializers[path];
 
     if (!ret) {
-      if (!sPath) {
-        sPath = clientUtils.toCanonicalPath(path);
-      }
       ret = initializers[sPath];
     }
 
@@ -4541,10 +4543,8 @@ class RootProxy {
     return this.#getDefaultValueForType(type);
   }
 
-  invokeTransformers(initializers, transformers, path, val, parentObject) {
+  invokeTransformers(initializers, transformers, path, sPath, val, parentObject) {
     assert(val !== undefined);
-
-    const sPath = clientUtils.toCanonicalPath(path);
 
     if (val == null) {
       const initializer = this.getDefinedInitializerForPath(initializers, path, sPath) ||
@@ -4625,33 +4625,44 @@ class RootProxy {
     return obj;
   }
 
-  #addPathToTrie(path, withDataVariables) {
+  #addPathToTrie(path, segments, withDataVariables) {
     const { getDataVariables, toFqPath } = RootProxy;
 
     const trie = this.getPathTrie();
 
-    trie.insert(path);
+    trie.insert(path, segments);
 
     if (withDataVariables) {
       getDataVariables().forEach((o) => {
         trie.insert(
-          toFqPath({ parent: path, prop: o })
+          toFqPath({ parent: path, prop: o }),
+          [...segments, o]
         );
       });
     }
   }
 
-  #toCanonicalTree({ path, obj, leafs, leafConsumer, parentObject, initializers, transformers, root = true }) {
+  #toCanonicalTree({ path, sPath, segments, obj, leafs, leafConsumer, parentObject, initializers, transformers, root = true }) {
 
     const {
       dataPathPrefix, typeProperty, mapType, mapKeyPrefix, mapKeyPrefixRegex, pathProperty,
-      getMapWrapper, addDataVariables, getReservedObjectKeys, toFqPath, getReservedMapKeys, getDataVariables,
-      setObjectPath, setObjectParentRef,
+      getMapWrapper, addDataVariables, getReservedObjectKeys, getReservedMapKeys, getDataVariables,
+      setObjectPath, setObjectParentRef, toFqPath,
     } = RootProxy;
 
     if (root) {
       initializers = this.component.getInitializers();
-      transformers = this.component.getTransformers()
+      transformers = this.component.getTransformers();
+
+      if (path.length) {
+        if (!sPath) {
+          sPath = clientUtils.toCanonicalPath(path);
+        }
+        segments = clientUtils.getAllSegments(path);
+      } else {
+        sPath = '';
+        segments = [];
+      }
     }
 
     if (obj[pathProperty]) {
@@ -4676,7 +4687,7 @@ class RootProxy {
 
     switch (true) {
 
-      case !!this.getMapDefinition(path):
+      case !!this.getMapDefinition(sPath):
         const reservedMapKeys = getReservedMapKeys();
 
         // If this is a map path, add set @type to Map, and transform the keys
@@ -4699,7 +4710,7 @@ class RootProxy {
         break;
 
       case obj.constructor.name == 'Object':
-        const def = this.getObjectDefiniton(path);
+        const def = this.getObjectDefiniton(sPath);
 
         if (!def) {
           // Validation error will likely be thrown below, break
@@ -4722,7 +4733,13 @@ class RootProxy {
                 return null;
               }
 
-              if (this.getDefinedInitializerForPath(initializers, toFqPath({ parent: path, prop: p })) != null) {
+              if (
+                this.getDefinedInitializerForPath(
+                  initializers,
+                  toFqPath({ parent: path, prop: p }),
+                  sPath + `${sPath ? '.' : ''}${p}`
+                ) != null
+              ) {
                 // We need to return null, so that invokeTransformers(...) will apply the defined initializer
                 return null;
               }
@@ -4734,7 +4751,7 @@ class RootProxy {
     }
 
     if (root && path) {
-      this.validateSchema(path, obj, parentObject);
+      this.validateSchema(path, sPath, obj, parentObject);
     }
 
     const isMap = !isArray && (obj[typeProperty] === mapType);
@@ -4755,42 +4772,65 @@ class RootProxy {
 
     for (let i = 0; i < iterateKeys.length; i++) {
       const prop = iterateKeys[i];
-      const p = toFqPath({ isArray, isMap, parent: path, prop });
+      const isDataVariable = prop.startsWith('@');
+
+      const key = clientUtils.toFqKey({ isArray, isMap, isDataVariable, prop });
+
+      const _path = toFqPath({ parent: path, key });
+      const _sPath = sPath + (
+        (!isDataVariable && isArray) ? '_$' : (!isDataVariable && isMap) ? '.$_' : `${sPath ? '.' : ''}${prop}`
+      );
+      const _segments = [...segments, key];
 
       if (obj[prop] === undefined) {
-        this.component.throwError(`Path "${p}" cannot have "undefined" as it's value`);
-      }
-
-      if (!prop.startsWith('@')) {
-        obj[prop] = this.invokeTransformers(initializers, transformers, p, obj[prop], obj);
-
-        this.validateSchema(p, obj[prop], obj);
-
-        this.#addPathToTrie(p, isCollection);
-      }
-
-      if (isCollection && obj[prop] === Object(obj[prop])) {
-
-        // Inject data variables, if this is a collection of objects
-        addDataVariables(
-          obj[prop],
-          i == 0,
-          i == keys.length - 1,
-          prop.replace(mapKeyPrefixRegex, ''),
-          i,
-          this.component.randomString('random')
-        );
+        this.component.throwError(`Path "${_path}" cannot have "undefined" as it's value`);
       }
 
       const isEmpty = obj[prop] === null;
+      const nonScalar = !isEmpty && ['Object', 'Array'].includes(obj[prop].constructor.name);
 
-      const leaf = { path: p, key: prop, parentObject: obj };
+      if (!isDataVariable) {
+        obj[prop] = this.invokeTransformers(initializers, transformers, _path, _sPath, obj[prop], obj);
+
+        this.validateSchema(_path, _sPath, obj[prop], obj);
+
+        this.#addPathToTrie(_path, _segments, isCollection);
+      }
+
+      if (isCollection) {
+        if (nonScalar) {
+          // Inject data variables, if this is a collection of objects
+          addDataVariables(
+            obj[prop],
+            i == 0,
+            i == keys.length - 1,
+            prop.replace(mapKeyPrefixRegex, ''),
+            i,
+            this.component.randomString('random')
+          );
+
+        } else if (
+          !isDataVariable && this.isScalarCollection(sPath)
+        ) {
+          this.#getLeafsForDataVariables(_path, _sPath, obj, keys, i)
+            .forEach(leaf => {
+              leafs.push(leaf);
+
+              if (leafConsumer) {
+                leafConsumer(leaf);
+              }
+            });
+        }
+      }
+
+      const leaf = { path: _path, sPath: _sPath, key: prop, parentObject: obj };
       leafs.push(leaf);
 
-      if (!isEmpty && ['Object', 'Array'].includes(obj[prop].constructor.name)) {
+      if (nonScalar) {
 
         obj[prop] = this.#toCanonicalTree({
-          path: p, obj: obj[prop], parentObject: obj,
+          path: _path, sPath: _sPath, segments: _segments,
+          obj: obj[prop], parentObject: obj,
           leafs, leafConsumer, initializers, transformers,
           root: false
         });
@@ -4814,6 +4854,22 @@ class RootProxy {
     }
 
     return obj;
+  }
+
+  #getLeafsForDataVariables(path, sPath, coll, keys, index) {
+    const { getDataVariables, randomProperty } = RootProxy;
+    const { getDataVariableValue } = RootCtxRenderer;
+
+    return getDataVariables()
+      .map(name => ({
+        path: `${path}.${name}`,
+        sPath: `${sPath}.${name}`,
+        key: name,
+        parentObject: coll[keys[index]],
+        value: (name == randomProperty) ?
+          this.component.randomString('random') :
+          getDataVariableValue(name, index, keys),
+      }));
   }
 
   static getReservedObjectKeys() {

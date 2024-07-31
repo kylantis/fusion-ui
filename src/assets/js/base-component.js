@@ -247,13 +247,13 @@ class BaseComponent extends WebRenderer {
         }
 
         if (isComponent && (this.isRootComponent() || this.isMounted())) {
-          await load0();
+          load0();
 
         } else {
           this.on('load', ({ futures }) => {
-            futures.push(
-              load0()
-            );
+            // futures.push(
+            load0()
+            // );
           });
         }
       });
@@ -360,7 +360,7 @@ class BaseComponent extends WebRenderer {
   #convertEventHandlerToString(handler) {
     assert(handler instanceof EventHandler);
 
-    return this.#addHandlerFunction(handler.getFunction());
+    return this.#addHandlerFunction(handler);
   }
 
   #convertHandlerFnToString(evtName, handler) {
@@ -396,13 +396,6 @@ class BaseComponent extends WebRenderer {
       throw Error(`Event "${evtName}" is currently being dispatched and cannot be modified`);
     }
 
-    // validate handler
-    const fn = this[handler] || this.getAllHandlerFunctions()[handler];
-    if (typeof fn != 'function') {
-      throw Error(`Unknown event handler "${handler}" added for event "${evtName}"`);
-    }
-
-    // add handler
     const handlers = this.#handlers[evtName] || (this.#handlers[evtName] = {});
     handlers[`${handler}${once ? '_once' : ''}`] = true;
   }
@@ -442,6 +435,9 @@ class BaseComponent extends WebRenderer {
       defaultHandler == null;
     }
 
+    const helpersNamespace = this.getHelpersNamespace();
+    const definedHandlers = this.getAllHandlerFunctions();
+
     // Note: Only dispatch event to server if event is clientOnly as well as defined in getEvents()
 
     const ctx = this.#newEventContext();
@@ -468,11 +464,17 @@ class BaseComponent extends WebRenderer {
         }
 
         let type = 'method';
-        let fn = this[handler];
+        let fn = handler.startsWith(`${helpersNamespace}.`) ?
+          global[helpersNamespace][handler.replace(`${helpersNamespace}.`, '')]
+          : this[handler];
 
-        if ((typeof fn != 'function')) {
+        if (typeof fn != 'function') {
           type = 'handler';
-          fn = this.getAllHandlerFunctions()[handler];
+          fn = definedHandlers[handler];
+
+          if (fn instanceof EventHandler) {
+            fn = fn.getFunction();
+          }
         }
 
         if (typeof fn != 'function') {

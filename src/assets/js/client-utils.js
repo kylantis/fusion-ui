@@ -22,22 +22,35 @@ const internedStringsMetadata = { groupIndexes: {} };
 module.exports = {
   tailArrayIndexSegment, arrayIndexSegment, mapKeySegment,
 
-  toFqPath({ type, isArray, isMap, parent, prop }) {
-    switch (true) {
-      case Number.isInteger(prop) || type == 'array':
-        isArray = true;
-        break;
-
-      case type == 'map':
-        isMap = true;
-        break;
-
-      case prop.startsWith('@'):
-        isArray = isMap = false;
-        break;
+  toFqKey({ isArray, isMap, isDataVariable, prop }) {
+    if (isDataVariable === undefined) {
+      isDataVariable = prop.startsWith('@');
     }
 
-    return `${parent}${isArray ? `[${prop}]` : isMap ? `["${prop}"]` : `${parent.length ? '.' : ''}${prop}`}`;
+    if (isDataVariable) {
+      isArray = isMap = false;
+    }
+
+    return isArray ? `[${prop}]` : isMap ? `["${prop}"]` : prop;
+  },
+
+  toFqPath({ parent, key, type, isArray, isMap, prop }) {
+    
+    if (!key) {
+      switch (true) {
+        case Number.isInteger(prop) || type == 'array':
+          isArray = true;
+          break;
+  
+        case type == 'map':
+          isMap = true;
+          break;
+      }
+  
+      key = clientUtils.toFqKey({ isArray, isMap, prop });
+    }
+
+    return `${parent}${`${(parent.length && !key.startsWith('[')) ? '.' : ''}${key}`}`;
   },
 
   getLastSegment(pathArray) {
@@ -214,8 +227,7 @@ module.exports = {
   },
 
   cloneComponentInputData: (data) => {
-    const { unsafeEval } = AppContext;
-    return unsafeEval(
+    return AppContext.unsafeEval(
       `module.exports=${clientUtils.stringifyComponentData(
         data,
       )}`
@@ -278,8 +290,43 @@ module.exports = {
     );
   },
 
-  getSegments: ({ original }) => {
-    return clientUtils.getSegments0(original, segment)
+  getSegments: ({ original, transform }) => {
+    const parts = [];
+
+    const arr = original.split('');
+
+    const buf = [];
+
+    const flushBuf = (transform) => {
+      if (buf.length) {
+        const p = buf.join('');
+        parts.push(
+          transform ? transform(p) : p
+        );
+        buf.splice(0);
+      }
+    }
+
+    for (let i = 0; i < arr.length; i++) {
+      const char = arr[i];
+
+      switch (char) {
+        case '[':
+          flushBuf();
+          buf.push(char);
+          break;
+        case ']':
+          buf.push(char);
+          flushBuf(transform);
+          break;
+        default:
+          buf.push(char);
+          break;
+      }
+    }
+
+    flushBuf();
+    return parts;
   },
 
   getSegments0: (original, regex) => {
@@ -293,8 +340,7 @@ module.exports = {
     );
 
     return [
-      first,
-      ...segments,
+      first, ...segments,
     ];
   },
 
@@ -461,18 +507,9 @@ module.exports = {
       .map(
         p => clientUtils.getSegments({
           original: p,
+          transform: (p) => p.startsWith(`["$_`) ? `${separator}$_` : '_$'
         })
-          .map((segment) => {
-            switch (true) {
-              case !!segment.match(arrayIndexSegment):
-                return '_$';
-              case !!segment.match(mapKeySegment):
-                return `${separator}$_`;
-              case segment.startsWith('$_'):
-                return '$_';
-              default: return segment;
-            }
-          })
+          .map((segment) => segment.startsWith('$_') ? '$_' : segment)
           .join('')
       ).join(separator);
   },
