@@ -356,7 +356,7 @@ class AppContext {
 
   async load({ data, dynamicBootConfig, runtimeBootConfig }) {
 
-    // await this.#requestNetworkCacheFile(this.#bootConfigs[this.#className] || dynamicBootConfig);
+    await this.#requestNetworkCacheFile(this.#bootConfigs[this.#className] || dynamicBootConfig);
 
     let htmlDepsPromise;
     let alphaListPromise;
@@ -1175,6 +1175,28 @@ class AppContext {
           }
         })
       });
+  }
+
+  async #deflateCompress(data) {
+    const compressionStream = new CompressionStream('deflate');
+    
+    const writer = compressionStream.writable.getWriter();
+    writer.write(data);
+
+    await writer.close();
+
+    return await new Response(compressionStream.readable).arrayBuffer();
+  }
+
+  async #deflateDecompress(data) {
+    const decompressionStream = new DecompressionStream('deflate');
+
+    const writer = decompressionStream.writable.getWriter();
+    writer.write(data);
+
+    await writer.close();
+
+    return await new Response(decompressionStream.readable).arrayBuffer();
   }
 
   static #getMaxUrlLength() {

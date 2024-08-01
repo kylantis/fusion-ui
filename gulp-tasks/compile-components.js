@@ -1,12 +1,10 @@
-/* eslint-disable no-undef */
-/* eslint-disable no-console */
-const pathLib = require('path');
+
 const fs = require('fs');
-
+const pathLib = require('path');
 const { spawn } = require('child_process');
-
 const gulp = require('gulp');
 const through = require('through2');
+const brotli = require('brotli-wasm');
 
 const { processFile } = require('../lib/template-processor');
 const { getAllComponentNames } = require('../lib/utils');
@@ -51,22 +49,23 @@ if (!componentList) {
 }
 
 const srcFolder = 'src/components';
-const distFolder = 'dist/components';
+const destFolder = 'dist/components';
 
 // eslint-disable-next-line func-names
 const gulpTransform = ({ componentList, performPurge } = {}) => {
-  return through.obj(async (vinylFile, _encoding, callback) => {
+  return through.obj(async function (vinylFile, _encoding, callback) {
     const file = vinylFile.clone();
     const dir = pathLib.dirname(file.path);
 
     if (fs.existsSync(pathLib.join(dir, '.skip'))) {
-      return callback(null, file);
+      this.destroy();
+      return callback();
     }
 
     if (performPurge) {
       // prune the list.json file inorder to clear the component cache
 
-      const file = pathLib.join(process.env.PWD, distFolder, 'list.json');
+      const file = pathLib.join(process.env.PWD, destFolder, 'list.json');
       if (fs.existsSync(file)) {
         fs.rmSync(file);
       }
@@ -88,6 +87,23 @@ const gulpTransform = ({ componentList, performPurge } = {}) => {
     callback(fromWatch ? null : error, file);
   });
 };
+
+const brotliTransform = () => through.obj((chunk, enc, cb) => {
+  const vinylFile = chunk.clone();
+
+  const { contents, path } = vinylFile;
+  const _path = path.replace(srcFolder, destFolder);
+
+  const dir = pathLib.dirname(_path);
+  fs.mkdirSync(dir, { recursive: true });
+
+  fs.writeFileSync(
+    `${_path}.br`,
+    brotli.compress(contents)
+  );
+
+  cb(null, vinylFile);
+});
 
 gulp.task('compile-component', async () => {
   const process = require('process');
@@ -113,7 +129,8 @@ gulp.task('compile-component', async () => {
     .pipe(
       gulpTransform({ componentList, performPurge })
     )
-    .pipe(gulp.dest(pathLib.join(distFolder, componentName)))
+    .pipe(brotliTransform())
+    .pipe(gulp.dest(pathLib.join(destFolder, componentName)))
     .on('end', () => {
       process.exit(0);
     });
@@ -173,7 +190,7 @@ gulp.task('compile-components:watch', () => {
       'npm', ['run', 'compile-component', '--silent', '--', '--silent', ...args],
       { stdio: "inherit" }
     );
-    
+
     childProcess.on('exit', () => {
       global.__cwp = false;
     });

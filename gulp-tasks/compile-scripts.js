@@ -1,19 +1,18 @@
+
 const fs = require('fs');
 const pathLib = require('path');
-
 const UglifyJS = require('uglify-js');
 const gulp = require('gulp');
-
 const through = require('through2');
-
+const brotli = require('brotli-wasm');
 
 
 const basePath = 'assets/js';
 
 const srcFolder = `src/${basePath}`;
-const distFolder = `dist/${basePath}`;
+const destFolder = `dist/${basePath}`;
 
-const watchTarget = [`${srcFolder}/**/*.js`, `!${srcFolder}/**/*.min.js`, `!${srcFolder}/data/**`];
+const globPattern = [`${srcFolder}/**/*.js`, `!${srcFolder}/**/*.min.js`, `!${srcFolder}/data/**`];
 
 const removeInternalSegment = () => {
   return through.obj(async (vinylFile, _encoding, callback) => {
@@ -24,7 +23,22 @@ const removeInternalSegment = () => {
   });
 }
 
-const factory = () => through.obj((chunk, enc, cb) => {
+const brotliTransform = () => through.obj((chunk, enc, cb) => {
+  const vinylFile = chunk.clone();
+
+  const { contents, path, basename } = vinylFile;
+  const _path = path.replace(srcFolder, destFolder);
+
+  if (!basename.includes('brotli')) {
+    fs.writeFileSync(
+      `${_path}.br`, brotli.compress(contents)
+    );
+  }
+
+  cb(null, vinylFile);
+});
+
+const minifyTransform = () => through.obj((chunk, enc, cb) => {
 
   const writeFile = (path, contents) => {
     const dir = pathLib.dirname(path);
@@ -55,7 +69,7 @@ const factory = () => through.obj((chunk, enc, cb) => {
         url: `/${basePath}/${minifiedRelative}.map`,
       },
       compress: true,
-      mangle: false,
+      mangle: true,
     });
   if (error) {
     throw Error(error);
@@ -66,10 +80,10 @@ const factory = () => through.obj((chunk, enc, cb) => {
     `${code}\n//# sourceURL=/${basePath}/${minifiedRelative}`
 );
 
-  writeFile(pathLib.join(distFolder, relative), contentString)
+  writeFile(pathLib.join(destFolder, relative), contentString)
 
   writeFile(
-    pathLib.join(distFolder, `${minifiedRelative}.map`),
+    pathLib.join(destFolder, `${minifiedRelative}.map`),
     map,
   )
 
@@ -91,15 +105,16 @@ const addPipes = (path, relativize) => {
 
   return stream
     .pipe(removeInternalSegment())
-    .pipe(factory())
-    .pipe(gulp.dest(distFolder));
+    .pipe(minifyTransform())
+    .pipe(brotliTransform())
+    .pipe(gulp.dest(destFolder));
 };
 
-gulp.task('compile-scripts', () => addPipes(watchTarget));
+gulp.task('compile-scripts', () => addPipes(globPattern));
 
 gulp.task('compile-scripts:watch', () => {
   const watcher = gulp.watch(
-    watchTarget,
+    globPattern,
     { ignoreInitial: true },
   )
 

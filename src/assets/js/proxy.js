@@ -4786,8 +4786,7 @@ class RootProxy {
         this.component.throwError(`Path "${_path}" cannot have "undefined" as it's value`);
       }
 
-      const isEmpty = obj[prop] === null;
-      const nonScalar = !isEmpty && ['Object', 'Array'].includes(obj[prop].constructor.name);
+      const nonScalar = () => obj[prop] !== null && ['Object', 'Array'].includes(obj[prop].constructor.name);
 
       if (!isDataVariable) {
         obj[prop] = this.invokeTransformers(initializers, transformers, _path, _sPath, obj[prop], obj);
@@ -4798,7 +4797,7 @@ class RootProxy {
       }
 
       if (isCollection) {
-        if (nonScalar) {
+        if (nonScalar()) {
           // Inject data variables, if this is a collection of objects
           addDataVariables(
             obj[prop],
@@ -4826,7 +4825,7 @@ class RootProxy {
       const leaf = { path: _path, sPath: _sPath, key: prop, parentObject: obj };
       leafs.push(leaf);
 
-      if (nonScalar) {
+      if (nonScalar()) {
 
         obj[prop] = this.#toCanonicalTree({
           path: _path, sPath: _sPath, segments: _segments,

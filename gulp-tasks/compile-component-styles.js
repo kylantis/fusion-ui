@@ -1,6 +1,5 @@
-/**
- * Gulp stylesheets task file
- */
+
+const fs = require('fs');
 const pathLib = require('path');
 const gulp = require('gulp');
 const sass = require('gulp-sass')(require('sass'));
@@ -9,10 +8,12 @@ const rename = require('gulp-rename');
 const through = require('through2');
 const gulpif = require('gulp-if');
 const streamCombiner = require('stream-combiner2');
-
+const brotli = require('brotli-wasm');
 
 const srcFolder = 'src/components';
-const distFolder = 'dist/components';
+const destFolder = 'dist/components';
+
+const globPattern = `${srcFolder}/**/style.scss`;
 
 const renameComponentAssetId = () => {
   return through.obj(async (vinylFile, _encoding, callback) => {
@@ -25,6 +26,23 @@ const renameComponentAssetId = () => {
     callback(null, file);
   });
 }
+
+const brotliTransform = () => through.obj((chunk, enc, cb) => {
+  const vinylFile = chunk.clone();
+
+  const { contents, path } = vinylFile;
+  const _path = path.replace(srcFolder, destFolder);
+
+  const dir = pathLib.dirname(_path);
+  fs.mkdirSync(dir, { recursive: true });
+
+  fs.writeFileSync(
+    `${_path}.br`,
+    brotli.compress(contents)
+  );
+
+  cb(null, vinylFile);
+});
 
 const addPipes = (path, relativize) => {
   let stream = gulp.src(path);
@@ -59,16 +77,15 @@ const addPipes = (path, relativize) => {
       )
     )
     .pipe(renameComponentAssetId())
-    .pipe(gulp.dest(distFolder))
+    .pipe(brotliTransform())
+    .pipe(gulp.dest(destFolder))
 };
 
-gulp.task('compile-component-syles', () => addPipes([
-  `${srcFolder}/**/*.scss`, `${srcFolder}/**/*.css`,
-]));
+gulp.task('compile-component-styles', () => addPipes(globPattern));
 
-gulp.task('compile-component-syles:watch', () => {
+gulp.task('compile-component-styles:watch', () => {
   const watcher = gulp.watch(
-    `${srcFolder}/**/*.{css,scss}`, { ignoreInitial: true }
+    globPattern, { ignoreInitial: true }
   );
 
   watcher.on('change', (path) => addPipes(path, true));
