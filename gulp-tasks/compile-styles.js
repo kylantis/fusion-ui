@@ -6,14 +6,13 @@ const sass = require('gulp-sass')(require('sass'));
 const sourcemaps = require('gulp-sourcemaps');
 const rename = require('gulp-rename');
 const through = require('through2');
-const brotli = require('brotli-wasm');
-
+const utils = require('../lib/utils');
 const srcFolder = 'src/assets/scss';
 const destFolder = 'dist/assets/styles';
 
 const globPattern = `${srcFolder}/**/*.scss`;
 
-const brotliTransform = () => through.obj((chunk, enc, cb) => {
+const compressTransform = () => through.obj((chunk, enc, cb) => {
   const vinylFile = chunk.clone();
 
   const { contents, path } = vinylFile;
@@ -22,10 +21,10 @@ const brotliTransform = () => through.obj((chunk, enc, cb) => {
   const dir = pathLib.dirname(_path);
   fs.mkdirSync(dir, { recursive: true });
 
-  fs.writeFileSync(
-    `${_path}.br`,
-    brotli.compress(contents)
-  );
+  utils.getCompressedFiles(_path, contents)
+    .forEach(([p, c]) => {
+      fs.writeFileSync(p, c)
+    });
 
   cb(null, vinylFile);
 });
@@ -53,7 +52,7 @@ const addPipes = (path, relativize) => {
     ).on('error', sass.logError))
     .pipe(sourcemaps.write())
     .pipe(rename({ suffix: '.min' }))
-    .pipe(brotliTransform())
+    .pipe(compressTransform())
     .pipe(gulp.dest(destFolder));
 };
 

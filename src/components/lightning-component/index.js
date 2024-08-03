@@ -230,16 +230,6 @@ class LightningComponent extends BaseComponent {
         return this.getTooltipTarget();
     }
 
-    getLoader() {
-        return `
-            <div style='position: absolute; display: table; width: 100%; height: 100%;'>
-              <div style='vertical-align: middle; display: table-cell;'>
-                <img width='20px' src='/assets/images/loader.gif' style='display: block; margin-left: auto; margin-right: auto;'>
-              </div>
-            </div>
-        `;
-    }
-
     isMobile() {
         return navigator.userAgent.match(/Android/i)
             || navigator.userAgent.match(/webOS/i)

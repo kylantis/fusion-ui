@@ -3,14 +3,14 @@ const fs = require('fs');
 const pathLib = require('path');
 const gulp = require('gulp');
 const through = require('through2');
-const brotli = require('brotli-wasm');
+const utils = require('../lib/utils');
 
 const srcFolder = 'src/components';
 const destFolder = 'dist/components';
 
 const srcFile = `${srcFolder}/enums.json`;
 
-const brotliTransform = () => through.obj((chunk, enc, cb) => {
+const compressTransform = () => through.obj((chunk, enc, cb) => {
   const vinylFile = chunk.clone();
 
   const { contents, path } = vinylFile;
@@ -19,16 +19,16 @@ const brotliTransform = () => through.obj((chunk, enc, cb) => {
   const dir = pathLib.dirname(_path);
   fs.mkdirSync(dir, { recursive: true });
 
-  fs.writeFileSync(
-    `${_path}.br`,
-    brotli.compress(contents)
-  );
+  utils.getCompressedFiles(_path, contents)
+    .forEach(([p, c]) => {
+      fs.writeFileSync(p, c)
+    });
 
   cb(null, vinylFile);
 });
 
 const fn = () => gulp.src([srcFile])
-  .pipe(brotliTransform())
+  .pipe(compressTransform())
   .pipe(gulp.dest(destFolder));
 
 gulp.task('copy-enums', fn);

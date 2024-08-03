@@ -215,6 +215,12 @@ class BaseComponent extends WebRenderer {
 
         const load0 = async () => {
 
+          if (!this.isRootComponent()) {
+            await new Promise(resolve => {
+              setTimeout(resolve, 0);
+            });
+          }
+
           if (isComponent) {
             const ret = await data.getRenderedHtml();
 
@@ -250,10 +256,8 @@ class BaseComponent extends WebRenderer {
           load0();
 
         } else {
-          this.on('load', ({ futures }) => {
-            // futures.push(
+          this.on('load', () => {
             load0()
-            // );
           });
         }
       });

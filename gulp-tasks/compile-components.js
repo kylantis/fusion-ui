@@ -4,10 +4,9 @@ const pathLib = require('path');
 const { spawn } = require('child_process');
 const gulp = require('gulp');
 const through = require('through2');
-const brotli = require('brotli-wasm');
+const utils = require('../lib/utils');
 
 const { processFile } = require('../lib/template-processor');
-const { getAllComponentNames } = require('../lib/utils');
 
 const componentNameArgPrefix = '--component=';
 const segmentArg = '--segment';
@@ -28,7 +27,7 @@ const processNodeArgs = () => {
         componentName = arg.replace(componentNameArgPrefix, '');
         break;
       case arg == segmentArg:
-        componentList = getAllComponentNames();
+        componentList = utils.getAllComponentNames();
         break;
       case arg == performPurgeArg:
         performPurge = true;
@@ -45,7 +44,7 @@ const processNodeArgs = () => {
 processNodeArgs();
 
 if (!componentList) {
-  componentList = componentName ? [componentName] : getAllComponentNames();
+  componentList = componentName ? [componentName] : utils.getAllComponentNames();
 }
 
 const srcFolder = 'src/components';
@@ -88,7 +87,7 @@ const gulpTransform = ({ componentList, performPurge } = {}) => {
   });
 };
 
-const brotliTransform = () => through.obj((chunk, enc, cb) => {
+const compressTransform = () => through.obj((chunk, enc, cb) => {
   const vinylFile = chunk.clone();
 
   const { contents, path } = vinylFile;
@@ -97,10 +96,10 @@ const brotliTransform = () => through.obj((chunk, enc, cb) => {
   const dir = pathLib.dirname(_path);
   fs.mkdirSync(dir, { recursive: true });
 
-  fs.writeFileSync(
-    `${_path}.br`,
-    brotli.compress(contents)
-  );
+  utils.getCompressedFiles(_path, contents)
+    .forEach(([p, c]) => {
+      fs.writeFileSync(p, c)
+    });
 
   cb(null, vinylFile);
 });
@@ -129,7 +128,7 @@ gulp.task('compile-component', async () => {
     .pipe(
       gulpTransform({ componentList, performPurge })
     )
-    .pipe(brotliTransform())
+    .pipe(compressTransform())
     .pipe(gulp.dest(pathLib.join(destFolder, componentName)))
     .on('end', () => {
       process.exit(0);

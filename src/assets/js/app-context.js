@@ -300,65 +300,132 @@ class AppContext {
     return Object.keys(classNames);
   }
 
-  async #loadBrotliLibrary() {
-    await this.fetch({ url: '/assets/js/lib/brotli-wasm.min.js', namespace: 'brotli' });
+  static getNetworkCacheFiles(assetId, bootConfig, componentList, testMode) {
+    const { jsDependencies, renderTree } = bootConfig;
 
-    const { init, compress, decompress } = self.brotli;
+    const toURL = (dep) => (typeof dep == 'object') ? dep.url : dep;
 
-    await init('/assets/js/data/brotli_wasm_bg.wasm');
-
-    const textEncoder = new TextEncoder();
-    const textDecoder = new TextDecoder();
-
-    const input = 'some input';
-
-    const uncompressedData = textEncoder.encode(input);
-    const compressedData = compress(uncompressedData);
-    const decompressedData = decompress(compressedData);
-
-    console.log(textDecoder.decode(decompressedData)); // Prints 'some input'
-  }
-
-  async #requestNetworkCacheFile(bootConfig) {
-    if (!bootConfig) return;
-
-    await this.#loadBrotliLibrary();
-
-    this.#networkCache = new Map();
-
-    const { jsDependencies, } = bootConfig;
-
-    const delimeter = ';';
-
-    const fileList = [
-      `/components/${this.#assetId}/samples.js`,
-      ...this.#getBaseDependencies(),
+    let fileList = [
+      ...testMode ? [`/components/${assetId}/samples.js`] : [],
+      ...this.#getBaseDependencies().map(toURL),
       '/components/enums.json',
-      ...this.#getDependencies(),
-      `/components/${this.#assetId}/samples.js`,
+      ...this.#getDependencies().map(toURL),
       ...jsDependencies,
-      ...Object.values(this.#componentList).map(assetId => `/components/${assetId}/boot-config.json`),
-
-      // Todo: add classes
-
+      ...Object.values(componentList)
+        .filter(_assetId => _assetId != assetId)
+        .map(assetId => `/components/${assetId}/boot-config.json`),
     ];
 
-    // fileList.forEach(name => {
-    //   assert(!name.includes(delimeter));
-    // });
+    [assetId, ...Object.keys(renderTree)].forEach(assetId => {
+      fileList = fileList.concat(
+        Object.values(
+          this.#getComponentAssetURLs(assetId)
+        )
+      );
+    });
 
-    const url = fileList.join(delimeter);
-
-
-
+    return fileList;
   }
 
+  async #requestNetworkCacheFile(bootConfig, dynamic) {
+
+    const fileList = AppContext.getNetworkCacheFiles(
+      this.#assetId, bootConfig, this.#componentList, this.testMode,
+    );
+
+    const numFiles = fileList.length;
+
+    const opts = {
+      assetId: this.#assetId,
+      bootConfig: dynamic ? bootConfig : undefined,
+      numFiles,
+    };
+
+    const _opts = LZString.compressToEncodedURIComponent(JSON.stringify(opts));
+
+    const url = `/web/components/request-network-cache-file?_opts=${_opts}`;
+
+    if (url.length > AppContext.#getMaxUrlLength()) return;
+
+    const response = await self.fetch(
+      url, { method: 'GET', priority: 'high' }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Unable to fetch network cache file: ${response.statusText}`);
+    }
+
+    const fileIndices = response.headers.get('File-Indices').split(',').map(Number);
+    const buffer = await response.arrayBuffer();
+    this.#networkCache = new Map();
+    
+    for (let i = 0; i < fileList.length; i++) {
+      let start = (i == 0) ? 0 : fileIndices[i - 1];
+      let end = fileIndices[i];
+
+      this.#networkCache.set(
+        fileList[i], this.#decompressArrayBuf(
+          buffer.slice(start, end)
+        ).then(buf => new TextDecoder('utf-8').decode(buf))
+      );
+    }
+  }
+
+  getNetworkCache() {
+    return this.#networkCache;
+  }
+
+  async #decompressArrayBuf(inputBuf) {
+    const decompressionStream = new DecompressionStream('deflate');
+
+    const compressedStream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new Uint8Array(inputBuf));
+        controller.close();
+      }
+    });
+
+    const decompressedStream = compressedStream.pipeThrough(decompressionStream);
+    return await this.#streamToArrayBuffer(decompressedStream);
+  }
+
+  async #streamToArrayBuffer(stream) {
+    const reader = stream.getReader();
+    const chunks = [];
+    let result;
+
+    while (!(result = await reader.read()).done) {
+      chunks.push(result.value);
+    }
+
+    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.byteLength, 0);
+    const arrayBuffer = new Uint8Array(totalLength);
+
+    let position = 0;
+    for (const chunk of chunks) {
+      arrayBuffer.set(new Uint8Array(chunk), position);
+      position += chunk.byteLength;
+    }
+
+    return arrayBuffer.buffer;
+  }
 
   async load({ data, dynamicBootConfig, runtimeBootConfig }) {
+    dynamicBootConfig = dynamicBootConfig == true;
 
-    await this.#requestNetworkCacheFile(this.#bootConfigs[this.#className] || dynamicBootConfig);
-
+    const aotBootConfig = dynamicBootConfig ? this.testMode ? null : runtimeBootConfig : this.#bootConfigs[this.#className];
     let htmlDepsPromise;
+
+    if (aotBootConfig) {
+      const { cssDependencies } = aotBootConfig;
+
+      const cacheFilePromise = this.#requestNetworkCacheFile(aotBootConfig, dynamicBootConfig);
+
+      htmlDepsPromise = this.#loadCssAndJsDependencies({ cssDependencies })
+
+      await cacheFilePromise;
+    }
+
     let alphaListPromise;
     let alphaBootConfigsPromise;
 
@@ -373,12 +440,14 @@ class AppContext {
     const sessionSocketPromise = this.#setupSessionSocket();
 
 
-    const loadBootConfig = (bootConfig) => {
-      htmlDepsPromise = this.#loadCssAndJsDependencies(bootConfig);
+    if (aotBootConfig) {
+      const { jsDependencies, renderTree } = aotBootConfig;
+
+      htmlDepsPromise = Promise.all([htmlDepsPromise, this.#loadCssAndJsDependencies({ jsDependencies })]);
       alphaListPromise = Promise.resolve();
 
       alphaBootConfigsPromise = Promise.all(
-        Object.entries(bootConfig.renderTree)
+        Object.entries(renderTree)
           .map(([assetId, className]) => {
             this.#alphaList[className] = assetId;
             return this.#addBootConfig(assetId, className)
@@ -386,94 +455,85 @@ class AppContext {
       );
 
       this.#alphaList[this.#className] = this.#assetId;
-    }
 
-    if (dynamicBootConfig) {
-      if (this.testMode) {
-
-        let htmlDepsResolve;
-        let alphaListResolve;
-        let alphaBootConfigsResolve;
-
-        htmlDepsPromise = new Promise(resolve => htmlDepsResolve = resolve);
-        alphaListPromise = new Promise(resolve => alphaListResolve = resolve);
-        alphaBootConfigsPromise = new Promise(resolve => alphaBootConfigsResolve = resolve);
-
-        samplesStringPromise.then(sampleString => {
-
-          const classNames = [...new Set([
-            ...this.#findAllComponentClassesInSampleString(sampleString),
-            ...[...this.#parents].reverse(),
-          ])];
-
-          const htmlDepsPromises = [];
-
-          let cssDeps = {};
-          let jsDeps = {};
-
-          Promise.all(
-            classNames.map(async className => {
-              if (className == this.#className) return;
-
-              const assetId = this.#componentList[className];
-              const bootConfig = await this.#addBootConfig(assetId, className);
-
-              const _bootConfigPromises = [];
-
-              Object.entries(bootConfig.renderTree)
-                .forEach(([assetId, className]) => {
-                  this.#alphaList[className] = assetId;
-
-                  _bootConfigPromises.push(
-                    this.#addBootConfig(assetId, className)
-                  )
-                });
-
-              const cssDependencies = bootConfig.cssDependencies
-                .filter(({ url }) => !cssDeps[url])
-                .map(dep => {
-                  cssDeps[dep.url] = true;
-                  return dep;
-                });
-
-              const jsDependencies = bootConfig.jsDependencies
-                .filter(({ url }) => !jsDeps[url])
-                .map(dep => {
-                  jsDeps[dep.url] = true;
-                  return dep;
-                });
-
-              htmlDepsPromises.push(
-                this.#loadCssAndJsDependencies({ cssDependencies, jsDependencies })
-              );
-
-              await Promise.all(_bootConfigPromises);
-            })
-          )
-            .then(() => {
-              classNames.forEach(className => {
-                const assetId = this.#componentList[className];
-                this.#alphaList[className] = assetId;
-              });
-              this.#alphaList[this.#className] = this.#assetId;
-
-              alphaListResolve();
-              alphaBootConfigsResolve();
-
-              Promise.all(htmlDepsPromises).then(() => {
-                htmlDepsResolve();
-              });
-            });
-        })
-
-      } else {
-        loadBootConfig(runtimeBootConfig)
-      }
     } else {
-      loadBootConfig(
-        this.#bootConfigs[this.#className]
-      )
+
+      let htmlDepsResolve;
+      let alphaListResolve;
+      let alphaBootConfigsResolve;
+
+      htmlDepsPromise = new Promise(resolve => htmlDepsResolve = resolve);
+      alphaListPromise = new Promise(resolve => alphaListResolve = resolve);
+      alphaBootConfigsPromise = new Promise(resolve => alphaBootConfigsResolve = resolve);
+
+      samplesStringPromise.then(sampleString => {
+
+        const classNames = [...new Set([
+          ...this.#findAllComponentClassesInSampleString(sampleString),
+          ...[...this.#parents].reverse(),
+        ])];
+
+        const htmlDepsPromises = [];
+
+        let cssDeps = {};
+        let jsDeps = {};
+
+        Promise.all(
+          classNames.map(async className => {
+            if (className == this.#className) return;
+
+            const assetId = this.#componentList[className];
+            const bootConfig = await this.#addBootConfig(assetId, className);
+
+            const _bootConfigPromises = [];
+
+            Object.entries(bootConfig.renderTree)
+              .forEach(([assetId, className]) => {
+                this.#alphaList[className] = assetId;
+
+                _bootConfigPromises.push(
+                  this.#addBootConfig(assetId, className)
+                )
+              });
+
+            const cssDependencies = bootConfig.cssDependencies
+              .filter(({ url }) => !cssDeps[url])
+              .map(dep => {
+                cssDeps[dep.url] = true;
+                return dep;
+              });
+
+            const jsDependencies = bootConfig.jsDependencies
+              .filter(({ url }) => !jsDeps[url])
+              .map(dep => {
+                jsDeps[dep.url] = true;
+                return dep;
+              });
+
+            htmlDepsPromises.push(
+              this.#loadCssAndJsDependencies({ cssDependencies, jsDependencies })
+            );
+
+            await Promise.all(_bootConfigPromises);
+          })
+        )
+          .then(() => {
+            classNames.forEach(className => {
+              const assetId = this.#componentList[className];
+              this.#alphaList[className] = assetId;
+            });
+            this.#alphaList[this.#className] = this.#assetId;
+
+            alphaListResolve();
+            alphaBootConfigsResolve();
+
+            Promise.all(htmlDepsPromises).then(() => {
+              htmlDepsResolve();
+            });
+          });
+      });
     }
+
 
     const omegaBootConfigsPromise = alphaListPromise
       .then(() => Promise.all(
@@ -564,39 +624,43 @@ class AppContext {
     this.#indexedDbReady = true;
   }
 
+  static #getComponentAssetURLs(assetId) {
+    return {
+      schemaURL: `/components/${assetId}/schema.json`,
+      metadataURL: `/components/${assetId}/metadata.min.js`,
+      jsURL: `/components/${assetId}/index.min.js`,
+      testJsURL: `/components/${assetId}/index.test.min.js`
+    }
+  }
+
   async #loadComponentClasses(list, preLoadPromise) {
 
     Object.entries(list)
       .forEach(async ([className, assetId]) => {
         const metadataMap = this.getComponentClassMetadataMap()[className] = {};
 
-        this.fetch({
-          url: `/components/${assetId}/schema.json`,
-          asJson: true,
-        }).then(schema => {
+        const { schemaURL, metadataURL } = AppContext.#getComponentAssetURLs(assetId);
+
+        this.fetch({ url: schemaURL, asJson: true }).then(schema => {
           metadataMap.schema = schema;
         });
 
-        this.fetch({
-          url: `/components/${assetId}/metadata.min.js`,
-        }).then(metadata => {
+        this.fetch({ url: metadataURL }).then(metadata => {
           metadataMap.metadata = metadata;
         });
       });
 
     return Promise.all(
       Object.entries(list)
-        .map(async ([className, assetId]) => ([
-          className,
-          await this.fetch({
-            url: `/components/${assetId}/index.min.js`,
-            process: false,
-          }),
-          this.testMode ? await this.fetch({
-            url: `/components/${assetId}/index.test.min.js`,
-            process: false,
-          }) : null,
-        ]))
+        .map(async ([className, assetId]) => {
+          const { jsURL, testJsURL } = AppContext.#getComponentAssetURLs(assetId);
+
+          return [
+            className,
+            await this.fetch({ url: jsURL, process: false }),
+            this.testMode ? await this.fetch({ url: testJsURL, process: false, }) : null,
+          ]
+        })
     )
       .then(async componentsData => {
         await preLoadPromise;
@@ -708,7 +772,7 @@ class AppContext {
   }
 
   #loadCssAndJsDependencies(bootConfig) {
-    const { cssDependencies, jsDependencies } = bootConfig;
+    const { cssDependencies = [], jsDependencies = [] } = bootConfig;
 
     return Promise.all([
       this.loadCSSDependencies(cssDependencies),
@@ -934,7 +998,7 @@ class AppContext {
     }
   }
 
-  #getDependencies() {
+  static #getDependencies() {
     return [
       '/assets/js/lib/event_handler.min.js',
       '/assets/js/lib/trie.min.js',
@@ -946,7 +1010,7 @@ class AppContext {
     ];
   }
 
-  #getBaseDependencies() {
+  static #getBaseDependencies() {
     return [
       '/assets/js/lib/database.min.js',
       { url: '/assets/js/lib/lokijs.min.js', namespace: 'Loki' },
@@ -963,12 +1027,12 @@ class AppContext {
 
   #loadDependencies() {
     return Promise.all(
-      this.#getDependencies().map(dep => this.fetch(dep))
+      AppContext.#getDependencies().map(dep => this.fetch(dep))
     );
   }
 
   #loadBaseDependencies() {
-    return this.fetchAll(this.#getBaseDependencies());
+    return this.fetchAll(AppContext.#getBaseDependencies());
   }
 
   #loadEnums() {
@@ -1033,6 +1097,8 @@ class AppContext {
     this.#rootComponent = component;
 
     component.on('loadClasses', ({ futures }) => {
+    this.#networkCache = null;
+
       futures.push(
         this.#loadComponentClasses(this.#omegaList)
       );
@@ -1070,7 +1136,21 @@ class AppContext {
     const fetchFn = async ({ url, asJson }) => {
       const resourceType = asJson ? 'json' : 'text';
 
-      const data = await self.fetch(url, { method: 'GET' });
+      let data;
+
+      if (this.#networkCache) {
+        const resp = await this.#networkCache.get(url)
+
+        assert(resp !== undefined);
+
+        data = {
+          ok: true,
+          text: () => resp,
+          json: () => JSON.parse(resp)
+        }
+      } else {
+        data = await self.fetch(url, { method: 'GET' });
+      }
 
       if (data.ok) {
         return await data[resourceType]();
@@ -1175,28 +1255,6 @@ class AppContext {
           }
         })
       });
-  }
-
-  async #deflateCompress(data) {
-    const compressionStream = new CompressionStream('deflate');
-    
-    const writer = compressionStream.writable.getWriter();
-    writer.write(data);
-
-    await writer.close();
-
-    return await new Response(compressionStream.readable).arrayBuffer();
-  }
-
-  async #deflateDecompress(data) {
-    const decompressionStream = new DecompressionStream('deflate');
-
-    const writer = decompressionStream.writable.getWriter();
-    writer.write(data);
-
-    await writer.close();
-
-    return await new Response(decompressionStream.readable).arrayBuffer();
   }
 
   static #getMaxUrlLength() {

@@ -2680,8 +2680,15 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   #createHook(path, hook) {
-    const { hooks } = this.getEmitContext();
-    hooks.push([path, hook]);
+    if (this.hasEmitContext()) {
+      const { hooks } = this.getEmitContext();
+      hooks.push([path, hook]);
+    } else {
+
+
+      // Add immediately
+
+    }
   }
 
   getPathValue({ path, includePath = false, indexResolver }) {

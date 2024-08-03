@@ -3,7 +3,7 @@ const fs = require('fs');
 const pathLib = require('path');
 const gulp = require('gulp');
 const { build } = require('esbuild');
-const brotli = require('brotli-wasm');
+const utils = require('../lib/utils');
 
 gulp.task('generate-client-bundles', async () => {
 
@@ -31,7 +31,11 @@ gulp.task('generate-client-bundles', async () => {
     }
 
     fs.writeFileSync(path, contents);
-    fs.writeFileSync(`${path}.br`, brotli.compress(contents));
+
+    utils.getCompressedFiles(path, contents)
+      .forEach(([p, c]) => {
+        fs.writeFileSync(p, c)
+      });
   });
 
 });
