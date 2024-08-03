@@ -24,7 +24,6 @@ class AppContext {
 
   #assetId;
   #className;
-  #parents;
   #rootComponent;
   #componentList;
 
@@ -45,14 +44,13 @@ class AppContext {
   #indexedDbReady = false;
   #networkCache;
 
-  constructor({ logger, userGlobals, assetId, className, parents, bootConfig, componentList }) {
+  constructor({ logger, userGlobals, assetId, className, bootConfig, componentList }) {
 
     this.#logger = logger;
     this.#userGlobals = (userGlobals == '{{userGlobals}}') ? {} : userGlobals;
 
     this.#assetId = assetId;
     this.#className = className;
-    this.#parents = parents;
 
     this.#bootConfigs[className] = bootConfig;
     this.#componentList = this.#parseComponentList(componentList);
@@ -327,7 +325,7 @@ class AppContext {
     return fileList;
   }
 
-  async #requestNetworkCacheFile(bootConfig, dynamic) {
+  async #requestNetworkCacheFile(bootConfig, runtime) {
 
     const fileList = AppContext.getNetworkCacheFiles(
       this.#assetId, bootConfig, this.#componentList, this.testMode,
@@ -337,7 +335,7 @@ class AppContext {
 
     const opts = {
       assetId: this.#assetId,
-      bootConfig: dynamic ? bootConfig : undefined,
+      bootConfig: runtime ? bootConfig : undefined,
       numFiles,
     };
 
@@ -358,7 +356,7 @@ class AppContext {
     const fileIndices = response.headers.get('File-Indices').split(',').map(Number);
     const buffer = await response.arrayBuffer();
     this.#networkCache = new Map();
-    
+
     for (let i = 0; i < fileList.length; i++) {
       let start = (i == 0) ? 0 : fileIndices[i - 1];
       let end = fileIndices[i];
@@ -369,10 +367,6 @@ class AppContext {
         ).then(buf => new TextDecoder('utf-8').decode(buf))
       );
     }
-  }
-
-  getNetworkCache() {
-    return this.#networkCache;
   }
 
   async #decompressArrayBuf(inputBuf) {
@@ -410,21 +404,18 @@ class AppContext {
     return arrayBuffer.buffer;
   }
 
-  async load({ data, dynamicBootConfig, runtimeBootConfig }) {
-    dynamicBootConfig = dynamicBootConfig == true;
+  async load({ data, hasDynamicBootConfig, runtimeBootConfig }) {
+    runtimeBootConfig = (runtimeBootConfig == '{{runtimeBootConfig}}') ? null : runtimeBootConfig;
 
-    const aotBootConfig = dynamicBootConfig ? this.testMode ? null : runtimeBootConfig : this.#bootConfigs[this.#className];
-    let htmlDepsPromise;
+    const rootBootConfig = runtimeBootConfig || this.#bootConfigs[this.#className];
 
-    if (aotBootConfig) {
-      const { cssDependencies } = aotBootConfig;
+    const cacheFilePromise = this.#requestNetworkCacheFile(
+      rootBootConfig, !!runtimeBootConfig
+    );
 
-      const cacheFilePromise = this.#requestNetworkCacheFile(aotBootConfig, dynamicBootConfig);
+    let htmlDepsPromise = this.loadCSSDependencies(rootBootConfig.cssDependencies)
 
-      htmlDepsPromise = this.#loadCssAndJsDependencies({ cssDependencies })
-
-      await cacheFilePromise;
-    }
+    await cacheFilePromise;
 
     let alphaListPromise;
     let alphaBootConfigsPromise;
@@ -440,10 +431,10 @@ class AppContext {
     const sessionSocketPromise = this.#setupSessionSocket();
 
 
-    if (aotBootConfig) {
-      const { jsDependencies, renderTree } = aotBootConfig;
+    if (runtimeBootConfig || !hasDynamicBootConfig) {
+      const { jsDependencies, renderTree } = rootBootConfig;
 
-      htmlDepsPromise = Promise.all([htmlDepsPromise, this.#loadCssAndJsDependencies({ jsDependencies })]);
+      htmlDepsPromise = Promise.all([htmlDepsPromise, this.loadJSDependencies(jsDependencies)]);
       alphaListPromise = Promise.resolve();
 
       alphaBootConfigsPromise = Promise.all(
@@ -462,21 +453,23 @@ class AppContext {
       let alphaListResolve;
       let alphaBootConfigsResolve;
 
-      htmlDepsPromise = new Promise(resolve => htmlDepsResolve = resolve);
+      htmlDepsPromise = Promise.all([
+        htmlDepsPromise,
+        new Promise(resolve => htmlDepsResolve = resolve),
+      ]);
       alphaListPromise = new Promise(resolve => alphaListResolve = resolve);
       alphaBootConfigsPromise = new Promise(resolve => alphaBootConfigsResolve = resolve);
 
       samplesStringPromise.then(sampleString => {
 
-        const classNames = [...new Set([
+        const classNames = [
+          ...new Set([
           ...this.#findAllComponentClassesInSampleString(sampleString),
-          ...[...this.#parents].reverse(),
-        ])];
+          ...Object.values(rootBootConfig.renderTree),
+        ])
+      ];
 
         const htmlDepsPromises = [];
-
-        let cssDeps = {};
-        let jsDeps = {};
 
         Promise.all(
           classNames.map(async className => {
@@ -496,22 +489,13 @@ class AppContext {
                 )
               });
 
-            const cssDependencies = bootConfig.cssDependencies
-              .filter(({ url }) => !cssDeps[url])
-              .map(dep => {
-                cssDeps[dep.url] = true;
-                return dep;
-              });
-
-            const jsDependencies = bootConfig.jsDependencies
-              .filter(({ url }) => !jsDeps[url])
-              .map(dep => {
-                jsDeps[dep.url] = true;
-                return dep;
-              });
+            const { cssDependencies, jsDependencies } = bootConfig;
 
             htmlDepsPromises.push(
-              this.#loadCssAndJsDependencies({ cssDependencies, jsDependencies })
+              Promise.all([
+                this.loadCSSDependencies(cssDependencies),
+                this.loadJSDependencies(jsDependencies)
+              ])
             );
 
             await Promise.all(_bootConfigPromises);
@@ -589,6 +573,7 @@ class AppContext {
     this.#finalizers = null;
     this.#bootConfigs = null;
     this.#refMetadata = null;
+    this.#networkCache = null;
 
     setTimeout(
       async () => {
@@ -769,15 +754,6 @@ class AppContext {
 
     this.#refMetadata = { refCount, tree };
     return this.#refMetadata;
-  }
-
-  #loadCssAndJsDependencies(bootConfig) {
-    const { cssDependencies = [], jsDependencies = [] } = bootConfig;
-
-    return Promise.all([
-      this.loadCSSDependencies(cssDependencies),
-      this.loadJSDependencies(jsDependencies)
-    ]);
   }
 
   #fetchBootConfig(assetId) {
@@ -1096,14 +1072,6 @@ class AppContext {
     this.#loaded = true;
     this.#rootComponent = component;
 
-    component.on('loadClasses', ({ futures }) => {
-    this.#networkCache = null;
-
-      futures.push(
-        this.#loadComponentClasses(this.#omegaList)
-      );
-    });
-
     return component.load({ container: `#${container.id}` });
   }
 
@@ -1139,16 +1107,18 @@ class AppContext {
       let data;
 
       if (this.#networkCache) {
-        const resp = await this.#networkCache.get(url)
+        const resp = await this.#networkCache.get(url);
 
-        assert(resp !== undefined);
-
-        data = {
-          ok: true,
-          text: () => resp,
-          json: () => JSON.parse(resp)
+        if (resp) {
+          data = {
+            ok: true,
+            text: () => resp,
+            json: () => JSON.parse(resp)
+          }
         }
-      } else {
+      }
+
+      if (!data) {
         data = await self.fetch(url, { method: 'GET' });
       }
 
@@ -1195,16 +1165,14 @@ class AppContext {
     return new Promise((resolve, reject) => {
       const loaded = [];
 
-      let styles = [
+      const styles = [
         ...new Set(
           requests
+            .filter(({ url }) => !this.#loadedStyles.includes(url))
             .filter(({ screenTargets }) => !screenTargets || screenTargets.includes(AppContext.#getScreenSize()))
             .map(({ url }) => url)
         )
       ];
-      // Filter styles that have previously loaded
-      styles = styles
-        .filter(url => !this.#loadedStyles.includes(url));
 
       if (!styles.length) {
         return resolve([]);
@@ -1244,17 +1212,16 @@ class AppContext {
       }
       return req;
     })
-      .filter(({ screenTargets }) => !screenTargets || screenTargets.includes(AppContext.#getScreenSize()))
       .filter(({ url }) => !this.#loadedScripts.includes(url))
+      .filter(({ screenTargets }) => !screenTargets || screenTargets.includes(AppContext.#getScreenSize()))
 
-    return this.fetchAll(dependencies)
-      .then(() => {
-        dependencies.forEach(({ url }) => {
-          if (!this.#loadedScripts.includes(url)) {
-            this.#loadedScripts.push(url);
-          }
-        })
-      });
+    dependencies.forEach(({ url }) => {
+      if (!this.#loadedScripts.includes(url)) {
+        this.#loadedScripts.push(url);
+      }
+    });
+
+    return this.fetchAll(dependencies);
   }
 
   static #getMaxUrlLength() {

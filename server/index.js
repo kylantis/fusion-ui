@@ -62,6 +62,8 @@ const serveStaticFile = (req, res, next) => {
 };
 
 const requestNetworkCacheFile = async (req, res) => {
+  res.setHeader('Cache-Control', `public, max-age=${604800}`); // 1 Week
+  
   const _opts = req.query().replace('_opts=', '');
 
   const { assetId, numFiles } = JSON.parse(LZString.decompressFromEncodedURIComponent(_opts))

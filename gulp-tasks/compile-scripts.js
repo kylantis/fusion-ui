@@ -14,14 +14,6 @@ const destFolder = `dist/${basePath}`;
 
 const globPattern = [`${srcFolder}/**/*.js`, `!${srcFolder}/**/*.min.js`, `!${srcFolder}/data/**`];
 
-const removeInternalSegment = () => {
-  return through.obj(async (vinylFile, _encoding, callback) => {
-    const file = vinylFile.clone();
-
-    file.path = file.path.replace('/__internal', '');
-    callback(null, file);
-  });
-}
 
 const compressTransform = () => through.obj((chunk, enc, cb) => {
   const vinylFile = chunk.clone();
@@ -112,7 +104,6 @@ const addPipes = (path, relativize) => {
   }
 
   return stream
-    .pipe(removeInternalSegment())
     .pipe(minifyTransform())
     .pipe(compressTransform())
     .pipe(gulp.dest(destFolder));

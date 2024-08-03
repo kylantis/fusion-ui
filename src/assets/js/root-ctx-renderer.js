@@ -941,22 +941,8 @@ class RootCtxRenderer extends BaseRenderer {
       return new Promise(resolve => {
         setTimeout(() => {
           resolve();
-        }, 300);
+        }, 350);
       });
-    }
-
-    if (this == rootComponent) {
-      // Since "omega" classes are loaded on 'loadClasses' by appContext, delay by 
-      // a bit inorder to reduce time-to-LCP
-
-      await wait();
-
-      this.dispatchEvent('loadClasses', renderContext);
-
-      await Promise.all(futures);
-      futures.splice(0);
-
-      this.dispatchEvent('afterClassesLoaded', renderContext);
     }
 
     const afterDomLoaded = () => {
@@ -978,17 +964,17 @@ class RootCtxRenderer extends BaseRenderer {
     if (this != rootComponent) {
 
       if (!rootComponent.isMounted()) {
-        rootComponent.on('afterClassesLoaded', () => {
+        rootComponent.on('domLoaded', () => {
           afterDomLoaded();
         });
 
       } else {
         await wait();
-
         afterDomLoaded();
       }
 
     } else {
+      await wait();
       afterDomLoaded();
     }
 
@@ -1048,8 +1034,7 @@ class RootCtxRenderer extends BaseRenderer {
    */
   isLifecycleEvent(evtName) {
     const evtNames = [
-      'beforeRender', 'beforeMount', 'onMount', 'load',
-      'loadClasses', 'afterClassesLoaded', 'afterMount', 'render',
+      'beforeRender', 'beforeMount', 'onMount', 'load', 'afterMount', 'render',
       'attributeBindContext', 'domLoaded',
     ];
 
@@ -1196,13 +1181,17 @@ class RootCtxRenderer extends BaseRenderer {
    * @param {Function} fn 
    */
   onContextFinalization(fn) {
-    this.once('domLoaded', () => {
-      if (global.requestIdleCallback) {
-        requestIdleCallback(fn);
-      } else {
-        fn();
-      }
-    });
+    if (!this.#mounted) {
+      this.once('domLoaded', () => {
+        if (global.requestIdleCallback) {
+          requestIdleCallback(fn);
+        } else {
+          fn();
+        }
+      });
+    } else {
+      fn();
+    }
   }
 
   wrapTransform(transform) {
@@ -2680,15 +2669,8 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   #createHook(path, hook) {
-    if (this.hasEmitContext()) {
-      const { hooks } = this.getEmitContext();
-      hooks.push([path, hook]);
-    } else {
-
-
-      // Add immediately
-
-    }
+    const { hooks } = this.getEmitContext();
+    hooks.push([path, hook]);
   }
 
   getPathValue({ path, includePath = false, indexResolver }) {
