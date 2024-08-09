@@ -68,10 +68,16 @@ class K_Trie {
   getReverseWord(node) {
     const arr = [];
     let n = node;
+    let v;
 
-    while (n.getValue()) {
-      arr.unshift(n.getValue());
-      n = n.getParent();
+    while (v = n.getValue()) {
+      const _p = n.getParent();
+
+      arr.unshift(
+        ((_p != this.getRoot() && !v.startsWith('[')) ? '.' : ''),
+        v
+      );
+      n = _p;
     }
 
     return arr.join('');

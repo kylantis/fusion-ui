@@ -181,5 +181,12 @@ class BaseRenderer {
     const idx = classMetadata.instanceIndex += 1;
     return `${name}_${idx}`;
   }
+
+  getInstanceIndex() {
+    const name = this.getComponentName();
+    const classMetadata = self.appContext.getComponentClassMetadataMap()[name];
+
+    return classMetadata.instanceIndex;
+  }
 }
 module.exports = BaseRenderer;

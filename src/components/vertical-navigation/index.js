@@ -31,7 +31,10 @@ class VerticalNavigation extends components.LightningComponent {
 
                 const { id: sectionId } = parentObject['@parentRef'];
 
-                item.sectionId = sectionId;
+                this.executeDiscrete(() => {
+                    item.sectionId = sectionId;
+                });
+
                 this.#items[item.id] = item;
             },
             ['remove.sections_$.items_$']: ({ value: item }) => {
@@ -117,7 +120,9 @@ class VerticalNavigation extends components.LightningComponent {
         assert(item);
 
         if (!item.rendered) {
-            item.rendered = true;
+            this.executeDiscrete(() => {
+                item.rendered = true;
+            });
 
             this.dispatchEvent('itemRender', item);
         }
@@ -165,14 +170,12 @@ class VerticalNavigation extends components.LightningComponent {
                     }
                 });
 
-            const { classList } = node.querySelector(`#section-${sectionIndex}-overflow`);
+            const sectionArea = node.querySelector(`#section-${sectionIndex}-overflow`);
 
             if (!currentValue) {
-                classList.add('slds-show');
-                classList.remove('slds-hide');
+                this.show0(sectionArea);
             } else {
-                classList.add('slds-hide');
-                classList.remove('slds-show');
+                this.hide0(sectionArea);
             }
         }
     }

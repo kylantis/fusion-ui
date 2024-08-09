@@ -155,7 +155,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
   captureState() {
     return {
-      blockData: this.cloneBlockData(this.blockData),
+      blockData: this.blockData ? this.cloneBlockData(this.blockData) : {},
     };
   }
 

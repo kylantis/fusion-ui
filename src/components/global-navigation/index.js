@@ -207,10 +207,10 @@ class GlobalNavigation extends components.LightningComponent {
         const spinner = this.getInlineComponent('spinner');
 
         if (!spinner.canDisplay()) {
-            this.spinner.setCssDisplay();
+            spinner.setCssDisplay();
         }
 
-        spinner.show((n) => this.show0(n));
+        spinner.show();
 
         this.#clearSpinnerDisplayTimeout();
     }
@@ -218,7 +218,7 @@ class GlobalNavigation extends components.LightningComponent {
     hideSpinner() {
         const spinner = this.getInlineComponent('spinner');
 
-        spinner.hide((n) => this.hide0(n));
+        spinner.hide();
 
         this.#clearSpinnerDisplayTimeout();
 

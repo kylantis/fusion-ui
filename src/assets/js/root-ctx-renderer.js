@@ -30,6 +30,8 @@ class RootCtxRenderer extends BaseRenderer {
 
   static #instancesMap = new Map();
 
+  #hooksQueue = [];
+
   #dataStack;
 
   #attributeEmitContext;
@@ -227,17 +229,23 @@ class RootCtxRenderer extends BaseRenderer {
 
     if (this.dataBindingEnabled()) {
 
+      if (hooks.length) {
+        this.#hooksQueue.push('');
+      }
+
       this.onContextFinalization(() => {
         const { MustacheStatementList, HookList } = RootProxy;
 
         const { primaryKey } = MustacheStatementList;
 
-        MustacheStatementList.put(
-          this.proxyInstance, Object.entries(mustacheStatements)
-            .map(([k, v]) => ({
-              [primaryKey]: k, ...v,
-            }))
-        );
+        const promises = [
+          MustacheStatementList.put(
+            this.proxyInstance, Object.entries(mustacheStatements)
+              .map(([k, v]) => ({
+                [primaryKey]: k, ...v,
+              }))
+          )
+        ];
 
         hooks.forEach(([path, hook]) => {
 
@@ -248,12 +256,24 @@ class RootCtxRenderer extends BaseRenderer {
             return ret;
           });
 
-          HookList.add(this.proxyInstance, path, hook);
+          promises.push(
+            HookList.add(this.proxyInstance, path, hook)
+          );
+        });
+
+        Promise.all(promises).then(() => {
+          this.#hooksQueue.pop();
+
+          this.dispatchEvent('popHooksQueue');
         });
       });
     }
 
     return ret;
+  }
+
+  hasPendingHooks() {
+    return this.#hooksQueue.length;
   }
 
   #parseHTMLString(htmlString) {
@@ -294,11 +314,19 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   addVariableToScope(key, value) {
-    const { blockStack, variables } = this.getEmitContext();
+    const ctx = this.getEmitContext();
+    let { blockStack = [], variables } = ctx;
 
     if (blockStack.length) {
-      blockStack[blockStack.length - 1].variables[key] = value;
+      const block = blockStack.at(-1);
+      if (!block.variables) {
+        block.variables = {};
+      }
+      block.variables[key] = value;
     } else {
+      if (!variables) {
+        ctx.variables = variables = {};
+      }
       variables[key] = value;
     }
   }
@@ -310,13 +338,13 @@ class RootCtxRenderer extends BaseRenderer {
       for (let i = blockStack.length - 1; i >= 0; i--) {
         const { variables } = blockStack[i];
 
-        if (variables[name] !== undefined) {
+        if (variables && variables[name] !== undefined) {
           return variables[name];
         }
       }
     }
 
-    return variables[name];
+    return variables ? variables[name] : undefined;
   }
 
   nodeIdTransformSelector(nodeId) {
@@ -790,7 +818,7 @@ class RootCtxRenderer extends BaseRenderer {
 
       setTimeout(() => {
         classMmetadata.metadata = null;
-      }, 30000);
+      }, 5000);
     }
 
     return classMmetadata.metadata;
@@ -923,15 +951,11 @@ class RootCtxRenderer extends BaseRenderer {
     )
 
     this.dispatchEvent('onMount');
-    // await Promise.all(futures);
-    // futures.splice(0);
 
 
     assert(Object.keys(this.syntheticContext).length == 0);
 
     this.dispatchEvent('load', renderContext);
-    await Promise.all(futures);
-    futures.splice(0);
 
     this.#mounted = true;
 
@@ -1181,17 +1205,13 @@ class RootCtxRenderer extends BaseRenderer {
    * @param {Function} fn 
    */
   onContextFinalization(fn) {
-    if (!this.#mounted) {
-      this.once('domLoaded', () => {
-        if (global.requestIdleCallback) {
-          requestIdleCallback(fn);
-        } else {
-          fn();
-        }
-      });
-    } else {
-      fn();
-    }
+    this.once('domLoaded', () => {
+      if (global.requestIdleCallback && !this.#mounted) {
+        requestIdleCallback(fn);
+      } else {
+        fn();
+      }
+    });
   }
 
   wrapTransform(transform) {
@@ -1345,7 +1365,17 @@ class RootCtxRenderer extends BaseRenderer {
       this.blockData = blockData;
     }
 
+    const hasEmitCtx = this.hasEmitContext();
+
+    if (!hasEmitCtx) {
+      this.pushToEmitContext({ variables: {} });
+    }
+
     const ret = fn();
+
+    if (!hasEmitCtx) {
+      this.popEmitContext();
+    }
 
     if (blockData) {
       this.blockData = blockDataSnapshot;
@@ -1484,8 +1514,11 @@ class RootCtxRenderer extends BaseRenderer {
 
       if (nodeId) {
         this.onContextFinalization(() => {
-          document.querySelector(`#${this.getElementId()} #${nodeId}`)
-            .setAttribute('branch', branch);
+          const node = document.querySelector(`#${this.getElementId()} #${nodeId}`);
+
+          if (node) {
+            node.setAttribute('branch', branch);
+          }
         });
       }
 
@@ -2359,7 +2392,10 @@ class RootCtxRenderer extends BaseRenderer {
 
         this.onContextFinalization(() => {
           const node = document.querySelector(`#${this.getElementId()} #${nodeId}`);
-          node.dataset.attrValueGroups = attrValueGroups;
+
+          if (node) {
+            node.dataset.attrValueGroups = attrValueGroups;
+          }
         });
       }
     }
@@ -2827,7 +2863,7 @@ class RootCtxRenderer extends BaseRenderer {
     const { getLine } = clientUtils;
 
     const _msg = `[${loc ? `${getLine({ loc })}` : this.getId()}] ${msg}`;
-    alert(msg)
+    // alert(msg)
 
     throw Error(_msg);
   }
@@ -3136,7 +3172,7 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   evalPath({ path, isSynthetic, create, stmt }) {
-    const { globalsBasePath } = RootProxy;
+    const { globalsBasePath, syntheticMethodPrefix } = RootProxy;
 
     switch (true) {
       case isSynthetic || this.isSyntheticMethodName(path):
@@ -3144,7 +3180,17 @@ class RootCtxRenderer extends BaseRenderer {
         let ret = cache[path];
 
         if (!ret) {
-          ret = this[path].bind(this)();
+          let fn = this[path];
+
+          if (!fn) {
+            fn = this[path.replace(syntheticMethodPrefix, '')];
+          }
+
+          if (!fn) {
+            this.throwError(`Unknown helper "${path}"`);
+          }
+
+          ret = fn.bind(this)();
           cache[path] = ret;
         }
 
@@ -3281,10 +3327,10 @@ class RootCtxRenderer extends BaseRenderer {
 
           component.on(evtName, new EventHandler(
             () => {
-              this[handler].bind(this)();
+              _this[_handler].bind(_this)();
             },
-            this,
-            { handler }
+            null,
+            { _handler: handler, _this: this }
           ));
         }
       });

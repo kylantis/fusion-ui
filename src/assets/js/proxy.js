@@ -146,8 +146,6 @@ class RootProxy {
 
   #discreteMode = false;
 
-  #randomValues;
-
   #openHandles = [];
 
   #pathMetadata = {};
@@ -158,8 +156,6 @@ class RootProxy {
   constructor({ component }) {
     this.component = component;
     this.handler = this.createObjectProxy();
-
-    this.#randomValues = this.#createRandomValuesObject();
   }
 
   getPathTrie() {
@@ -244,9 +240,7 @@ class RootProxy {
     component.setInput(
       proxy.#getObserverProxy(
         proxy.#toCanonicalTree({
-          path: '', obj: component.getInput(), leafs, leafConsumer: ({ path, value }) => {
-            proxy.addToInputMap(path, value);
-          }
+          path: '', obj: component.getInput(), leafs
         })
       )
     );
@@ -262,15 +256,15 @@ class RootProxy {
     }
   }
 
-  lookupInputMap(key) {
+  #lookupInputMap(key) {
     return this.component.getInputMap().get(key);
   }
 
-  addToInputMap(key, value) {
+  #addToInputMap(key, value) {
     return this.component.getInputMap().set(key, value);
   }
 
-  removeFromInputMap(key) {
+  #removeFromInputMap(key) {
     return this.component.getInputMap().delete(key);
   }
 
@@ -850,15 +844,6 @@ class RootProxy {
   }
 
   getLogicGateValue({ gate, blockData }) {
-    this.component.pushToEmitContext({ variables: {} });
-
-    const ret = this.getLogicGateValue0({ gate, blockData });
-
-    this.component.popEmitContext();
-    return ret;
-  }
-
-  getLogicGateValue0({ gate, blockData }) {
     const { LOGIC_GATE_EXPR } = RootProxy;
 
     const { table } = this.component.getLogicGates()[gate.canonicalId];
@@ -868,9 +853,9 @@ class RootProxy {
       blockData,
     );
 
-    const { hook, currentValue, initial = true } = gate;
+    const { hook } = gate;
 
-    if (hook && (initial || (currentValue !== value))) {
+    if (hook) {
       this.component[hook].bind(this.component)(value);
     }
 
@@ -985,7 +970,7 @@ class RootProxy {
       hook: canonicalGate.table[0].hook,
     }
 
-    const v = this.getLogicGateValue0({ gate });
+    const v = this.getLogicGateValue({ gate });
 
     const rawValue = this.getRawValueWrapper(v);
     const value = this.getValue(v);
@@ -1141,7 +1126,7 @@ class RootProxy {
     this.#discreteMode = false;
   }
 
-  async triggerHooks({ fqPath, hookList, hookType, hookOptions, metadata }) {
+  triggerHooks({ fqPath, hookList, hookType, hookOptions, metadata, blockDataTransformer }) {
 
     if (!this.component.isComponentRendered() || !this.component.isConnected()) {
       return;
@@ -1149,11 +1134,9 @@ class RootProxy {
 
     const {
       textNodeHookType, eachBlockHookType, gateParticipantHookType, conditionalBlockHookType,
-      dataPathPrefix, nodeAttributeHookType, nodeAttributeKeyHookType, nodeAttributeValueHookType,
+      nodeAttributeHookType, nodeAttributeKeyHookType, nodeAttributeValueHookType,
       inlineComponentHookType,
     } = RootProxy;
-
-    const { value } = this.getInfoFromPath(fqPath.replace(dataPathPrefix, ''));
 
     const mainHookTypes = hookType ? [hookType] : [
       nodeAttributeHookType, nodeAttributeKeyHookType, nodeAttributeValueHookType,
@@ -1161,18 +1144,18 @@ class RootProxy {
       inlineComponentHookType,
     ];
 
-    await this.triggerHooks0({
-      path: fqPath, value, hookTypes: mainHookTypes, hookOptions, hookList, metadata,
+    return this.triggerHooks0({
+      path: fqPath, hookTypes: mainHookTypes, hookOptions, hookList, metadata, blockDataTransformer
     })
   }
 
-  async triggerHooks0({ path, value, hookTypes, changeListener, filteredSelectors, hookOptions, hookList, metadata }) {
+  triggerHooks0({ path, hookTypes, changeListener, filteredSelectors, hookOptions, hookList, metadata, blockDataTransformer }) {
 
     const {
       HookList, logicGatePathRoot, pathSeparator, textNodeHookType, eachBlockHookType, gateParticipantHookType,
       conditionalBlockHookType, dataPathPrefix, nodeAttributeHookType, nodeAttributeKeyHookType, nodeAttributeValueHookType,
       mapSizeProperty, predicateHookType, isMapProperty, collChildSetHookType, collChildDetachHookType, arraySpliceHookType,
-      inlineComponentHookType, mapKeysProperty, toFqPath,
+      inlineComponentHookType, mapKeysProperty, logicGatePathPrefix, toFqPath,
     } = RootProxy;
 
     const path0 = path.replace(dataPathPrefix, '');
@@ -1302,13 +1285,35 @@ class RootProxy {
       }
     }
 
-    await Promise.all(
+    return Promise.all(
       hookList[path]
         .filter(hookInfo => hookFilter(hookInfo))
-        .map(hookInfo => ({ ...hookInfo, ...hookOptions || {} }))
+        .map(hookInfo => ({
+          ...hookInfo, ...hookOptions || {},
+          blockData: blockDataTransformer(path0, hookInfo.blockData),
+        }))
         .map(hookInfo => {
 
           const selector = hookInfo.selector ? this.#getFullyQualifiedSelector(hookInfo.selector) : null;
+
+          const value = (() => {
+            const { canonicalPath, blockData, gate } = hookInfo;
+
+            if (canonicalPath.match(logicGatePathPrefix)) {
+
+              this.component.startSyntheticCacheContext();
+              const ret = this.getLogicGateValue({ gate, blockData });
+              this.component.pruneSyntheticCache();
+
+              return ret;
+
+            } else {
+              return this.component.executeWithBlockData(
+                () => this.component.getPathValue({ path: canonicalPath }),
+                blockData,
+              )
+            }
+          })();
 
           const getRenderedValue = () => {
             const { transform } = hookInfo;
@@ -1400,9 +1405,7 @@ class RootProxy {
             return this.component.getTemplateFunction({ metadata, templateSpec, locString })
           }
 
-          if (hookTypes && !hookTypes.includes(hookInfo.type)) {
-            return;
-          }
+          if (hookTypes && !hookTypes.includes(hookInfo.type)) return;
 
           switch (hookInfo.type) {
 
@@ -1516,26 +1519,11 @@ class RootProxy {
 
             case gateParticipantHookType:
               return (async () => {
-                const { HookList } = RootProxy;
-
                 const { parentHook, gateId } = hookInfo;
-                const { gate, blockData } = parentHook;
-
-                this.component.startSyntheticCacheContext();
-
-                const value = this.getLogicGateValue({ gate, blockData });
-
-                gate.initial = false;
-                gate.currentValue = value;
-
-                HookList.put(this, [parentHook]);
-
-                this.component.pruneSyntheticCache();
-
                 const p = `${logicGatePathRoot}${pathSeparator}${gateId}`;
 
                 return this.triggerHooks0({
-                  path: p, value, hookList: { [p]: [parentHook] }, metadata,
+                  path: p, hookList: { [p]: [parentHook] }, metadata, blockDataTransformer,
                 });
               })();
 
@@ -1863,6 +1851,7 @@ class RootProxy {
                 const { transform, hook, hookPhase, blockData, loc, syntheticPath, ref } = hookInfo;
 
                 this.component.startRenderingContext();
+                this.component.pushToEmitContext({ variables: {} });
 
                 this.component.executeWithBlockData(() => {
                   const data = this.component[syntheticPath].bind(this.component)();
@@ -1880,6 +1869,7 @@ class RootProxy {
                   await this.component.triggerHooks(hook, hookPhase, 'onMount', loc, hookOptions);
                 }
 
+                this.component.popEmitContext();
                 const { futures } = this.component.finalizeRenderingContext();
 
                 if (hook) {
@@ -2015,6 +2005,7 @@ class RootProxy {
                       ]
                     },
                     metadata,
+                    blockDataTransformer,
                   });
                 });
 
@@ -2062,6 +2053,7 @@ class RootProxy {
                       ]
                     },
                     metadata,
+                    blockDataTransformer,
                   });
                 });
 
@@ -2140,6 +2132,7 @@ class RootProxy {
                           ]
                         },
                         metadata,
+                        blockDataTransformer,
                       });
                     }
                   }
@@ -2270,7 +2263,6 @@ class RootProxy {
           }
         })
         .filter(h => h));
-
   }
 
   #createHook(path, hook) {
@@ -2307,7 +2299,7 @@ class RootProxy {
 
     [path, ...this.getTrieSubPaths(path)]
       .forEach(p => {
-        this.removeFromInputMap(p);
+        this.#removeFromInputMap(p);
       });
 
     return trigger
@@ -2375,9 +2367,11 @@ class RootProxy {
 
           if (updateInputMap) {
 
-            const _val = this.lookupInputMap(p);
-            this.removeFromInputMap(p);
-            this.addToInputMap(_p, _val);
+            const _val = this.#lookupInputMap(p);
+            this.#removeFromInputMap(p);
+
+            this.#addPathToTrie(_p);
+            this.#addToInputMap(_p, _val);
           }
         });
     }
@@ -2531,7 +2525,7 @@ class RootProxy {
       pathProperty, isMapProperty, mapKeyPrefix, firstProperty, lastProperty, keyProperty, indexProperty,
       collChildSetHookType, collChildDetachHookType, arraySpliceHookType, filter_EQ, filter_GTE_COLL_MEMBER,
       filter_GTE_OBJ_MEMBER, mutationType_SET, mutationType_SPLICE, mutationType_DELETE, toFqPath,
-      getDataVariables, setObjectAsPruned, isScalarDefinition,
+      getDataVariables, setObjectAsPruned,
     } = RootProxy;
 
     const parent = obj[pathProperty];
@@ -2707,31 +2701,6 @@ class RootProxy {
 
     const changedCollMembers = [];
 
-    const addSimpleSetMutation = (index, key, val) => {
-      assert(collDef && key.startsWith('@'));
-
-      if (typeof obj[index] == "object") {
-        mutationList.push(
-          {
-            type: mutationType_SET, obj: obj[index], key, val,
-          }
-        );
-      } else {
-        const { collectionType } = collDef;
-
-        const isArray = collectionType == 'array';
-        const isMap = collectionType == 'map';
-
-        const path = toFqPath({
-          parent: toFqPath({
-            isArray, isMap, parent: obj[pathProperty], prop: keys[index]
-          }),
-          key,
-        });
-
-        this.addToInputMap(path, val);
-      }
-    }
 
     if (isCollection) {
 
@@ -2786,8 +2755,8 @@ class RootProxy {
 
     if (newElementAdded && length > 0) {
 
-      addSimpleSetMutation(
-        length - 1, lastProperty, false,
+      this.#setDataVariableForCollMember(
+        obj, length - 1, lastProperty, false,
       );
 
       this.#addToChangeSet(
@@ -2802,8 +2771,8 @@ class RootProxy {
 
     if (removedLastElement && index > 0) {
 
-      addSimpleSetMutation(
-        index - 1, lastProperty, true,
+      this.#setDataVariableForCollMember(
+        obj, index - 1, lastProperty, true,
       );
 
       this.#addToChangeSet(
@@ -2821,8 +2790,8 @@ class RootProxy {
       Object.entries(offsetIndexes).forEach((i, j) => {
 
         if (j == 0) {
-          addSimpleSetMutation(
-            i, firstProperty, true,
+          this.#setDataVariableForCollMember(
+            obj, i, firstProperty, true,
           );
 
           this.#addToChangeSet(
@@ -2835,12 +2804,12 @@ class RootProxy {
           );
         }
 
-        addSimpleSetMutation(
-          i, keyProperty, `${j}`,
+        this.#setDataVariableForCollMember(
+          obj, i, keyProperty, `${j}`,
         );
 
-        addSimpleSetMutation(
-          i, indexProperty, j,
+        this.#setDataVariableForCollMember(
+          obj, i, indexProperty, j,
         );
 
         changedCollMembers.push(
@@ -2880,7 +2849,7 @@ class RootProxy {
 
       const newLength = length + offset;
 
-      this.addToInputMap(`${parent}.length`, newLength);
+      this.#addToInputMap(`${parent}.length`, newLength);
 
 
       // HOOK RE-BALANCING
@@ -2973,22 +2942,19 @@ class RootProxy {
         return false;
       }
 
-      if (collDef && isScalarDefinition(collDef)) {
-        // Note: a scalar value is leafless, hence we need to manually add the dataVariables to <inputMap>
-
-        Object.entries(dataVariables)
-          .forEach(([k, v]) => {
-            this.addToInputMap(`${path}.${k}`, v);
-          });
-      }
-
       switch (mutationType) {
+
         case mutationType_SET:
           mutationList.push({ type: mutationType_SET, obj, key: prop, val, leafs });
           break;
+
         case mutationType_SPLICE:
-          mutationList.push({ type: mutationType, obj, key: prop, delCount: 1, repl: [] })
+          mutationList.push({
+            type: mutationType, obj, key: prop, delCount: 1, repl: [],
+            delIndexes: [prop], offsetIndexes, newIndexes: [],
+          });
           break;
+
         case mutationType_DELETE:
           mutationList.push({ type: mutationType, obj, key: prop })
           break;
@@ -3006,6 +2972,7 @@ class RootProxy {
       promises,
       collChildHookUpdateResolve,
       offsetIndexes,
+      collInfo ? length + offset : null,
       this.#discreteMode,
     );
 
@@ -3013,23 +2980,39 @@ class RootProxy {
   }
 
   #finalizeMutationHandler(
-    domUpdateOptions, promises, collChildHookUpdateResolve, offsetIndexes, discreteMode,
+    domUpdateOptions, promises, collChildHookUpdateResolve, offsetIndexes, newLength, discreteMode,
   ) {
+    const { pathSeparator } = RootProxy;
+    const { isCanonicalArrayIndex, deepClone } = clientUtils;
 
     const updateDOM = () => {
       const [parent, changeSet, finalizers = [], exclusionSet] = domUpdateOptions;
 
-      const valueOverrides = {};
+      const offsetKeys = offsetIndexes ? Object.keys(offsetIndexes) : [];
 
-      if (offsetIndexes) {
-        Object.entries(offsetIndexes).forEach(([k, v]) => {
+      const blockDataTransformer = (path, _blockData) => {
+        if (path == parent || (!offsetKeys.length && newLength == null)) return _blockData;
 
-          const { value } = this.getInfoFromPath(`${parent}[${v}]`);
-          valueOverrides[`${parent}[${k}]`] = value;
-        });
+        const blockData = deepClone(_blockData);
+
+        Object.entries(blockData)
+          .filter(([k]) => isCanonicalArrayIndex(
+            `${k.split(pathSeparator).join('.')}_$`, parent,
+          ))
+          .forEach(([k, v]) => {
+            const { index } = v;
+
+            if (offsetIndexes && offsetIndexes[index] != null) {
+              v.index = offsetIndexes[index];
+            }
+
+            if (newLength != null) {
+              v.length = newLength;
+            }
+          });
+
+        return blockData;
       }
-
-      // console.info(valueOverrides);
 
       this.component.getDomUpdateHooks().forEach(fn => {
         finalizers.push(() => {
@@ -3041,7 +3024,9 @@ class RootProxy {
 
       this.component.pruneDomUpdateHooks();
 
-      return this.#updateDOM(parent, changeSet, finalizers, exclusionSet);
+      return this.#updateDOM(
+        parent, changeSet, finalizers, exclusionSet, blockDataTransformer
+      );
     }
 
     const p = clientUtils.wrapPromise(
@@ -3069,22 +3054,8 @@ class RootProxy {
     this.#collChildHookUpdatePromise = p;
   }
 
-  #arraySpliceMutationHandler(obj, index, delCount, replElements) {
-
-    const {
-      pathProperty, firstProperty, lastProperty, keyProperty, indexProperty, arraySpliceHookType,
-      mutationType_SET, mutationType_SPLICE, filter_EQ, filter_GTE_COLL_MEMBER, toFqPath,
-      setObjectAsPruned, isScalarDefinition
-    } = RootProxy;
-
-    const { isNumber, peek } = clientUtils;
-
-    const parent = obj[pathProperty];
-
-    assert(Array.isArray(obj));
-
-    this.#ensureNonDiscreteContext();
-    this.#ensureNoOpenHandle(parent);
+  static getArraySpliceInfo(obj, index, delCount, replElements) {
+    const { isNumber } = clientUtils;
 
     if (typeof index == 'string' && isNumber(index)) {
       index = Number(index);
@@ -3120,7 +3091,7 @@ class RootProxy {
     if (knownIndex) {
 
       // <tailIndex> is the first index that is offset
-      const tailIndex = delIndexes.length ? peek(delIndexes) + 1 : index;
+      const tailIndex = delIndexes.length ? delIndexes.at(-1) + 1 : index;
 
       if (offset != 0) {
         for (
@@ -3140,6 +3111,27 @@ class RootProxy {
       newIndexes.push(index + i);
     }
 
+    return { index, delIndexes, offset, offsetIndexes, newIndexes };
+  }
+
+  #arraySpliceMutationHandler(obj, _index, delCount, replElements) {
+
+    const {
+      pathProperty, firstProperty, lastProperty, keyProperty, indexProperty, arraySpliceHookType,
+      mutationType_SET, mutationType_SPLICE, filter_EQ, filter_GTE_COLL_MEMBER, toFqPath,
+      getArraySpliceInfo, setObjectAsPruned
+    } = RootProxy;
+
+    const parent = obj[pathProperty];
+
+    assert(Array.isArray(obj));
+
+    this.#ensureNonDiscreteContext();
+    this.#ensureNoOpenHandle(parent);
+
+    const { index, delIndexes, offset, offsetIndexes, newIndexes } = getArraySpliceInfo(
+      obj, _index, delCount, replElements,
+    );
 
     const length = obj.length;
 
@@ -3151,19 +3143,6 @@ class RootProxy {
     const mutationList = [];
     const changeSet = [];
 
-    const addSimpleSetMutation = (index, key, val) => {
-      assert(key.startsWith('@'));
-
-      if (typeof obj[index] == "object") {
-        mutationList.push(
-          {
-            type: mutationType_SET, obj: obj[index], key, val,
-          }
-        );
-      } else {
-        this.addToInputMap(`${parent}[${index}].${key}`, val);
-      }
-    }
 
     if (offset != 0) {
       this.#addToChangeSet(changeSet, toFqPath({ parent, prop: 'length' }), filter_EQ)
@@ -3172,8 +3151,8 @@ class RootProxy {
     if (index == length && replElements.length) {
       assert(offset > 0);
 
-      addSimpleSetMutation(
-        length - 1, lastProperty, false,
+      this.#setDataVariableForCollMember(
+        obj, length - 1, lastProperty, false,
       );
 
       this.#addToChangeSet(
@@ -3190,8 +3169,8 @@ class RootProxy {
 
     if (index > 0 && offset < 0 && index == newLength) {
 
-      addSimpleSetMutation(
-        index - 1, lastProperty, true,
+      this.#setDataVariableForCollMember(
+        obj, index - 1, lastProperty, true,
       );
 
       this.#addToChangeSet(
@@ -3211,8 +3190,8 @@ class RootProxy {
         const p = toFqPath({ parent, prop: i });
 
 
-        addSimpleSetMutation(
-          i, keyProperty, `${j}`,
+        this.#setDataVariableForCollMember(
+          obj, i, keyProperty, `${j}`,
         );
 
         this.#addToChangeSet(
@@ -3222,8 +3201,8 @@ class RootProxy {
         );
 
 
-        addSimpleSetMutation(
-          i, indexProperty, j,
+        this.#setDataVariableForCollMember(
+          obj, i, indexProperty, j,
         );
 
         this.#addToChangeSet(
@@ -3235,8 +3214,8 @@ class RootProxy {
 
         if ([i, j].includes(0)) {
 
-          addSimpleSetMutation(
-            i, firstProperty, j == 0,
+          this.#setDataVariableForCollMember(
+            obj, i, firstProperty, j == 0,
           );
 
           this.#addToChangeSet(
@@ -3291,7 +3270,7 @@ class RootProxy {
     const promises = [];
 
 
-    this.addToInputMap(`${parent}.length`, newLength);
+    this.#addToInputMap(`${parent}.length`, newLength);
 
 
     // HOOK RE-BALANCING
@@ -3382,15 +3361,6 @@ class RootProxy {
         return;
       }
 
-      if (collDef && isScalarDefinition(collDef)) {
-        // Note: a scalar value is leafless, hence we need to manually add the dataVariables to <inputMap>
-
-        Object.entries(dataVariables)
-          .forEach(([k, v]) => {
-            this.addToInputMap(`${path}.${k}`, v);
-          });
-      }
-
       assert(mutationType == mutationType_SET);
 
       return val;
@@ -3426,6 +3396,7 @@ class RootProxy {
       promises,
       collChildHookUpdateResolve,
       offsetIndexes,
+      newLength,
     );
 
     return removedElements;
@@ -3460,27 +3431,16 @@ class RootProxy {
         [path, ...this.getTrieSubPaths(path)].forEach(p => {
           const _p = p.replace(path, newPath);
 
-          const _val = this.lookupInputMap(p);
-          this.removeFromInputMap(p);
+          const _val = this.#lookupInputMap(p);
+          this.#removeFromInputMap(p);
 
           _inputMap[_p] = _val;
         })
       });
 
     Object.entries(_inputMap).forEach(([k, v]) => {
-      this.addToInputMap(k, v);
+      this.#addToInputMap(k, v);
     });
-
-
-    const addSimpleSetMutation = (index, key, val) => {
-      assert(key.startsWith('@'));
-
-      if (typeof obj[index] == "object") {
-        obj[index][key] = val;
-      }
-
-      this.addToInputMap(`${parent}[${index}].${key}`, val);
-    }
 
     // REGISTER CHANGE SETS
 
@@ -3500,7 +3460,7 @@ class RootProxy {
         const p = toFqPath({ parent, prop: i });
 
 
-        addSimpleSetMutation(j, keyProperty, `${j}`);
+        this.#setDataVariableForCollMember(obj, j, keyProperty, `${j}`);
 
         this.#addToChangeSet(
           changeSet,
@@ -3509,7 +3469,7 @@ class RootProxy {
         );
 
 
-        addSimpleSetMutation(j, indexProperty, j);
+        this.#setDataVariableForCollMember(obj, j, indexProperty, j);
 
         this.#addToChangeSet(
           changeSet,
@@ -3520,7 +3480,7 @@ class RootProxy {
 
         if ([i, j].includes(0)) {
 
-          addSimpleSetMutation(j, firstProperty, j == 0);
+          this.#setDataVariableForCollMember(obj, j, firstProperty, j == 0);
 
           this.#addToChangeSet(
             changeSet,
@@ -3532,7 +3492,7 @@ class RootProxy {
 
         if ([i, j].includes(obj.length - 1)) {
 
-          addSimpleSetMutation(j, lastProperty, j == obj.length - 1);
+          this.#setDataVariableForCollMember(obj, j, lastProperty, j == obj.length - 1);
 
           this.#addToChangeSet(
             changeSet,
@@ -3574,13 +3534,37 @@ class RootProxy {
       promises,
       collChildHookUpdateResolve,
       offsetIndexes,
+      obj.length,
     );
+  }
+
+  #setDataVariableForCollMember(obj, index, key, val) {
+    const { pathProperty, toFqPath, setDataVariable } = RootProxy;
+
+    assert(key.startsWith('@'));
+
+    if (typeof obj[index] == "object") {
+      setDataVariable(obj[index], key, val);
+    }
+
+    const isArray = Array.isArray(obj);
+    const isMap = !isArray;
+
+    const path = toFqPath({
+      parent: toFqPath({
+        isArray, isMap, parent: obj[pathProperty],
+        prop: isArray ? index : Object.keys()[index]
+      }),
+      key,
+    });
+
+    this.#addToInputMap(path, val);
   }
 
   #executeMutations({ mutationList }) {
     const {
       mutationType_SET, mutationType_SPLICE, mutationType_DELETE, pathProperty, typeProperty, mapType,
-      parentRefProperty, toFqPath, setDataVariable,
+      parentRefProperty, dataPathRoot, pathSeparator, toFqPath, setDataVariable,
     } = RootProxy;
 
     const changes = [];
@@ -3591,11 +3575,9 @@ class RootProxy {
       const addToChanges = ({ path, key, spliceIndex, val, willPrune, leafs, mutationType }) => {
 
         const add0 = (opts) => {
-          const { key, path, currentValue } = opts;
+          const { key } = opts;
 
-          this.addToInputMap(path, currentValue);
-
-          if (!key.startsWith('@')) {
+          if (typeof key == 'string' && !key.startsWith('@')) {
             changes.push(opts);
           }
         };
@@ -3646,18 +3628,12 @@ class RootProxy {
         case mutationType_SET:
           (() => {
             if (obj && ['Array', 'Object'].includes(obj.constructor.name)) {
+              assert(!key.startsWith('@'));
 
               const isArray = Array.isArray(obj);
               const isMap = !isArray && obj[typeProperty] == mapType;
 
               const path = toFqPath({ isArray, isMap, parent: obj[pathProperty], prop: key });
-
-              if (key.startsWith('@')) {
-                setDataVariable(obj, key, val);
-
-                this.addToInputMap(path, val);
-                return;
-              }
 
               const spliceIndex = isArray ? key : undefined;
 
@@ -3743,11 +3719,11 @@ class RootProxy {
       const parent = parentObject[pathProperty];
       const sParent = clientUtils.toCanonicalPath(parent);
 
-      const eventNamePrefix = (currentValue == undefined) ? 'remove' : 'insert';
+      const eventNamePrefix = (currentValue === undefined) ? 'remove' : 'insert';
 
       const handle = (isCollChild && this.isCollectionInView(sParent)) ? parent : this.hasCollectionInView(sPath) ? path : null;
 
-      [path, sPath]
+      [path, ...(sPath != path) ? [sPath] : []]
         .map(p => `${eventNamePrefix}.${p}`)
         .forEach(evtName => {
 
@@ -3767,7 +3743,7 @@ class RootProxy {
           }
 
           if (!handle && defaultPrevented) {
-            exclusionSet.add(path);
+            exclusionSet.add(`${dataPathRoot}${pathSeparator}${path}`);
           }
         });
     });
@@ -3833,25 +3809,35 @@ class RootProxy {
         if (!b) {
           return { error: true };
         }
-
-        this.#addPathToTrie(path, null, !!collDef)
       }
 
       if (typeof value == 'object') {
         setObjectParentRef(value, parentObject)
       }
 
-    } else {
+    } else if (value === undefined) {
+      assert(collDef);
 
-      if (collDef && (value === undefined)) {
-
-        return {
-          mutationType: (collDef.collectionType = 'array') ? mutationType_SPLICE : mutationType_DELETE,
-        }
-
-      } else {
-        this.#addPathToTrie(path, null, !!collDef)
+      return {
+        mutationType: (collDef.collectionType = 'array') ? mutationType_SPLICE : mutationType_DELETE,
       }
+    }
+
+    this.#addPathToTrie(path, null, !!collDef);
+
+    this.#addToInputMap(path, value);
+
+    if (collDef && value !== Object(value)) {
+      // Note: since scalar values are leafless, we need to manually add the dataVariables to <inputMap>
+
+      Object.entries({
+        ...dataVariables,
+        random: this.component.randomString('random')
+      })
+        .map(([k, v]) => [`@${k}`, v])
+        .forEach(([k, v]) => {
+          this.#addToInputMap(`${path}.${k}`, v);
+        });
     }
 
     return { mutationType: mutationType_SET, value };
@@ -3888,7 +3874,8 @@ class RootProxy {
   addDataVariablesToObject(o, { first, last, key, index }) {
     const { addDataVariables } = RootProxy;
     addDataVariables(
-      o, first, last, key, index, this.component.randomString('random')
+      o, first, last, key, index,
+      this.component.randomString('random')
     );
   }
 
@@ -3913,7 +3900,6 @@ class RootProxy {
       },
 
       get: (obj, prop) => {
-        const { pathProperty, toFqPath } = RootProxy;
 
         if (Array.isArray(obj)) {
           switch (prop) {
@@ -4025,82 +4011,14 @@ class RootProxy {
     return obj[prunedProperty];
   }
 
-  getInfoFromPath(path, noOpValue) {
-    const { isMapProperty, typeProperty, mapType, getDataVariables } = RootProxy;
-    const { getDataVariableValue } = RootCtxRenderer;
-
+  getInfoFromPath(path) {
     assert(path.length);
 
     const value = (p) =>
       this.component.resolver ? this.component.resolver.resolve({ path: p }) :
-        this.getValueFromPath(p, noOpValue);
+        this.#lookupInputMap(p);
 
-    const pathArray = path.split(/\./g);
-    const dataVariable = pathArray[pathArray.length - 1];
-
-    if (dataVariable.startsWith('@')) {
-      assert(getDataVariables().includes(dataVariable));
-
-      const arr = [...pathArray];
-      arr.pop();
-
-      const parent = arr.join('.');
-
-      const emptyRet = {
-        parentPath: parent,
-        parentObject: null,
-        value: noOpValue,
-        childKey: dataVariable,
-      };
-
-      const coll = value(
-        clientUtils.getPathStringInfo(arr).parent,
-      );
-
-      if (!coll) {
-        return emptyRet;
-      } else {
-
-        const isMap = coll[isMapProperty] || coll[typeProperty] == mapType || coll instanceof Map;
-        const isArray = Array.isArray(coll);
-
-        assert(isArray || isMap);
-
-        const collKeys = coll instanceof Map ? Array.from(coll.keys()) : Object.keys(coll);
-
-        const key = (this.component.resolver && isMap) ?
-          arr[arr.length - 1] :
-          clientUtils.getKeyFromIndexSegment(
-            clientUtils.tailSegment(parent)
-          );
-
-        const index = collKeys.indexOf(key);
-
-        if (index < 0) {
-          return emptyRet;
-        }
-
-        const parentObject = value(parent);
-
-        const v = (() => {
-
-          if (dataVariable == '@random') {
-            return this.component.resolver ? value(path) : !this.isScalarValue(parentObject) ? parentObject[dataVariable] : this.#randomValues[parent];
-          } else {
-            return getDataVariableValue(
-              dataVariable, index, collKeys,
-            );
-          }
-        })();
-
-        return {
-          parentPath: parent, parentObject,
-          childKey: dataVariable, value: v
-        };
-      }
-    }
-
-    const { parent, key: childKey } = clientUtils.getPathStringInfo(pathArray);
+    const { parent, key: childKey } = clientUtils.getPathStringInfo(path);
 
     return {
       parentPath: parent,
@@ -4132,7 +4050,8 @@ class RootProxy {
       return startsWith ? HookList.startsWithQuery(...args) : HookList.equalsQuery(...args);
     }
 
-    const fqPath = `${dataPathRoot}${pathSeparator}${path}`;
+    const dataPrefix = `${dataPathRoot}${pathSeparator}`;
+    const fqPath = `${dataPrefix}${path}`;
 
     await Promise.all([
 
@@ -4143,21 +4062,21 @@ class RootProxy {
           });
         }),
 
-      includeLogicGates ? queryFn(this, 'participants', fqPath)
+      includeLogicGates ? queryFn(this, 'participants', path)
         .then(arr => {
 
           arr.forEach(hook => {
-            const { owner, participants, canonicalParticipants } = hook;
+            const { owner, participants, canonicalParticipants, blockData } = hook;
             const gateId = owner.replace(logicGatePathPrefix, '');
 
             participants.forEach((p, i) => {
-              if (!p.startsWith(fqPath)) return;
+              if (!p.startsWith(path)) return;
 
               addToHookList(
-                p,
+                `${dataPrefix}${p}`,
                 {
                   type: gateParticipantHookType, gateId,
-                  canonicalPath: canonicalParticipants[i],
+                  blockData, canonicalPath: canonicalParticipants[i],
                   parentHook: hook, loc: hook.loc,
                 }
               )
@@ -4227,10 +4146,17 @@ class RootProxy {
     return target;
   }
 
-  async #updateDOM(parent, changeSet, finalizers = [], exclusionSet) {
-
-    assert(!this.#discreteMode);
+  async #updateDOM(parent, changeSet, finalizers, exclusionSet, blockDataTransformer) {
     if (this.component.isHeadlessContext() || !this.component.isComponentRendered()) return;
+
+    if (this.component.hasPendingHooks()) {
+
+      await new Promise(resolve => {
+        this.component.once('popHooksQueue', new EventHandler(() => {
+          _resolve();
+        }, null, { _resolve: resolve }));
+      })
+    }
 
     const startTime = performance.now();
 
@@ -4257,6 +4183,7 @@ class RootProxy {
                 hookList,
                 metadata,
                 ...opts,
+                blockDataTransformer,
               })
             );
           });
@@ -4630,6 +4557,10 @@ class RootProxy {
 
     const trie = this.getPathTrie();
 
+    if (!segments) {
+      segments = clientUtils.getAllSegments(path);
+    }
+    
     trie.insert(path, segments);
 
     if (withDataVariables) {
@@ -4642,7 +4573,7 @@ class RootProxy {
     }
   }
 
-  #toCanonicalTree({ path, sPath, segments, obj, leafs, leafConsumer, parentObject, initializers, transformers, root = true }) {
+  #toCanonicalTree({ path, sPath, segments, obj, leafs, parentObject, initializers, transformers, root = true }) {
 
     const {
       dataPathPrefix, typeProperty, mapType, mapKeyPrefix, mapKeyPrefixRegex, pathProperty,
@@ -4760,6 +4691,11 @@ class RootProxy {
 
     const keys = Object.keys(obj);
 
+    if (isCollection) {
+      this.#addToInputMap(`${path}.length`, keys.length);
+      this.#addPathToTrie(`${path}.length`, [...segments, 'length']);
+    }
+
     const iterateKeys = (() => {
       const r = [...keys];
       getDataVariables().forEach(v => {
@@ -4813,11 +4749,10 @@ class RootProxy {
         ) {
           this.#getLeafsForDataVariables(_path, _sPath, obj, keys, i)
             .forEach(leaf => {
+              const { path, value } = leaf;
               leafs.push(leaf);
 
-              if (leafConsumer) {
-                leafConsumer(leaf);
-              }
+              this.#addToInputMap(path, value);
             });
         }
       }
@@ -4830,7 +4765,7 @@ class RootProxy {
         obj[prop] = this.#toCanonicalTree({
           path: _path, sPath: _sPath, segments: _segments,
           obj: obj[prop], parentObject: obj,
-          leafs, leafConsumer, initializers, transformers,
+          leafs, initializers, transformers,
           root: false
         });
 
@@ -4843,9 +4778,7 @@ class RootProxy {
 
       leaf.value = obj[prop];
 
-      if (leafConsumer) {
-        leafConsumer(leaf);
-      }
+      this.#addToInputMap(_path, obj[prop]);
 
       if (obj[prop] && (typeof obj[prop] == 'object')) {
         setObjectParentRef(obj[prop], obj);

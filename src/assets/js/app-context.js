@@ -308,7 +308,7 @@ class AppContext {
       ...this.#getBaseDependencies().map(toURL),
       '/components/enums.json',
       ...this.#getDependencies().map(toURL),
-      ...jsDependencies,
+      ...jsDependencies.map(toURL),
       ...Object.values(componentList)
         .filter(_assetId => _assetId != assetId)
         .map(assetId => `/components/${assetId}/boot-config.json`),
@@ -404,16 +404,17 @@ class AppContext {
     return arrayBuffer.buffer;
   }
 
-  async load({ data, hasDynamicBootConfig, runtimeBootConfig }) {
+  async load({ data, runtimeBootConfig }) {
     runtimeBootConfig = (runtimeBootConfig == '{{runtimeBootConfig}}') ? null : runtimeBootConfig;
 
-    const rootBootConfig = runtimeBootConfig || this.#bootConfigs[this.#className];
+    const rootBootConfig = this.#bootConfigs[this.#className];
+    const _rootBootConfig = runtimeBootConfig || rootBootConfig;
 
     const cacheFilePromise = this.#requestNetworkCacheFile(
-      rootBootConfig, !!runtimeBootConfig
+      _rootBootConfig, !!runtimeBootConfig
     );
 
-    let htmlDepsPromise = this.loadCSSDependencies(rootBootConfig.cssDependencies)
+    let htmlDepsPromise = this.loadCSSDependencies(_rootBootConfig.cssDependencies)
 
     await cacheFilePromise;
 
@@ -431,8 +432,8 @@ class AppContext {
     const sessionSocketPromise = this.#setupSessionSocket();
 
 
-    if (runtimeBootConfig || !hasDynamicBootConfig) {
-      const { jsDependencies, renderTree } = rootBootConfig;
+    if (runtimeBootConfig || !rootBootConfig.hasDynamicBootConfig) {
+      const { jsDependencies, renderTree } = _rootBootConfig;
 
       htmlDepsPromise = Promise.all([htmlDepsPromise, this.loadJSDependencies(jsDependencies)]);
       alphaListPromise = Promise.resolve();
@@ -464,10 +465,10 @@ class AppContext {
 
         const classNames = [
           ...new Set([
-          ...this.#findAllComponentClassesInSampleString(sampleString),
-          ...Object.values(rootBootConfig.renderTree),
-        ])
-      ];
+            ...this.#findAllComponentClassesInSampleString(sampleString),
+            ...Object.values(_rootBootConfig.renderTree),
+          ])
+        ];
 
         const htmlDepsPromises = [];
 
@@ -560,6 +561,9 @@ class AppContext {
     // htmlDepsPromise
     // await Promise.all([alphaComponentClassesPromise, dbSetupPromise, enumPromise, depsPromise, sessionSocketPromise])
 
+    await new Promise(resolve => {
+      requestAnimationFrame(resolve);
+    });
 
     await this.#loadRootComponent(data, await samplesPromise);
 
@@ -573,7 +577,6 @@ class AppContext {
     this.#finalizers = null;
     this.#bootConfigs = null;
     this.#refMetadata = null;
-    this.#networkCache = null;
 
     setTimeout(
       async () => {
@@ -1002,9 +1005,7 @@ class AppContext {
   }
 
   #loadDependencies() {
-    return Promise.all(
-      AppContext.#getDependencies().map(dep => this.fetch(dep))
-    );
+    return this.fetchAll(AppContext.#getDependencies(), true);
   }
 
   #loadBaseDependencies() {
@@ -1094,70 +1095,67 @@ class AppContext {
     return result;
   }
 
-  async fetch(req) {
-    const [res] = await this.fetchAll([req]);
-    return res;
+  fetchAll(requests, optimizeMicroTask) {
+    const promises = [];
+
+    requests.forEach((req, i) => {
+      promises.push(
+        (!optimizeMicroTask || (i % 2 == 0)) ?
+          this.fetch(req) :
+          new Promise(async resolve => {
+            await new Promise(resolve => {
+              requestAnimationFrame(resolve);
+            });
+
+            resolve(
+              await this.fetch(req)
+            );
+          })
+      )
+    })
+
+    return Promise.all(promises);
   }
 
-  async fetchAll(reqArray) {
+  async fetch(req) {
+    if (typeof req === 'string') {
+      req = { url: req };
+    }
 
-    const fetchFn = async ({ url, asJson }) => {
-      const resourceType = asJson ? 'json' : 'text';
+    const { url, asJson, namespace, process = true } = req;
+    const response = await this.#fetchFn({ url, asJson });
 
-      let data;
+    return (!asJson && process) ?
+      this.#processScript({ contents: response, namespace }) :
+      response;
+  }
 
-      if (this.#networkCache) {
-        const resp = await this.#networkCache.get(url);
+  async #fetchFn({ url, asJson }) {
+    const resourceType = asJson ? 'json' : 'text';
 
-        if (resp) {
-          data = {
-            ok: true,
-            text: () => resp,
-            json: () => JSON.parse(resp)
-          }
+    let data;
+
+    if (this.#networkCache) {
+      const resp = await this.#networkCache.get(url);
+
+      if (resp) {
+        data = {
+          ok: true,
+          text: () => resp,
+          json: () => JSON.parse(resp)
         }
       }
-
-      if (!data) {
-        data = await self.fetch(url, { method: 'GET' });
-      }
-
-      if (data.ok) {
-        return await data[resourceType]();
-      } else {
-        throw Error(data.statusText);
-      }
     }
 
-    const processFn = ({ response, url, asJson, namespace, process }) => {
-      return (!asJson && process) ?
-        this.#processScript({ contents: response, namespace }) :
-        response;
+    if (!data) {
+      data = await self.fetch(url, { method: 'GET' });
     }
 
-    return Promise.all(
-      reqArray
-        .map((req) => {
-          if (typeof req === 'string') {
-            req = { url: req };
-          }
-          return req;
-        })
-        .map(async ({ url, asJson, namespace, process = true }) => ({
-          response: await fetchFn({ url, asJson }),
-          url, asJson, namespace, process,
-        }))
-    ).then(responses => {
-      const result = [];
-
-      for (const { response, url, asJson, namespace, process } of responses) {
-        result.push(
-          processFn({ response, url, asJson, namespace, process })
-        );
-      }
-
-      return result;
-    });
+    if (data.ok) {
+      return await data[resourceType]();
+    } else {
+      throw Error(data.statusText);
+    }
   }
 
   loadCSSDependencies(requests) {
@@ -1206,7 +1204,7 @@ class AppContext {
   }
 
   loadJSDependencies(requests) {
-    const dependencies = requests.map((req) => {
+    requests = requests.map((req) => {
       if (req.constructor.name === 'String') {
         return { url: req };
       }
@@ -1215,13 +1213,15 @@ class AppContext {
       .filter(({ url }) => !this.#loadedScripts.includes(url))
       .filter(({ screenTargets }) => !screenTargets || screenTargets.includes(AppContext.#getScreenSize()))
 
-    dependencies.forEach(({ url }) => {
-      if (!this.#loadedScripts.includes(url)) {
-        this.#loadedScripts.push(url);
-      }
-    });
-
-    return this.fetchAll(dependencies);
+    return Promise.all(
+      requests.map((req) => {
+        const { url } = req;
+        if (!this.#loadedScripts.includes(url)) {
+          this.#loadedScripts.push(url);
+        }
+        return this.fetch(req);
+      })
+    );
   }
 
   static #getMaxUrlLength() {

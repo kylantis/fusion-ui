@@ -95,6 +95,12 @@ class K_Database {
     put(storeName, rows) {
         const lokiReservedColumns = self.LokiDatabase ? self.LokiDatabase.getReservedColumns() : null;
 
+        const updatedAt = new Date();
+
+        rows.forEach(row => {
+            row.updatedAt = updatedAt;
+        });
+
         const transform = this.#migrating ? (row) => {
             lokiReservedColumns.forEach(k => {
                 delete row[k];
@@ -113,11 +119,8 @@ class K_Database {
             transaction.oncomplete = resolve;
             transaction.onerror = reject;
 
-            const updatedAt = new Date();
-
             for (const row of rows) {
                 transform(row);
-                row.updatedAt = updatedAt;
                 store.put(row);
             }
 

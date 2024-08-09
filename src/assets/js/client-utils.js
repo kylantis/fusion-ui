@@ -23,7 +23,7 @@ module.exports = {
   tailArrayIndexSegment, arrayIndexSegment, mapKeySegment,
 
   toFqKey({ isArray, isMap, isDataVariable, prop }) {
-    if (isDataVariable === undefined) {
+    if (isDataVariable === undefined && typeof prop == 'string') {
       isDataVariable = prop.startsWith('@');
     }
 
@@ -70,9 +70,6 @@ module.exports = {
     const arr = [];
 
     pathArray.forEach((p, i) => {
-      if (i) {
-        arr.push('.');
-      }
       clientUtils.getSegments({ original: p })
         .forEach(s => {
           arr.push(s);
@@ -734,7 +731,6 @@ module.exports = {
     const { DEFAULT_PRIMARY_KEY: primaryKey } = K_Database;
 
     const ARRAY_BLOCK_PATH_INDEX = 'arrayBlockPath_index';
-
 
     const isArray = isNumber(key);
 

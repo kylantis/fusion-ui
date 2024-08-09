@@ -7,6 +7,7 @@ const through = require('through2');
 const utils = require('../lib/utils');
 
 const { processFile } = require('../lib/template-processor');
+const TemplatePreprocessor = require('../lib/template-preprocessor');
 
 const componentNameArgPrefix = '--component=';
 const segmentArg = '--segment';
@@ -183,6 +184,48 @@ gulp.task('compile-components:watch', () => {
     global.__cwp = true;
 
     const [componentName] = path.replace(`${srcFolder}/`, '').split('/');
+
+    if (path.endsWith('.js')) {
+      const { 
+        getComponentJsAstFile, getComponentListPath, getComponentDistConfigPath, loadCompiledComponentClasses,
+        writeComponentJsToFileSystem, addGlobals
+      } = TemplatePreprocessor;
+
+      const assetId = componentName.replace(/-/g, '_');
+      const astFile = getComponentJsAstFile(assetId);
+
+      if (fs.existsSync(astFile)) {
+        const srcDir = pathLib.join(process.env.PWD, srcFolder, componentName);
+
+        console.info(`\x1b[90m[writeComponentJsToFileSystem: ${srcDir}]\x1b[0m`);
+
+        const componentList = JSON.parse(fs.readFileSync(getComponentListPath(), 'utf8'));
+        const { parents } = JSON.parse(fs.readFileSync(getComponentDistConfigPath(assetId), 'utf8'));
+
+        const _componentList = {};
+
+        for (let i = parents.length - 1; i >= 0; i--) {
+          const p = parents[i];
+          _componentList[p] = componentList[p];
+        }
+
+        addGlobals();
+
+        loadCompiledComponentClasses(_componentList);
+
+        const componentAst = JSON.parse(fs.readFileSync(astFile, 'utf8'));
+
+        writeComponentJsToFileSystem({
+          srcDir, assetId, componentAst,
+        });
+
+        console.info(`\x1b[90mcompleted\x1b[0m`);
+
+        global.__cwp = false;
+        return;
+      }
+    }
+
     const args = [`${componentNameArgPrefix}${componentName}`, segmentArg, fromWatchArg];
 
     const childProcess = spawn(

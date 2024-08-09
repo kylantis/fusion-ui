@@ -1,5 +1,6 @@
 class EventHandler {
   #userArgs;
+  #evtName;
   #fn;
 
   constructor(_fn, thisObject, scope = {}) {
@@ -9,6 +10,10 @@ class EventHandler {
     );
 
     this.#userArgs = [_fn, thisObject, scope];
+  }
+
+  setEventName(evtName) {
+    this.#evtName = evtName;
   }
 
   #buildFunction() {
@@ -23,11 +28,22 @@ class EventHandler {
       args.values.push(v);
     });
 
+    const fnString = _fn.toString();
+
+    if (fnString == 'function () { [native code] }') {
+      // e.g. The user passes in a native promise resolve function directly
+      // as the handler
+
+      throw Error(
+        `Could not serialize a event handler function for event "${this.#evtName}"`
+      );
+    }
+
     const fn = Function(
       'thisObject', args.names.join(', '), `
 
       function outerFunction() {
-        return (${_fn.toString()});
+        return (${fnString});
       }
 
       return outerFunction.bind(thisObject);
@@ -38,7 +54,7 @@ class EventHandler {
   }
 
   getFunction() {
-    if (!this.#fn){
+    if (!this.#fn) {
       this.#buildFunction();
     }
     return this.#fn;

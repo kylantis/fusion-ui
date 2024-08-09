@@ -35,28 +35,34 @@ class LokiDatabase {
 
     put(storeName, rows) {
         rows.forEach(row => {
-            this.#collections[storeName].insert(row);
+            if (this.#findById(storeName, row[this.#primaryKey])) {
+                this.#collections[storeName].update(row);
+            } else {
+                this.#collections[storeName].insert(row);
+            }
         });
     }
 
     startsWithQuery(proxyInstance, storeName, indexName, prefix) {
-        const dataPathRoot = 'data';
-        const pathSeparator = '__';
+        const dataPathPrefix = 'data__';
+        const hasDataPrefix = prefix.startsWith(dataPathPrefix)
 
-        const path = prefix.replace(`${dataPathRoot}${pathSeparator}`, '');
-        const subpaths = proxyInstance.getTrieSubPaths(path)
-            .map(p => `${dataPathRoot}${pathSeparator}${p}`);
+        const subpaths = proxyInstance.getTrieSubPaths(
+            hasDataPrefix ? prefix.replace(`${dataPathPrefix}`, '') : prefix
+        )
+            .map(p => hasDataPrefix ? `${dataPathPrefix}${p}` : p);
 
         const colName = this.#indexToColumn[indexName];
 
         return this.#collections[storeName]
-            .find({ [colName]: { '$containsAny': subpaths } });
+            .find({ [colName]: { '$containsAny': [prefix, ...subpaths] } });
     }
 
     equalsQuery(storeName, indexName, eqValue) {
         if (indexName) {
             const colName = this.#indexToColumn[indexName];
-            this.#collections[storeName]
+            
+            return this.#collections[storeName]
                 .find({ [colName]: { '$contains': eqValue } });
         } else {
             const row = this.#findById(storeName, eqValue);

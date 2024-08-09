@@ -76,8 +76,6 @@ class DatePicker extends components.Input {
     }
 
     onMount() {
-        this.show();
-
         if (!this.isMobile()) {
             BaseComponent.on('bodyClick', () => {
                 this.hideDatePickerContainer();
@@ -315,8 +313,8 @@ class DatePicker extends components.Input {
         } else {
 
             // On desktop, we want to do nothing whenever the DOM value changes because the input accepts free-form 
-            // texts and all changes to <value> needs to happen either by programmatically updating <input.value> or 
-            // using the widget, rather than using the DOM API
+            // texts (i.e. type="text") and all changes to <value> needs to happen either by programmatically updating 
+            // <input.value> or using the widget, rather than using the DOM API
         }
     }
 

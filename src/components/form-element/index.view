@@ -54,12 +54,11 @@ readonly is false, so that this edit icon does not display on top of it --}}
   {{/if}}
 {{/inline}}
 
-{{#*inline "render_standalone" visible=true}}
+{{#*inline "render_standalone"}}
   <div class="
         slds-form-element 
         {{padding ? 'slds-p-${padding}' : ''}} 
         {{margin ? 'slds-m-${margin}' : ''}} 
-        {{visible ? "slds-visible" : "slds-hidden"}} 
         {{> ?standalone_classes}}"
   >
 

@@ -106,6 +106,8 @@ class MultiOptionFormElement extends components.FormElement {
 
         const inputId = this.getItemInputId(item);
         this.getItems()[inputId] = item;
+
+        return '';
     }
 
     uncheck() {

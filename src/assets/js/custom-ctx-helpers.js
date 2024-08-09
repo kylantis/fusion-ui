@@ -23,10 +23,11 @@ module.exports = {
             _this.startBlockContext({ loc });
 
             const renderedValue = (() => {
+                const { fn, inverse } = options;
                 if (invert ? !b : b) {
-                    return options.fn(ctx);
+                    return fn(ctx);
                 } else {
-                    return options.inverse(ctx);
+                    return inverse ? inverse(ctx) : '';
                 }
             })();
 
@@ -104,7 +105,7 @@ module.exports = {
             const { fn, inverse, hash, loc } = options;
             const { scopeVar, indexVar,  hook, hookPhase, hookOrder, transform, predicate, nodeIndex, opaqueWrapper } = hash;
             
-            assert(scopeVar && indexVar);
+            assert(scopeVar);
 
             const nodeId = nodeIndex ? this.getNodeIdFromIndex(nodeIndex, loc) : null;
             
@@ -135,7 +136,10 @@ module.exports = {
                         data.random = _this.randomString('random');
 
                         data[scopeVar] = currentValue;
-                        data[indexVar] = index;
+
+                        if (indexVar) {
+                            data[indexVar] = index;
+                        }
                     }
 
                     const isNull = currentValue == null || (predicate ? !_this[predicate].bind(_this)(currentValue) : false);

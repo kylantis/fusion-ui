@@ -50,6 +50,7 @@
 
                     {{#if overflow}}
                         {{var expanded = overflow.expanded}}
+                        
 
                         <button
                             class="slds-button slds-button_reset slds-nav-vertical__action slds-nav-vertical__action_overflow"

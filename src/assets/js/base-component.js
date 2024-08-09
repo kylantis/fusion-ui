@@ -204,7 +204,7 @@ class BaseComponent extends WebRenderer {
         if (isComponent) {
           extendedFutures.push(
             new Promise((resolve) => {
-              data.on('load', resolve);
+              data.on('afterMount', resolve);
             })
           )
         }
@@ -215,13 +215,19 @@ class BaseComponent extends WebRenderer {
 
         const load0 = async () => {
 
-          if (!this.isRootComponent()) {
-            await new Promise(resolve => {
-              setTimeout(resolve, 0);
-            });
-          }
-
           if (isComponent) {
+            const root = this.isRootComponent();
+            const rand = clientUtils.getRandomInt;
+
+            await new Promise(resolve => {
+              setTimeout(
+                resolve,
+                (this.getInstanceIndex() % 2 == 0) ?
+                  root ? rand(0, 1) : rand(10, 20) :
+                  root ? rand(3, 5) : rand(21, 30)
+              );
+            });
+
             const ret = await data.getRenderedHtml();
 
             html = ret.htmlString;
@@ -390,6 +396,7 @@ class BaseComponent extends WebRenderer {
     }
 
     if (handler instanceof EventHandler) {
+      handler.setEventName(evtName);
       handler = this.#convertEventHandlerToString(handler);
     }
 
@@ -469,7 +476,10 @@ class BaseComponent extends WebRenderer {
 
         let type = 'method';
         let fn = handler.startsWith(`${helpersNamespace}.`) ?
-          global[helpersNamespace][handler.replace(`${helpersNamespace}.`, '')]
+          () => {
+            const { unsafeEval } = AppContext;
+            return unsafeEval(handler);
+          }
           : this[handler];
 
         if (typeof fn != 'function') {
@@ -735,7 +745,7 @@ class BaseComponent extends WebRenderer {
   // #API
   async checkPredicate(path) {
     const { dataPathRoot, pathSeparator, predicateHookType } = RootProxy;
-    const { value } = this.proxyInstance.getInfoFromPath(path);
+    const value = this.getInputMap().get(path);
 
     const [hookList, metadata] = await Promise.all([
       this.proxyInstance.getHookListFromPath(path, false, false), this.getMetadata(),

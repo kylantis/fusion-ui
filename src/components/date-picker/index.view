@@ -55,9 +55,9 @@
 
                 <thead>
                     <tr id="{{@root.componentId}}-weekdays">
-                        {{#each getDaysOfTheWeek as |i j|}}
-                            <th id="{{@root.componentId}}-{{i}}" scope="col">
-                                <abbr title="{{i}}">{{j}}</abbr>
+                        {{#each getDaysOfTheWeek as |day|}}
+                            <th id="{{@root.componentId}}-{{day}}" scope="col">
+                                <abbr title="{{day}}">{{@key}}</abbr>
                             </th>
                         {{/each}}
                     </tr>
@@ -97,4 +97,4 @@
   slds-dropdown-trigger {{(readonly or not displayOnHover) ? 'slds-dropdown-trigger_click' : ''}}
 {{/inline}}
 
-{{> render_standalone visible=false}}
+{{> render_standalone}}
