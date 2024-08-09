@@ -9,14 +9,20 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
   static partialNameHash = '__name';
 
+  #decorators = {};
+
+  #stack = [];
+
   constructor({
     id, input, logger, config,
   } = {}) {
     super({
       id, input, logger, config,
     });
+  }
 
-    this.decorators = {};
+  isCustomContext() {
+    return !!this.#stack.length;
   }
 
   getHandlebarsHelpers() {
@@ -37,22 +43,20 @@ class CustomCtxRenderer extends RootCtxRenderer {
   }
 
   storeContext({ options, ctx }) {
-    // eslint-disable-next-line no-undef
-    const { emptyString } = RootProxy;
     const { partialIdHash } = CustomCtxRenderer;
 
     const { hash, fn } = options;
-    this.decorators[hash[partialIdHash]] = {
+    this.#decorators[hash[partialIdHash]] = {
       fn,
       data: ctx,
     };
 
-    return emptyString;
+    return '';
   }
 
   loadContext({ options, ctx }) {
     // eslint-disable-next-line no-undef
-    const { emptyObject, emptyString } = RootProxy;
+    const { emptyObject } = RootProxy;
     const {
       partialIdHash,
       // partialNameHash,
@@ -64,10 +68,10 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     if (hash[partialIdHash]) {
       // eslint-disable-next-line no-undef
-      assert(fn(emptyObject) === emptyString);
+      assert(fn(emptyObject) === '');
 
       // The referenced partial is an inline partial
-      const decorator = this.decorators[hash[partialIdHash]];
+      const decorator = this.#decorators[hash[partialIdHash]];
 
       fn = decorator.fn;
 
@@ -75,7 +79,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
       // ctx = decorator.data; Todo: VERIFY AND REMOVE THIS LINE
     }
 
-    // this.logger.debug(`Loading partial {{> ${partialName} }}`);
+    // this.logger.debug(null, `Loading partial {{> ${partialName} }}`);
 
     return this.renderBlock({
       ctx,
@@ -151,7 +155,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
   captureState() {
     return {
-      blockData: clientUtils.deepClone(this.blockData),
+      blockData: this.blockData ? this.cloneBlockData(this.blockData) : {},
     };
   }
 
@@ -159,17 +163,17 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     const { fn, hash, loc } = options;
 
-    const { blockParam, hook, hookPhase, hookOrder, transform } = hash;
+    const { scopeVar, hook, hookPhase, hookOrder, transform } = hash;
 
     if (scope) {
-      assert(blockParam);
+      assert(scopeVar);
 
-      // The compiler added a special hashkey known as <blockParam> that contains
+      // The compiler added a special hashkey known as <scopeVar> that contains
       // the data variable qualifier used by subpaths, hence prune from <hash> and
       // inject as data variable
-      delete hash.blockParam;
+      delete hash.scopeVar;
 
-      hash[blockParam] = ctx;
+      hash[scopeVar] = ctx;
 
       if (state) {
         hash.state = state;
@@ -179,7 +183,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
         this.registerHook(`#${nodeId}`, hook, hookPhase, hookOrder, loc, (state || options.data.state).blockData);
       }
 
-      options.data = clientUtils.createFrame(options.data);
+      options.data = TemplateRuntime.createFrame(options.data);
     }
 
     if (transform) {
@@ -192,9 +196,13 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     this.startBlockContext({ loc });
 
+    this.#stack.push({ loc });
+
     const renderedValue = fn(
       this.wrapDataWithProxy(ctx), { data: options.data },
     );
+
+    this.#stack.pop();
 
     this.endBlockContext();
 
@@ -210,7 +218,7 @@ class CustomCtxRenderer extends RootCtxRenderer {
     if (transform) {
       transform = this.wrapTransform(transform);
     }
-    
+
     let [value] = params;
 
     const bindContext = this.popDataStack();
@@ -235,7 +243,8 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     } else if (value instanceof BaseComponent) {
       this.logger.warn(
-        `[${getLine({ loc })}] Component "${value.getId()}" needs a bind context inorder to render properly`
+        loc,
+        `Component "${value.getId()}" needs a bind context inorder to render properly`
       );
     }
 
@@ -258,13 +267,12 @@ class CustomCtxRenderer extends RootCtxRenderer {
   }
 
   logical() {
-    const { getExecStringFromValue: execString } = RootCtxRenderer;
     const params = Array.from(arguments);
 
     const [left, right, operator] = params;
 
     return this.proxyInstance.evaluateBooleanExpression(
-      execString(left), execString(right), operator,
+      left, right, operator,
     );
   }
 
@@ -279,8 +287,6 @@ class CustomCtxRenderer extends RootCtxRenderer {
   }
 
   ternary() {
-    const { unsafeEval } = AppContext;
-
     const params = Array.from(arguments);
 
     const options = params.pop();
@@ -291,54 +297,8 @@ class CustomCtxRenderer extends RootCtxRenderer {
     const left = params.pop();
     const condition = [...params];
 
-    const AND = 'AND';
-    const OR = 'OR';
-
-    const and = ' && ';
-    const or = ' || ';
-
-    let scope = '';
-
-    const expr = condition
-      .map((part) => {
-
-        const variableName = global.clientUtils.randomString();
-
-        switch (true) {
-          case part == null:
-          case part === undefined:
-          case part.constructor.name == 'Number':
-          case part.constructor.name == 'Boolean':
-            scope += `const ${variableName} = ${part};\n`;
-            return `!!${variableName}`;
-          case part.constructor.name == 'String':
-            switch (part) {
-              case AND:
-                return and;
-              case OR:
-                return or;
-              default:
-                scope += `const ${variableName} = "${part}";\n`;
-                return `!!${variableName}`;
-            }
-          case part === Object(part):
-            scope += `const ${variableName} = ${JSON.stringify(part)};\n`;
-            return `!!${variableName}`;
-        }
-      })
-      .map((part, index) => {
-        if (conditionInversions[index]) {
-          part = `!${part}`
-        }
-        return part;
-      })
-      .join('');
-
-    const b = unsafeEval(`${scope}${expr}`);
-
-    assert(typeof b == 'boolean');
-
-    let val = b ? left : right;
+    let val = this.proxyInstance.evaluateConditionExpression(condition, conditionInversions, null) ?
+      left : right;
 
     if (invert) {
       val = !val;

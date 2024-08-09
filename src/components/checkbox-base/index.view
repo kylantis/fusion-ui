@@ -5,8 +5,8 @@
       id="{{@root.componentId}}_input"
       value="{{@root.componentId}}_input"
       {{name ? "name=\"${name}\"" : "" }}
-      {{checked ? "checked=''" : "" }}
-      {{disabled ? "disabled=''" : "" }}
+      {{checked ? "checked='checked'" : "" }}
+      {{disabled ? "disabled='disabled'" : "" }}
        onchange="{{fn "onChange"}}(event)"
        {{tabIndex ? "tabIndex=\"${tabIndex}\"" : "" }}
        aria-labelledby="{{@root.componentId}}_label {{labelledBy ? labelledBy : ""}}"

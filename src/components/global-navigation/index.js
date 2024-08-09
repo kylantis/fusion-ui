@@ -1,42 +1,45 @@
 
 class GlobalNavigation extends components.LightningComponent {
 
-    #spinner;
     #tabIds = [];
 
     #items = {};
+    #expandOnHover;
+
+    #mountPromise;
 
     beforeCompile() {
-
-        // DEV PURPOSE ONLY - PLEASE REMOVE
-        components.SidebarLayout;
-        components.Illustration;
-
-        components.OverlayComponent;
-
         this.getInput().tabs[0].isActive;
         this.getInput().tabs[0].contentPadding;
     }
 
+    eventHandlers() {
+        return {
+            ['remove.tabs_$']: ({ value: tab }) => {
+                if (!tab) return;
+
+                const { identifier } = tab;
+
+                this.#tabIds.splice(
+                    this.#tabIds.indexOf(identifier), 1
+                );
+
+                delete this.#items[identifier];
+            }
+        }
+    }
+
     beforeRender() {
-        this.#createSpinner();
+        this.on('remove.tabs_$', 'remove.tabs_$');
 
-        this.on('remove.tabs_$', ({ value: tab }) => {
-            if (!tab) return;
-
-            const { identifier } = tab;
-
-            this.#tabIds.splice(
-                this.#tabIds.indexOf(identifier), 1
-            );
-
-            delete this.#items[identifier];
+        this.#mountPromise = new Promise(resolve => {
+            this.on('afterMount', resolve);
         });
     }
 
     onMount() {
 
-        this.on('bodyClick', () => {
+        BaseComponent.on('bodyClick', () => {
             this.closeOpenSubMenu();
         });
     }
@@ -56,6 +59,9 @@ class GlobalNavigation extends components.LightningComponent {
                 this.#tabIds.push(tabId);
                 return tabId;
             },
+            ['expandOnHover']: (value) => {
+                this.#expandOnHover = value;
+            }
         };
     }
 
@@ -64,17 +70,6 @@ class GlobalNavigation extends components.LightningComponent {
         delete this.bodyClickListener;
 
         super.destroy();
-
-        if (this.#spinner) {
-            this.#spinner.destroy();
-        }
-    }
-
-    #createSpinner() {
-        const spinner = new components.Spinner();
-        this.#spinner = spinner;
-
-        spinner.load();
     }
 
     isSolidIcon(icon) {
@@ -94,24 +89,22 @@ class GlobalNavigation extends components.LightningComponent {
 
     defaultHandlers() {
         return {
-            tabItemClick: async (identifier) => {
-                const { expandOnHover } = this.getInput();
-
-                if (!expandOnHover) {
+            tabItemClick: (identifier) => {
+                if (!this.#expandOnHover) {
                     this.closeOpenSubMenu();
                 }
 
-                await this.setActiveItem(identifier);
+                BaseComponent.dispatchEvent('bodyClick');
+
+                this.setActiveItem(identifier);
             },
             tabClose: (identifier) => { },
             tabActive: (identifier) => {
-                const { expandOnHover } = this.getInput();
-
                 // Once a tab becomes active we want to ensure that all submenus are closed.
                 // If <expandOnHover> is enabled we want to temporarily ensure that when the tab is
                 // hovered, the submenus are not made visible
 
-                if (expandOnHover) {
+                if (this.#expandOnHover) {
                     const { li, subMenu } = this.#getItems()[identifier];
 
                     // Note: if <li> was opened programmatically, slds-dropdown-trigger_click and slds-is-open
@@ -135,9 +128,7 @@ class GlobalNavigation extends components.LightningComponent {
                 }
             },
             tabInactive: (identifier) => {
-                const { expandOnHover } = this.getInput();
-
-                if (expandOnHover) {
+                if (this.#expandOnHover) {
                     const { li } = this.#getItems()[identifier];
                     // Revert the changes made in defaultHandlers.tabActive
 
@@ -150,7 +141,7 @@ class GlobalNavigation extends components.LightningComponent {
 
     behaviours() {
         return [
-            'showLoader', 'hideLoader', 'setActiveItem', 'closeOpenSubMenu',
+            'showSpinner', 'hideSpinner', 'setActiveItem', 'closeOpenSubMenu',
             'toggleSubMenuVisibility', 'closeSubMenu'
         ];
     }
@@ -200,6 +191,10 @@ class GlobalNavigation extends components.LightningComponent {
         // has a separate scrollview, and if the overlay component remains on the body, this will
         // cause it's position to remain static when <container> is being scrolled
         overlayConfig.container = containerSelector;
+
+        const containerNode = document.querySelector(containerSelector);
+
+        containerNode.addEventListener('scroll', components.OverlayComponent.containerScrollListener);
     }
 
     #afterContentLoaded() {
@@ -208,23 +203,27 @@ class GlobalNavigation extends components.LightningComponent {
         delete overlayConfig.container;
     }
 
-    showLoader() {
-        if (!this.#spinner.canDisplay()) {
-            this.#spinner.setCssDisplay();
+    showSpinner() {
+        const spinner = this.getInlineComponent('spinner');
+
+        if (!spinner.canDisplay()) {
+            spinner.setCssDisplay();
         }
 
-        this.#spinner.show((n) => this.show0(n));
+        spinner.show();
 
         this.#clearSpinnerDisplayTimeout();
     }
 
-    hideLoader() {
-        this.#spinner.hide((n) => this.hide0(n));
+    hideSpinner() {
+        const spinner = this.getInlineComponent('spinner');
+
+        spinner.hide();
 
         this.#clearSpinnerDisplayTimeout();
 
         this.spinnerDisplayTimeout = setTimeout(() => {
-            this.#spinner.setCssDisplay('none');
+            spinner.setCssDisplay('none');
         },
             this.#getSpinnerDisplayTimeoutInMillis()
         )
@@ -241,6 +240,10 @@ class GlobalNavigation extends components.LightningComponent {
         return 60000;
     }
 
+    getDefaultDomRelayTimeout() {
+        return 50;
+    }
+
     async setActiveItem(identifier, force = true) {
 
         // If another tab is actively being loaded, do nothing
@@ -255,17 +258,19 @@ class GlobalNavigation extends components.LightningComponent {
 
         const item = items[identifier];
 
+        if (
+            // The tab is already active
+            active == identifier ||
+            // Another tab is active, and we don't want to override
+            !force
+        ) {
+            return;
+        }
+
+        // Indicate that this tab is active
+        item.li.classList.add(activeClassName);
+
         if (active) {
-
-            if (
-                // The tab is already active
-                active == identifier ||
-                // Another tab is active, and we don't want to override
-                !force
-            ) {
-                return;
-            }
-
             const activeItem = items[active];
 
             activeItem.li.classList.remove(activeClassName)
@@ -279,49 +284,47 @@ class GlobalNavigation extends components.LightningComponent {
         item.isActive = true;
 
         if (!item.isLoaded) {
-            this.showLoader();
-
             this.#createTabContentContainer(identifier);
         }
 
-        // Indicate that this tab is active
-        item.li.classList.add(activeClassName);
-
-        this.#showContent(identifier);
-
         // Note: tab contents are loaded lazily by default
         // If tab context is not yet loaded, load it.
+
         if (!item.isLoaded) {
             this.loading = true;
 
             let { content } = item;
 
             if (!content) {
-                content = this.#getDefaultTabContent();
+                content = await this.#getDefaultTabContent();
             }
 
-            const containerSelector = `#${this.#getContentId(identifier)}`;
-
-            this.#beforeContentLoaded(containerSelector);
-
-            if (this.isMounted()) {
-                content.once(() => {
-                    this.hideLoader();
-                }, 'render');
-            }
-
-            await content.load({ container: containerSelector, domRelayTimeout: this.isMounted() ? 50 : 0 });
-
-            if (!this.isMounted()) {
-                this.hideLoader();
-            }
-
-            this.#afterContentLoaded(containerSelector);
+            await this.#loadContentIntoTab(identifier, content);
 
             item.isLoaded = true;
-
             this.loading = false;
+
+        } else {
+            this.#showContent(identifier);
         }
+    }
+
+    async #loadContentIntoTab(identifier, content) {
+        this.showSpinner();
+
+        const containerSelector = `#${this.#getContentId(identifier)}`;
+
+        this.#beforeContentLoaded(containerSelector);
+
+        content.awaitExtendedFutures().then(() => {
+            this.#showContent(identifier);
+        });
+
+        await content.load({ container: containerSelector, domRelayTimeout: this.isMounted() ? 50 : 0 });
+
+        this.hideSpinner();
+
+        this.#afterContentLoaded(containerSelector);
 
         this.dispatchEvent('tabActive', identifier);
     }
@@ -334,10 +337,15 @@ class GlobalNavigation extends components.LightningComponent {
     }
 
     #getContentId(identifier) {
-        return `${this.getId()}-content-${identifier}`;
+        return `${this.getElementId()}-content-${identifier}`;
     }
 
-    #getDefaultTabContent() {
+    async #getDefaultTabContent() {
+
+        // Since 'Illustration' is not inlined in the template, loading of the component class will be
+        // deffered, hence we need to wait (if necessary) until this component is mounted
+        await this.#mountPromise;
+
         return new components.Illustration({
             input: {
                 verticallyAlign: true,
@@ -404,6 +412,7 @@ class GlobalNavigation extends components.LightningComponent {
             // Set this item active, only if no tab is currently active. This means
             // that if in the input data, more than one tab is specified as active,
             // only the first one will be made active.
+
             await this.setActiveItem(identifier, false);
         }
 
@@ -412,13 +421,12 @@ class GlobalNavigation extends components.LightningComponent {
             index == length - 1 &&
             // but we do not yet have any active tab
             !this.#getActive()) {
-            // Look for the first tab that has content, and make that the 
-            // active one
-            for (const identifier of [...Object.keys(items)]) {
-                if (items[identifier].content) {
-                    await this.setActiveItem(identifier);
-                    break;
-                }
+
+            // Look for the first tab that has content, and make that the active one
+            const identifier = Object.keys(items).find(id => items[id].content);
+
+            if (identifier) {
+                await this.setActiveItem(identifier);
             }
         }
 
@@ -426,22 +434,23 @@ class GlobalNavigation extends components.LightningComponent {
     }
 
     #addListeners(li) {
-        const _this = this;
-        const items = this.#getItems();
 
         // When a tab is clicked, dispatch 'tabItemClick' event
-        li.addEventListener('click', function (evt) {
-            const identifier = this.getAttribute('identifier');
-            if (_this.#isSecondaryEvent(evt)) {
+        li.addEventListener('click', (evt) => {
+            const { currentTarget } = evt;
+            const identifier = currentTarget.getAttribute('identifier');
+
+            if (this.#isSecondaryEvent(evt)) {
                 return;
             }
-            _this.dispatchEvent('tabItemClick', identifier)
+            this.dispatchEvent('tabItemClick', identifier)
         }, false);
 
         // If the 'trigger-close' button is clicked, dispatch 'tabClose' event
         li.querySelector('.trigger-close button')
             .addEventListener('click', (evt) => {
                 let identifier;
+
                 for (const node of evt.composedPath()) {
                     if (node.matches(`li.slds-context-bar__item`)) {
                         identifier = node.getAttribute('identifier');
@@ -456,6 +465,7 @@ class GlobalNavigation extends components.LightningComponent {
         // If the 'trigger-submenu' button is clicked, toggleSubMenuVisibility
         li.querySelector('.trigger-submenu button').addEventListener('click', (evt) => {
             let identifier;
+
             for (const node of evt.composedPath()) {
                 if (node.matches(`li.slds-context-bar__item`)) {
                     identifier = node.getAttribute('identifier');
@@ -467,25 +477,29 @@ class GlobalNavigation extends components.LightningComponent {
             this.toggleSubMenuVisibility(identifier);
         });
 
-        li.addEventListener('mouseenter', function (evt) {
-            const { expandOnHover } = _this.getInput();
-            const identifier = this.getAttribute('identifier');
+        li.addEventListener('mouseenter', (evt) => {
+            const { currentTarget } = evt;
 
-            if (!expandOnHover ||
+            const identifier = currentTarget.getAttribute('identifier');
+            const items = this.#getItems();
+
+            if (!this.#expandOnHover ||
                 // When an item is active, the trigger-submenu button is used to toggle
                 // submenu visibility
                 items[identifier].isActive
             ) {
                 return;
             }
-            _this.visibleSubMenuHover = identifier;
+            this.visibleSubMenuHover = identifier;
         });
 
-        li.addEventListener('mouseleave', function (evt) {
-            const { expandOnHover } = _this.getInput();
-            const identifier = this.getAttribute('identifier');
+        li.addEventListener('mouseleave', (evt) => {
+            const { currentTarget } = evt;
 
-            if (!expandOnHover ||
+            const identifier = currentTarget.getAttribute('identifier');
+            const items = this.#getItems();
+
+            if (!this.#expandOnHover ||
                 // When an item is active, the trigger-submenu button is used to toggle
                 // submenu visibility
                 items[identifier].isActive
@@ -493,7 +507,7 @@ class GlobalNavigation extends components.LightningComponent {
                 return;
             }
 
-            _this.visibleSubMenuHover = null;
+            this.visibleSubMenuHover = null;
         });
     }
 
@@ -507,13 +521,11 @@ class GlobalNavigation extends components.LightningComponent {
     }
 
     toggleSubMenuVisibility(identifier) {
-
-        const { expandOnHover } = this.getInput();
         const items = this.#getItems();
 
         const { li, isActive } = items[identifier];
 
-        if (expandOnHover && !isActive) {
+        if (this.#expandOnHover && !isActive) {
 
             if (
                 li.matches('li:hover') ||

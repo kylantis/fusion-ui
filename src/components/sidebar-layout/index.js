@@ -1,8 +1,14 @@
 
 class SidebarLayout extends components.Drawer {
 
-    // this.getContentContainerSelector()
+    // Maintain reference to input data for our "navigation" component
+    // to prevent garbage collection
+    #navigationInput;
 
+    useWeakRef() {
+        return false;
+    }
+    
     beforeRender() {
         const input = this.getInput();
 
@@ -16,6 +22,10 @@ class SidebarLayout extends components.Drawer {
         input.toggleButton = !!isMobile;
     }
 
+    eventHandlers() {
+        return {}
+    }
+
     transformers() {
         return {
             ['navigation']: (navigation) => {
@@ -27,18 +37,23 @@ class SidebarLayout extends components.Drawer {
 
                         const activeItems = this.getActiveNavigationItems();
                         const firstItem = this.getNavigationItems()[0];
-                
+
                         if (!activeItems.length && firstItem) {
-                            this.#setActiveNavItem0(firstItem);
+                            this.setActiveNavItem0(firstItem);
                         }
                     });
 
                 navigation
-                    .on('itemRender', item => {
-                        if (item.active) {
-                            this.#setActiveNavItem0(item);
-                        }
-                    });
+                    .on('itemRender', new EventHandler(
+                        item => {
+                            if (item.active) {
+                                this.setActiveNavItem0(item);
+                            }
+                        },
+                        this,
+                    ));
+
+                this.#navigationInput = navigation.getInput();
 
                 return navigation;
             }
@@ -54,11 +69,11 @@ class SidebarLayout extends components.Drawer {
         const item = navigation.getItems()[navItemId];
 
         if (item) {
-            this.#setActiveNavItem0(item);
+            this.setActiveNavItem0(item);
         }
     }
 
-    #setActiveNavItem0(item) {
+    setActiveNavItem0(item) {
         const activeItems = this.getActiveNavigationItems();
 
         activeItems.forEach(item => {

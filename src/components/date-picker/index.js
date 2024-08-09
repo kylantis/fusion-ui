@@ -15,7 +15,6 @@ class DatePicker extends components.Input {
     }
 
     setupFormElement() {
-
         const input = this.getInput();
 
         let { startDatePicker, dependsOn } = input;
@@ -30,9 +29,13 @@ class DatePicker extends components.Input {
                 dependsOn.push(startDatePicker);
             }
 
-            startDatePicker.on('change', function () {
-                input.startDate = this.getInput().value;
-            });
+            startDatePicker.on('change', new EventHandler(
+                function () {
+                    input.startDate = this.component.getInput().value;
+                },
+                null,
+                { input }
+            ));
         }
     }
 
@@ -73,10 +76,8 @@ class DatePicker extends components.Input {
     }
 
     onMount() {
-        this.show();
-
         if (!this.isMobile()) {
-            this.on('bodyClick', () => {
+            BaseComponent.on('bodyClick', () => {
                 this.hideDatePickerContainer();
             });
         }
@@ -88,58 +89,63 @@ class DatePicker extends components.Input {
         this.#ensureStartDateIsValid();
     }
 
-    afterMount() {
-
-        this.on('insert.displayOnHover', ({ value }) => {
-            this.toggleDisplayOnHover(value);
-        });
-
-        this.on('insert.readonly', ({ value }) => {
-            if (value) {
-                this.hideDatePickerContainer();
-            }
-        });
-
-        this.on('insert.rangeStart', () => {
-            this.#ensureRangeStartIsValid();
-            this.#ensureRangeEndIsValid();
-            this.#ensureStartDateIsValid();
-            this.refreshValue();
-        });
-
-        this.on('insert.rangeEnd', () => {
-            this.#ensureRangeEndIsValid();
-            this.#ensureStartDateIsValid();
-            this.refreshValue();
-        });
-
-        this.on('insert.startDate', () => {
-            this.#ensureStartDateIsValid();
-            this.refreshValue();
-        });
-
+    eventHandlers() {
         const _this = this;
 
-        this.on('insert.value', function () {
-            // We don't want this event to bubble to the DOM because:
-            // * If on mobile: the change was already on the DOM before this hook was called
-            // * If on desktop: the change was made because  <input.value> was programmatically updated and the user is not expected
-            //                  to see an an ISO string or some other weird value in the input element. Instead, we will update the DOM
-            //                  ourselves in refreshValue()
-            
-            this.preventDefault();
+        return {
+            ['insert.displayOnHover']: ({ value }) => {
+                this.toggleDisplayOnHover(value);
+            },
+            ['insert.readonly']: ({ value }) => {
+                if (value) {
+                    this.hideDatePickerContainer();
+                }
+            },
+            ['insert.rangeStart']: () => {
+                this.#ensureRangeStartIsValid();
+                this.#ensureRangeEndIsValid();
+                this.#ensureStartDateIsValid();
+                this.refreshValue();
+            },
+            ['insert.rangeEnd']: () => {
+                this.#ensureRangeEndIsValid();
+                this.#ensureStartDateIsValid();
+                this.refreshValue();
+            },
+            ['insert.startDate']: () => {
+                this.#ensureStartDateIsValid();
+                this.refreshValue();
+            },
+            ['insert.value']: function () {
+                // We don't want this event to bubble to the DOM because:
+                // * If on mobile: the change was already on the DOM before this hook was called
+                // * If on desktop: the change was made because  <input.value> was programmatically updated and the user is not expected
+                //                  to see an an ISO string or some other weird value in the input element. Instead, we will update the DOM
+                //                  ourselves in refreshValue()
 
-            _this.refreshValue();
+                this.preventDefault();
 
-            const { value } = _this.getInput();
+                _this.refreshValue();
 
-            if (value) {
-                // The change went through, dispatch select event
-                const date = _this.createDate(value);
+                const { value } = _this.getInput();
 
-                _this.dispatchEvent('select', date.getDate(), date.getMonth() + 1, date.getFullYear());
+                if (value) {
+                    // The change went through, dispatch select event
+                    const date = _this.createDate(value);
+
+                    _this.dispatchEvent('select', date.getDate(), date.getMonth() + 1, date.getFullYear());
+                }
             }
-        });
+        }
+    }
+
+    afterMount() {
+        this.on('insert.displayOnHover', 'insert.displayOnHover');
+        this.on('insert.readonly', 'insert.readonly');
+        this.on('insert.rangeStart', 'insert.rangeStart');
+        this.on('insert.rangeEnd', 'insert.rangeEnd');
+        this.on('insert.startDate', 'insert.startDate');
+        this.on('insert.value', 'insert.value');
     }
 
     #setDefaultRangeStart() {
@@ -307,8 +313,8 @@ class DatePicker extends components.Input {
         } else {
 
             // On desktop, we want to do nothing whenever the DOM value changes because the input accepts free-form 
-            // texts and all changes to <value> needs to happen either by programmatically updating <input.value> or 
-            // using the widget, rather than using the DOM API
+            // texts (i.e. type="text") and all changes to <value> needs to happen either by programmatically updating 
+            // <input.value> or using the widget, rather than using the DOM API
         }
     }
 
@@ -377,11 +383,11 @@ class DatePicker extends components.Input {
     getDatePickerTriggerClickListener() {
 
         return this.datePickerTriggerClickListener ||
-            (this.datePickerTriggerClickListener = ({ target }) => {
+            (this.datePickerTriggerClickListener = ({ currentTarget }) => {
 
                 if (!this.isDatePickerContainerVisible()) {
                     this.showDatePickerContainer();
-                } else if (target == this.getDatePickerTriggerButton().getButton()) {
+                } else if (currentTarget == this.getDatePickerTriggerButton().getButton()) {
                     this.hideDatePickerContainer();
                 }
             });
@@ -466,9 +472,8 @@ class DatePicker extends components.Input {
         this.#renderWidget0();
     }
 
-    #renderWidget0() {
-        const decorator = this.getDecorator('date_picker');
-        this.renderDecorator(decorator, this.getPopupWidgetContainer());
+    async #renderWidget0() {
+        this.renderDecorator('date_picker', this.getPopupWidgetContainer());
 
         // Add transition here, if applicable
     }

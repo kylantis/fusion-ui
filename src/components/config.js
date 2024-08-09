@@ -10,5 +10,11 @@ module.exports = {
     
     extendedWindowProperties: [
         'HTMLElement', 'Node', 'ResizeObserver'
-    ]
+    ],
+
+    componentReferences: ["Tooltip"],
+
+    serverExludedFiles: [
+        "/components/*/config.json"
+    ],
 }

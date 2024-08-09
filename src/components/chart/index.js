@@ -4,9 +4,8 @@
  */
 
 // Todo: Create HeatMap component
-// Todo: Add data binding capability via hooks
 
-class Chart extends components.LightningComponent {
+class Chart extends BaseComponent {
 
     beforeCompile() {
         this.getInput().title;
@@ -116,7 +115,7 @@ class Chart extends components.LightningComponent {
         return cloneData({ labels, datasets, yMarkers, yRegions });
     }
 
-    onMount() {
+    afterMount() {
         const { getWrapperCssClass } = BaseComponent;
         const {
             type, title, height, colors, truncateLegends, maxSlices, animate,

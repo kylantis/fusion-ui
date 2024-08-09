@@ -7,6 +7,7 @@
 
 // eslint-disable-next-line no-undef
 class RootCtxRenderer extends BaseRenderer {
+
   static syntheticAliasSeparator = '$$';
 
   static syntheticBlockKeyPrefix = `each${this.syntheticAliasSeparator}`;
@@ -19,39 +20,27 @@ class RootCtxRenderer extends BaseRenderer {
 
   static cachedNameSuffix = '_cached';
 
-  static nodePruneTimeout = 5000;
-
   static #token;
-
-  static #helpersNamespace = '__helpers';
-
-  static rootTag = 'html';
 
   static attrBindContextEvent = 'attributeBindContext';
 
-  static #nodeDetachListeners = {};
-
   static nodeIdSelector = /#([a-zA-Z][a-zA-Z0-9_-]*)/;
+
+  static attributeValueWrapper = `"`;
+
+  static #instancesMap = new Map();
+
+  #hooksQueue = [];
 
   #dataStack;
 
   #attributeEmitContext;
 
-  #inlineComponentInstances;
-
   #syntheticCache;
 
-  #objectRegistry;
+  #helperFunctionNames = {};
 
-  #handlebars;
-
-  #handlebarsOptions;
-
-  #promise;
-
-  #resolve;
-
-  #futures;
+  #inlineComponentInstances;
 
   #rendered;
 
@@ -59,15 +48,13 @@ class RootCtxRenderer extends BaseRenderer {
 
   #emitContext;
 
-  #helperFunctionNames;
+  #renderContext;
 
   #hooks;
 
-  #mustacheStatements;
+  #addAttributeValueObserver;
 
-  #transformers;
-
-  #initializers;
+  #methodInvokeCache;
 
   constructor({
     id, input, logger, config,
@@ -76,30 +63,53 @@ class RootCtxRenderer extends BaseRenderer {
       id, input, logger, config,
     });
 
-    this.#promise = new Promise((resolve) => {
-      this.#resolve = resolve;
-    });
-
-    this.#futures = [];
-
     this.#inlineComponentInstances = {};
-    this.#objectRegistry = {};
-    this.#mustacheStatements = {};
+
     this.#hooks = {};
+
+    this.#emitContext = [];
+    this.#renderContext = [];
 
     // Todo: Move these to the emit context
     this.#dataStack = [];
+
+    // Todo: Make blockData private, very important
     this.blockData = {};
+
+    // Todo: Make syntheticContext private as well
     this.syntheticContext = {};
+
     this.#syntheticCache = [];
+    this.#methodInvokeCache = {};
   }
 
-  getFutures() {
-    return this.#futures;
+  destroy() {
+    super.destroy();
+
+    const b = RootCtxRenderer.#instancesMap.delete(this.getId());
+
+    assert(b);
+
+    Object.values(this.#inlineComponentInstances)
+      .forEach(i => {
+        i.destroy();
+      })
+
+    this.#inlineComponentInstances = null;
+
+    setTimeout(() => {
+      delete this.node;
+    }, 5000);
+
+    this.#pruneRuntimeGlobalHelpers();
   }
 
-  getPromise() {
-    return this.#promise;
+  static onComponentNodeRemoved(id) {
+    const instance = this.#instancesMap.get(id);
+
+    if (instance) {
+      instance.destroy();
+    }
   }
 
   isMounted() {
@@ -113,55 +123,68 @@ class RootCtxRenderer extends BaseRenderer {
     RootCtxRenderer.#token = token;
   }
 
+  hasRenderContext() {
+    return !!this.#renderContext.length;
+  }
+
+  getRenderContext() {
+    if (!this.hasRenderContext()) {
+      this.throwError(`No render context exists`);
+    }
+    return this.#renderContext.at(-1);
+  }
+
   hasEmitContext() {
-    return !!this.#emitContext;
+    return !!this.#emitContext.length;
   }
 
   getEmitContext() {
     if (!this.hasEmitContext()) {
       this.throwError(`No emit context exists`);
     }
-
-    return this.#emitContext;
+    return this.#emitContext.at(-1);
   }
 
   getAttributeEmitContext() {
     return this.#attributeEmitContext;
   }
 
-  startTokenizationContext(blockStack = []) {
-    const { rootTag } = RootCtxRenderer;
-    const tokenize = this.hasBlockTransform();
+  pushToEmitContext(ctx) {
+    this.#emitContext.push(ctx);
+  }
 
-    const streamTokenizer = tokenize ? new hyntax.StreamTokenizer() : null;
+  popEmitContext() {
+    this.#emitContext.pop();
+  }
 
-    if (tokenize) {
+  startTokenizationContext({ blockStack = [] } = {}) {
+
+    const hasBlockTransform = this.hasBlockTransform();
+    const streamTokenizer = hasBlockTransform ? new hyntax.StreamTokenizer() : null;
+
+    if (streamTokenizer) {
       streamTokenizer
         .on('data', (tokens) => {
-          this.#emitContext.tokenList = this.#emitContext.tokenList.concat(tokens);
+          const ctx = this.getEmitContext();
+          ctx.tokenList = ctx.tokenList.concat(tokens);
         });
     }
 
-    this.#emitContext = {
-      tokenList: [], stringBuffer: '',
-      blockStack, variables: {}, transforms: {},
-      nodeIdStore: {}, logicGateParticipants: {},
-      write: tokenize ?
-        (value, force) => {
-          if (!blockStack.length || force) {
+    const ctx = {
+      tokenList: [], blockStack, variables: {},
+      transforms: {}, stringBuffer: [], tokenize: !!streamTokenizer,
+      nodeIdStore: {}, logicGates: {}, mustacheStatements: {}, hooks: [],
+      write: (value, force) => {
+        if (!blockStack.length || force) {
+          if (streamTokenizer) {
             streamTokenizer.write(value);
           }
-        } :
-        (value, force) => {
-          if (!blockStack.length || force) {
-            this.#emitContext.stringBuffer += value;
-          }
-        },
+          ctx.stringBuffer.push(value);
+        }
+      }
     };
 
-    if (tokenize) {
-      this.#emitContext.write(`<${rootTag}>`);
-    }
+    this.pushToEmitContext(ctx);
   }
 
   getFunctionListFromString(str) {
@@ -169,38 +192,94 @@ class RootCtxRenderer extends BaseRenderer {
     return getCommaSeperatedValues(str).map(n => this[n].bind(this));
   }
 
-  finalizeTokenizationContext({ transform } = {}) {
-    const { rootTag } = RootCtxRenderer;
+  finalizeTokenizationContext({ transform, asString = true } = {}) {
+    const { visitHtmlAst } = RootCtxRenderer;
 
-    const { stringBuffer } = this.#emitContext;
-    const tokenize = this.hasBlockTransform();
+    const ctx = this.getEmitContext();
 
-    let htmlString;
+    const { mustacheStatements, hooks, tokenList, tokenize, stringBuffer } = ctx;
+
+    let ast;
+    let ret;
 
     if (tokenize) {
-      this.#emitContext.write(`</${rootTag}>`);
+      const { ast: _ast } = hyntax.constructTree(tokenList);
+      this.#applyTransformsToAst({ ast: _ast, transform });
 
-      const ast = hyntax.constructTree(this.#emitContext.tokenList).ast.content.children[0];
-
-      if (transform) {
-        (
-          (typeof transform == 'function') ? [transform] :
-            this.getFunctionListFromString(transform)
-        )
-          .forEach(fn => fn(ast.content.children))
-      }
-
-      htmlString = this.stringifyHtmlAst({ ast });
-
-    } else {
-      htmlString = stringBuffer;
+      ast = _ast;
     }
 
-    assert(!this.#emitContext.logicGateParticipants.length);
+    if (asString) {
+      if (ast) {
+        const arr = [];
+        visitHtmlAst({
+          ast, emitter: (s) => {
+            arr.push(s);
+          }, format: false,
+        });
+        ret = arr.join('');
+      } else {
+        ret = stringBuffer.join('');
+      }
+    } else {
+      ret = ast ? this.createDomNodeFromAst({ ast, format: false }) : this.#parseHTMLString(stringBuffer.join(''));
+    }
 
-    this.#emitContext = null;
+    this.popEmitContext();
 
-    return { htmlString };
+    if (this.dataBindingEnabled()) {
+
+      if (hooks.length) {
+        this.#hooksQueue.push('');
+      }
+
+      this.onContextFinalization(() => {
+        const { MustacheStatementList, HookList } = RootProxy;
+
+        const { primaryKey } = MustacheStatementList;
+
+        const promises = [
+          MustacheStatementList.put(
+            this.proxyInstance, Object.entries(mustacheStatements)
+              .map(([k, v]) => ({
+                [primaryKey]: k, ...v,
+              }))
+          )
+        ];
+
+        hooks.forEach(([path, hook]) => {
+
+          // Remove internal data from blockStack
+          hook.blockStack = hook.blockStack.map(block => {
+            const ret = { ...block };
+            delete ret.variables;
+            return ret;
+          });
+
+          promises.push(
+            HookList.add(this.proxyInstance, path, hook)
+          );
+        });
+
+        Promise.all(promises).then(() => {
+          this.#hooksQueue.pop();
+
+          this.dispatchEvent('popHooksQueue');
+        });
+      });
+    }
+
+    return ret;
+  }
+
+  hasPendingHooks() {
+    return this.#hooksQueue.length;
+  }
+
+  #parseHTMLString(htmlString) {
+    const parser = new window.DOMParser();
+    const doc = parser.parseFromString(htmlString, 'text/html');
+    return doc.body.firstChild;
   }
 
   registerNodeId(nodeIndex, nodeId) {
@@ -211,15 +290,20 @@ class RootCtxRenderer extends BaseRenderer {
     }
   }
 
-  getBlockContextObject({ blockId, loc }) {
-    return { blockId, loc, variables: {} };
+  getBlockContextObject({ blockId, blockData, loc }) {
+    return {
+      blockId, blockData, variables: {},
+      locString: clientUtils.getLine({ loc }, false, true)
+    };
   }
 
-  startBlockContext({ blockId = clientUtils.randomString(), loc }) {
+  startBlockContext({ blockId = this.randomString('blockId', 3), blockData, loc }) {
 
     const { blockStack } = this.getEmitContext();
 
-    blockStack.push(this.getBlockContextObject({ blockId, loc }));
+    blockStack.push(
+      this.getBlockContextObject({ blockId, blockData, loc })
+    );
 
     return blockId;
   }
@@ -230,25 +314,37 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   addVariableToScope(key, value) {
-    const { blockStack, variables } = this.getEmitContext();
+    const ctx = this.getEmitContext();
+    let { blockStack = [], variables } = ctx;
 
     if (blockStack.length) {
-      blockStack[blockStack.length - 1].variables[key] = value;
+      const block = blockStack.at(-1);
+      if (!block.variables) {
+        block.variables = {};
+      }
+      block.variables[key] = value;
     } else {
+      if (!variables) {
+        ctx.variables = variables = {};
+      }
       variables[key] = value;
     }
   }
 
-  getVariablesInScope() {
+  getVariableInScope(name) {
     const { blockStack, variables } = this.getEmitContext();
 
-    let result = { ...variables };
+    if (blockStack) {
+      for (let i = blockStack.length - 1; i >= 0; i--) {
+        const { variables } = blockStack[i];
 
-    blockStack.forEach(({ variables }) => {
-      result = { ...result, ...variables }
-    });
+        if (variables && variables[name] !== undefined) {
+          return variables[name];
+        }
+      }
+    }
 
-    return result;
+    return variables ? variables[name] : undefined;
   }
 
   nodeIdTransformSelector(nodeId) {
@@ -260,13 +356,76 @@ class RootCtxRenderer extends BaseRenderer {
     this.getEmitContext().transforms[selector] = methodName;
   }
 
-  getMetadata(assetId) {
-    return global.templates[`metadata_${assetId}`];
+  #getRuntimeHelpers() {
+    const { getMetaHelpers } = RootCtxRenderer;
+
+    const helpers = this.getHandlebarsHelpers()
+
+    // Register meta helper(s)
+    for (const helperName of getMetaHelpers()) {
+      // eslint-disable-next-line no-underscore-dangle
+      const _this = this;
+      helpers[helperName] = function () {
+        // eslint-disable-next-line prefer-rest-params
+        const params = Array.from(arguments);
+        const options = params.pop();
+
+        return _this[helperName]
+          .bind(_this)({ options, ctx: this, params });
+      };
+    }
+
+    return helpers;
   }
 
-  getDecorator(decoratorName) {
-    const { decorators } = this.getMetadata(this.getAssetId());
+  #invokeHelper(helperName, ...args) {
+    try {
+      return this[helperName].bind(this)(...args);
+    } catch (e) {
+      console.error(e);
+    }
+  }
 
+  getHelpersNamespace() {
+    return '__helpers';
+  }
+
+  #createRuntimeGlobalHelpers() {
+    // Expose global helpers as global functions for our fn helper
+
+    const noOpHelper = 'noOp';
+
+    const helpersNamespace = this.getHelpersNamespace();
+    const __helpers = global[helpersNamespace] || (global[helpersNamespace] = {});
+
+    for (const helperName of this.getGlobalHelpers()) {
+
+      const id = this.randomString('globalHelpers');
+      this.#helperFunctionNames[helperName] = id;
+
+      __helpers[id] = (...args) => {
+        this.#invokeHelper(helperName, ...args)
+      };
+    }
+
+    if (!__helpers[noOpHelper]) {
+      __helpers[noOpHelper] = () => { }
+    }
+  }
+
+  #pruneRuntimeGlobalHelpers() {
+    const helpersNamespace = this.getHelpersNamespace();
+    const __helpers = global[helpersNamespace] || (global[helpersNamespace] = {});
+
+    Object.values(this.#helperFunctionNames).forEach(id => {
+      delete __helpers[id];
+    });
+
+    this.#helperFunctionNames = null;
+  }
+
+  #getDecoratorFromMetadata(decoratorName, metadata) {
+    const { decorators } = metadata;
     const decorator = decorators[decoratorName];
 
     if (!decorator) {
@@ -276,38 +435,112 @@ class RootCtxRenderer extends BaseRenderer {
     return decorator;
   }
 
-  renderDecorator({ program, config }, target) {
+  getTemplateSpecForBlock({ metadata, locString, inverse }) {
+    const { blockPrograms, programTree } = metadata;
 
-    const fn = () => this.#handlebars.template(program)(
-      this.rootProxy, this.#handlebarsOptions,
+    let { innerPrg } = blockPrograms[locString];
+
+    if (inverse) {
+
+      if (Array.isArray(innerPrg) && innerPrg[1]) {
+        innerPrg = innerPrg[1];
+      } else {
+        return null;
+      }
+
+    } else if (Array.isArray(innerPrg)) {
+      [innerPrg] = innerPrg;
+    }
+
+    const templateSpec = {
+      main: this.#getProgram(metadata, innerPrg)[1],
+      useData: true,
+    };
+
+    programTree[innerPrg].forEach(p => {
+      const [id, program] = this.#getProgram(metadata, p);
+      templateSpec[id] = program;
+    });
+
+    return templateSpec;
+  }
+
+  getTemplateFunction({ metadata, templateSpec, locString }) {
+    return () => {
+
+      const helpers = this.#getRuntimeHelpers();
+
+      this.#createRuntimeGlobalHelpers();
+
+      return global.TemplateRuntime.template(this, metadata, templateSpec, helpers)
+        (this.rootProxy);
+    };
+  }
+
+  /**
+   * Render a runtime decorator block
+   * 
+   * @param {string} decoratorName 
+   * @param {Function | Node} target If target is a function, the general contract is that the htmlString
+   * passed to it would have been added to the DOM after the function returns
+   * @param blockData
+   * @returns Promise<Promise[]> a list of promises; and after they all resolve, this decorator is guaranteed
+   *          to have fully mounted on the DOM
+   */
+
+  async renderDecorator(decoratorName, target, blockData) {
+    const futures = this.renderDecorator0(
+      decoratorName, target, blockData, await this.getMetadata(), { data: {} },
     );
 
-    if (this.#emitContext) {
+    this.dispatchEvent('domLoaded');
+    this.pruneLifecycleEventHandlers();
 
-      // A tokenization context exists - this method was called by handlebars.VM.invokePartial 
-      // to resolve a partial
-      return fn();
+    return futures;
+  }
 
+  renderDecorator0(decoratorName, target, blockData, metadata, runtimeOptions) {
+
+    const { templateSpec, locString } = this.#getDecoratorFromMetadata(decoratorName, metadata);
+
+    this.startRenderingContext({ decoratorName, runtimeOptions });
+    this.startTokenizationContext();
+
+    /////=====================================/////
+
+    const fn = this.getTemplateFunction({ metadata, templateSpec, locString });
+
+    if (blockData) {
+      this.executeWithBlockData(fn, blockData);
     } else {
-
-      // const { decoratorName } = config;
-
-      this.startRenderingContext();
-      this.startTokenizationContext();
-
       fn();
+    }
 
-      const { htmlString } = this.finalizeTokenizationContext();
+    /////=====================================/////
 
+    const htmlString = this.finalizeTokenizationContext();
+
+    if (target) {
       if (typeof target == 'function') {
         target(htmlString);
       } else {
         assert(target instanceof Node);
         target.innerHTML = htmlString;
       }
-
-      this.finalizeRenderingContext();
     }
+
+    const { futures, extendedFutures } = this.finalizeRenderingContext();
+    return [...futures, ...extendedFutures];
+  }
+
+  #getProgram(metadata, id) {
+    if (id.includes('/')) {
+      const [decoratorName, _id] = id.split('/');
+      return [
+        _id, this.#getDecoratorFromMetadata(decoratorName, metadata).templateSpec[_id]
+      ];
+    }
+    return [id, metadata.templateSpec[id]];
   }
 
   isLoadable0() {
@@ -318,51 +551,46 @@ class RootCtxRenderer extends BaseRenderer {
     return this.isLoadable0();
   }
 
-  stringifyHtmlAst({ ast }) {
+  #applyTransformsToAst({ ast, transform }) {
     const { visitHtmlAst } = RootCtxRenderer;
 
-    const arr = [];
     const { transforms } = this.getEmitContext();
 
-    const tagVisitor = (node) => {
-      const { content } = node;
+    if (transform) {
+      const { content: { children } } = ast;
 
-      const attr = (k) => (content.attributes || []).filter(({ key: { content } }) => content == k)[0];
-
-      const idAttr = attr('id');
-
-      if (idAttr) {
-
-        const nodeId = idAttr.value.content;
-
-        const nodeIdTransform = transforms[this.nodeIdTransformSelector(nodeId)];
-
-        if (nodeIdTransform) {
-          this.getFunctionListFromString(nodeIdTransform)
-            .forEach(fn => fn(node))
-        }
+      if (children) {
+        (
+          (typeof transform == 'function') ? [transform] :
+            this.getFunctionListFromString(transform)
+        )
+          .forEach(fn => fn(children))
       }
     }
 
-    const emitter = (value) => {
-      arr.push(value);
-    };
-
     if (Object.keys(transforms).length) {
-      visitHtmlAst({
-        ast, tagVisitor,
-      });
+      const tagVisitor = (node) => {
+        const { content } = node;
+
+        const attr = (k) => (content.attributes || []).filter(({ key: { content } }) => content == k)[0];
+        const idAttr = attr('id');
+
+        if (idAttr) {
+          const nodeId = idAttr.value.content;
+          const nodeIdTransform = transforms[this.nodeIdTransformSelector(nodeId)];
+
+          if (nodeIdTransform) {
+            this.getFunctionListFromString(nodeIdTransform)
+              .forEach(fn => fn(node))
+          }
+        }
+      }
+
+      visitHtmlAst({ ast, tagVisitor });
     }
-
-    visitHtmlAst({
-      ast, emitter, format: false,
-    });
-
-    return arr.join('');
   }
 
   static visitHtmlAst({ ast, emitter, tagVisitor, format }) {
-    const { rootTag } = RootCtxRenderer;
 
     const formatText = (value) => {
       return format ? value.trim().replace(/\s+/g, ' ') : value;
@@ -468,17 +696,135 @@ class RootCtxRenderer extends BaseRenderer {
       }
     }
 
-    assert(ast.content.name == rootTag);
-
-    acceptChildren(ast.content.children);
+    if (ast.content.children) {
+      acceptChildren(ast.content.children);
+    }
   }
+
+  createDomNodeFromAst({ ast, format }) {
+
+    const formatText = (value) => {
+      return format ? value.trim().replace(/\s+/g, ' ') : value;
+    }
+
+    const acceptChildren = (node, children) => {
+      [...children]
+        .forEach((n) => acceptNode(node, n));
+    }
+
+    const acceptAttribute = (node, attribute) => {
+      const { key, startWrapper, value = { content: '' }, endWrapper } = attribute;
+      assert(key);
+
+      this.setNodeAttribute(node, key.content, formatText(value.content));
+    }
+
+    const acceptNode = (parentNode, node) => {
+      let ret;
+
+      switch (node.nodeType) {
+        case 'doctype':
+        case 'document':
+          break;
+
+        case 'text':
+          (() => {
+            const { value } = node.content;
+
+            parentNode.appendChild(
+              document.createTextNode(
+                formatText(value.content)
+              )
+            );
+          })();
+          break;
+        case 'script':
+        case 'style':
+        case 'tag':
+          (() => {
+            const { attributes, children, openStart } = node.content;
+
+            const tagName = openStart.content.replace('<', '');
+            const _node = document.createElement(tagName);
+
+            if (attributes) {
+              attributes.forEach(n => {
+                acceptAttribute(_node, n);
+              });
+            }
+
+            if (children) {
+              acceptChildren(_node, children);
+            }
+
+            parentNode.appendChild(_node);
+          })();
+          break;
+
+        default:
+          throw Error(`Unknown node type "${node.nodeType}"`);
+      }
+
+      return ret;
+    }
+
+    if (ast.content.children) {
+      const documentFragment = document.createDocumentFragment();
+
+      acceptChildren(documentFragment, ast.content.children);
+      return documentFragment;
+
+    } else {
+      return document.createTextNode('');
+    }
+  }
+
+  setNodeAttribute(node, attrName, attrValue) {
+    const elementName = node.tagName.toLowerCase();
+
+    const htmlIntrinsicAttrs = this.getHtmlIntrinsicAttributes(elementName);
+
+    const { type } = (htmlIntrinsicAttrs[attrName] || {});
+
+    if (type == 'boolean') {
+      node[attrName] = attrValue === undefined ? null : !!attrValue;
+    } else {
+      if (attrValue === undefined) {
+        node.removeAttribute(attrName);
+      } else {
+        if (type) {
+          node[attrName] = attrValue;
+        } else {
+          node.setAttribute(attrName, attrValue);
+        }
+      }
+    }
+  }
+
 
   isComponentRendered() {
     return this.#rendered;
   }
 
+  async getMetadata() {
+    const classMmetadata = self.appContext.getComponentClassMetadataMap()[this.getComponentName()];
+
+    if (!classMmetadata.metadata) {
+      assert(!this.isHeadlessContext());
+
+      classMmetadata.metadata = await self.appContext.fetch(
+        `/components/${this.getAssetId()}/metadata.min.js`
+      );
+
+      setTimeout(() => {
+        classMmetadata.metadata = null;
+      }, 5000);
+    }
+
+    return classMmetadata.metadata;
+  }
+
   async getRenderedHtml({ token }) {
-    const { getMetaHelpers } = RootCtxRenderer;
 
     if (token !== RootCtxRenderer.#token && !this.isRoot()) {
       throw Error(`Invalid token: ${token}`);
@@ -488,117 +834,47 @@ class RootCtxRenderer extends BaseRenderer {
       throw Error(`${this.getId()} is already rendered`);
     }
 
-    super.init();
+    await super.init();
 
     await this.invokeLifeCycleMethod('beforeRender');
 
     this.dispatchEvent('beforeRender');
 
-    const componentHelpers = {};
-
-    // Register dynamic helpers
-    for (const helperName of this.getHelpers()) {
-      componentHelpers[helperName] = this[helperName].bind(this);
-    }
-
-    const helpers = {
-      ...componentHelpers,
-      ...this.getHandlebarsHelpers(),
-    }
-
-    // Register meta helper(s)
-    for (const helperName of getMetaHelpers()) {
-      // eslint-disable-next-line no-underscore-dangle
-      const _this = this;
-      helpers[helperName] = function () {
-        // eslint-disable-next-line prefer-rest-params
-        const params = Array.from(arguments);
-        const options = params.pop();
-
-        return _this[helperName]
-          .bind(_this)({ options, ctx: this, params });
-      };
-    }
-
-    if (!this.#helperFunctionNames) {
-      // Expose global helpers as global functions for our fn helper
-      this.#helperFunctionNames = {};
-      const noOpHelper = 'noOp';
-
-      const helpersNamespace = RootCtxRenderer.#helpersNamespace;
-      const __helpers = window[helpersNamespace] || (window[helpersNamespace] = {});
-
-      for (const helperName of this.getGlobalHelpers()) {
-        let helperFn = componentHelpers[helperName];
-
-        if (!helperFn) {
-          helperFn = this[helperName].bind(this);
-        }
-
-        const id = clientUtils.randomString();
-
-        this.#helperFunctionNames[helperName] = id;
-        __helpers[id] = helperFn;
-      }
-
-      if (!__helpers[noOpHelper]) {
-        __helpers[noOpHelper] = () => { }
-      }
-    }
-
-    // Control prototype access, to prevent attackers from executing
-    // arbitray code on user machine, more info here:
-    // https://handlebarsjs.com/api-reference/runtime-options.html#options-to-control-prototype-access
-    const allowedPaths = this.getSyntheticMethod({ name: 'allowedPaths' })();
-    const allowedProtoProperties = {};
-
-    for (const path of allowedPaths) {
-      allowedProtoProperties[path] = true;
-    }
-
-    // Create new handlebars environment
-    this.#handlebars = Handlebars.create();
-
-    // Add a custom partial resolver, inorder to expose runtime decorators as partials
-    this.#handlebars.VM.invokePartial = (partial, context, options) => {
-      return this.renderDecorator(
-        this.getDecorator(options.name)
-      );
-    };
-
-    this.#handlebarsOptions = {
-      helpers,
-      allowedProtoProperties: {
-        // Todo: Stop passing in everthing, we only need the paths prefixed with "data__r$_"
-        // To test any future fix, use checkbox component because it contains a custom context
-        ...allowedProtoProperties,
-      },
-    };
-
-    const { template } = this.getMetadata(this.getAssetId());
-
+    this.startRenderingContext();
     this.startTokenizationContext();
 
-    this.startSyntheticCacheContext();
 
-    // eslint-disable-next-line no-undef
-    this.#handlebars.template(template)(
-      {
-        data: this.rootProxy,
-      },
-      this.#handlebarsOptions,
-    );
+    /////=====================================/////
 
-    this.pruneSyntheticCache();
+    const metadata = await this.getMetadata();
+    const { templateSpec } = metadata;
 
-    const { htmlString } = this.finalizeTokenizationContext();
+    const helpers = this.#getRuntimeHelpers();
+
+    this.#createRuntimeGlobalHelpers();
+
+    global.TemplateRuntime.template(this, metadata, templateSpec, helpers)
+      (this.rootProxy);
+
+    /////=====================================/////
+
+
+    const htmlString = this.finalizeTokenizationContext();
+
+    const renderContext = this.#finalizeRenderingContext();
+
+    this.blockData = null;
 
     this.#rendered = true;
 
-    return htmlString;
+    return { htmlString, renderContext };
   }
 
-  async load({ container, token, html, style = {}, domRelayTimeout = 5 }) {
+  getDefaultDomRelayTimeout() {
+    return 0;
+  }
+
+  async load({ container, token, html, renderContext, domRelayTimeout = this.getDefaultDomRelayTimeout() }) {
 
     const { htmlWrapperCssClassname } = RootCtxRenderer;
 
@@ -610,7 +886,7 @@ class RootCtxRenderer extends BaseRenderer {
       this.throwError(`Invalid token: ${token}`);
     }
 
-    super.init();
+    await super.init();
 
     if (!this.isLoadable()) {
       this.throwError(`Component is not loadable`);
@@ -619,28 +895,43 @@ class RootCtxRenderer extends BaseRenderer {
     const parentNode = container ? document.querySelector(container) : document.body;
 
     // We require that the <parentNode> is a live element, present om the DOM
-    assert(parentNode != null, `DOMElement #${container} does not exist`);
+    assert(parentNode != null, `DOMElement ${container} does not exist`);
 
     this.node = document.createElement('div');
 
-    this.node.id = this.getElementId();
+    this.node.id = this.getId();
     this.node.classList.add(htmlWrapperCssClassname);
     this.node.setAttribute('__component', this.getId())
 
     parentNode.appendChild(this.node);
 
-    if (!html) {
-      html = await this.getRenderedHtml({ token });
+    // const startTime = performance.now();
+
+    if (!renderContext) {
+      const ret = await this.getRenderedHtml({ token });
+
+      html = ret.htmlString;
+      renderContext = ret.renderContext;
     }
+
+    // const endTime = performance.now()
+
+    // if (!this.isHeadlessContext() && this.isRootComponent()) {
+    //   this.logger.info(null, `Template rendered after ${endTime - startTime} ms`);
+    // }
 
     this.node.innerHTML = html;
 
-    this.dispatchEvent('templateRender');
+    const { futures, resolve } = renderContext;
 
-    Object.entries(style)
-      .forEach(([k, v]) => {
-        this.node.style[k] = v;
-      })
+    resolve();
+
+
+    this.dispatchEvent('beforeMount');
+
+    futures.push(
+      this.invokeLifeCycleMethod('beforeMount')
+    )
 
     if (domRelayTimeout > 0) {
       await new Promise((resolve) => {
@@ -648,46 +939,146 @@ class RootCtxRenderer extends BaseRenderer {
       });
     }
 
-    this.dispatchRenderEvent();
+    this.dispatchEvent('render', renderContext);
 
-    await this.triggerInitialHooks('onMount');
 
-    await this.invokeLifeCycleMethod('onMount');
+    futures.push(
+      this.triggerInitialHooks('onMount')
+    )
 
-    this.#resolve();
+    futures.push(
+      this.invokeLifeCycleMethod('onMount')
+    )
 
-    this.dispatchEvent('resolve');
+    this.dispatchEvent('onMount');
 
-    await this.awaitPendingTasks();
 
     assert(Object.keys(this.syntheticContext).length == 0);
 
-    self.appContext.components[this.getId()] = this;
-
-    this.dispatchEvent('load');
+    this.dispatchEvent('load', renderContext);
 
     this.#mounted = true;
 
-    this.dispatchEvent('afterMount');
+    const rootComponent = this.#getRootComponent();
 
-    this.triggerInitialHooks('afterMount');
-    this.#hooks = [];
+    const wait = () => {
+      return new Promise(resolve => {
+        setTimeout(() => {
+          resolve();
+        }, 350);
+      });
+    }
 
-    this.invokeLifeCycleMethod('afterMount');
+    const afterDomLoaded = () => {
+      Promise.all(renderContext.extendedFutures)
+        .then(() => {
 
-    await this.awaitPendingTasks();
+          this.dispatchEvent('afterMount');
+
+          if (this.#addAttributeValueObserver) {
+            this.#attachAttributeValueObserver();
+          }
+
+          this.dispatchEvent('domLoaded');
+
+          this.pruneLifecycleEventHandlers();
+        });
+    }
+
+    if (this != rootComponent) {
+
+      if (!rootComponent.isMounted()) {
+        rootComponent.on('domLoaded', () => {
+          afterDomLoaded();
+        });
+
+      } else {
+        await wait();
+        afterDomLoaded();
+      }
+
+    } else {
+      await wait();
+      afterDomLoaded();
+    }
+
+    futures.push(
+      this.triggerInitialHooks('afterMount')
+    );
+
+    futures.push(
+      this.invokeLifeCycleMethod('afterMount')
+    );
+
+    this.#hooks = null;
+
+    await Promise.all(futures);
+    futures.splice(0);
+
+    RootCtxRenderer.#instancesMap.set(this.getId(), this);
   }
 
-  dispatchRenderEvent() {
-    this.dispatchEvent('render');
+  awaitExtendedFutures() {
+    return new Promise((resolve) => {
+      this.on('render', async ({ extendedFutures }) => {
+
+        await Promise.all([extendedFutures]);
+        resolve();
+      })
+    });
+  }
+
+  #getRootComponent() {
+    const { appContext } = self;
+    return appContext.rootComponent || appContext.getRootComponent();
+  }
+
+  isRootComponent() {
+    return this == this.#getRootComponent();
+  }
+
+  refreshNode() {
+    assert(this.isElementIdTransient());
+
+    const n = document.querySelector(`[__component='${this.getId()}']`);
+    assert(n);
+
+    this.node = n;
+  }
+
+  isConnected() {
+    return this.node && this.node.isConnected;
+  }
+
+  /**
+   * Lifecycle events are well known events that are dispatched during the rendering process of a component
+   * 
+   * @param {string} evtName 
+   * @returns {boolean}
+   */
+  isLifecycleEvent(evtName) {
+    const evtNames = [
+      'beforeRender', 'beforeMount', 'onMount', 'load', 'afterMount', 'render',
+      'attributeBindContext', 'domLoaded',
+    ];
+
+    return evtNames.includes(evtName) || evtName.startsWith('inlineComponentInit-');
   }
 
   getNode0() {
     return this.node;
   }
 
+  isElementIdTransient() {
+    return false;
+  }
+
   getElementId() {
-    return this.getId();
+    if (this.node) {
+      return this.node.id;
+    } else {
+      this.throwError('Component not mounted');
+    }
   }
 
   startSyntheticCacheContext() {
@@ -695,29 +1086,34 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   pruneSyntheticCache() {
-    const cache = this.#syntheticCache.pop();
-
-    for (const k in cache) {
-      const name0 = this.toSyntheticCachedName(k);
-      assert(this[name0] instanceof Function);
-
-      delete this[name0];
-      delete cache[k];
-    }
+    this.#syntheticCache.pop();
   }
 
-  async invokeLifeCycleMethod(name, ...args) {
+  invokeLifeCycleMethod(name, ...args) {
     const methods = this.recursivelyGetMethods(name);
+    const promises = [];
+
     for (const fn of methods) {
-      await fn(...args)
+      promises.push(
+        fn(...args)
+      )
     }
+
+    return Promise.all(promises);
   }
 
-  recursivelyInvokeMethod(names, classPredicate, ...args) {
-    return this.recursivelyGetMethods(names, classPredicate).map(fn => fn(...args))
+  recursivelyInvokeMethod(name, classPredicate, ...args) {
+    let ret = this.#methodInvokeCache[name];
+
+    if (ret === undefined) {
+      ret = this.recursivelyGetMethods(name, classPredicate).map(fn => fn(...args));
+      this.#methodInvokeCache[name] = ret;
+    }
+
+    return ret;
   }
 
-  recursivelyGetMethods(names, classPredicate) {
+  recursivelyGetMethods(name, classPredicate) {
     const methods = [];
 
     let component = this;
@@ -731,17 +1127,11 @@ class RootCtxRenderer extends BaseRenderer {
         continue;
       }
 
-      if (typeof names === 'string') {
-        names = [names];
+      assert(name !== 'constructor');
+
+      if (Reflect.ownKeys(component).includes(name)) {
+        methods.unshift(component[name].bind(this));
       }
-
-      names.forEach(name => {
-        assert(name !== 'constructor');
-
-        if (Reflect.ownKeys(component).includes(name)) {
-          methods.unshift(component[name].bind(this));
-        }
-      });
     }
 
     return methods;
@@ -771,15 +1161,27 @@ class RootCtxRenderer extends BaseRenderer {
     return '';
   }
 
-  startRenderingContext() {
+  startRenderingContext({ decoratorName, runtimeOptions } = {}) {
+    let resolve;
 
-    this.#promise = new Promise((resolve) => {
-      this.#resolve = resolve;
+    const promise = new Promise((_resolve) => {
+      resolve = _resolve;
     });
 
-    this.#futures = [];
+    const futures = [];
+    const extendedFutures = [];
+
+    this.#renderContext.push({
+      promise, futures, extendedFutures, resolve, decoratorName, runtimeOptions,
+    });
 
     this.startSyntheticCacheContext();
+  }
+
+  #finalizeRenderingContext() {
+    this.pruneSyntheticCache();
+
+    return this.#renderContext.pop();
   }
 
   /**
@@ -787,12 +1189,13 @@ class RootCtxRenderer extends BaseRenderer {
    * the resulting html has been added to the DOM
    */
   finalizeRenderingContext() {
+    const renderContext = this.#finalizeRenderingContext();
 
-    this.dispatchEvent('render');
+    renderContext.resolve();
 
-    this.#resolve();
+    this.dispatchEvent('render', renderContext);
 
-    this.pruneSyntheticCache();
+    return renderContext;
   }
 
   /**
@@ -802,27 +1205,33 @@ class RootCtxRenderer extends BaseRenderer {
    * @param {Function} fn 
    */
   onContextFinalization(fn) {
-    this.once(fn, 'render');
+    this.once('domLoaded', () => {
+      if (global.requestIdleCallback && !this.#mounted) {
+        requestIdleCallback(fn);
+      } else {
+        fn();
+      }
+    });
   }
 
   wrapTransform(transform) {
-    const { randomString } = clientUtils;
+    const { syntheticMethodPrefix } = RootProxy;
     const fnList = this.getFunctionListFromString(transform);
 
     if (fnList.length == 1) {
       return transform;
     }
 
-    const _transform = randomString();
+    const syntheticMethodName = `${syntheticMethodPrefix}${this.randomString('syntheticMethod')}`;
 
-    this[_transform] = (value) => {
+    this[syntheticMethodName] = (value) => {
       for (const fn of fnList) {
         value = fn(value);
       }
       return value;
     }
 
-    return _transform;
+    return syntheticMethodName;
   }
 
   static getSupportedHookPhases() {
@@ -846,7 +1255,7 @@ class RootCtxRenderer extends BaseRenderer {
         })
         .map(async (selector) => {
 
-          const node = document.querySelector(`#${this.getId()} ${selector}`);
+          const node = document.querySelector(`#${this.getElementId()} ${selector}`);
 
           if (!node) {
             // <node> could not be found - likely because a block transform removed it from the html ast
@@ -944,8 +1353,7 @@ class RootCtxRenderer extends BaseRenderer {
     if (!this.#rendered) {
       this.#hooks[selector] = {
         order: hookOrder != undefined ? hookOrder : this.getDefaultHookOrder(),
-        blockData: blockData ? blockData : clientUtils.deepClone(this.blockData),
-        fnList, variablesInScope: clientUtils.deepClone(this.getVariablesInScope())
+        blockData, fnList
       }
     }
   }
@@ -957,12 +1365,77 @@ class RootCtxRenderer extends BaseRenderer {
       this.blockData = blockData;
     }
 
-    const html = fn();
+    const hasEmitCtx = this.hasEmitContext();
+
+    if (!hasEmitCtx) {
+      this.pushToEmitContext({ variables: {} });
+    }
+
+    const ret = fn();
+
+    if (!hasEmitCtx) {
+      this.popEmitContext();
+    }
 
     if (blockData) {
       this.blockData = blockDataSnapshot;
     }
-    return html;
+    return ret;
+  }
+
+  cloneBlockData(blockData) {
+    const ret = {};
+    Object.entries(blockData).forEach(([k, v]) => {
+      ret[k] = { ...v };
+    })
+    return ret;
+  }
+
+  #getBlockDataInfo() {
+    const { blockStack } = this.getEmitContext();
+
+    let blockData;
+
+    for (let i = blockStack.length - 1; i >= 0; i--) {
+      const block = blockStack[i];
+
+      if (block.blockData) {
+        blockData = block.blockData;
+        break;
+      }
+    }
+
+    if (!blockData) {
+      return { arrayBlockPath: null, blockData: {} };
+    }
+
+    return {
+      arrayBlockPath: this.getArrayBlockPath(blockData, true),
+      blockData,
+    };
+  }
+
+  getArrayBlockPath(blockData, useCache) {
+    const { syntheticBlockKeyPrefix } = RootCtxRenderer;
+
+    const ret = [];
+
+    Object.entries(blockData)
+      .forEach(([k, { type, index }]) => {
+
+        if (type == 'array' && !k.startsWith(syntheticBlockKeyPrefix)) {
+
+          const path = this.getExecPath({
+            fqPath: `${k}[${index}]`,
+            indexResolver: path => blockData[path].index,
+            useCache,
+          });
+
+          ret.push(path);
+        }
+      });
+
+    return ret;
   }
 
   conditional({ options, ctx, params }) {
@@ -970,11 +1443,7 @@ class RootCtxRenderer extends BaseRenderer {
     const { conditionalBlockHookType, logicGatePathPrefix } = RootProxy;
     const { syntheticAliasSeparator, getSyntheticAliasFromPath0 } = RootCtxRenderer;
 
-    const { fn, inverse, hash, loc } = {
-      ...options,
-      fn: this.addToObjectRegistry(options.fn),
-      inverse: this.addToObjectRegistry(options.inverse),
-    };
+    const { hash, loc, fn, inverse } = options;
 
     const { hook, hookPhase, hookOrder, transform, transient, nodeIndex } = hash;
 
@@ -998,13 +1467,13 @@ class RootCtxRenderer extends BaseRenderer {
       // Disable for literals and components
       !!path && !(value instanceof BaseComponent);
 
-    const blockData = dataBinding ? this.getBlockDataSnapshot(path, loc) : null;
+    const { arrayBlockPath, blockData } = this.#getBlockDataInfo();
 
     const conditional0 = (value) => {
 
       if (hook) {
         this.registerHook(
-          `#${nodeId}`, hook, hookPhase, hookOrder, loc, blockData ? clientUtils.createImmutableProxy(blockData) : clientUtils.deepClone(this.blockData)
+          `#${nodeId}`, hook, hookPhase, hookOrder, loc, blockData,
         );
       }
 
@@ -1023,15 +1492,15 @@ class RootCtxRenderer extends BaseRenderer {
         if (invert ? !b : b) {
 
           branch = 'fn';
-          func = this.lookupObject(fn);
+          func = fn;
 
-        } else if (inverse) {
+        } else {
 
           branch = 'inverse';
-          func = this.lookupObject(inverse);
+          func = inverse || (() => '');
         }
 
-        return func ? func(ctx) : '';
+        return func(ctx);
       })();
 
       if (isSynthetic) {
@@ -1045,8 +1514,11 @@ class RootCtxRenderer extends BaseRenderer {
 
       if (nodeId) {
         this.onContextFinalization(() => {
-          document.querySelector(`#${this.getElementId()} #${nodeId}`)
-            .setAttribute('branch', branch);
+          const node = document.querySelector(`#${this.getElementId()} #${nodeId}`);
+
+          if (node) {
+            node.setAttribute('branch', branch);
+          }
         });
       }
 
@@ -1063,18 +1535,17 @@ class RootCtxRenderer extends BaseRenderer {
     if (dataBinding) {
 
       const hookObj = {
-        type: conditionalBlockHookType, selector: `#${nodeId}`, blockStack, blockId, fn, inverse, hook,
-        hookPhase, invert, transient, blockData, canonicalPath, loc, transform,
+        type: conditionalBlockHookType, selector: `#${nodeId}`, blockStack, blockId, hook,
+        hookPhase, invert, transient, arrayBlockPath, blockData, canonicalPath, loc, transform,
       };
 
-      this.proxyInstance.getDataPathHooks()[path]
-        .push(hookObj);
-
       if (path.match(logicGatePathPrefix)) {
-        this.#addParentHookToLogicGateParticipants(
+        this.#addGateInfoToHook(
           path.replace(logicGatePathPrefix, ''), hookObj,
         );
       }
+
+      this.#createHook(path, hookObj);
     }
 
     const html = conditional0(value);
@@ -1091,22 +1562,18 @@ class RootCtxRenderer extends BaseRenderer {
     return html;
   }
 
-  #addParentHookToLogicGateParticipants(gateId, parentHook) {
-    const { canonicalId } = this.proxyInstance.getLogicGates()[gateId];
-    const gate = this.getLogicGates()[canonicalId];
+  #addGateInfoToHook(gateId, gateHook) {
+    const { logicGates } = this.getEmitContext();
+    const { gate, participants, canonicalParticipants } = logicGates[gateId];
 
-    this.proxyInstance.getParticipantsFromLogicGate(gate)
-      .filter(({ synthetic }) => !synthetic)
-      .forEach(({ original, loc }) => {
-        const { logicGateParticipants } = this.getEmitContext();
+    gateHook.gate = gate;
 
-        const identifier = this.proxyInstance.getLogicGateParticipantIdentifier({ original, loc });
-        const hookInfo = logicGateParticipants[identifier];
+    assert(participants.length == canonicalParticipants.length);
 
-        hookInfo.parentHook = parentHook;
+    gateHook.participants = participants;
+    gateHook.canonicalParticipants = canonicalParticipants;
 
-        delete logicGateParticipants[identifier];
-      });
+    delete logicGates[gateId];
   }
 
   getCollIntrinsicHookTypes() {
@@ -1128,13 +1595,15 @@ class RootCtxRenderer extends BaseRenderer {
     const footer = () => `</div>`;
 
     if (opaqueWrapper) {
-      this.once((attributesMap) => {
-        attributesMap['key'] = key;
+      this.once(
+        attrBindContextEvent, (attributesMap) => {
+          attributesMap['key'] = key;
 
-        if (nodeId) {
-          attributesMap['id'] = nodeId;
+          if (nodeId) {
+            attributesMap['id'] = nodeId;
+          }
         }
-      }, attrBindContextEvent);
+      );
     } else {
       emitContext.write(header());
     }
@@ -1144,12 +1613,8 @@ class RootCtxRenderer extends BaseRenderer {
     if (!opaqueWrapper) {
       emitContext.write(footer());
 
-    } else if (markup == '') {
-      this.popEventListener(attrBindContextEvent);
-
-      this.throwError(
-        `#each block with "opaqueWrapper=true" cannot have a null member`, loc
-      );
+    } else {
+      assert(markup != '');
     }
 
     return opaqueWrapper ? markup : `${header()}${markup}${footer()}`;
@@ -1166,22 +1631,18 @@ class RootCtxRenderer extends BaseRenderer {
   forEach({ options, ctx, params }) {
 
     const {
-      eachBlockHookType, predicateHookType, toFqPath, dataPathPrefix, blockDataHolderHookType,
+      eachBlockHookType, predicateHookType, toFqPath, dataPathPrefix,
     } = RootProxy;
     const { htmlWrapperCssClassname, getSyntheticAliasFromPath } = RootCtxRenderer;
 
-    const { fn, inverse, hash, loc } = {
-      ...options,
-      fn: this.addToObjectRegistry(options.fn),
-      inverse: this.addToObjectRegistry(options.inverse),
-    };
+    const { hash, loc, fn, inverse } = options;
 
     const { hook, hookPhase, hookOrder, transform, predicate, nodeIndex, opaqueWrapper, markerTagName } = hash;
 
     const [{ path, value, canonicalPath }] = params;
 
     const nodeId = nodeIndex ? this.getNodeIdFromIndex(nodeIndex, loc) : null;
-    const markerId = opaqueWrapper ? clientUtils.randomString() : null;
+    const markerId = opaqueWrapper ? this.randomString('markerId') : null;
 
     const markerStart = markerId ? `#${nodeId} #${this.getMarkerStartNodeId(markerId)}` : null;
     const markerEnd = markerId ? `#${nodeId} #${this.getMarkerEndNodeId(markerId)}` : null;
@@ -1191,7 +1652,7 @@ class RootCtxRenderer extends BaseRenderer {
     const isSynthetic = this.isSyntheticMethodName(path);
     const dataBinding = !isSynthetic && this.dataBindingEnabled() && nodeId;
 
-    const _blockId = clientUtils.randomString();
+    const _blockId = this.randomString('blockId');
 
     const forEach0 = () => {
 
@@ -1205,12 +1666,13 @@ class RootCtxRenderer extends BaseRenderer {
       }
 
       if (this.analyzeConditionValue(value)) {
+        const blockKey = isSynthetic ? getSyntheticAliasFromPath(path) : canonicalPath;
+
+        this.doBlockInit({ path: blockKey });
 
         const isArray = Array.isArray(value);
 
         // Add (length and type) to this.blockData
-
-        const blockKey = isSynthetic ? getSyntheticAliasFromPath(path) : canonicalPath;
 
         this.blockData[blockKey].type = isArray ? 'array' : 'map';
         this.blockData[blockKey].length = value.length;
@@ -1223,7 +1685,9 @@ class RootCtxRenderer extends BaseRenderer {
 
         const blockStack = [...this.getEmitContext().blockStack];
 
-        for (let i = 0; i < value.length; i++) {
+        for (let i = 0; i < keys.length; i++) {
+
+          this.doBlockUpdate({ path: blockKey });
 
           if (isSynthetic) {
             // Update the current value of the synthetic context
@@ -1233,17 +1697,7 @@ class RootCtxRenderer extends BaseRenderer {
           const p = toFqPath({ isArray, isMap: !isArray, parent: path, prop: keys[i] });
 
           const key = this.getBlockData({
-            path: blockKey,
-            dataVariable: '@key',
-            // Note: we need to pass in <blockDataProducer> because at this point, doBlockUpdate(...) has not
-            // yet been called
-            blockDataProducer: () => ({
-              ...this.blockData,
-              [blockKey]: {
-                ...this.blockData[blockKey],
-                index: i,
-              }
-            })
+            path: blockKey, dataVariable: '@key'
           });
 
           const currentValue = rawValue[key];
@@ -1254,11 +1708,8 @@ class RootCtxRenderer extends BaseRenderer {
 
             const markup = isNull ?
               // null collection members are always represented as an empty strings
-              (() => {
-                this.blockData[blockKey].index++;
-                return '';
-              })() :
-              this.lookupObject(fn)(this.rootProxy);
+              '' :
+              fn(this.rootProxy);
 
             this.pruneSyntheticCache();
 
@@ -1267,18 +1718,21 @@ class RootCtxRenderer extends BaseRenderer {
             return markup;
           }
 
-          const memberNodeId = nodeId ? clientUtils.randomString() : null;
-          this.startBlockContext({ blockId: _blockId, loc });
+          const memberNodeId = nodeId ? clientUtils.randomString('nodeId') : null;
+
+          this.startBlockContext({
+            blockId: _blockId, blockData: this.cloneBlockData(this.blockData), loc
+          });
 
           const markup = nodeId ? this.execBlockIteration(func, opaqueWrapper, key, memberNodeId, loc) : func();
 
-          this.endBlockContext();
+          const { arrayBlockPath, blockData } = this.#getBlockDataInfo();
 
-          const blockData = dataBinding ? this.getBlockDataSnapshot(p, loc) : null;
+          this.endBlockContext();
 
           if (hook) {
             this.registerHook(
-              `#${memberNodeId}`, hook, hookPhase, hookOrder, loc, blockData ? clientUtils.createImmutableProxy(blockData) : clientUtils.deepClone(this.blockData),
+              `#${memberNodeId}`, hook, hookPhase, hookOrder, loc, blockData,
             );
           }
 
@@ -1291,29 +1745,14 @@ class RootCtxRenderer extends BaseRenderer {
           if (dataBinding) {
             if (predicate) {
 
-              this.proxyInstance.getDataPathHooks()[p]
-                .push({
+              this.#createHook(
+                p,
+                {
                   type: predicateHookType, selector: `#${memberNodeId}`,
-                  blockStack, blockId: _blockId, fn, predicate, hook, hookPhase, transform, opaqueWrapper,
-                  blockData, canonicalPath: `${canonicalPath}_$`, loc,
-                });
-
-            } else {
-
-              this.proxyInstance.getDataPathHooks()[p]
-                .push({
-                  type: blockDataHolderHookType, selector: `#${memberNodeId}`,
-                  blockData, canonicalPath: `${canonicalPath}_$`, loc,
-                });
-            }
-          }
-
-          if (isArray && !isNull && !isSynthetic) {
-
-            if (nodeId) {
-              this.backfillArrayChildBlocks(p, `#${memberNodeId}`);
-            } else {
-              this.pruneArrayChildBlocks(p, null);
+                  blockStack, blockId: _blockId, predicate, hook, hookPhase, transform, opaqueWrapper,
+                  arrayBlockPath, blockData, canonicalPath: `${canonicalPath}_$`, loc,
+                }
+              );
             }
           }
 
@@ -1324,9 +1763,11 @@ class RootCtxRenderer extends BaseRenderer {
           delete this.syntheticContext[blockKey];
         }
 
+        this.doBlockFinalize({ path: blockKey });
+
       } else if (inverse) {
 
-        const markup = this.lookupObject(inverse)(ctx);
+        const markup = inverse(ctx);
         this.getEmitContext().write(markup);
 
         ret += markup;
@@ -1343,19 +1784,21 @@ class RootCtxRenderer extends BaseRenderer {
     }
 
     const blockStack = [...this.getEmitContext().blockStack];
+
     const blockId = this.startBlockContext({ loc });
 
     const _blockStack = [...this.getEmitContext().blockStack];
 
     if (dataBinding) {
+      const { arrayBlockPath, blockData } = this.#getBlockDataInfo();
 
-      const blockData = this.getBlockDataSnapshot(path, loc);
-
-      this.proxyInstance.getDataPathHooks()[path]
-        .push({
-          type: eachBlockHookType, selector, blockStack, blockId, memberBlockId: _blockId, markerEnd, fn, inverse, predicate,
-          hook, hookPhase, blockData, canonicalPath, transform, opaqueWrapper, loc,
-        });
+      this.#createHook(
+        path,
+        {
+          type: eachBlockHookType, selector, blockStack, blockId, memberBlockId: _blockId, markerEnd, predicate,
+          hook, hookPhase, arrayBlockPath, blockData, canonicalPath, transform, opaqueWrapper, loc,
+        }
+      );
 
       const collDef = this.proxyInstance.getCollectionDefinition(path.replace(dataPathPrefix, ''));
 
@@ -1366,11 +1809,13 @@ class RootCtxRenderer extends BaseRenderer {
         ]
           .forEach(hookType => {
 
-            this.proxyInstance.getDataPathHooks()[path]
-              .push({
-                type: hookType, selector, blockStack: _blockStack, blockId: _blockId, markerEnd, fn, predicate, hook, hookPhase,
-                blockData, canonicalPath, transform, opaqueWrapper, loc,
-              });
+            this.#createHook(
+              path,
+              {
+                type: hookType, selector, blockStack: _blockStack, blockId: _blockId, markerEnd, predicate,
+                hook, hookPhase, arrayBlockPath, blockData, canonicalPath, transform, opaqueWrapper, loc,
+              }
+            );
           })
       }
     }
@@ -1387,19 +1832,6 @@ class RootCtxRenderer extends BaseRenderer {
     }
 
     return html;
-  }
-
-  lookupObject(id) {
-    const { wrapFnWithExceptionCatching } = RootCtxRenderer;
-    return wrapFnWithExceptionCatching(this.#objectRegistry[id]);
-  }
-
-  addToObjectRegistry(o) {
-    assert(o);
-
-    const id = clientUtils.randomString();
-    this.#objectRegistry[id] = o;
-    return id;
   }
 
   static wrapFnWithExceptionCatching(fn) {
@@ -1451,126 +1883,8 @@ class RootCtxRenderer extends BaseRenderer {
     return getSyntheticAliasFromPath(path.replace(rgx, ''));
   }
 
-  /**
-   * This backfills "selector: null" created by nested blocks via getBlockDataSnapshot(...)
-   */
-  backfillArrayChildBlocks(path, selector) {
-    const { arrayChildBlockHookType, dataPathPrefix } = RootProxy;
-
-    assert(selector);
-    assert(path.match(dataPathPrefix));
-
-    const dataPathHooks = this.proxyInstance.getDataPathHooks();
-    const arr = dataPathHooks[path];
-
-    if (!arr) return;
-
-    arr.forEach((hook) => {
-      if (hook.type == arrayChildBlockHookType && !hook.selector) {
-        hook.selector = selector;
-      }
-    });
-  }
-
-  pruneArrayChildBlocks(path, selector) {
-    const { arrayChildBlockHookType, dataPathPrefix } = RootProxy;
-
-    assert(path.match(dataPathPrefix));
-
-    const dataPathHooks = this.proxyInstance.getDataPathHooks();
-    const arr = dataPathHooks[path];
-
-    if (!arr) return;
-
-    dataPathHooks.set(
-      path,
-      arr.filter(
-        ({ type, selector: s }) => type != arrayChildBlockHookType || s != selector
-      )
-    )
-  }
-
-  getClosestArrayBlock() {
-
-    const { syntheticBlockKeyPrefix } = RootCtxRenderer;
-    const { dataPathRoot, pathSeparator } = RootProxy;
-
-    // We need to find the closest non-synthetic array-based blockData, and
-    // register <path> as a arrayChildBlock. That way, when the current
-    // array index moves, we can update the blockData captured for this path
-
-    // In ES-2015+, insertion order is preserved, so we know the
-    // last index is the most recent, and vice-versa
-
-    const blockDataKeys = Object.keys(this.blockData)
-      // If this is called by forEach(...), we need to skip the blockData entry created
-      // in doBlockInit(...)
-      .filter(k => this.blockData[k].index >= 0);
-
-    for (let i = blockDataKeys.length - 1; i >= 0; i--) {
-      const blockDataKey = blockDataKeys[i];
-      const { type, index } = this.blockData[blockDataKey];
-
-      if (type == 'array' && !blockDataKey.startsWith(syntheticBlockKeyPrefix)) {
-
-        const p = this.getExecPath0({
-          fqPath: `${blockDataKey}[${index}]`,
-          addBasePath: false,
-        });
-
-        return {
-          blockDataKey,
-          path: `${dataPathRoot}${pathSeparator}${p}`,
-        };
-      }
-    }
-
-    return null;
-  }
-
-  getBlockDataSnapshot(targetPath, targetLoc, arrayBlock) {
-
-    const { arrayChildBlockHookType, logicGatePathPrefix } = RootProxy;
-
-    if (targetPath.match(logicGatePathPrefix)) {
-      // getBlockDataSnapshot(...) is already called in RootProxy.resolveLogicPath(...),
-      // so we should re-use the existing blockData
-
-      const gateId = targetPath.replace(logicGatePathPrefix, '');
-
-      const gate = this.proxyInstance.getLogicGates()[gateId];
-
-      if (gate) {
-        return gate.blockData;
-      }
-    }
-
-    if (arrayBlock === undefined) {
-      arrayBlock = this.getClosestArrayBlock();
-    }
-
-    if (arrayBlock) {
-      const { blockDataKey, path } = arrayBlock;
-
-      const dataPathHooks = this.proxyInstance.getDataPathHooks();
-      const hookList = dataPathHooks[path] || this.proxyInstance.createHooksArray(path);
-
-      hookList.push({
-        type: arrayChildBlockHookType, path: targetPath,
-        // <selector> will be backfilled by backfillArrayChildBlocks(...) on iteration
-        selector: null,
-        canonicalPath: `${blockDataKey}_$`,
-        blockDataKey: blockDataKey,
-        loc: targetLoc,
-      });
-    }
-
-    // Then, clone and return blockData
-    return clientUtils.deepClone(this.blockData);
-  }
-
   fn(helperName) {
-    return `${RootCtxRenderer.#helpersNamespace}.${(this.#helperFunctionNames || {})[helperName] || 'noOp'}`;
+    return `${this.getHelpersNamespace()}.${(this.#helperFunctionNames || {})[helperName] || 'noOp'}`;
   }
 
   static getMetaHelpers() {
@@ -1598,7 +1912,7 @@ class RootCtxRenderer extends BaseRenderer {
     const [nodeIndex] = params;
     assert(typeof nodeIndex == 'number');
 
-    const id = global.clientUtils.randomString();
+    const id = clientUtils.randomString('nodeId');
 
     this.getEmitContext().write(id);
 
@@ -1614,16 +1928,39 @@ class RootCtxRenderer extends BaseRenderer {
     return this.getNodeIdFromIndex(nodeIndex);
   }
 
-  startAttributeBindContext() {
-
-    if (!this.dataBindingEnabled()) {
-      return '';
-    }
+  startAttributeBindContext({ options }) {
+    const { attributeValueWrapper: quote } = RootCtxRenderer;
 
     const streamTokenizer = new hyntax.StreamTokenizer();
+    const { loc } = options;
+
+    const ATTR_ASSIGNMENT = 'token:attribute-assignment';
+    const ATTR_VALUE_WRAPPER_START = 'token:attribute-value-wrapper-start';
+    const ATTR_VALUE = 'token:attribute-value';
+    const ATTR_VALUE_WRAPPER_END = 'token:attribute-value-wrapper-end';
+
+    const addAttrValueWrapper = (tokens) => {
+
+      for (let i = 0; i < tokens.length; i++) {
+        if (tokens[i].type == ATTR_VALUE && i > 0 && tokens[i - 1].type == ATTR_ASSIGNMENT) {
+          const repl = [
+            { type: ATTR_VALUE_WRAPPER_START, content: quote },
+            tokens[i],
+            { type: ATTR_VALUE_WRAPPER_END, content: quote },
+          ];
+
+          tokens.splice(i, 1, ...repl);
+          i += repl.length - 1;
+        }
+      }
+    }
 
     streamTokenizer
       .on('data', (tokens) => {
+
+        // Add attribute value wrapper if applicable
+        addAttrValueWrapper(tokens);
+
         this.#attributeEmitContext.tokenList = this.#attributeEmitContext.tokenList.concat(tokens);
       });
 
@@ -1632,6 +1969,8 @@ class RootCtxRenderer extends BaseRenderer {
       write: (value) => {
         streamTokenizer.write(value);
       },
+      // Todo: Remove <startLoc> if not used
+      startLoc: loc,
     };
 
     this.#attributeEmitContext.write('<');
@@ -1639,9 +1978,13 @@ class RootCtxRenderer extends BaseRenderer {
     return '';
   }
 
-  static getHtmlIntrinsicAttributes(elementName) {
-    const { getHtmlIntrinsicAttributesMap } = RootCtxRenderer;
-    const attributes = getHtmlIntrinsicAttributesMap();
+  isBooleanHtmlAttribute(elementName, attrName) {
+    return (this.getHtmlIntrinsicAttributes(elementName)[attrName] || {})
+      .type == 'boolean';
+  }
+
+  getHtmlIntrinsicAttributes(elementName) {
+    const attributes = this.getHtmlIntrinsicAttributesMap();
 
     let o = {};
     ['*', elementName]
@@ -1655,8 +1998,7 @@ class RootCtxRenderer extends BaseRenderer {
     return o;
   }
 
-  // Todo: Update this map, it may be incomplete
-  static getHtmlIntrinsicAttributesMap() {
+  getHtmlIntrinsicAttributesMap() {
     return {
       ['*']: {
         autofocus: { type: 'boolean' },
@@ -1721,66 +2063,224 @@ class RootCtxRenderer extends BaseRenderer {
     }
   }
 
-  static getElementName(tokenList) {
-    return tokenList[0].content.replace('<', '');
+  async getRenderedValue(tokenContent, groupId, overrides) {
+    const { MustacheStatementList } = RootProxy;
+
+    assert(this.dataBindingEnabled());
+
+    const wholeMustacheRgx = /^{{\w+}}$/g;
+    const rgx = /({{)|(}})/g;
+
+    if (tokenContent.match(wholeMustacheRgx)) {
+      assert(!overrides);
+
+      const ref = tokenContent.replace(rgx, '');
+
+      const [{ renderedValue }] = await MustacheStatementList.query(
+        this.proxyInstance, null, ref,
+      );
+
+      return renderedValue;
+    }
+
+    assert(groupId && overrides);
+
+    const mustacheStatements = await MustacheStatementList.query(
+      this.proxyInstance, groupId, null,
+    );
+
+    mustacheStatements.forEach(({ id, renderedValue }) => {
+      if (overrides[id] != undefined) {
+        renderedValue = overrides[id];
+      }
+      tokenContent = tokenContent.replace(`{{${id}}}`, renderedValue);
+    });
+
+    assert(!tokenContent.match(rgx));
+
+    return tokenContent;
   }
 
-  getRenderedValue(value) {
+  async setRenderedValue(attrTokenType, ref, value, blockData, attrValueGroups = {}) {
+    const { MustacheStatementList } = RootProxy;
+
+    assert(this.dataBindingEnabled());
+
+    const ATTR_KEY = 'attr-key';
+    const ATTR = 'attr';
+
+    const [row] = await MustacheStatementList.query(
+      this.proxyInstance, null, ref,
+    );
+
+    const { renderedValue: previousValue, transform } = row;
+
+    if (transform) {
+      value = this.executeWithBlockData(
+        () => this[transform].bind(this)(value),
+        blockData,
+      );
+    }
+
+    value = this.#validateAttributeToken(attrTokenType, value);
+
+    c:
+    if (value != null) {
+
+      if (
+        [ATTR_KEY, ATTR].includes(attrTokenType) && attrValueGroups[value.split('=')[0]]
+      ) {
+        value = null;
+        break c;
+      }
+
+      row.renderedValue = value;
+
+      MustacheStatementList.put(
+        this.proxyInstance, [row],
+      )
+    }
+
+    return { previousValue, currentValue: value };
+  }
+
+  #getRenderedValue(value) {
+    const { mustacheStatements } = this.getEmitContext();
     const rgx = /({{\w+}})/g;
+
+    if (!value.match(rgx)) return value;
+
     return value
       .split(rgx)
       .map(v => {
         if (v.match(rgx)) {
           const ref = v.replace(/({{)|(}})/g, '');
-          v = this.#mustacheStatements[ref].renderedValue;
+          v = mustacheStatements[ref].renderedValue;
         }
         return v;
       })
       .join('');
   }
 
-  setRenderedValue(ref, value) {
-    const mustacheInfo = this.#mustacheStatements[ref];
-    const { renderedValue: previousValue } = mustacheInfo;
-
-    mustacheInfo.renderedValue = value;
-
-    return previousValue;
-  }
-
   getNodeIdFromTokenList({ tokenList, loc }) {
+    const ATTR_KEY = 'token:attribute-key';
+    const ATTR_VALUE = 'token:attribute-value';
+
     for (let i = 0; i < tokenList.length; i++) {
       const { type, content } = tokenList[i];
 
-      if (type == 'token:attribute-key' && content == 'id') {
-        const valueToken = tokenList[i + 3];
-        if (!valueToken || valueToken.type != 'token:attribute-value') {
-          this.throwError(
-            `Unknown value "${valueToken ? valueToken.content : "<empty>"}" was assigned to the "id" attribute`, { loc }
-          );
-        }
+      if (type == ATTR_KEY && content == 'id') {
+        const { type, content } = tokenList[i + 3];
+        assert(type == ATTR_VALUE);
 
-        const v = this.getRenderedValue(valueToken.content);
-
-        if (v.match(/\s/)) {
-          this.throwError(`ID attribute "${v}" must not contain whitespaces`, loc);
-        }
-
-        return v;
+        return this.#getRenderedValue(content);
       }
     }
     return null;
   }
 
-  endAttributeBindContext({ options, params }) {
-    const { attrBindContextEvent } = RootCtxRenderer;
+  #getHookTypeFromAttributeTokenType(tokenType) {
     const {
-      nodeAttributeHookType, nodeAttributeKeyHookType, nodeAttributeValueHookType, logicGatePathPrefix,
+      nodeAttributeHookType, nodeAttributeKeyHookType, nodeAttributeValueHookType,
     } = RootProxy;
 
-    if (!this.#attributeEmitContext) {
-      return '';
+    const ATTR_KEY = 'attr-key';
+    const ATTR_STRING_VALUE = 'attr-string-value';
+    const ATTR = 'attr';
+
+    switch (tokenType) {
+      case ATTR_KEY:
+        return nodeAttributeKeyHookType;
+      case ATTR_STRING_VALUE:
+        return nodeAttributeValueHookType;
+      case ATTR:
+        return nodeAttributeHookType;
+      default:
+        throw Error(`Unknown tokenType "${tokenType}"`);
     }
+  }
+
+  #validateAttributeToken(tokenType, value) {
+    const { attributeValueWrapper: quote } = RootCtxRenderer;
+
+    const ATTR_KEY = 'attr-key';
+    const ATTR_VALUE = 'attr-value';
+    const ATTR_STRING_VALUE = 'attr-string-value';
+    const ATTR = 'attr';
+
+    switch (tokenType) {
+      case ATTR_KEY:
+        return `${value}`.match(/^[a-zA-Z_][a-zA-Z0-9_-]*$/) ? `${value}` : null;
+      case ATTR_VALUE:
+        return `${quote}${this.#validateAttributeToken(ATTR_STRING_VALUE, value)}${quote}`;
+      case ATTR_STRING_VALUE:
+        return value.replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+      case ATTR:
+        return (() => {
+          const withEnclosingQuoteRgx = /^(["'])(.*?)\1$/;
+
+          if (typeof value != 'string') return null;
+
+          if (!value) return value;
+
+          let [key, val] = value.split('=').map(v => v.trim());
+
+          if ((key = this.#validateAttributeToken(ATTR_KEY, key)) == null) return null;
+          if (!val) return key;
+
+          if (val.match(withEnclosingQuoteRgx)) {
+            val = val.replace(/(^["'])|(["']$)/g, '');
+          }
+          return `${key}=${this.#validateAttributeToken(ATTR_VALUE, val)}`;
+        })();
+      default:
+        throw Error(`Unknown tokenType "${tokenType}"`);
+    }
+  }
+
+  #invalidAttributeToken(tokenType, value, loc) {
+    this.logger.warn(
+      loc,
+      `Atribute token is invalid; type=${tokenType}, value=${value}`
+    );
+    return `invalid-${tokenType}`;
+  }
+
+  getHtmlCompositeAttributes() {
+    return ['class'];
+  }
+
+  getElementNameFromToken({ type, content }) {
+    const OPEN_TAG_START = 'token:open-tag-start';
+
+    assert(type.startsWith(OPEN_TAG_START));
+    return content.replace('<', '');
+  };
+
+  #getTokenFromList(tokenList, index, type) {
+    const token = tokenList[index];
+    assert(token.type == type);
+    return token.content;
+  }
+
+  getAttrKeyFromTokenList(tokenList, index) {
+    const ATTR_KEY = 'token:attribute-key';
+    return this.#getTokenFromList(tokenList, index, ATTR_KEY);
+  }
+
+  getAttrValueFromTokenList(tokenList, index) {
+    const ATTR_VALUE = 'token:attribute-value';
+    return this.#getTokenFromList(tokenList, index, ATTR_VALUE);
+  }
+
+  endAttributeBindContext({ options, params }) {
+    const { attrBindContextEvent } = RootCtxRenderer;
+    const { nodeAttributeKeyHookType, logicGatePathPrefix } = RootProxy;
+
+    const ATTR_KEY = 'token:attribute-key';
+    const ATTR_VALUE = 'token:attribute-value';
+
+    assert(this.#attributeEmitContext);
 
     const attributesMap = {};
 
@@ -1788,135 +2288,117 @@ class RootCtxRenderer extends BaseRenderer {
 
     const { loc } = options;
 
-    const { randomString } = clientUtils;
-
+    const { mustacheStatements } = this.getEmitContext();
     const { tokenList } = this.#attributeEmitContext;
 
     const nodeId = this.getNodeIdFromTokenList({ tokenList, loc }) ||
-      attributesMap['id'] || (attributesMap['id'] = randomString());
+      attributesMap['id'] || (attributesMap['id'] = clientUtils.randomString('nodeId'));
 
-    const mustacheRgx = /{{\w+}}/g;
-    const valueTokenIndexes = [];
 
-    for (let tokenIndex = 0; tokenIndex < tokenList.length; tokenIndex++) {
-      let { type, content } = tokenList[tokenIndex];
+    if (this.dataBindingEnabled()) {
 
-      (content.match(mustacheRgx) || [])
-        .forEach(m => {
+      const wholeMustacheRgx = /^{{\w+}}$/g;
+      const mustacheRgx = /{{\w+}}/g;
 
-          const mustacheRef = m.replace(/({{)|(}})/g, '');
+      let attrValueGroups;
+      const hooksToSave = [];
 
-          const mustacheInfo = this.#mustacheStatements[mustacheRef];
+      for (let tokenIndex = 0; tokenIndex < tokenList.length; tokenIndex++) {
+        const { type, content } = tokenList[tokenIndex];
 
-          if (!mustacheInfo) {
-            return;
+        if (![ATTR_KEY, ATTR_VALUE].includes(type)) continue;
+
+        const matches = content.match(mustacheRgx);
+
+        let attrValueGroupId;
+
+        groupId:
+        if (type == ATTR_VALUE && matches) {
+          const elementName = this.getElementNameFromToken(tokenList[0]);
+          const attrKey = this.getAttrKeyFromTokenList(tokenList, tokenIndex - 3);
+
+          const mKey = attrKey.match(mustacheRgx);
+          const isBoolAttr = mKey ? false : this.isBooleanHtmlAttribute(elementName, attrKey);
+
+          if (isBoolAttr && content.match(wholeMustacheRgx)) break groupId;
+
+          attrValueGroupId = this.randomString('attr-value-group-Id');
+
+          if (mKey) {
+
+            const keyHook = hooksToSave.at(-1);
+            assert(keyHook.type == nodeAttributeKeyHookType);
+
+            keyHook.attrValueGroupId = attrValueGroupId;
+
+          } else if (this.getHtmlCompositeAttributes().includes(attrKey)) {
+            (attrValueGroups || (attrValueGroups = {}))[attrKey] = attrValueGroupId;
           }
+        }
 
-          const { path, canonicalPath, transform, loc } = mustacheInfo;
+        const blockStack = [...this.getEmitContext().blockStack];
 
-          const isSynthetic = this.isSyntheticMethodName(path);
+        const { arrayBlockPath, blockData } = this.#getBlockDataInfo();
 
-          // Todo: Support data-binding for synthetic invocations
-          const dataBinding = !isSynthetic;
+        (matches || [])
+          .forEach(m => {
 
-          let hookType;
+            const mustacheRef = m.replace(/({{)|(}})/g, '');
+            const mustacheInfo = mustacheStatements[mustacheRef];
 
-          const hookInfo = { tokenList, tokenIndex };
+            if (!mustacheInfo) return;
 
-          switch (true) {
-            case type == 'token:attribute-key' && content == m:
-              const nextToken = tokenList[tokenIndex + 1];
-              if (nextToken && nextToken.type == 'token:attribute-assignment') {
-                hookType = nodeAttributeKeyHookType;
-              } else {
-                hookType = nodeAttributeHookType;
-              }
-              break;
+            const { path, canonicalPath, transform, attrTokenType, loc } = mustacheInfo;
 
-            case type == 'token:attribute-value':
-              hookType = nodeAttributeValueHookType;
-              valueTokenIndexes.push(tokenIndex);
-              break;
-          }
-
-          if (dataBinding && hookType) {
-
-            const hookObj = {
-              type: hookType, selector: `#${nodeId}`, canonicalPath, mustacheRef, hookInfo, transform, loc,
-            };
-
-            this.proxyInstance.getDataPathHooks()[path]
-              .push(hookObj);
-
-            if (path.match(logicGatePathPrefix)) {
-              this.#addParentHookToLogicGateParticipants(
-                path.replace(logicGatePathPrefix, ''), hookObj,
-              );
+            if (attrValueGroupId) {
+              mustacheInfo.groupId = attrValueGroupId;
             }
-          }
-        });
-    }
 
-    this.onContextFinalization(() => {
+            const isSynthetic = this.isSyntheticMethodName(path);
 
-      if (this.isHeadlessContext()) {
-        return;
+            // Todo: Support data-binding for synthetic invocations
+            const dataBinding = !isSynthetic;
+
+            if (dataBinding) {
+
+              const hookObj = {
+                type: this.#getHookTypeFromAttributeTokenType(attrTokenType),
+                attrTokenType, selector: `#${nodeId}`, canonicalPath, mustacheRef,
+                tokenList, tokenIndex, transform, loc,
+                blockStack, arrayBlockPath, blockData,
+              };
+
+              if (attrValueGroupId) {
+                hookObj.attrValueGroupId = attrValueGroupId;
+              }
+
+              if (path.match(logicGatePathPrefix)) {
+                this.#addGateInfoToHook(
+                  path.replace(logicGatePathPrefix, ''), hookObj,
+                );
+              }
+
+              hooksToSave.push([path, hookObj]);
+            }
+          });
       }
 
-      const node = document.querySelector(`#${this.getElementId()} #${nodeId}`);
+      hooksToSave.forEach(([k, v]) => {
+        this.#createHook(k, v);
+      })
 
-      [...new Set(valueTokenIndexes)]
-        .forEach(tokenIndex => {
+      if (attrValueGroups && !this.isHeadlessContext()) {
+        this.#addAttributeValueObserver = true;
 
-          const { keyToken, hasWrapper } = this.getValueTokenInfo(tokenList, tokenIndex);
-          const { content: attrKey } = keyToken;
+        this.onContextFinalization(() => {
+          const node = document.querySelector(`#${this.getElementId()} #${nodeId}`);
 
-          if (!hasWrapper || attrKey.match(mustacheRgx) || !this.isCompositeAttribute(node.tagName, attrKey)) {
-            return;
+          if (node) {
+            node.dataset.attrValueGroups = attrValueGroups;
           }
-
-          const valueToken = tokenList[tokenIndex];
-
-          const observer = new MutationObserver((mutations) => {
-
-            mutations.forEach(function (mutation) {
-              assert(mutation.type === 'attributes' && mutation.attributeName === attrKey)
-            });
-
-            const previousEntries = this.getRenderedValue(valueToken.content).trim().split(/\s+/g);
-            const currentEntries = mutations[0].target.getAttribute(attrKey).trim().split(/\s+/g);
-
-            // Added entries
-            currentEntries
-              .filter(function (e) {
-                return previousEntries.indexOf(e) === -1;
-              })
-              .forEach((e) => {
-                valueToken.content += ` ${e}`;
-              });
-
-            // Removed entries
-            previousEntries
-              .filter(function (e) {
-                return currentEntries.indexOf(e) === -1;
-              })
-              .forEach((e) => {
-                valueToken.content = valueToken.content.replace(
-                  RegExp(`(?<=^|\\s+)${e}(?=\\s+|$)`, 'g'), ''
-                );
-              });
-          });
-
-          observer.observe(
-            node,
-            { attributes: true, attributeOldValue: true, attributeFilter: [attrKey] }
-          );
-
-          valueToken.observer = this.addToObjectRegistry(observer);
-        })
-    });
-
-    // Note: we currently do not prune mustacheStatements
+        });
+      }
+    }
 
     const [nodeIndex] = params;
 
@@ -1931,47 +2413,88 @@ class RootCtxRenderer extends BaseRenderer {
     return ret;
   }
 
-  getValueTokenInfo(tokenList, valueTokenIndex) {
+  static async #processAttributeValueMutation(component, mutation) {
+    const { HookList, nodeAttributeValueHookType } = RootProxy;
 
-    let keyToken = tokenList[valueTokenIndex - 2];
+    assert(mutation.type === 'attributes');
 
-    const valueToken = { ...tokenList[valueTokenIndex] };
+    const { attributeName, target } = mutation;
+    const { dataset: { attrValueGroups }, skipObserve } = target;
 
-    const hasWrapper = tokenList[valueTokenIndex - 1].type == 'token:attribute-value-wrapper-start';
-
-    if (hasWrapper) {
-      assert(tokenList[valueTokenIndex + 1].type == 'token:attribute-value-wrapper-end');
-
-      keyToken = tokenList[valueTokenIndex - 3];
-      valueToken.content = `\`${valueToken.content}\``;
+    if (!attrValueGroups) {
+      return;
     }
 
-    assert(
-      keyToken.type == 'token:attribute-key' && keyToken.content &&
-      valueToken.type == 'token:attribute-value'
+    if (skipObserve && skipObserve == attributeName) {
+      delete target.skipObserve;
+      return;
+    }
+
+    const groupId = attrValueGroups[attributeName];
+
+    if (!groupId) return;
+
+    const hooks = await HookList.equalsQuery(
+      component.proxyInstance, 'attrValueGroupId', groupId,
     );
 
-    return { keyToken, valueToken, hasWrapper }
+    const [{ tokenList, tokenIndex }] = hooks.filter(({ type }) => type == nodeAttributeValueHookType);
+    const valueToken = tokenList[tokenIndex];
+
+    const previousEntries = (await component.getRenderedValue(valueToken.content, groupId))
+      .trim().split(/\s+/g);
+    const currentEntries = target.getAttribute(attributeName).trim().split(/\s+/g);
+
+    // Added entries
+    currentEntries
+      .filter(function (e) {
+        return previousEntries.indexOf(e) === -1;
+      })
+      .forEach((e) => {
+        valueToken.content += ` ${e}`;
+      });
+
+    // Removed entries
+    previousEntries
+      .filter(function (e) {
+        return currentEntries.indexOf(e) === -1;
+      })
+      .forEach((e) => {
+        valueToken.content = valueToken.content.replace(
+          RegExp(`(?<=^|\\s+)${e}(?=\\s+|$)`, 'g'), ''
+        );
+      });
+
+    hooks.forEach(hook => {
+      hook.tokenList = tokenList;
+    });
+
+    HookList.put(
+      component.proxyInstance, hooks,
+    );
   }
 
-  /**
-   * A composite attribute is generally seen as a attribute that usually has a space-delimited
-   * set of values, a notable example is the "class" attribute. For such attributes, we watch 
-   * for changes made to it using the DOM API and we register it internally so that later when 
-   * we need to orchestrate data binding for the attribute, the delta is also included in the 
-   * attribute value. Components should feel free to override this method to return new composite
-   * attributes
-   */
-  isCompositeAttribute(tagName, attrName) {
-    return attrName == 'class';
+  #attachAttributeValueObserver() {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        RootCtxRenderer.#processAttributeValueMutation(this, mutation)
+      });
+    });
+
+    observer.observe(
+      this.node,
+      {
+        attributes: true,
+        attributeFilter: this.getHtmlCompositeAttributes(),
+        attributeOldValue: true, subtree: true,
+      }
+    );
   }
 
   textBindContext() {
-    const id = global.clientUtils.randomString();
+    const id = clientUtils.randomString('nodeId');
 
-    if (this.dataBindingEnabled()) {
-      this.#dataStack.push({ selector: `#${id}` });
-    }
+    this.#dataStack.push({ selector: `#${id}` });
 
     this.getEmitContext().write(id);
 
@@ -2003,9 +2526,9 @@ class RootCtxRenderer extends BaseRenderer {
   resolveMustacheInRoot({ options, params }) {
 
     const { textNodeHookType, inlineComponentHookType, dataPathRoot, pathSeparator, logicGatePathPrefix, } = RootProxy;
-    const { getLine } = clientUtils;
 
-    let { hash: { hook, hookPhase, hookOrder, transform }, loc } = options;
+    const { hash, loc } = options;
+    let { hook, hookPhase, hookOrder, transform } = hash;
 
     if (transform) {
       transform = this.wrapTransform(transform);
@@ -2034,38 +2557,82 @@ class RootCtxRenderer extends BaseRenderer {
 
     if (!bindContext && value instanceof BaseComponent) {
       this.logger.warn(
-        `[${getLine({ loc })}] Component "${value.getId()}" needs a bind context inorder to render properly`
+        loc,
+        `Component "${value.getId()}" needs a bind context inorder to render properly`
       );
     }
 
-    let renderedValueListener;
+    let renderedValueTransformer;
 
     switch (true) {
 
       case !!this.#attributeEmitContext:
+        (() => {
+          const { attrTokenType } = hash;
 
-        if (shouldDataBind) {
-          const mustacheRef = clientUtils.randomString();
+          const ATTR_STRING_VALUE = 'attr-string-value';
+          const ATTR_VALUE = 'attr-value';
 
-          this.#mustacheStatements[mustacheRef] = {
-            path, canonicalPath, transform, loc,
+          const validate = (_value) => {
+            let valid = true;
+            let value = this.#validateAttributeToken(attrTokenType, _value);
+
+            if (value == null) {
+              valid = false;
+              value = this.#invalidAttributeToken(attrTokenType, _value, loc);
+            }
+
+            return { valid, value };
           }
-          this.#attributeEmitContext.write(`{{${mustacheRef}}}`);
 
-          renderedValueListener = (renderedValue) => {
-            this.#mustacheStatements[mustacheRef].renderedValue = renderedValue;
-          }
-        } else {
-          renderedValueListener = (renderedValue) => {
-            this.#attributeEmitContext.write(renderedValue);
-          }
-        }
+          if (shouldDataBind) {
+            renderedValueTransformer = (val) => {
+              const { attributeValueWrapper: quote } = RootCtxRenderer;
 
+              const { valid, value } = validate(val);
+
+              if (valid) {
+                const { mustacheStatements } = this.getEmitContext();
+                let mustacheRef = this.randomString('mustacheRef');
+
+                const mustacheInfo = {
+                  path, canonicalPath, transform, loc, attrTokenType, renderedValue: value,
+                };
+
+                mustacheStatements[mustacheRef] = mustacheInfo;
+
+                let ret = `{{${mustacheRef}}}`;
+
+                if (attrTokenType == ATTR_VALUE) {
+                  ret = `${quote}${ret}${quote}`;
+                  mustacheInfo.renderedValue = value.replace(/(^["'])|(["']$)/g, '');
+
+                  mustacheInfo.attrTokenType = ATTR_STRING_VALUE;
+                }
+
+                this.#attributeEmitContext.write(ret);
+
+              } else {
+                this.#attributeEmitContext.write(value);
+              }
+
+              return value;
+            }
+
+          } else {
+            renderedValueTransformer = (val) => {
+              const { value } = validate(val);
+
+              this.#attributeEmitContext.write(value);
+              return value;
+            }
+          }
+        })();
         break;
 
       case !!bindContext:
+
         const { selector, inlineComponent } = bindContext;
-        const blockStack = [...this.getEmitContext().blockStack];
 
         if (value instanceof Promise || value instanceof BaseComponent) {
           value = this.render({
@@ -2078,46 +2645,44 @@ class RootCtxRenderer extends BaseRenderer {
           transform = null;
         }
 
-        const dataPathHooks = this.proxyInstance.getDataPathHooks();
+        const blockStack = [...this.getEmitContext().blockStack];
 
-        let blockData;
+        const { arrayBlockPath, blockData } = this.#getBlockDataInfo();
 
         if (shouldDataBind) {
-          blockData = this.getBlockDataSnapshot(path, loc);
 
           const hookObj = {
             type: textNodeHookType, selector, blockStack,
-            hook, hookPhase, canonicalPath, transform, blockData, loc,
+            hook, hookPhase, canonicalPath, transform,
+            loc, arrayBlockPath, blockData,
           };
 
-          dataPathHooks[path].push(hookObj);
-
           if (path.match(logicGatePathPrefix)) {
-            this.#addParentHookToLogicGateParticipants(
+            this.#addGateInfoToHook(
               path.replace(logicGatePathPrefix, ''), hookObj,
             );
           }
 
+          this.#createHook(path, hookObj);
+
         } else if (canDataBind && inlineComponent) {
 
-          const path0 = `${dataPathRoot}${pathSeparator}${this.getExecPath({ fqPath: bindContext.canonicalPath, addBasePath: false }).path}`;
+          const p = `${dataPathRoot}${pathSeparator}${this.getExecPath({ fqPath: bindContext.canonicalPath })}`;
 
-          blockData = this.getBlockDataSnapshot(path0, loc);
-
-          if (!dataPathHooks[path0]) {
-            this.proxyInstance.createHooksArray(path0);
-          }
-
-          dataPathHooks[path0].push({
-            type: inlineComponentHookType, selector, blockStack,
-            syntheticPath: path, ref: bindContext.ref,
-            hook, hookPhase, canonicalPath: bindContext.canonicalPath, transform, blockData, loc,
-          });
+          this.#createHook(
+            p,
+            {
+              type: inlineComponentHookType, selector, blockStack,
+              syntheticPath: path, ref: bindContext.ref,
+              hook, hookPhase, canonicalPath: bindContext.canonicalPath, transform,
+              arrayBlockPath, blockData, loc,
+            }
+          );
         }
 
         if (hook) {
           this.registerHook(
-            selector, hook, hookPhase, hookOrder, loc, blockData ? clientUtils.createImmutableProxy(blockData) : clientUtils.deepClone(this.blockData),
+            selector, hook, hookPhase, hookOrder, loc, blockData,
           );
         }
 
@@ -2128,10 +2693,10 @@ class RootCtxRenderer extends BaseRenderer {
       value = this[transform](value);
     }
 
-    const renderedValue = this.toHtml(value);
+    let renderedValue = this.toHtml(value);
 
-    if (renderedValueListener) {
-      renderedValueListener(renderedValue);
+    if (renderedValueTransformer) {
+      renderedValue = renderedValueTransformer(renderedValue);
     }
 
     this.getEmitContext().write(renderedValue);
@@ -2139,14 +2704,15 @@ class RootCtxRenderer extends BaseRenderer {
     return renderedValue;
   }
 
-  getPathValue({ path, includePath = false, lenientResolution, indexResolver }) {
-    // Todo: If path == '', set lenientResolution to false, because 
-    // this.getInput() will always exist
+  #createHook(path, hook) {
+    const { hooks } = this.getEmitContext();
+    hooks.push([path, hook]);
+  }
 
+  getPathValue({ path, includePath = false, indexResolver }) {
     return this.resolvePath({
       fqPath: path,
       includePath,
-      lenientResolution,
       indexResolver,
     });
   }
@@ -2202,7 +2768,6 @@ class RootCtxRenderer extends BaseRenderer {
 
     assert(getDataVariables().includes(dataVariable));
 
-    // eslint-disable-next-line no-unused-vars
     const blockData = blockDataProducer ? blockDataProducer() : this.blockData;
 
     let value = this.syntheticContext[path] !== undefined
@@ -2227,7 +2792,7 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   static getDataVariableValue(dataVariable, index, keys) {
-    const { mapKeyPrefixRegex, emptyString } = RootProxy;
+    const { mapKeyPrefixRegex } = RootProxy;
 
     switch (dataVariable) {
       case '@first':
@@ -2242,18 +2807,11 @@ class RootCtxRenderer extends BaseRenderer {
       case '@key':
         return keys[index]
           // Remove $_ prefixes for map keys, if applicable
-          .replace(mapKeyPrefixRegex, emptyString);
+          .replace(mapKeyPrefixRegex, '');
 
       default:
         throw Error(`Unknown variable: ${dataVariable}`);
     }
-  }
-
-  toRealPath(path) {
-    const { getDataBaseExecPath } = RootCtxRenderer;
-
-    return this.getExecPath0({ fqPath: path, })
-      .replace(`${getDataBaseExecPath()}.`, '');
   }
 
   doBlockInit({ path }) {
@@ -2267,46 +2825,7 @@ class RootCtxRenderer extends BaseRenderer {
     const blockData = this.blockData[path];
     // eslint-disable-next-line no-plusplus
     blockData.index++;
-    blockData.random = clientUtils.randomString();
-  }
-
-  // Todo: probe how this behaves post - initial rendering
-  doBlockNext({ path }) {
-    assert(!this.resolver);
-
-    const { syntheticBlockKeyPrefix } = RootCtxRenderer;
-
-    const isSynthetic = path.startsWith(syntheticBlockKeyPrefix);
-
-    const isMap = isSynthetic ?
-      this.syntheticContext[path].value.constructor.name == 'Object' :
-      this.proxyInstance.getMapDefinition(
-        this.toRealPath(path)
-      );
-
-    if (isMap) {
-
-      // If this is a map, reset proxyInstance.lastLookup because
-
-      // 1. We need .length (called by our forEach helper) to work 
-      // properly on next iteration. Unlike the array proxy 
-      // knows the length because it is an inherent property 
-      // of the backing array, the object proxy relies on the
-      // last lookup value to determine the value of the "length" 
-      // property. This is the reason, we need to set the last lookup
-      // at the end of each iteration
-
-      // 2. Calling value[i] in forEach(...) helper can work 
-      // properly, because in the proxy we depend on the last lookup
-      // value to be able to set the "current" value of the 
-      // synthetic context
-
-      const value = isSynthetic ?
-        this.syntheticContext[path].proxyValue :
-        this.getPathValue({ path });
-
-      this.proxyInstance.setLastLookup(value);
-    }
+    blockData.random = this.randomString('random');
   }
 
   doBlockFinalize({ path }) {
@@ -2343,9 +2862,10 @@ class RootCtxRenderer extends BaseRenderer {
   throwError(msg, loc) {
     const { getLine } = clientUtils;
 
-    // Todo: Before throwing error, send error to server
+    const _msg = `[${loc ? `${getLine({ loc })}` : this.getId()}] ${msg}`;
+    // alert(msg)
 
-    throw Error(`[${loc ? `${getLine({ loc })}` : this.getId()}] ${msg}`);
+    throw Error(_msg);
   }
 
   setSyntheticContext({ alias, fn, loc, canonicalSource }) {
@@ -2463,10 +2983,6 @@ class RootCtxRenderer extends BaseRenderer {
       this.syntheticContext[alias].current = value;
     }
 
-    // We need to store the object proxy created above as <proxyValue>
-    // Note: This will be needed in doBlockNext(...) when we need to reset the last lookup value
-    this.syntheticContext[alias].proxyValue = value;
-
     // Notice that <value> has been transformed above. On compile-time, we need to return
     // the exact value return by <fn> which is <value0> because the return type will also
     // need to be validated
@@ -2479,11 +2995,6 @@ class RootCtxRenderer extends BaseRenderer {
       .replace(cachedNameSuffix, '');
   }
 
-  toSyntheticCachedName(name) {
-    const { cachedNameSuffix } = RootCtxRenderer;
-    return `${name}${cachedNameSuffix}`;
-  }
-
   /**
    * This returns an invocation string that can be executed to return data from
    * the provided synthetic method name.
@@ -2493,38 +3004,7 @@ class RootCtxRenderer extends BaseRenderer {
    * @returns 
    */
   createInvocationString(name) {
-    assert(this.isSyntheticMethodName(name));
-
-    const name0 = this.toSyntheticCachedName(name);
-    const cache = this.#syntheticCache[this.#syntheticCache.length - 1];
-
-    if (cache[name] === undefined) {
-
-      cache[name] = Function(
-        `return ${this.createInvocationString0(name)}`
-      ).bind(this)();
-
-      this[name0] = Function(
-        `return this.getCachedSyntheticMethodValue("${name}")`
-      ).bind(this);
-    }
-
-    return this.createInvocationString0(name0);
-  }
-
-  createInvocationString0(name) {
     return `this.${name}()`;
-  }
-
-  getCachedSyntheticMethodValue(name) {
-    const cache = this.#syntheticCache[this.#syntheticCache.length - 1];
-    return cache[name];
-  }
-
-  isSyntheticMethodInvocation(name) {
-    const { syntheticMethodPrefix } = RootProxy;
-    // eslint-disable-next-line no-undef
-    return name.startsWith(`this.${syntheticMethodPrefix}`)
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -2533,98 +3013,36 @@ class RootCtxRenderer extends BaseRenderer {
     return name && name.startsWith(RootProxy.syntheticMethodPrefix);
   }
 
-  getSyntheticMethod({
-    name,
-  }) {
+  getSyntheticMethod({ name }) {
     // eslint-disable-next-line no-undef
     const f = this[`${RootProxy.syntheticMethodPrefix}${name}`];
     return f ? f.bind(this) : null;
   }
 
-  static getDataBaseExecPath() {
-    return 'this.getInput()';
+  static getSyntheticMethod({ name }) {
+    // eslint-disable-next-line no-undef
+    const f = this[`${RootProxy.syntheticMethodPrefix}${name}`];
+    return f ? f.bind(this) : null;
   }
 
-  static getGlobalsBaseExecPath() {
-    return `this.getRootGlobals()`;
-  }
+  getExecPath({ fqPath, indexResolver, useCache = true }) {
 
-  getGlobalsExecPath(fqPath) {
-    const { globalsBasePath, pathSeparator } = RootProxy;
-    const { getGlobalsBaseExecPath } = RootCtxRenderer;
+    const { pathSeparator, isMapProperty, globalsBasePath } = RootProxy;
+    const { toObject } = RootCtxRenderer;
+    const { getSegments } = clientUtils;
 
-    const arr = fqPath.split(pathSeparator);
+    if (!fqPath) return fqPath;
 
-    assert(arr[0] == globalsBasePath);
-    arr[0] = getGlobalsBaseExecPath();
-
-    // eslint-disable-next-line no-eval
-    return arr.join('.');
-  }
-
-  static getExecStringFromValue(value) {
-    switch (true) {
-      case value == null:
-      case value === undefined:
-      case value.constructor.name == 'Number':
-      case value.constructor.name == 'Boolean':
-        return value;
-      case value.constructor.name == 'String':
-        return `"${value}"`;
-      case value instanceof BaseComponent:
-        return clientUtils.stringifyComponentData(value.toJSON());
-      case value === Object(value):
-        return JSON.stringify(value);
-      default:
-        throw Error(`Unknown value: ${value}`);
-    }
-  }
-
-  getExecPath({ fqPath, indexResolver, addBasePath, allowSynthetic }) {
-    const result = {
-      execPath: this.getExecPath0({
-        fqPath,
-        indexResolver,
-        addBasePath,
-        allowSynthetic
-      }),
-      path: null,
-    };
-
-    result.path =
-      this.isSyntheticMethodInvocation(result.execPath)
-        && !this.isSyntheticMethodName(fqPath)
-        ?
-        // We need a non-invocation path to use in <result.path>
-        this.getExecPath0({
-          fqPath,
-          indexResolver,
-          addBasePath,
-          allowSynthetic: false,
-        })
-        : result.execPath;
-
-    return result;
-  }
-
-  getExecPath0({ fqPath, indexResolver, addBasePath = true, allowSynthetic = true }) {
-
-    const {
-      pathSeparator, syntheticMethodPrefix, globalsBasePath, getDataVariables, isMapProperty
-    } = RootProxy;
-    const {
-      toObject, getDataBaseExecPath, getExecStringFromValue, getSyntheticAliasFromChildPath
-    } = RootCtxRenderer;
-    const { arrayIndexSegment, mapKeySegment, getSegments0, randomString } = clientUtils;
-
-    if (fqPath === '') {
-      return getDataBaseExecPath();
+    if (this.resolver) {
+      useCache = false;
     }
 
-    assert(fqPath != globalsBasePath);
+    let cacheKey;
 
-    if (fqPath.startsWith(`${globalsBasePath}${pathSeparator}`)) {
-      return this.getGlobalsExecPath(fqPath);
+    if (useCache) {
+      cacheKey = `execPath_cache_${fqPath}`;
+      const value = this.getVariableInScope(cacheKey);
+      if (value) return value;
     }
 
     if (!indexResolver) {
@@ -2632,59 +3050,31 @@ class RootCtxRenderer extends BaseRenderer {
       indexResolver = path => this.blockData[path].index;
     }
 
-    if (this.isSyntheticMethodName(fqPath) || this.resolver) {
-      addBasePath = false;
-    }
-
-    const basePath = addBasePath ? getDataBaseExecPath() : '';
-
     const segments = fqPath.split(pathSeparator);
     const parts = [];
 
-    if (basePath.length) {
-      parts.push(basePath);
+    const addToCache = (resolvedPath) => {
+      if (useCache) {
+        this.addVariableToScope(cacheKey, resolvedPath);
+      }
     }
 
-
-    const joinParts = () => parts
-      .map((part, index) => {
-
-        switch (true) {
-          case this.isSyntheticMethodName(part):
-            assert(index == 0);
-            // Note: If there are index segments, e.g. s$_abcd[0], we want to ensure that 
-            // those are not affected
-            const [first] = part.match(/s\$_\w+/g);
-
-            return part.replace(
-              first, this.createInvocationString(first)
-            );
-
-          default:
-            return index == 0 ? part : `.${part}`;
-        }
-      })
-      .join('');
-
-    const resolveValue = (path) => {
-      const value = this.#resolvePath0({
-        path: `${!this.resolver && !this.isSyntheticMethodInvocation(path) && !addBasePath ?
-          `${getDataBaseExecPath()}.` : ''
-          }${path}`
-      });
-      return value;
-    };
+    const hasIndex = !this.isSyntheticMethodName(fqPath) && segments[0] != globalsBasePath;
 
     // eslint-disable-next-line no-plusplus
     for (let i = 0; i < segments.length; i++) {
       let part = segments[i];
 
+      if (!hasIndex) {
+        parts.push(part);
+        continue;
+      }
+
       // This is necessary if we have a part like: x_$[0]
-      const partSegments = getSegments0(part, arrayIndexSegment);
+      const partSegments = getSegments({ original: part });
       [part] = partSegments;
 
       const suffix = partSegments.slice(1).join('');
-
 
       if (part.endsWith('_$')) {
 
@@ -2700,17 +3090,13 @@ class RootCtxRenderer extends BaseRenderer {
           .concat([parent])
           .join(pathSeparator)
 
-        const path = this.getExecPath0({
-          fqPath: canonicalPath,
-          indexResolver,
-          addBasePath,
-        });
+        const path = this.getExecPath({ fqPath: canonicalPath, indexResolver, useCache });
 
         // if path ends with w.x.$_abc, part should be x.$_abc, not $_abc,
         // because $_abc should be translated as the index placeholder: _$
         part = path.split(/\.(?!\$_)/g).pop();
 
-        let value = resolveValue(path);
+        let value = this.evalPath({ path });
 
         assert(
           value instanceof Array || (this.resolver ? value instanceof Map : value[isMapProperty]),
@@ -2742,248 +3128,102 @@ class RootCtxRenderer extends BaseRenderer {
             break;
 
           default:
-            throw Error(`Unknown path: ${path.replace(`${basePath}.`, '')}`);
+            throw Error(`Unknown path "${path}"`);
         }
-
-      } else if (part.endsWith('_@')) {
-        [part] = part.split('_@');
       }
-
 
       if (suffix.length) {
         part += suffix;
       }
 
-
-      if (allowSynthetic && part.startsWith('@')) {
-
-        const dataVariable = part;
-
-        assert(getDataVariables().includes(dataVariable));
-        assert(i > 0 && i == segments.length - 1);
-
-        const path = [...addBasePath ? parts.slice(1) : parts].join('.');
-
-        const isArray = !!path.match(RegExp(`${arrayIndexSegment.source}$`));
-        const isMap = !!path.match(
-          this.resolver ? /\.\$_\w+$/ : RegExp(`${mapKeySegment.source}$`)
-        );
-
-        assert(isArray || isMap);
-
-        const value = (() => {
-
-          if (this.isSyntheticMethodName(fqPath)) {
-
-            assert(parts.length == 1);
-
-            const blockKey = getSyntheticAliasFromChildPath(parts[0]);
-
-            return this.getBlockData({
-              path: blockKey, dataVariable,
-            })
-
-          } else {
-
-            if (this.resolver && isArray) {
-              // Since we are resolving to a synthetic method name there is a possibility that the developer 
-              // never accesses {{.}} inside the #each block, thereby causing the PathResolver to throw a 
-              // "redundant path" error for <path>. Hence, we need to at least access index 0 at compile-time
-
-              // Note: <path> will be evaluated by getInfoFromPath(...) below, so this may not be necessary
-              // however leave this code here
-              this.resolver.resolve({ path })
-            }
-
-            const { value } = this.proxyInstance.getInfoFromPath(
-              `${path}.${dataVariable}`
-            );
-
-            return value;
-          }
-        })();
-
-        (() => {
-          switch (dataVariable) {
-            case '@first':
-            case '@last':
-              assert(typeof value == 'boolean');
-              break;
-            case '@key':
-            case '@random':
-              assert(typeof value == 'string' && value.length);
-              break;
-            case '@index':
-              assert(typeof value == 'number' && value >= 0);
-              break;
-          }
-        })();
-
-        const syntheticMethodName = `${syntheticMethodPrefix}${randomString()}`;
-
-        this[syntheticMethodName] = Function(`return ${getExecStringFromValue(value)}`);
-
-        // <syntheticMethodName> is a temporarily function used to get the value, prune later
-        this.onContextFinalization(() => {
-          delete this[syntheticMethodName];
-        });
-
-        return this.createInvocationString(syntheticMethodName);
-      }
-
       parts.push(part);
     }
 
-    return joinParts();
+    const ret = parts
+      .map((part, index) => index == 0 ? part : `.${part}`)
+      .join('');
+
+    addToCache(ret);
+
+    return ret;
   }
 
-  resolvePath({ fqPath, indexResolver, create, includePath, lenientResolution, stmt }) {
+  resolvePath({ fqPath, indexResolver, includePath, create, stmt }) {
+    const { dataPathRoot, pathSeparator } = RootProxy;
 
     const arr = fqPath.split('%');
-    let { path, execPath } = this.getExecPath({
-      fqPath: arr[0],
-      indexResolver,
+
+    const path = this.getExecPath({ fqPath: arr[0], indexResolver });
+
+    const isSynthetic = this.isSyntheticMethodName(path);
+
+    const value = this.evalPath({
+      path: path + ((arr.length > 1 && !isSynthetic) ? `%${arr[1]}` : ''),
+      isSynthetic, create, stmt,
     });
 
-    if (this.isSyntheticMethodInvocation(path)) {
-      const value = this.evaluateGetterExpression(path);
+    return includePath ?
+      {
+        canonicalPath: arr[0],
+        path: !isSynthetic ? `${dataPathRoot}${pathSeparator}${path}` : path,
+        value,
+      } :
+      value;
+  }
 
-      return includePath ? {
-        path: this.getMethodNameFromInvocationString(path),
-        value
-      } : value;
+  evalPath({ path, isSynthetic, create, stmt }) {
+    const { globalsBasePath, syntheticMethodPrefix } = RootProxy;
+
+    switch (true) {
+      case isSynthetic || this.isSyntheticMethodName(path):
+        const cache = this.#syntheticCache.at(-1);
+        let ret = cache[path];
+
+        if (!ret) {
+          let fn = this[path];
+
+          if (!fn) {
+            fn = this[path.replace(syntheticMethodPrefix, '')];
+          }
+
+          if (!fn) {
+            this.throwError(`Unknown helper "${path}"`);
+          }
+
+          ret = fn.bind(this)();
+          cache[path] = ret;
+        }
+
+        return ret;
+
+      case path.startsWith(`${globalsBasePath}.`):
+        return this.getGlobalVariables()[
+          path.replace(`${globalsBasePath}.`, '')
+        ];
+
+      case !!this.resolver:
+        return this.resolver.resolve({ path, create, stmt });
+
+      default:
+        return path ? this.getInputMap().get(path) : this.getInput();
     }
-
-    // In some case cases, data paths can resolve to a synthetic method invocation, i.e. when resolving data variables,
-    // hence we need to eagerly evaluate the <execPath> it inorder to derive a <valueOverride>
-    const valueOverride = this.isSyntheticMethodInvocation(execPath) ? this.evalPath(execPath, lenientResolution) : undefined;
-
-    return this.#resolvePath0({
-      path, valueOverride, create, includePath, lenientResolution, stmt,
-      canonicalPath: arr[0], type: arr[1],
-    });
   }
 
-  static wrapExecStringForLeniency(execString, noOpValue) {
-    const { getExecStringFromValue } = RootCtxRenderer;
-
-    return `this.evalPathLeniently(\`${execString}\`, ${getExecStringFromValue(noOpValue)})`;
-  }
-
-  static toBindPath(path) {
-    const { dataPathRoot, pathSeparator, globalsBasePath } = RootProxy;
-    const { escapeRegExp } = clientUtils;
-    const { getDataBaseExecPath, getGlobalsBaseExecPath } = RootCtxRenderer;
-
-    // Note: <lenientPrefix> is based on wrapExecStringForLeniency(...)
-    const lenientPrefix = 'this.evalPathLeniently(`';
-
-    if (path.startsWith(lenientPrefix)) {
-      path = path.replace(lenientPrefix, '').replace(/`\)$/g, '')
-    }
-
-    let prefix = getDataBaseExecPath();
-    let repl = '';
-
-    if (path.startsWith(getGlobalsBaseExecPath())) {
-      prefix = getGlobalsBaseExecPath();
-      repl = `${globalsBasePath}${pathSeparator}`;
-    }
-
-    path = path.replace(
-      RegExp(`${escapeRegExp(prefix)}\\.?`),
-      repl
-    );
-
-    return `${dataPathRoot}${pathSeparator}${path}`;
-  }
-
-  evaluateGetterExpression(execString, scope) {
-    return this.evaluateExpression(`return ${execString};`, scope);
-  }
-
-  /**
-   * 
-   * Note: This method name is a hardcoded string in RootProxy.toExecutablePath(...) and maybe in other places. 
-   * If this method name is updated, look for references and update those as well
-   * 
-   * @param {string} execPath 
-   * @param {any} undefinedVal 
-   * @returns 
-   */
-  evalPathLeniently(execPath, undefinedVal, scope) {
+  unsafeEvaluate(code, lenient, loc, scope = {}) {
     const { lenientExceptionMsgPattern } = RootProxy;
-    try {
-      return this.evaluateGetterExpression(execPath, scope);
-    } catch (e) {
-      if (e.name == 'TypeError' && e.message.match(lenientExceptionMsgPattern)) {
-        return undefinedVal;
-      } else {
-        throw e;
-      }
-    }
-  }
-
-  evalPath(execPath, lenient, loc, scope = {}) {
-    const { getGlobalsBaseExecPath } = RootCtxRenderer;
-
-    if (lenient || execPath.startsWith(getGlobalsBaseExecPath())) {
-      return this.evalPathLeniently(execPath, undefined, scope);
-    }
 
     try {
-      return this.evaluateGetterExpression(execPath, scope);
+      return self.appContext.unsafeEvaluate(code, scope);
     } catch (e) {
-      if (this.resolver) {
-        throw e;
+      if (lenient && e.name == 'TypeError' && e.message.match(lenientExceptionMsgPattern)) {
+        return undefined;
       } else {
         this.throwError(
-          `Exception thrown while executing "${execPath}": ${e.message}`,
+          `Exception thrown while executing "${code}": ${e.message}`,
           loc,
         );
       }
     }
-  }
-
-  #resolvePath0({
-    path, valueOverride, create, includePath, canonicalPath, type, lenientResolution, stmt,
-  }) {
-
-    const { getDataBaseExecPath, getGlobalsBaseExecPath, toBindPath } = RootCtxRenderer;
-
-    const isSynthetic = this.isSyntheticMethodInvocation(path);
-
-    const value = valueOverride !== undefined ?
-      valueOverride :
-      this.resolver && !isSynthetic ?
-        this.resolver.resolve({ path: `${path}${type ? `%${type}` : ''}`, create, stmt })
-        // eslint-disable-next-line no-eval
-        : this.evalPath(path, lenientResolution);
-
-    if (isSynthetic) {
-      // This is a synthetic invocation, i.e. this.s$AbCdEf().a.b...
-      assert(!includePath);
-
-      return value;
-    } else {
-
-      assert(
-        this.resolver ||
-        path.startsWith(getDataBaseExecPath()) ||
-        path.startsWith(getGlobalsBaseExecPath())
-      );
-
-      return includePath ? {
-        path: toBindPath(path),
-        value,
-        canonicalPath,
-      } : value;
-    }
-  }
-
-  // eslint-disable-next-line class-methods-use-this
-  getRootGlobals() {
-    return this.getGlobalVariables();
   }
 
   buildInputData({ inputProducer = () => ({}), hash = {} }) {
@@ -3027,25 +3267,7 @@ class RootCtxRenderer extends BaseRenderer {
         continue;
       }
 
-      const scope = { i: input, v: value };
-      const getter = `i.${key}`;
-      const setter = `${getter} = v`;
-
-      /**
-       * The idea here is that if the getter can execute successfully,
-       * the setter can do so as well
-       */
-      const shouldSet = () => {
-        try {
-          this.evaluateExpression(getter, scope)
-          return true;
-        } catch (e) {
-          return false;
-        }
-      }
-      if (shouldSet()) {
-        this.evaluateExpression(setter, scope)
-      }
+      input[key] = value;
     }
 
     return {
@@ -3072,14 +3294,20 @@ class RootCtxRenderer extends BaseRenderer {
     return component;
   }
 
-  addEventHandlers({ handlersObject = {}, handlers = {}, component }) {
+  addEventHandlers({ fromComponent, handlers = {}, component }) {
 
-    Object.entries(handlersObject)
-      .forEach(([k, v]) => {
-        v.forEach(fn => {
-          component.on(k, fn.bind(component));
-        })
-      });
+    if (fromComponent) {
+
+      component.setHandlerFunctions(
+        fromComponent.getHandlerFunctions()
+      )
+
+      component.setHandlers(
+        fromComponent.getHandlers()
+      );
+    }
+
+    const helpersNamespace = this.getHelpersNamespace();
 
     Object.entries(handlers)
       .forEach(([evtName, handler]) => {
@@ -3089,20 +3317,21 @@ class RootCtxRenderer extends BaseRenderer {
           return;
         }
 
-        if (handler.startsWith(`${RootCtxRenderer.#helpersNamespace}.`)) {
-
-          component.on(evtName, () => {
-            this.evaluateExpression(handler);
-          });
-
+        if (handler.startsWith(`${helpersNamespace}.`)) {
+          component.on(evtName, handler);
         } else {
-          const fn = this[handler];
 
-          if (!fn || !fn instanceof Function) {
-            this.throwError(`Unknown event handler: ${handler}`);
+          if (typeof this[handler] != 'function') {
+            throw Error(`Unknown event handler "${handler}" added for event "${evtName}"`);
           }
 
-          component.on(evtName, fn.bind(this));
+          component.on(evtName, new EventHandler(
+            () => {
+              _this[_handler].bind(_this)();
+            },
+            null,
+            { _handler: handler, _this: this }
+          ));
         }
       });
   }
@@ -3123,11 +3352,17 @@ class RootCtxRenderer extends BaseRenderer {
       clone = clone.includes(canonicalPath.split(pathSeparator).join('.'));
     }
 
-    if (!clone && componentSpec.getMetaData().loaded) {
-      this.throwError(
-        'A single component instance cannot be rendered multiple times. To resolve, override cloneInlineComponents() and return true',
-        loc
-      );
+    if (!clone && componentSpec.getMetaInfo().loaded) {
+
+      if (!this.isHeadlessContext()) {
+        this.throwError(
+          'A single component instance cannot be rendered multiple times. To resolve, override cloneInlineComponents() and return true',
+          loc
+        );
+      } else {
+        // At compile-time, this should be fine
+      }
+
     }
 
     const inputProducer = () => clone ?
@@ -3145,7 +3380,7 @@ class RootCtxRenderer extends BaseRenderer {
       component = new componentSpec.constructor({ input, config });
 
       this.addEventHandlers({
-        handlersObject: componentSpec.getHandlers(), component,
+        fromComponent: componentSpec, component,
       });
 
     } else {
@@ -3159,7 +3394,7 @@ class RootCtxRenderer extends BaseRenderer {
           });
       }
 
-      componentSpec.addMetadata('loaded', true);
+      componentSpec.addMetaInfo('loaded', true);
     }
 
     this.addEventHandlers({ handlers, component });
@@ -3197,64 +3432,58 @@ class RootCtxRenderer extends BaseRenderer {
       bindContext.ref = ref;
     }
 
-    return this.getPromise()
-      .then(() => {
+    let component;
 
-        let component;
+    switch (true) {
+      case typeof componentSpec == 'string':
 
-        switch (true) {
-          case componentSpec && componentSpec.constructor.name === 'String':
+        const componentClass = global.components[componentSpec];
 
-            const componentClass = components[componentSpec];
-
-            if (componentClass && componentClass.prototype instanceof BaseComponent) {
-              component = this.createComponent({
-                hash,
-                componentClass,
-              });
-            }
-
-            break;
-
-          case componentSpec && componentSpec instanceof BaseComponent:
-            component = this.getComponentInstanceFromSpec({
-              canonicalPath, componentSpec, hash, loc
-            });
-            break;
-
-          case componentSpec === null:
-            // If null, set to undefined so that BaseComponent.render(...) will render an empty string
-            return undefined;
+        if (componentClass && componentClass.prototype instanceof BaseComponent) {
+          component = this.createComponent({
+            hash,
+            componentClass,
+          });
         }
 
-        if (!component) {
-          this.throwError(`Unknown target specified in PartialStatement`, loc);
-        }
+        break;
 
-        this.#registerInlineComponent(ref, component);
+      case componentSpec && componentSpec instanceof BaseComponent:
+        component = this.getComponentInstanceFromSpec({
+          canonicalPath, componentSpec, hash, loc
+        });
+        break;
+    }
 
-        return component;
-      });
+    if (component) {
+      this.#registerInlineComponent(ref, component);
+    }
+
+    return component || '';
   }
 
   #registerInlineComponent(ref, component) {
     if (ref) {
       this.#inlineComponentInstances[ref] = component;
 
-      this.dispatchEvent(`inlineComponentInit-${ref}`);
+      this.on('onMount', () => {
+        this.dispatchEvent(`inlineComponentInit-${ref}`);
+      });
 
-      component.on('destroy', () => {
-        delete this.#inlineComponentInstances[ref];
-      })
+      component.on('destroy', new EventHandler(
+        () => {
+          delete this.getInlineComponentInstances()[ref];
+        },
+        this,
+        { ref }
+      ))
     }
 
     component.setInlineParent(this);
   }
 
   onceInlineComponentLoad(ref, fn) {
-    this.once(() => {
-      fn();
-    }, `inlineComponentInit-${ref}`)
+    this.once(`inlineComponentInit-${ref}`, fn);
   }
 
   getInlineComponent(ref) {
@@ -3275,39 +3504,25 @@ class RootCtxRenderer extends BaseRenderer {
     }
   }
 
-  /**
-   * These are boolean operators that the component wants to exclusively 
-   * implement, rather than combine with the parents to form a list of 
-   * predicates
-   */
-  overridenBooleanOperators() {
-    return [];
-  }
-
   getBooleanOperators() {
-    const overridenOperators = this.overridenBooleanOperators();
-    const o = {};
+    const ret = {};
 
-    this.recursivelyInvokeMethod('booleanOperators').forEach(r => {
-      Object.entries(r)
-        .forEach(([key, value]) => {
-          assert(value instanceof Function);
+    [...this.recursivelyInvokeMethod('booleanOperators')]
+      .reverse()
+      .forEach(r => {
+        Object.entries(r)
+          .forEach(([key, value]) => {
+            assert(value instanceof Function);
 
-          if (!o[key]) {
-            o[key] = [];
-          }
+            if (!ret[key]) {
+              ret[key] = [];
+            }
 
-          o[key].push(value);
-        });
-    });
-
-    Object.entries(this.booleanOperators())
-      .filter(([key]) => overridenOperators.includes(key))
-      .forEach(([key, value]) => {
-        o[key] = [value]
+            ret[key].push(value);
+          });
       });
 
-    return o;
+    return ret;
   }
 
   getOwnMethod(name) {
@@ -3359,13 +3574,6 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   getTransformers() {
-    if (!this.#transformers) {
-      this.#populateTransformers();
-    }
-    return this.#transformers;
-  }
-
-  #populateTransformers() {
     const transformers = {};
 
     this.recursivelyInvokeMethod('transformers').forEach(r => {
@@ -3383,17 +3591,10 @@ class RootCtxRenderer extends BaseRenderer {
 
     Object.values(transformers).forEach(arr => arr.reverse());
 
-    this.#transformers = transformers;
+    return transformers;
   }
 
   getInitializers() {
-    if (!this.#initializers) {
-      this.#populateInitializers();
-    }
-    return this.#initializers;
-  }
-
-  #populateInitializers() {
     const initializers = {};
 
     this.recursivelyInvokeMethod('initializers').forEach(r => {
@@ -3408,15 +3609,15 @@ class RootCtxRenderer extends BaseRenderer {
         });
     });
 
-    this.#initializers = initializers;
+    return initializers;
+  }
+
+  static #escapeRegex(text) {
+    return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
   }
 
   getAssetId() {
     return this.getSyntheticMethod({ name: 'assetId' })();
-  }
-
-  getHelpers() {
-    return this.getSyntheticMethod({ name: 'helpers' })();
   }
 
   getLogicGates() {
@@ -3424,80 +3625,31 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   dataBindingEnabled() {
-    return this.getSyntheticMethod({ name: 'dataBindingEnabled' })();
+    return !this.isHeadlessContext() && this.getSyntheticMethod({ name: 'dataBindingEnabled' })();
   }
 
   hasBlockTransform() {
-    return this.getSyntheticMethod({ name: 'hasBlockTransform' })();
+    return !this.isHeadlessContext() && this.getSyntheticMethod({ name: 'hasBlockTransform' })();
   }
 
   getGlobalHelpers() {
     return this.getSyntheticMethod({ name: 'globalHelpers' })();
   }
 
+  getPathBlockAssociations() {
+    return this.getSyntheticMethod({ name: 'pathBlockAssociations' })();
+  }
+
   getRenderedCollections() {
     return this.getSyntheticMethod({ name: 'renderedCollections' })();
   }
 
-  static #addNodeDetachListener(nodeId, listener) {
-    const listeners = RootCtxRenderer.#nodeDetachListeners;
-
-    const arr = listeners[nodeId] || (listeners[nodeId] = []);
-    arr.push(listener);
-
-    return arr;
+  getNonNullPaths() {
+    return this.getSyntheticMethod({ name: 'nonNullPaths' })();
   }
 
-  static triggerNodeDetachListeners(node) {
-    const { id: nodeId } = node;
-
-    assert(nodeId);
-    const arr = this.#nodeDetachListeners[nodeId];
-
-    if (arr) {
-      arr.forEach((fn) => {
-        fn(node);
-      })
-
-      delete this.#nodeDetachListeners[nodeId];
-    }
-  }
-
-  static {
-
-    if (global.MutationObserver) {
-
-      new MutationObserver((mutations) => {
-        for (const mutation of mutations) {
-          if (mutation.type === 'childList' && mutation.removedNodes.length > 0) {
-            for (const removedNode of mutation.removedNodes) {
-              if (!(removedNode instanceof Element)) {
-                continue;
-              }
-              const componentId = removedNode.getAttribute('__component');
-              const { id: nodeId } = removedNode;
-
-              if (componentId) {
-                // Wait for some moments to see if node is re-connected to the DOM
-                setTimeout(() => {
-                  if (!document.querySelector(`[__component='${componentId}']`)) {
-                    const component = BaseRenderer.getAllComponents()[componentId];
-
-                    if (component) {
-                      component.destroy();
-                    }
-                  }
-                }, this.nodePruneTimeout);
-
-              } else if (removedNode.id) {
-                this.triggerNodeDetachListeners(removedNode);
-              }
-            }
-          }
-        }
-      }).observe(document.body, { childList: true, subtree: true });
-    }
-
+  hasStaticPath() {
+    return this.getSyntheticMethod({ name: 'hasStaticPath' })();
   }
 }
 module.exports = RootCtxRenderer;

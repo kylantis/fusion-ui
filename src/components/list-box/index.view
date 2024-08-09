@@ -35,7 +35,7 @@
         <li role="presentation" class="slds-listbox__item" onclick="{{onClickHelper}}('{{identifier}}')" >
           <div 
             id="{{identifier}}" 
-            class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small {{selected ? 'slds-is-selected slds-has-focus' : ''}}" 
+            class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small {{selected ? 'slds-is-selected' : ''}}" 
             {{disabled ? "aria-disabled='true'" : ''}}
             {{selected ? "aria-checked='true'" : ''}}
             role="option"

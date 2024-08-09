@@ -9,15 +9,28 @@ class BaseComponent extends WebRenderer {
 
   static eventNameDelim = /\s*\|\s*/g;
 
+  static handlerFunctionPrefix = 'f_';
+  static oncePattern = /_once$/g;
+
+  static #staticHandlers = {};
+
   #inlineParent;
 
   #handlers;
+  #handlerFunctions = {};
+
+  #eventLock = [];
+
+  #randomString;
+
+  #domUpdateHooks = [];
 
   // #API
   static CONSTANTS = {
-    // Paths
+    // Paths/Introspection
     pathSeparator: RootProxy.pathSeparator,
     pathProperty: RootProxy.pathProperty,
+    parentRefProperty: RootProxy.parentRefProperty,
     // Data Variables
     firstProperty: RootProxy.firstProperty,
     lastProperty: RootProxy.lastProperty,
@@ -35,8 +48,6 @@ class BaseComponent extends WebRenderer {
     conditionalBlockHookType: RootProxy.conditionalBlockHookType,
     eachBlockHookType: RootProxy.eachBlockHookType,
     textNodeHookType: RootProxy.textNodeHookType,
-    gateParticipantHookType: RootProxy.gateParticipantHookType,
-    arrayChildBlockHookType: RootProxy.arrayChildBlockHookType,
     nodeAttributeHookType: RootProxy.nodeAttributeHookType,
     nodeAttributeKeyHookType: RootProxy.nodeAttributeKeyHookType,
     nodeAttributeValueHookType: RootProxy.nodeAttributeValueHookType,
@@ -55,12 +66,34 @@ class BaseComponent extends WebRenderer {
 
     if (!BaseComponent.#token) {
       // eslint-disable-next-line no-undef
-      BaseComponent.#token = global.clientUtils.randomString();
+      BaseComponent.#token = global.clientUtils.randomString('ungrouped');
       // eslint-disable-next-line no-undef
       RootCtxRenderer.setToken(BaseComponent.#token);
     }
 
     this.#handlers = {};
+  }
+
+  #addDomUpdateHook(fn) {
+    this.#domUpdateHooks.push(fn);
+  }
+
+  getDomUpdateHooks() {
+    return [...this.#domUpdateHooks];
+  }
+
+  pruneDomUpdateHooks() {
+    this.#domUpdateHooks = null;
+    this.#domUpdateHooks = [];
+  }
+
+  updateInputData(targetComponent, parentObject, prop, value) {
+    return new Promise((resolve) => {
+      targetComponent.#addDomUpdateHook(() => {
+        resolve();
+      });
+      parentObject[prop] = value;
+    });
   }
 
   setInlineParent(inlineParent) {
@@ -79,7 +112,7 @@ class BaseComponent extends WebRenderer {
   // eslint-disable-next-line class-methods-use-this
   toHtml(value) {
 
-    if (value instanceof Promise) {
+    if (value instanceof Promise || value instanceof BaseComponent) {
       return '';
     }
 
@@ -139,18 +172,6 @@ class BaseComponent extends WebRenderer {
     });
   }
 
-  // #API
-  async awaitPendingTasks() {
-    await Promise.all(
-      this.getFutures().map(f => typeof f == 'function' ? f() : f)
-    );
-
-    // Clear futures array
-    while (this.getFutures().length) {
-      this.getFutures().shift();
-    }
-  }
-
   render({ data, target, transform, loc }) {
     if (data === undefined) {
       return Promise.resolve();
@@ -158,39 +179,96 @@ class BaseComponent extends WebRenderer {
 
     assert(target);
 
+    const { promise, futures, extendedFutures } = this.getRenderContext();
+
+    return this.#render0({ data, target, transform, promise, futures, extendedFutures });
+  }
+
+  eagerlyInline() {
+    return false;
+  }
+
+  #render0({ data, target, transform, promise, futures, extendedFutures }) {
+
     const future = Promise.resolve(data)
       // eslint-disable-next-line no-shadow
-      .then(async (data) => {
+      .then(async data => {
 
         if (data === undefined) {
           // eslint-disable-next-line no-param-reassign
           data = '';
         }
 
-        let html = data instanceof BaseComponent ? await data.getRenderedHtml() : this.toHtml(data);
+        const isComponent = data instanceof BaseComponent;
 
-        if (transform) {
-          html = this[transform](html);
+        if (isComponent) {
+          extendedFutures.push(
+            new Promise((resolve) => {
+              data.on('afterMount', resolve);
+            })
+          )
         }
 
-        await this.getPromise();
+        let html;
+        let renderContext;
 
-        const node = document.querySelector(target);
-        
-        // clear loader, if any
-        node.innerHTML = '';
 
-        if (data instanceof BaseComponent) {
-          await data.load({
-            container: target,
-            html
-          });
+        const load0 = async () => {
+
+          if (isComponent) {
+            const root = this.isRootComponent();
+            const rand = clientUtils.getRandomInt;
+
+            await new Promise(resolve => {
+              setTimeout(
+                resolve,
+                (this.getInstanceIndex() % 2 == 0) ?
+                  root ? rand(0, 1) : rand(10, 20) :
+                  root ? rand(3, 5) : rand(21, 30)
+              );
+            });
+
+            const ret = await data.getRenderedHtml();
+
+            html = ret.htmlString;
+            renderContext = ret.renderContext;
+
+          } else {
+            html = this.toHtml(data);
+          }
+
+          if (transform) {
+            html = this[transform](html);
+          }
+
+          assert(html != undefined);
+
+          await promise;
+
+          const node = document.querySelector(target);
+
+          if (data instanceof BaseComponent) {
+            await data.load({
+              container: target,
+              html,
+              renderContext,
+            });
+          } else {
+            node.innerHTML = html;
+          }
+        }
+
+        if (isComponent && (this.isRootComponent() || this.isMounted())) {
+          load0();
+
         } else {
-          node.innerHTML = html
+          this.on('load', () => {
+            load0()
+          });
         }
       });
 
-    this.getFutures().push(future);
+    futures.push(future);
 
     return future;
   }
@@ -207,11 +285,10 @@ class BaseComponent extends WebRenderer {
    * Also, note that there is no way to define map and component types here. This can only
    * be done from the template
    * 
-   * Todo: Can we add support for non-scalar attributes here by using a setter
-   * sometimes instead of a getter in the object proxy 
    */
   beforeCompile() {
   }
+
   // #API
   behaviours() {
     return ['destroy'];
@@ -236,45 +313,102 @@ class BaseComponent extends WebRenderer {
   }
 
   // #API
-  popEventListener(evt) {
-    const arr = this.getHandlers()[evt];
-    if (arr) {
-      arr.pop();
-    }
+  setHandlers(handlers) {
+    this.#handlers = handlers;
   }
 
   // #API
-  removeEventListener(evt, handler) {
-    const arr = this.getHandlers()[evt];
-    if (!arr) {
-      return;
-    }
-    const idx = arr.indexOf(handler);
-    assert(idx >= 0);
-
-    arr.splice(idx, 1);
+  getHandlerFunctions() {
+    return this.#handlerFunctions;
   }
 
   // #API
-  once(handler, ...events) {
-    const handler0 = (...args) => {
-      handler(...args);
+  setHandlerFunctions(handlerFunctions) {
+    this.#handlerFunctions = handlerFunctions;
+  }
 
-      events.forEach(evt => {
-        this.removeEventListener(evt, handler0)
+  pruneLifecycleEventHandlers() {
+    const { handlerFunctionPrefix } = BaseComponent;
+
+    Object.entries(this.#handlers)
+      .filter(([k]) => this.isLifecycleEvent(k))
+      .forEach(([k, v]) => {
+
+        Object.keys(v)
+          .filter(h => h.startsWith(handlerFunctionPrefix))
+          .forEach(h => {
+            delete this.#handlerFunctions[h];
+          });
+
+        delete this.#handlers[k];
       });
-    }
-
-    events.forEach(evt => {
-      this.#on0(evt, handler0);
-    });
   }
 
-  #on0(event, handler) {
-    assert(typeof handler == 'function');
+  getAllHandlerFunctions() {
+    let handlerFunctions = {};
 
-    const handlers = this.getHandlers()[event] || (this.getHandlers()[event] = []);
-    handlers.push(handler);
+    this.recursivelyInvokeMethod('eventHandlers').forEach(o => {
+      assert(o.constructor.name == 'Object');
+      handlerFunctions = { ...handlerFunctions, ...o }
+    });
+
+    return {
+      ...handlerFunctions,
+      ...this.#handlerFunctions,
+    };
+  }
+
+  #addHandlerFunction(fn) {
+    const { handlerFunctionPrefix } = BaseComponent;
+
+    const str = `${handlerFunctionPrefix}${this.randomString('handlerFunctions')}`;
+    this.#handlerFunctions[str] = fn;
+
+    return str;
+  }
+
+  #convertEventHandlerToString(handler) {
+    assert(handler instanceof EventHandler);
+
+    return this.#addHandlerFunction(handler);
+  }
+
+  #convertHandlerFnToString(evtName, handler) {
+    if (!this.isLifecycleEvent(evtName)) {
+      throw Error(
+        `"${evtName}" is not a lifecycle event, hence <handler> cannot be a function. Use EventHandler instead`
+      );
+    }
+
+    return this.#addHandlerFunction(handler);
+  }
+
+  // #API
+  once(evtName, handler) {
+    this.#on0(evtName, handler, true);
+    return this;
+  }
+
+  #on0(evtName, handler, once) {
+
+    if (typeof handler == 'function') {
+      handler = this.#convertHandlerFnToString(evtName, handler);
+    }
+
+    if (handler instanceof EventHandler) {
+      handler.setEventName(evtName);
+      handler = this.#convertEventHandlerToString(handler);
+    }
+
+    assert(typeof handler == 'string');
+
+    // check if the event is currently in dispatch mode
+    if (this.#eventLock.includes(evtName)) {
+      throw Error(`Event "${evtName}" is currently being dispatched and cannot be modified`);
+    }
+
+    const handlers = this.#handlers[evtName] || (this.#handlers[evtName] = {});
+    handlers[`${handler}${once ? '_once' : ''}`] = true;
   }
 
   // #API
@@ -282,17 +416,21 @@ class BaseComponent extends WebRenderer {
     const { eventNameDelim } = BaseComponent;
 
     evtName.split(eventNameDelim).forEach((name) => {
-      this.#on0(name, handler);
+      this.#on0(name, handler, false);
     });
 
     return this;
   }
 
   #newEventContext() {
+    const _this = this;
+
     return new class {
       constructor() {
         this.defaultPrevented = false;
+        this.component = _this;
       }
+
       preventDefault() {
         this.defaultPrevented = true;
       }
@@ -300,31 +438,124 @@ class BaseComponent extends WebRenderer {
   }
 
   #dispatchEvent0(event, ...args) {
+    const { handlerFunctionPrefix, oncePattern } = BaseComponent;
 
     let defaultHandler = this.defaultHandlers()[event]
 
-    if (defaultHandler) {
-      if (typeof defaultHandler == 'string') {
-        defaultHandler = this[defaultHandler].bind(this);
-      }
-      assert(typeof defaultHandler == 'function');
+    if (typeof defaultHandler != 'function') {
+      defaultHandler == null;
     }
+
+    const helpersNamespace = this.getHelpersNamespace();
+    const definedHandlers = this.getAllHandlerFunctions();
 
     // Note: Only dispatch event to server if event is clientOnly as well as defined in getEvents()
 
     const ctx = this.#newEventContext();
 
-    [...this.getHandlers()[event] || (defaultHandler ? [defaultHandler] : [])]
-      .forEach(handler => {
+    const finalizers = [];
+
+    const handlers = Object.keys(this.#handlers[event] || {})
+      .map((handler) => {
+        assert(typeof handler == 'string');
+
+        if (handler.match(oncePattern)) {
+          const b = delete this.#handlers[event][handler];
+          assert(b);
+
+          handler = handler.replace(oncePattern, '');
+
+          finalizers.push(() => {
+
+            if (handler.startsWith(handlerFunctionPrefix)) {
+              const b = delete this.#handlerFunctions[handler];
+              assert(b);
+            }
+          });
+        }
+
+        let type = 'method';
+        let fn = handler.startsWith(`${helpersNamespace}.`) ?
+          () => {
+            const { unsafeEval } = AppContext;
+            return unsafeEval(handler);
+          }
+          : this[handler];
+
+        if (typeof fn != 'function') {
+          type = 'handler';
+          fn = definedHandlers[handler];
+
+          if (fn instanceof EventHandler) {
+            fn = fn.getFunction();
+          }
+        }
+
+        if (typeof fn != 'function') {
+          this.throwError(`Unknown handler "${handler}" for event "${event}"`);
+        }
+
+        return { type, fn, };
+      });
+
+    if (handlers.length) {
+      this.#eventLock.push(event);
+    }
+
+    [...handlers.length ? handlers : defaultHandler ? [{ type: 'handler', fn: defaultHandler }] : []]
+      .forEach(({ type, fn }) => {
+        assert(typeof fn == 'function');
+
         try {
-          handler.bind(ctx)(...args)
+          fn.bind((type == 'method') ? this : ctx)(...args)
         } catch (e) {
-          this.logger.error(e);
+          console.info(`Error occured while running handler for event "${event}": \n ${fn.toString()}`);
+
+          this.logger.error(null, e);
         }
       });
 
+    finalizers.forEach(fn => fn());
+
+    if (handlers.length) {
+      this.#eventLock.splice(
+        this.#eventLock.indexOf(event), 1
+      );
+    }
+
     return ctx;
   }
+
+
+
+
+
+  // TODO: Convert static event API to use EventHandler instead
+
+  static on(event, handler) {
+    assert(typeof handler == 'function');
+
+    const handlers = this.#staticHandlers[event] || (this.#staticHandlers[event] = []);
+    handlers.push(handler);
+  }
+
+  static dispatchEvent(event, ...args) {
+    (this.#staticHandlers[event] || [])
+      .forEach(handler => {
+        handler(...args);
+      });
+  }
+
+  static removeEventHandler(event, handler) {
+    const handlers = this.#staticHandlers[event];
+    const idx = handlers ? handlers.indexOf(handler) : -1;
+
+    if (idx >= 0) {
+      handlers.splice(idx, 1);
+    }
+  }
+
+
 
   // #API
   dispatchEvent(event, ...args) {
@@ -378,28 +609,38 @@ class BaseComponent extends WebRenderer {
 
     this.dispatchEvent('destroy');
 
-    // TODO
+    super.destroy();
 
-    const node = document.getElementById(this.getId());
+    if (this.isConnected()) {
+      const node = document.getElementById(this.getElementId());
 
-    if (node) {
       // Detach from DOM
       node.parentElement.removeChild(node)
     }
 
+    // Delete all properties of the instance
+    for (const key in this) {
+      if (this.hasOwnProperty(key)) {
+        delete this[key];
+      }
+    }
+
     setObjectAsPruned(this);
-
-    // clear hooks;
-
-    // remove from componentRefs in base renderer
-    delete BaseRenderer.getAllComponents()[this.getId()];
   }
 
-  s$_jsDependencies() {
+  s$_ownJsDependencies() {
     return [];
   }
 
-  s$_cssDependencies() {
+  s$_ownCssDependencies() {
+    return [];
+  }
+
+  s$_allJsDependencies() {
+    return [];
+  }
+
+  s$_allCssDependencies() {
     return [];
   }
 
@@ -407,10 +648,10 @@ class BaseComponent extends WebRenderer {
   getGlobalVariables() {
     return {
       // ... User Global Variables
-      ...self.appContext ? self.appContext.userGlobals : {},
+      ...self.appContext ? self.appContext.getUserGlobals() : {},
       // ... Component Global Variables
       componentId: this.getId(),
-      random: this.randomString0 || (this.randomString0 = clientUtils.randomString())
+      random: this.#randomString || (this.#randomString = this.randomString('ungrouped'))
     }
   }
 
@@ -479,13 +720,13 @@ class BaseComponent extends WebRenderer {
     return self.appContext ? self.appContext.enums[enumName] : null
   }
   // #API
-  randomString() {
+  randomString(groupName) {
     const { randomString } = BaseComponent;
-    return randomString();
+    return randomString(`${this.getId()}${groupName ? `.${groupName}` : ''}`);
   }
   // #API
-  static randomString() {
-    return clientUtils.randomString();
+  static randomString(groupName, length) {
+    return clientUtils.randomString(groupName, length);
   }
   // #API
   executeDiscrete(fn, interceptor) {
@@ -502,19 +743,23 @@ class BaseComponent extends WebRenderer {
     return visitHtmlAst({ ast, emitter, tagVisitor });
   }
   // #API
-  static getAllComponents() {
-    const { getAllComponents } = BaseRenderer;
-    return getAllComponents();
-  }
-  // #API
-  async triggerHook({ path, hookType, hookOptions }) {
-    const { dataPathRoot, pathSeparator } = RootProxy;
-    const { value } = this.proxyInstance.getInfoFromPath(path);
+  async checkPredicate(path) {
+    const { dataPathRoot, pathSeparator, predicateHookType } = RootProxy;
+    const value = this.getInputMap().get(path);
+
+    const [hookList, metadata] = await Promise.all([
+      this.proxyInstance.getHookListFromPath(path, false, false), this.getMetadata(),
+    ]);
+
+    const p = `${dataPathRoot}${pathSeparator}${path}`;
+
+    if (!hookList[p]) return;
 
     return this.proxyInstance.triggerHooks0({
-      path: `${dataPathRoot}${pathSeparator}${path}`,
-      value, hookTypes: [hookType], hookOptions,
-    })
+      path: p,
+      value, hookTypes: [predicateHookType],
+      hookList, metadata,
+    });
   }
 }
 module.exports = BaseComponent;

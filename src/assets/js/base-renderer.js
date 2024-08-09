@@ -2,12 +2,12 @@
 /* eslint-disable class-methods-use-this */
 class BaseRenderer {
 
-  static #componentIds = [];
-  static #components = {};
+  static #root;
 
   #id;
 
   #input;
+  #inputMap = new Map();
 
   #isRoot;
 
@@ -15,7 +15,7 @@ class BaseRenderer {
 
   #config;
 
-  #metadata;
+  #metaInfo;
 
   constructor({ id, input, logger, config = {} } = {}) {
     if (!id) {
@@ -28,20 +28,14 @@ class BaseRenderer {
     // eslint-disable-next-line no-undef
     assert(input && input.constructor.name === 'Object');
 
-    // eslint-disable-next-line no-undef
-    assert(
-      !BaseRenderer.#componentIds.includes(id),
-      `Duplicate componentId: ${id}`,
+    this.#id = id;
+
+    this.logger = this.createDefaultLogger(
+      logger || self.appContext ? self.appContext.getLogger() : console,
     );
 
-    this.#id = id;
-    this.logger = logger || self.appContext ? self.appContext.logger : this.createDefaultLogger();
-    this.#isRoot = !BaseRenderer.#componentIds.length;
-
-    if (self.appContext) {
-      BaseRenderer.#componentIds.push(this.#id);
-      BaseRenderer.#components[this.#id] = this;
-    }
+    this.#isRoot = BaseRenderer.#root == undefined;
+    BaseRenderer.#root = false;
 
     this.setInput(input);
 
@@ -50,41 +44,58 @@ class BaseRenderer {
       ...config,
     };
 
-    this.#metadata = {};
+    this.#metaInfo = {};
   }
 
-  init() {
+  inWorker() {
+    return typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope;
+  }
+
+  destroy() {
+    this.#input = null;
+    this.#config = null;
+    this.#metaInfo = null;
+    this.proxyInstance = null;
+  }
+
+  async init() {
     if (!this.proxyInstance) {
       // Create root proxy
       // eslint-disable-next-line no-undef
-      RootProxy.create(this);
+      await RootProxy.create(this);
     }
   }
 
-  createDefaultLogger() {
-    const prefix = `[${this.getId()}]`;
-    return {
-      log: (...msg) => {
-        console.log(prefix, ...msg);
+  createDefaultLogger(logger) {
+    const { getLine } = clientUtils;
+    const prefix = (loc) => `[${this.getId()}${loc ? ` ${getLine({ loc })}` : ''}]`;
+
+    const NOOP = () => { };
+
+    return logger ? {
+      log: (loc, ...msg) => {
+        logger.log(prefix(loc), ...msg);
       },
-      info: (...msg) => {
-        console.info(prefix, ...msg);
+      info: (loc, ...msg) => {
+        logger.info(prefix(loc), ...msg);
       },
-      warn: (...msg) => {
-        console.warn(prefix, ...msg);
+      warn: (loc, ...msg) => {
+        logger.warn(prefix(loc), ...msg);
       },
-      error: (...msg) => {
-        console.error(prefix, ...msg);
+      error: (loc, ...msg) => {
+        logger.error(prefix(loc), ...msg);
       },
+    } : {
+      log: NOOP, info: NOOP, warn: NOOP, error: NOOP,
     }
   }
 
-  addMetadata(key, value) {
-    Object.defineProperty(this.#metadata, key, { value, configurable: true, enumerable: false });
+  addMetaInfo(key, value) {
+    Object.defineProperty(this.#metaInfo, key, { value, configurable: true, enumerable: false });
   }
 
-  getMetaData() {
-    return this.#metadata;
+  getMetaInfo() {
+    return this.#metaInfo;
   }
 
   static getDefaultConfig() {
@@ -104,18 +115,6 @@ class BaseRenderer {
     return this.#config;
   }
 
-  static getComponent(id) {
-    return BaseRenderer.#components[id];
-  }
-
-  static getComponentIds() {
-    return BaseRenderer.#componentIds;
-  }
-
-  static getAllComponents() {
-    return BaseRenderer.#components;
-  }
-
   isRoot() {
     return this.#isRoot;
   }
@@ -126,6 +125,14 @@ class BaseRenderer {
 
   getInput() {
     return this.#input;
+  }
+
+  getInputMap() {
+    return this.#inputMap;
+  }
+
+  useWeakRef() {
+    return true;
   }
 
   setInput(input) {
@@ -141,10 +148,6 @@ class BaseRenderer {
 
   seal() {
     this.#sealed = true;
-  }
-
-  evaluateExpression(code, scope) {
-    return AppContext.evaluate(code, scope, this);
   }
 
   /**
@@ -164,7 +167,26 @@ class BaseRenderer {
   }
 
   #createId() {
-    return `${this.getComponentName()}-${global.clientUtils.randomString()}`;
+    if (!self.appContext) {
+      return clientUtils.randomString();
+    }
+
+    const name = this.getComponentName();
+    const classMetadata = self.appContext.getComponentClassMetadataMap()[name];
+
+    if (classMetadata.instanceIndex === undefined) {
+      classMetadata.instanceIndex = -1;
+    }
+
+    const idx = classMetadata.instanceIndex += 1;
+    return `${name}_${idx}`;
+  }
+
+  getInstanceIndex() {
+    const name = this.getComponentName();
+    const classMetadata = self.appContext.getComponentClassMetadataMap()[name];
+
+    return classMetadata.instanceIndex;
   }
 }
 module.exports = BaseRenderer;

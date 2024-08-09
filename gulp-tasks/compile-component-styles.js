@@ -1,40 +1,48 @@
-/**
- * Gulp stylesheets task file
- */
-const path = require('path');
 
+const fs = require('fs');
+const pathLib = require('path');
 const gulp = require('gulp');
 const sass = require('gulp-sass')(require('sass'));
 const sourcemaps = require('gulp-sourcemaps');
 const rename = require('gulp-rename');
 const through = require('through2');
-const pathLib = require('path');
-
-const renameConfig = {
-  suffix: '.min',
-};
+const gulpif = require('gulp-if');
+const streamCombiner = require('stream-combiner2');
+const utils = require('../lib/utils');
 
 const srcFolder = 'src/components';
-const watchTarget = `${srcFolder}/**/*.scss`;
+const destFolder = 'dist/components';
 
-const distFolder = 'dist/components';
+const globPattern = `${srcFolder}/**/style.scss`;
 
-require('fs').createReadStream
-
-const gulpTransform = () => {
+const renameComponentAssetId = () => {
   return through.obj(async (vinylFile, _encoding, callback) => {
     const file = vinylFile.clone();
 
-    const dir = path.dirname(file.path);
-    const componentsFolder = path.dirname(dir);
+    const [componentsFolder] = pathLib.relative(srcFolder, file.path).split('/');
+    const assetId = componentsFolder.replace(/-/g, '_');
 
-    const assetId = path.relative(componentsFolder, dir)
-      .replace(/-/g, '_');
-
-    file.path = path.join(componentsFolder, assetId, file.basename);
+    file.path = file.path.replace(`${srcFolder}/${componentsFolder}`, `${srcFolder}/${assetId}`);
     callback(null, file);
   });
 }
+
+const compressTransform = () => through.obj((chunk, enc, cb) => {
+  const vinylFile = chunk.clone();
+
+  const { contents, path } = vinylFile;
+  const _path = path.replace(srcFolder, destFolder);
+
+  const dir = pathLib.dirname(_path);
+  fs.mkdirSync(dir, { recursive: true });
+
+  utils.getCompressedFiles(_path, contents)
+    .forEach(([p, c]) => {
+      fs.writeFileSync(p, c)
+    });
+
+  cb(null, vinylFile);
+});
 
 const addPipes = (path, relativize) => {
   let stream = gulp.src(path);
@@ -49,24 +57,36 @@ const addPipes = (path, relativize) => {
     );
   }
 
+  const isScssFile = (vinylFile) => vinylFile.path.endsWith('.scss');
+
   return stream
-    .pipe(sourcemaps.init())
-    .pipe(sass(
-      {
-        outputStyle: 'compressed',
-        includePaths: ['node_modules/normalize-scss/sass/'],
-      },
-    ).on('error', sass.logError))
-    .pipe(sourcemaps.write())
-    .pipe(rename(renameConfig))
-    .pipe(gulpTransform())
-    .pipe(gulp.dest(distFolder))
+    .pipe(
+      gulpif(
+        isScssFile,
+        streamCombiner.obj(
+          sourcemaps.init(),
+          sass(
+            {
+              outputStyle: 'compressed',
+              includePaths: ['node_modules/normalize-scss/sass/'],
+            },
+          ).on('error', sass.logError),
+          sourcemaps.write(),
+          rename({ suffix: '.min' })
+        ),
+      )
+    )
+    .pipe(renameComponentAssetId())
+    .pipe(compressTransform())
+    .pipe(gulp.dest(destFolder))
 };
 
-gulp.task('compile-component-syles', () => addPipes(watchTarget));
+gulp.task('compile-component-styles', () => addPipes(globPattern));
 
-gulp.task('compile-component-syles:watch', () => {
-  const watcher = gulp.watch(watchTarget, { ignoreInitial: true });
+gulp.task('compile-component-styles:watch', () => {
+  const watcher = gulp.watch(
+    globPattern, { ignoreInitial: true }
+  );
 
   watcher.on('change', (path) => addPipes(path, true));
 });

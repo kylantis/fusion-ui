@@ -5,8 +5,8 @@
     {{var name=(getItemInputName item)}}
 
     <input type="{{type}}" name="{{name}}" id="{{id}}" value="{{id}}"
-      {{item.checked ? "checked=''" : "" }}
-      {{(item.disabled or disabled) ? "disabled=''" : "" }}
+      {{item.checked ? "checked='checked'" : "" }}
+      {{(item.disabled or disabled) ? "disabled='disabled'" : "" }}
       {{message ? "aria-describedby='${@root.componentId}_message'" : "" }}
       onchange="{{fn "onChange"}}(event)"
     >

@@ -1,8 +1,27 @@
 class LightningComponent extends BaseComponent {
 
+    static rootFontSize;
+
+    static isAbstract() {
+        return true;
+    }
+
     beforeCompile() {
         this.getInput().cssStyle;
         this.getInput().cssClass;
+    }
+
+    beforeRender() {
+        const { rootFontSize } = LightningComponent;
+
+        if (!rootFontSize) {
+            LightningComponent.rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        }
+    }
+
+    static getRootFontSize() {
+        const { rootFontSize } = LightningComponent;
+        return rootFontSize;
     }
 
     behaviours() {
@@ -23,9 +42,12 @@ class LightningComponent extends BaseComponent {
     }
 
     toggleCssClass0(node, predicate, className) {
-        if (!node) {
-            return;
-        }
+        LightningComponent.toggleCssClass0(node, predicate, className);
+    }
+
+    static toggleCssClass0(node, predicate, className) {
+        if (!node) return;
+
         const { classList } = node;
         if (predicate) {
             classList.add(className);
@@ -208,20 +230,6 @@ class LightningComponent extends BaseComponent {
         return this.getTooltipTarget();
     }
 
-    static isAbstract() {
-        return true;
-    }
-
-    getLoader() {
-        return `
-            <div style='position: absolute; display: table; width: 100%; height: 100%;'>
-              <div style='vertical-align: middle; display: table-cell;'>
-                <img width='20px' src='/assets/images/loader.gif' style='display: block; margin-left: auto; margin-right: auto;'>
-              </div>
-            </div>
-        `;
-    }
-
     isMobile() {
         return navigator.userAgent.match(/Android/i)
             || navigator.userAgent.match(/webOS/i)
@@ -240,12 +248,12 @@ class LightningComponent extends BaseComponent {
     }
 
     events() {
-        return ['bodyClick'];
+        return [];
     }
 
     behaviours() {
         return [
-            'dispatchBodyClickEventForAll', 'setHtmlAttribute', 'removeHtmlAttribute',
+            'setHtmlAttribute', 'removeHtmlAttribute',
         ];
     }
 
@@ -263,17 +271,6 @@ class LightningComponent extends BaseComponent {
             return;
         }
         node.removeAttribute(name);
-    }
-
-    dispatchBodyClickEventForAll() {
-        const { dispatchBodyClickEventForAll } = LightningComponent;
-        return dispatchBodyClickEventForAll();
-    }
-
-    static dispatchBodyClickEventForAll() {
-        const { getAllComponents } = BaseComponent;
-        Object.values(getAllComponents())
-            .forEach(i => i.dispatchEvent('bodyClick'));
     }
 
     getOverlayAttribute() {
@@ -296,7 +293,7 @@ class LightningComponent extends BaseComponent {
                 return;
             }
 
-            this.dispatchBodyClickEventForAll();
+            BaseComponent.dispatchEvent('bodyClick');
         });
     }
 }

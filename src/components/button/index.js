@@ -1,32 +1,41 @@
 
 class Button extends components.LightningComponent {
 
+    eventHandlers() {
+        return {
+            ['insert.stateful']: ({ value: stateful, parentObject }) => {
+                const { type } = parentObject;
+
+                if (stateful && (type != 'neutral')) {
+                    parentObject.stateful = false;
+                }
+            },
+            ['insert.type']: ({ value: type, parentObject }) => {
+                const { stateful } = parentObject;
+
+                if (stateful && (type != 'neutral')) {
+                    parentObject.type = 'neutral';
+                }
+            },
+            ['remove.states.$_']: ({ mutationType, parentObject, key, afterMount }) => {
+                const { mutationType_DELETE } = BaseComponent.CONSTANTS;
+                if (mutationType != mutationType_DELETE) return;
+
+                afterMount(() => {
+                    parentObject[key] = this.#geEmptyStateObject();
+                });
+            },
+            ['refreshButtonSize']: () => {
+                this.refreshButtonSize();
+            }
+        }
+    }
+
+
     beforeRender() {
-
-        this.on('insert.stateful', ({ value: stateful, parentObject }) => {
-            const { type } = parentObject;
-
-            if (stateful && (type != 'neutral')) {
-                parentObject.stateful = false;
-            }
-        });
-
-        this.on('insert.type', ({ value: type, parentObject }) => {
-            const { stateful } = parentObject;
-
-            if (stateful && (type != 'neutral')) {
-                parentObject.type = 'neutral';
-            }
-        });
-
-        this.on('remove.states.$_', ({ mutationType, parentObject, key, afterMount }) => {
-            const { mutationType_DELETE } = BaseComponent.CONSTANTS;
-            if (mutationType != mutationType_DELETE) return;
-
-            afterMount(() => {
-                parentObject[key] = this.#geEmptyStateObject();
-            });
-        });
+        this.on('insert.stateful', 'insert.stateful');
+        this.on('insert.type', 'insert.type');
+        this.on('remove.states.$_', 'remove.states.$_');
     }
 
     onMount() {
@@ -44,9 +53,8 @@ class Button extends components.LightningComponent {
     afterMount() {
         this.on(
             this.getSizeIntrinsicPaths().map(p => `insert.${p}`).join('|'),
-            () => {
-                this.refreshButtonSize()
-            });
+            'refreshButtonSize'
+        );
     }
 
     events() {

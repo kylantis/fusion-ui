@@ -3,17 +3,27 @@ class Pill extends components.LightningComponent {
 
     #identifiers = [];
 
+    useWeakRef() {
+        return false;
+    }
+
+    eventHandlers() {
+        return {
+            ['remove.items_$']: ({ value: item }) => {
+                if (!item) return;
+
+                const { identifier } = item;
+
+                const index = this.#identifiers.indexOf(identifier);
+                assert(index >= 0);
+
+                this.#identifiers.splice(index, 1);
+            }
+        }
+    }
+
     onMount() {
-        this.on('remove.items_$', ({ value: item }) => {
-            if (!item) return;
-
-            const { identifier } = item;
-
-            const index = this.#identifiers.indexOf(identifier);
-            assert(index >= 0);
-
-            this.#identifiers.splice(index, 1);
-        });
+        this.on('remove.items_$', 'remove.items_$');
     }
 
     immutablePaths() {
@@ -88,14 +98,10 @@ class Pill extends components.LightningComponent {
     }
 
     refreshItem(identifier) {
-        const { predicateHookType } = BaseComponent.CONSTANTS;
-
         const idx = this.getIndexForIdentifier(identifier);
 
         if (idx >= 0) {
-            this.triggerHook({
-                path: `items[${idx}]`, hookType: predicateHookType
-            })
+            this.checkPredicate(`items[${idx}]`)
         }
     }
 

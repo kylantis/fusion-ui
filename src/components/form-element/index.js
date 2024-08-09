@@ -17,6 +17,10 @@ class FormElement extends components.LightningComponent {
         return true;
     }
 
+    useWeakRef() {
+        return false;
+    }
+    
     isLoadable() {
         if (this.isHeadlessContext()) {
             return true;
@@ -124,29 +128,35 @@ class FormElement extends components.LightningComponent {
         }
     }
 
+    eventHandlers() {
+        return {
+            ['insert.error']: ({ value, onMount }) => {
+                onMount(() => {
+                    this.toggleErrorClass(value);
+                })
+            },
+            ['insert.readonly']: ({ value, onMount }) => {
+                onMount(() => {
+                    this.toggleReadOnlyClass(value);
+                })
+            },
+            ['insert.editable']: ({ value, onMount }) => {
+                onMount(() => {
+                    this.toggleEditableClass(value);
+                })
+            }
+        };
+    }
+
     beforeRender() {
-        this.on('insert.error', ({ value, afterMount }) => {
-            afterMount(() => {
-                this.toggleErrorClass(value);
-            })
-        });
-
-        this.on('insert.readonly', ({ value, afterMount }) => {
-            afterMount(() => {
-                this.toggleReadOnlyClass(value);
-            })
-        });
-
-        this.on('insert.editable', ({ value, afterMount }) => {
-            afterMount(() => {
-                this.toggleEditableClass(value);
-            })
-        });
+        this.on('insert.error', 'insert.error');
+        this.on('insert.readonly', 'insert.readonly');
+        this.on('insert.editable', 'insert.editable');
     }
 
     getPopupWidgetContainer() {
         return !this.isCompound() ?
-            document.querySelector(`#${this.getId()}-popup-widget`) :
+            document.querySelector(`#${this.getElementId()}-popup-widget`) :
             null;
     }
 

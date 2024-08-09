@@ -50,7 +50,7 @@
                 </th>
 
                 {{#each columns opaqueWrapper=true as |column|}}
-                    {{var resizable = (../resizableColumns or resizable) inline=true}}
+                    {{var resizable = (../resizableColumns or resizable) clone=true}}
 
                     <th aria-label="{{@key}}" aria-sort="none" class="{{resizable ? "slds-is-resizable" : ""}} {{sortable ? "slds-is-sortable" : ""}} slds-cell_action-mode" scope="col">
                     
@@ -100,6 +100,9 @@
 
         <tbody>
             {{#each rows opaqueWrapper=true as |row rowIndex|}}
+                {{component Menu alias="actions"}}
+                {{component ContextMenu}}
+
                 <tr aria-selected="{{rowsSelectable and selected}}" class="slds-hint-parent">
                     
                     <td role="gridcell" {{not ../rowsSelectable ? "style='display: none;'" : ""}}>
@@ -157,8 +160,6 @@
                             </div>
                         </td>
                     {{/each}}
-
-                    {{component Menu alias="actions"}}
 
                     <td role="gridcell" {{not actions ? "style='display: none;'" : ""}}>
                         {{#if actions}}

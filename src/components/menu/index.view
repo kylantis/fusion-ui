@@ -1,4 +1,5 @@
-  
+  {{style url="/components/menu/style.min.css"}}
+
   <div class="
       slds-dropdown
       {{size ? "slds-dropdown_${size}" : "slds-dropdown_x-small"}}
@@ -27,12 +28,28 @@
 
           <li
             class="slds-dropdown__item {{subMenu ? 'slds-has-submenu' : ''}}" 
-            role="{{not subMenu ? (../role eq 'presentation') ? ../role : 'menuitem${../role}' : 'presentation'}}"
+            role="{{(../role eq 'presentation') ? ../role : 'menuitem${../role}'}}"
             identifier="{{identifier}}"
           >
 
-            {{#*inline "submenu-decorator" runtime=true}}
-              {{> subMenu label=title isSubMenu=true x=subMenuX y=subMenuY }}
+            {{#*inline "submenu" runtime=true}}
+              {{> subMenu label=title isSubMenu=true }}
+            {{/inline}}
+
+            {{#*inline "leftIconDecorator" runtime=true}}
+                {{component Icon alias="leftIcon"}}
+
+                {{#if leftIcon}}
+                    {{> leftIcon marginRight='x-small' useCurrentColor=(feedbackState eq 'warning')}}
+                {{/if}}
+            {{/inline}}
+
+            {{#*inline "rightIconDecorator" runtime=true}}
+                {{component Icon alias="rightIcon"}}
+
+                {{#if rightIcon}}
+                  {{> rightIcon marginLeft='small' useCurrentColor=(feedbackState eq 'warning')}}
+                {{/if}}
             {{/inline}}
 
             <a role="menuitem" 
@@ -43,27 +60,19 @@
 
               <span class="slds-truncate" title="{{title}}">
 
-                {{component Icon alias="leftIcon"}}
-
                 <span class="left-icon-container 
                       {{leftMargin ? 'slds-m-left_small' : ''}}"
                 >
-                  {{#if leftIcon opaqueWrapper=true}}
-                    {{> leftIcon marginRight='x-small' useCurrentColor=(feedbackState eq 'warning')}}
-                  {{/if}}
+                    {{> leftIconDecorator}}
                 </span>
                 
                 {{title}}
               </span>
-
-              {{component Icon alias="rightIcon"}}
               
               <span class="right-icon-container
                     {{rightMargin ? 'slds-m-right_x-small' : ''}}"
               >
-                {{#if rightIcon and (not subMenu) opaqueWrapper=true}}
-                  {{> rightIcon marginLeft='small' useCurrentColor=(feedbackState eq 'warning')}}
-                {{/if}}
+                  {{> rightIconDecorator}}
               </span>
             </a>
 

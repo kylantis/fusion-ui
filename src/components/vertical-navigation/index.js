@@ -15,6 +15,42 @@ class VerticalNavigation extends components.LightningComponent {
         this.getInput().sections[0].items[0].rendered;
     }
 
+    eventHandlers() {
+        return {
+            ['remove.sections_$']: ({ value: section }) => {
+                if (!section) return;
+
+                const { id } = section;
+
+                this.#sectionIds.splice(
+                    this.#sectionIds.indexOf(id), 1
+                );
+            },
+            ['insert.sections_$.items_$']: ({ value: item, parentObject }) => {
+                if (!item) return;
+
+                const { id: sectionId } = parentObject['@parentRef'];
+
+                this.executeDiscrete(() => {
+                    item.sectionId = sectionId;
+                });
+
+                this.#items[item.id] = item;
+            },
+            ['remove.sections_$.items_$']: ({ value: item }) => {
+                if (!item) return;
+
+                const { id } = item;
+
+                this.#itemIds.splice(
+                    this.#itemIds.indexOf(id), 1
+                );
+
+                delete this.#items[id];
+            }
+        }
+    }
+
     beforeRender() {
         const { DEFAULT_TRUNCATE_SIZE } = VerticalNavigation;
 
@@ -24,36 +60,9 @@ class VerticalNavigation extends components.LightningComponent {
             input.truncateSize = DEFAULT_TRUNCATE_SIZE;
         }
 
-        this.on('remove.sections_$', ({ value: section }) => {
-            if (!section) return;
-
-            const { id } = section;
-
-            this.#sectionIds.splice(
-                this.#sectionIds.indexOf(id), 1
-            );
-        });
-
-        this.on('insert.sections_$.items_$', ({ value: item, parentObject }) => {
-            if (!item) return;
-
-            const { id: sectionId } = parentObject['@parentRef'];
-
-            item.sectionId = sectionId;
-            this.#items[item.id] = item;
-        });
-
-        this.on('remove.sections_$.items_$', ({ value: item }) => {
-            if (!item) return;
-
-            const { id } = item;
-
-            this.#itemIds.splice(
-                this.#itemIds.indexOf(id), 1
-            );
-
-            delete this.#items[id];
-        });
+        this.on('remove.sections_$', 'remove.sections_$');
+        this.on('insert.sections_$.items_$', 'insert.sections_$.items_$');
+        this.on('remove.sections_$.items_$', 'remove.sections_$.items_$');
     }
 
     immutablePaths() {
@@ -64,6 +73,8 @@ class VerticalNavigation extends components.LightningComponent {
         return {
             ['sections_$.id']: () => this.randomString(),
             ['sections_$.items_$.id']: () => this.randomString(),
+            ['sections_$.overflow']: () => { },
+            ['sections_$.overflow.expanded']: false,
         }
     }
 
@@ -109,7 +120,9 @@ class VerticalNavigation extends components.LightningComponent {
         assert(item);
 
         if (!item.rendered) {
-            item.rendered = true;
+            this.executeDiscrete(() => {
+                item.rendered = true;
+            });
 
             this.dispatchEvent('itemRender', item);
         }
@@ -122,10 +135,49 @@ class VerticalNavigation extends components.LightningComponent {
     }
 
     toggleOverflowArea(sectionIndex) {
-        const { sections } = this.getInput();
+        const input = this.getInput();
 
-        const { overflow } = sections[Number(sectionIndex)];
-        overflow.expanded = !overflow.expanded;
+        if (input) {
+            const { sections } = input;
+
+            const { overflow } = sections[Number(sectionIndex)];
+            overflow.expanded = !overflow.expanded;
+
+        } else {
+
+            const node = this.getNode().querySelector(`.slds-nav-vertical__section[data-index='${sectionIndex}']`);
+
+            if (!node || !node.querySelector('.slds-nav-vertical__overflow')) return;
+
+            const btn = node.querySelector('.slds-nav-vertical__action_overflow');
+            if (!btn) return; // overflow is disabled
+
+            const currentValue = btn.getAttribute('aria-expanded') == 'true';
+            const newLabel = !currentValue ? 'Show Less' : 'Show More';
+
+            btn.setAttribute('aria-expanded', !currentValue);
+            btn.querySelector('.slds-nav-vertical__action-text').childNodes
+                .forEach((node, i) => {
+                    switch (i) {
+                        case 0:
+                            assert(node.nodeType == Node.TEXT_NODE);
+                            node.textContent = newLabel;
+                            break;
+                        case 1:
+                            assert(node.classList.has('.slds-assistive-text'));
+                            node.innerHTML = newLabel;
+                            break;
+                    }
+                });
+
+            const sectionArea = node.querySelector(`#section-${sectionIndex}-overflow`);
+
+            if (!currentValue) {
+                this.show0(sectionArea);
+            } else {
+                this.hide0(sectionArea);
+            }
+        }
     }
 }
 module.exports = VerticalNavigation;

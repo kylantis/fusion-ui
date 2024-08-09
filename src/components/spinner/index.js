@@ -20,10 +20,10 @@ class Spinner extends components.LightningComponent {
     }
 
     getNode() {
-        const { container } = this.getInput();
-        return this.node.querySelector(
-            container ? '.slds-spinner_container' : '.slds-spinner'
-        );
+        const node = this.getNode0();
+
+        return node.querySelector('.slds-spinner_container') ||
+            node.querySelector('.slds-spinner');
     }
 
     getContainer() {

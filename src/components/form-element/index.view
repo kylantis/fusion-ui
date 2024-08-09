@@ -54,12 +54,11 @@ readonly is false, so that this edit icon does not display on top of it --}}
   {{/if}}
 {{/inline}}
 
-{{#*inline "render_standalone" visible=true}}
+{{#*inline "render_standalone"}}
   <div class="
         slds-form-element 
         {{padding ? 'slds-p-${padding}' : ''}} 
         {{margin ? 'slds-m-${margin}' : ''}} 
-        {{visible ? "slds-visible" : "slds-hidden"}} 
         {{> ?standalone_classes}}"
   >
 
@@ -77,12 +76,12 @@ readonly is false, so that this edit icon does not display on top of it --}}
     <div class="slds-form-element__control {{> ?standalone_control_classes}}">
       
       {{!-- 
-        Because of the way, we are re-rendering "render_standalone_control", we need to register add the
+        Because of the way we are re-rendering "render_standalone_control", we need to register add the
         hook "loadStandaloneControl" to allow subclasses perform initialization each time the control markup 
         is rendered
        --}}
       
-      {{#if readonly hook='loadStandaloneControl'}}
+      {{#if readonly hook='loadStandaloneControl' hookPhase='afterMount'}}
         <div class="slds-form-element__static">
           {{> ?render_standalone_control}}
         </div>

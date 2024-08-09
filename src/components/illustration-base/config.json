@@ -9,5 +9,6 @@
       ]
     }
   },
-  "escapeDynamicHtml": false
+  "escapeDynamicHtml": false,
+  "dataBindingEnabled": false
 }

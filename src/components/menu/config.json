@@ -5,7 +5,7 @@
       "singularType": "Group"
     },
     "groups_$.items": {
-      "minLength": 3,
+      "minLength": 6,
       "singularType": "Item"
     }
   },
@@ -16,24 +16,33 @@
     },
     "size": {
       "type": "String",
-      "allowed": "size",
+      "allowed": [
+        "xx-small",
+        "x-small",
+        "small",
+        "medium",
+        "large"
+      ],
       "defaults": [
-        "small"
+        null
       ]
     },
     "isSubMenu": {
-      "type": "Boolean"
+      "type": "Boolean",
+      "clientOnly": true
     },
     "overlay": {
       "type": "Boolean"
     },
     "x": {
       "type": "String",
-      "allowed": "positionX"
+      "allowed": "positionX",
+      "clientOnly": true
     },
     "y": {
       "type": "String",
-      "allowed": "positionY"
+      "allowed": "positionY",
+      "clientOnly": true
     },
     "groups_$.title": {
       "type": "String"
@@ -49,13 +58,12 @@
         "presentation"
       ]
     },
-    "groups_$.checkIconPosition": {
+    "groups_$.checkIconX": {
       "type": "String",
       "allowed": "positionX"
     },
     "groups_$.required": {
-      "type": "String",
-      "defaults": []
+      "type": "Boolean"
     },
     "groups_$.items_$.identifier": {
       "type": "String",
@@ -97,17 +105,11 @@
     },
     "groups_$.items_$.subMenuX": {
       "type": "String",
-      "allowed": "positionX",
-      "defaults": [
-        "right"
-      ]
+      "allowed": "positionX"
     },
     "groups_$.items_$.subMenuY": {
       "type": "String",
-      "allowed": "positionY",
-      "defaults": [
-        "bottom"
-      ]
+      "allowed": "positionY"
     }
   },
   "events": {
@@ -154,14 +156,22 @@
           "type": "string"
         }
       }
+    },
+    "removeSubMenu": {
+      "parameters": {
+        "identifier": {
+          "type": "string"
+        }
+      }
     }
   },
   "sample": {
-    "count": 15,
+    "count": 1,
     "nullifyRandomly": [
       "groups_$.items_$.leftIcon",
       "groups_$.items_$.feedbackState"
     ]
   },
-  "escapeDynamicHtml": false
+  "escapeDynamicHtml": false,
+  "hookAccessRate": 1
 }

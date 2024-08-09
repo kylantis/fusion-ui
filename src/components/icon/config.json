@@ -5,7 +5,7 @@
       "type": "String",
       "allowed": "iconSize",
       "defaults": [
-        "small"
+        null
       ]
     },
     "name": {
@@ -391,7 +391,6 @@
         "sobject_collection",
         "social",
         "solution",
-        "sort",
         "sort_policy",
         "sossession",
         "stage",
@@ -514,5 +513,6 @@
   "sample": {
     "count": 20
   },
-  "escapeDynamicHtml": false
+  "escapeDynamicHtml": false,
+  "hookAccessRate": 1
 }

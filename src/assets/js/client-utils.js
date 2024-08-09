@@ -1,6 +1,7 @@
 
 /* eslint-disable no-underscore-dangle */
 
+const tailArrayIndexSegment = /\[[0-9]+\]$/g;
 const arrayIndexSegment = /\[[0-9]+\]/g;
 
 // Note: The reason why we are using .+ instead of \w+ is because map keys are actually
@@ -15,8 +16,68 @@ const defaultMapKey = /^\$_\w+$/g
 const segment = /(\[[0-9]+\])|(\["\$_.+?"\])/g;
 const segmentWithCanonical = /(\[[0-9]+\])|(\["\$_.+?"\])|(_\$)/g;
 
+const internedStringsMetadata = { groupIndexes: {} };
+
+
 module.exports = {
-  arrayIndexSegment, mapKeySegment,
+  tailArrayIndexSegment, arrayIndexSegment, mapKeySegment,
+
+  toFqKey({ isArray, isMap, isDataVariable, prop }) {
+    if (isDataVariable === undefined && typeof prop == 'string') {
+      isDataVariable = prop.startsWith('@');
+    }
+
+    if (isDataVariable) {
+      isArray = isMap = false;
+    }
+
+    return isArray ? `[${prop}]` : isMap ? `["${prop}"]` : prop;
+  },
+
+  toFqPath({ parent, key, type, isArray, isMap, prop }) {
+    
+    if (!key) {
+      switch (true) {
+        case Number.isInteger(prop) || type == 'array':
+          isArray = true;
+          break;
+  
+        case type == 'map':
+          isMap = true;
+          break;
+      }
+  
+      key = clientUtils.toFqKey({ isArray, isMap, prop });
+    }
+
+    return `${parent}${`${(parent.length && !key.startsWith('[')) ? '.' : ''}${key}`}`;
+  },
+
+  getLastSegment(pathArray) {
+    if (typeof pathArray == 'string') {
+      pathArray = pathArray.split('.');
+    };
+
+    const segments = clientUtils.getSegments({ original: pathArray.at(-1) });
+    return segments.at(-1);
+  },
+
+  getAllSegments(pathArray) {
+    if (typeof pathArray == 'string') {
+      pathArray = pathArray.split('.');
+    };
+
+    const arr = [];
+
+    pathArray.forEach((p, i) => {
+      clientUtils.getSegments({ original: p })
+        .forEach(s => {
+          arr.push(s);
+        });
+    });
+
+    return arr;
+  },
 
   getPathStringInfo(pathArray) {
     const { mapKeyPrefixRegex } = RootProxy;
@@ -103,16 +164,39 @@ module.exports = {
     return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
   },
 
-  randomString: () => {
-    const length = 8;
-    let result = '';
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-    const charactersLength = characters.length;
-    // eslint-disable-next-line no-plusplus
-    for (let i = 0; i < length; i++) {
-      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  randomString: (groupName, length = 8) => {
+    const { _internedStringPool } = global;
+    const { groupIndexes } = internedStringsMetadata;
+
+    const generateNew = (groupName) => {
+      if (groupName) {
+        console.warn(
+          `_internedStringPool has been exhausted, group "${groupName}" needs a larger pool`
+        );
+      }
+
+      let result = '';
+
+      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+      const charactersLength = characters.length;
+      // eslint-disable-next-line no-plusplus
+      for (let i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+      }
+      return result;
     }
-    return result;
+
+    if (!groupName || !_internedStringPool) {
+      return generateNew();
+    }
+
+    if (!groupIndexes[groupName]) {
+      groupIndexes[groupName] = -1;
+    }
+
+    const idx = groupIndexes[groupName] += 1;
+
+    return _internedStringPool[idx] || generateNew(groupName);
   },
 
   visitObject(obj, visitor) {
@@ -140,8 +224,7 @@ module.exports = {
   },
 
   cloneComponentInputData: (data) => {
-    const { unsafeEval } = AppContext;
-    return unsafeEval(
+    return AppContext.unsafeEval(
       `module.exports=${clientUtils.stringifyComponentData(
         data,
       )}`
@@ -204,8 +287,43 @@ module.exports = {
     );
   },
 
-  getSegments: ({ original }) => {
-    return clientUtils.getSegments0(original, segment)
+  getSegments: ({ original, transform }) => {
+    const parts = [];
+
+    const arr = original.split('');
+
+    const buf = [];
+
+    const flushBuf = (transform) => {
+      if (buf.length) {
+        const p = buf.join('');
+        parts.push(
+          transform ? transform(p) : p
+        );
+        buf.splice(0);
+      }
+    }
+
+    for (let i = 0; i < arr.length; i++) {
+      const char = arr[i];
+
+      switch (char) {
+        case '[':
+          flushBuf();
+          buf.push(char);
+          break;
+        case ']':
+          buf.push(char);
+          flushBuf(transform);
+          break;
+        default:
+          buf.push(char);
+          break;
+      }
+    }
+
+    flushBuf();
+    return parts;
   },
 
   getSegments0: (original, regex) => {
@@ -219,8 +337,7 @@ module.exports = {
     );
 
     return [
-      first,
-      ...segments,
+      first, ...segments,
     ];
   },
 
@@ -382,20 +499,16 @@ module.exports = {
 
   toCanonicalPath0: (fqPath) => {
     const separator = '.';
-    return fqPath.split(separator)
-      .map(p => clientUtils.getSegments({
-        original: p,
-      }).map((segment) => {
-        switch (true) {
-          case !!segment.match(arrayIndexSegment):
-            return '_$';
-          case !!segment.match(mapKeySegment):
-            return `${separator}$_`;
-          case segment.startsWith('$_'):
-            return '$_';
-          default: return segment;
-        }
-      }).join('')).join(separator);
+
+    return (typeof fqPath == 'string' ? fqPath.split(separator) : fqPath)
+      .map(
+        p => clientUtils.getSegments({
+          original: p,
+          transform: (p) => p.startsWith(`["$_`) ? `${separator}$_` : '_$'
+        })
+          .map((segment) => segment.startsWith('$_') ? '$_' : segment)
+          .join('')
+      ).join(separator);
   },
 
   isCanonicalArrayIndex: (path, parent) => {
@@ -431,12 +544,6 @@ module.exports = {
     return obj;
   },
 
-  createFrame(object) {
-    const frame = clientUtils.extend({}, object);
-    frame._parent = object;
-    return frame;
-  },
-
   isEmpty(value) {
     if (!value && value !== 0) {
       return true;
@@ -461,11 +568,11 @@ module.exports = {
     return results;
   },
 
-  getLine: (stmt, range = true) => {
-    const { loc: { source, start, end } = {} } = stmt;
+  getLine: (stmt, range = true, useProgramId = false) => {
+    const { loc: { programId, source, start, end } = {} } = stmt;
 
     // Note: we need to do "+ 1" to column because hbs is 0-based but most IDEs are 1-based
-    return `${source} ${start.line}:${start.column + 1}${range ? ` - ${(end.source && end.source != source) ? `${end.source} ` : ''}${end.line}:${end.column + 1}` : ''}`;
+    return `${useProgramId ? programId : source} ${start.line}:${start.column + 1}${range ? ` - ${(end.source && end.source != source) ? `${end.source} ` : ''}${end.line}:${end.column + 1}` : ''}`;
   },
 
   getRandomInt: (min = 10000, max = 99999) => {
@@ -486,84 +593,166 @@ module.exports = {
       .join(' ');
   },
 
-  createImmutableProxy (obj) {
-    const fn = () => {
-      throw Error("Object is immutable");
-    };
+  wrapPromise(promise) {
+    let isResolved = false;
+    let isRejected = false;
+    let isPending = true;
 
-    return new Proxy(obj, {
-      set: fn,
-      deleteProperty: fn,
-      defineProperty: fn,
-      setPrototypeOf: fn,
-      preventExtensions: fn
-    });
+    const wrappedPromise = promise.then(
+      value => {
+        isResolved = true;
+        isPending = false;
+        return value;
+      },
+      error => {
+        isRejected = true;
+        isPending = false;
+        throw error || Error();
+      }
+    );
+
+    wrappedPromise.isResolved = () => isResolved;
+    wrappedPromise.isRejected = () => isRejected;
+    wrappedPromise.isPending = () => isPending;
+
+    return wrappedPromise;
   },
 
-  createNewTrie() {
-    class TrieNode {
-      constructor() {
-        this.children = {};
-        this.isEndOfWord = false;
-        this.isInserted = false;
-        this.words = [];
+  createThenable: () => ({
+    then: function (onFulfilled, onRejected) {
+      try {
+        onFulfilled();
+      } catch (error) {
+        if (onRejected) {
+          onRejected(error);
+        }
       }
     }
+  }),
 
-    class Trie {
-      constructor() {
-        this.root = new TrieNode();
-      }
+  updateCollChild: async (db, hooklistStoreName, componentId, parent, key, info, timestamp) => {
+    const { toFqPath, isNumber, isCanonicalArrayIndex, toCanonicalPath } = clientUtils;
 
-      bulkInsert(words) {
-        for (const word of words) {
-          this.insert(word);
-        }
-      }
+    const { DEFAULT_PRIMARY_KEY: primaryKey } = K_Database;
 
-      insert(word) {
-        let node = this.root;
-        for (const char of word) {
-          if (!node.children[char]) {
-            node.children[char] = new TrieNode();
+    const dataPathRoot = 'data';
+    const logicGatePathRoot = 'lg';
+    const pathSeparator = '__';
+
+    const ARRAY_BLOCK_PATH_INDEX = 'arrayBlockPath_index';
+
+
+    const isArray = isNumber(key);
+
+    const canonicalParent = toCanonicalPath(parent);
+
+    const path = toFqPath({ isArray, isMap: !isArray, parent, prop: key });
+    const newPath = (isArray && (info.index != undefined)) ? toFqPath({ isArray, parent, prop: `${info.index}` }) : null;
+
+    const rows = await db.equalsQuery(hooklistStoreName, ARRAY_BLOCK_PATH_INDEX, path);
+
+    const updates = rows
+      .filter(({ [primaryKey]: id, updatedAt }) => id.startsWith(`${componentId}_`) && updatedAt < timestamp)
+      .map((row) => {
+        const {
+          arrayBlockPath, canonicalPath, owner, blockData, blockStack, participants, canonicalParticipants,
+        } = row;
+
+        let blockDataKey;
+
+        for (let k of Object.keys(blockData)) {
+          if ((k.includes('[') ? toCanonicalPath(k) : k) == canonicalParent) {
+            blockDataKey = k;
+            break;
           }
-          node = node.children[char];
-        }
-        if (!node.isInserted) {
-          node.isInserted = true;
-          node.words.push(word);
-        }
-        node.isEndOfWord = true;
-      }
-
-      search(prefix) {
-        if (prefix === "") {
-          // Return all stored words when searching for an empty string
-          return this.collectWords(this.root);
         }
 
-        let node = this.root;
-        for (const char of prefix) {
-          if (!node.children[char]) {
-            return []; // No words with this prefix
+        assert(blockDataKey);
+
+        if (newPath) {
+
+          const isknownCanonicalPath = p => p.startsWith(`${canonicalParent}_$`) || isCanonicalArrayIndex(p, parent);
+
+          arrayBlockPath.forEach((p, i) => {
+            if (p.startsWith(path)) {
+              arrayBlockPath[i] = p.replace(path, newPath);
+            }
+          });
+
+          if (canonicalPath.startsWith(logicGatePathRoot)) {
+            canonicalParticipants.forEach((p, i) => {
+              if (
+                participants[i].startsWith(path) &&
+                isknownCanonicalPath(p.split(pathSeparator).join('.'))
+              ) {
+                return participants[i] = participants[i].replace(path, newPath);
+              }
+            });
+          } else
+            if (
+              owner.startsWith(`${dataPathRoot}${pathSeparator}${path}`) &&
+              isknownCanonicalPath(canonicalPath.split(pathSeparator).join('.'))
+            ) {
+              row.owner = owner.replace(path, newPath);
+            }
+
+        }
+
+        const updateBlockData = (entry) => {
+          assert(entry);
+
+          if (info.index != undefined) {
+            entry.index = info.index;
           }
-          node = node.children[char];
-        }
-        return this.collectWords(node).filter(word => word !== prefix);
-      }
 
-      collectWords(node) {
-        const result = [];
-        if (node.isEndOfWord) {
-          result.push(...node.words);
+          if (info.length != undefined) {
+            entry.length = info.length;
+          }
         }
-        for (const childNode of Object.values(node.children)) {
-          result.push(...this.collectWords(childNode));
-        }
-        return result;
-      }
-    }
 
-    return new Trie();
+        updateBlockData(blockData[blockDataKey]);
+
+        blockStack
+          .filter(({ blockData }) => blockData)
+          .forEach(({ blockData }) => {
+            const entry = blockData[blockDataKey];
+            if (entry) updateBlockData(entry);
+          });
+
+        return row;
+      });
+
+    await db.put(hooklistStoreName, updates);
+  },
+
+  pruneCollChild: async (db, hooklistStoreName, mustachelistStoreName, componentId, parent, key, timestamp) => {
+    const { toFqPath, isNumber } = clientUtils;
+
+    const { DEFAULT_PRIMARY_KEY: primaryKey } = K_Database;
+
+    const ARRAY_BLOCK_PATH_INDEX = 'arrayBlockPath_index';
+
+    const isArray = isNumber(key);
+
+    const path = toFqPath({ isArray, isMap: !isArray, parent, prop: key });
+
+    const rows = await db.equalsQuery(hooklistStoreName, ARRAY_BLOCK_PATH_INDEX, path);
+
+    const mustacheRefIds = [];
+
+    const ids = rows
+      .filter(({ [primaryKey]: id, updatedAt }) => id.startsWith(`${componentId}_`) && updatedAt < timestamp)
+      .map(({ id, mustacheRef }) => {
+        if (mustacheRef) {
+          mustacheRefIds.push(`${componentId}_${mustacheRef}`);
+        }
+        return id
+      });
+
+
+    await Promise.all([
+      db.delete(hooklistStoreName, ids),
+      db.delete(mustachelistStoreName, mustacheRefIds)
+    ]);
   }
 };

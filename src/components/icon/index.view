@@ -1,4 +1,8 @@
+{{style url="/components/icon/style.min.css"}}
+
 <span class="slds-icon_container
+        {{((type neq 'utility') and solid) ? 'is-solid-icon' : ''}}
+
         {{!-- RTL Support --}}
         {{rtl ? "slds-icon_flip" : ""}}
         {{!-- 

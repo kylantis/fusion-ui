@@ -2,6 +2,7 @@
 class OverlayComponent extends components.LightningComponent {
 
     static #overlayConfig = {};
+    #container;
 
     beforeCompile() {
     }
@@ -17,10 +18,44 @@ class OverlayComponent extends components.LightningComponent {
     async onMount() {
         const { getOverlayConfig } = OverlayComponent;
 
-        const { container } = getOverlayConfig();
-        if (container) {
-            this.container = container;
+        if (this.useContainer()) {
+            const { container } = getOverlayConfig();
+
+            if (container) {
+                this.setContainer(container);
+            }
         }
+    }
+
+    static getContainerOverlays(containerNode) {
+        return containerNode.__overlays || (containerNode.__overlays = []);
+    }
+
+    setContainer(container) {
+        const { getContainerOverlays } = OverlayComponent;
+
+        if (this.#container) return;
+
+        assert(!this.isMounted());
+
+        this.#container = container;
+
+        const overlays = getContainerOverlays(this.getContainer());
+
+        this.on('onMount', () => {
+            overlays.push(this);
+        });
+
+        this.on('destroy', new EventHandler(
+            () => {
+                const idx = overlays.indexOf(this);
+                assert(idx >= 0);
+
+                overlays.splice(idx, 1);
+            },
+            this,
+            { overlays }
+        ));
     }
 
     getPadding() {
@@ -136,10 +171,8 @@ class OverlayComponent extends components.LightningComponent {
         }
     }
 
-    getPosition(containerRect) {
+    getPosition(containerRect, avaiablePositions = this.getSupportedPositions(), allowNull) {
         const { isPositionAvailable } = OverlayComponent;
-
-        const avaiablePositions = this.getSupportedPositions();
 
         if (this.isPointerBased()) {
             for (const p of [...avaiablePositions]) {
@@ -160,6 +193,9 @@ class OverlayComponent extends components.LightningComponent {
         })();
 
         if (!position) {
+            if (allowNull) {
+                return null;
+            }
             position = this.getAnyPosition(containerRect);
         }
 
@@ -170,40 +206,66 @@ class OverlayComponent extends components.LightningComponent {
         );
 
         cssStyles.position = 'absolute';
-
-        const container = this.getContainer();
-
-        if (container) {
-            const computedStyle = getComputedStyle(container);
-            if (computedStyle.position != 'absolute') {
-                throw Error(`Container: ${this.container} must be absolutely positioned`);
-            }
-
-            // We need to offset the distance between the container and the 
-            // top and left of the document body respectively
-            const { top, left } = this.getContainerOffset();
-
-            cssStyles.top -= top;
-            cssStyles.left -= left;
-
-            if (container.style.overflow == 'scroll') {
-                cssStyles.top += container.scrollTop;
-            }
-        }
+        cssStyles.transform = `translate(0)`;
 
         return {
             position,
-            fn: (node) => {
+            fn: () => {
+                const node = this.getOverlayNode();
+
+                const container = this.getContainer();
                 const { style } = node;
+
                 for (let name in cssStyles) {
                     style[name] = cssStyles[name];
+                }
+
+                if (container) {
+                    node.__scrolled = false;
                 }
             },
         };
     }
 
+    getOverlayNode() {
+        this.throwError(`getOverlayNode() must be overriden in the subclass`);
+    }
+
+    useContainer() {
+        return false;
+    }
+
+    isVisible() {
+        return false;
+    }
+
+    static containerScrollListener({ currentTarget }) {
+        const { getContainerOverlays } = OverlayComponent;
+        const { scrollTop, scrollHeight } = currentTarget;
+
+        const overlayElements = getContainerOverlays(currentTarget)
+            .filter(overlay => overlay.isVisible())
+            .map(overlay => overlay.getOverlayNode());
+
+        overlayElements.forEach(overlayElement => {
+            const { top } = overlayElement.style;
+            const _top = Number(top.replace('px', ''));
+
+            if (!overlayElement.__scrolled) {
+                overlayElement.style.top = `${_top + scrollTop}px`;
+            }
+
+            const offset = ((scrollHeight - scrollTop) - scrollHeight) + 0;
+
+            const translateY = offset;
+
+            overlayElement.style.transform = `translateX(0px) translateY(${translateY}px)`
+            overlayElement.__scrolled = true;
+        });
+    }
+
     getContainer() {
-        return this.container ? document.getElementById(this.container) : null;
+        return this.#container ? document.querySelector(this.#container) : null;
     }
 
     getContainerOffset() {
@@ -214,7 +276,7 @@ class OverlayComponent extends components.LightningComponent {
     }
 
     isVisibleInViewPort(rect, position, area) {
-        
+
         // We are focused on the vertical view port because scrolling
         // almost always happen vertical only
 

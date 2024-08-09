@@ -5,7 +5,11 @@ class CheckboxBase extends components.TextCompanion {
         const input = this.getInput();
         const { checked } = evt.target;
 
-        input.checked = checked;
+        if (input) {
+            this.executeDiscrete(() => {
+                input.checked = checked;
+            });
+        }
     }
 
 }

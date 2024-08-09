@@ -1,25 +1,33 @@
-/**
- * Gulp stylesheets task file
- */
 
+const fs = require('fs');
+const pathLib = require('path');
 const gulp = require('gulp');
 const sass = require('gulp-sass')(require('sass'));
 const sourcemaps = require('gulp-sourcemaps');
 const rename = require('gulp-rename');
 const through = require('through2');
-const pathLib = require('path');
-
-
-
-const renameConfig = {
-  suffix: '.min',
-};
-
+const utils = require('../lib/utils');
 const srcFolder = 'src/assets/scss';
-const watchTarget = `${srcFolder}/**/*.scss`;
+const destFolder = 'dist/assets/styles';
 
-const distFolder = 'dist/assets/styles';
+const globPattern = `${srcFolder}/**/*.scss`;
 
+const compressTransform = () => through.obj((chunk, enc, cb) => {
+  const vinylFile = chunk.clone();
+
+  const { contents, path } = vinylFile;
+  const _path = path.replace(srcFolder, destFolder);
+
+  const dir = pathLib.dirname(_path);
+  fs.mkdirSync(dir, { recursive: true });
+
+  utils.getCompressedFiles(_path, contents)
+    .forEach(([p, c]) => {
+      fs.writeFileSync(p, c)
+    });
+
+  cb(null, vinylFile);
+});
 
 const addPipes = (path, relativize) => {
   let stream = gulp.src(path);
@@ -43,14 +51,15 @@ const addPipes = (path, relativize) => {
       },
     ).on('error', sass.logError))
     .pipe(sourcemaps.write())
-    .pipe(rename(renameConfig))
-    .pipe(gulp.dest(distFolder));
+    .pipe(rename({ suffix: '.min' }))
+    .pipe(compressTransform())
+    .pipe(gulp.dest(destFolder));
 };
 
-gulp.task('compile-syles', () => addPipes(watchTarget));
+gulp.task('compile-styles', () => addPipes(globPattern));
 
-gulp.task('compile-syles:watch', () => {
-  const watcher = gulp.watch(watchTarget, { ignoreInitial: true })
+gulp.task('compile-styles:watch', () => {
+  const watcher = gulp.watch(globPattern, { ignoreInitial: true })
 
   watcher.on('change', (path) => addPipes(path, true));
 });

@@ -8,16 +8,14 @@
   "scalars": {
     "menu": {
       "type": "Menu",
-      "isNull": false,
-      "loadable": false
+      "isNull": false
     },
     "clickType": {
       "type": "String",
-      "defaults": []
+      "allowed": "positionX"
     },
     "useTargetPosition": {
-      "type": "Boolean",
-      "defaultValue": false
+      "type": "Boolean"
     },
     "positions_$": {
       "type": "String",

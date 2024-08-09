@@ -8,18 +8,17 @@
 
 {{#*inline "render_input_element" eager=true}}
     <input type="{{type}}" id="{{@root.componentId}}_input"
-      {{required ? "required=''" : "" }}
       class="slds-input {{(not readonly and hasWidget) ? "hasWidget" : ""}}"
       style="{{readonly ? 'box-shadow: none;' : ''}}"
-      {{(value and not hasWidget) ? "value=\"${value}\"" : "" }}
-      {{required ? "required=''" : "" }}
-      {{disabled ? "disabled=''" : "" }}
-      {{(readonly or hasWidget) ? "readonly=''" : "" }}
+      value="{{(value neq null) ? value : "" }}"
+      {{required ? "required='required'" : "" }}
+      {{disabled ? "disabled='disabled'" : "" }}
+      {{(readonly or hasWidget) ? "readonly='readonly'" : "" }}
       {{hasWidget ? "aria-controls='${getWidgetElementId}'" : ""}}
       {{message ? "aria-describedby=\"${@root.componentId}_message\"" : "" }}
       {{error ? "aria-invalid=\"true\"" : ""}}
       {{(not readonly and placeholder) ? "placeholder=\"${placeholder}\"" : ""}}
-      onchange="{{fn "onChange"}}(event)"
+      oninput="{{fn "onChange"}}(event)"
     >
 {{/inline}}
 

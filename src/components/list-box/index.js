@@ -4,33 +4,38 @@ class ListBox extends components.LightningComponent {
     #itemIds = [];
     #items = {};
 
+    eventHandlers() {
+        return {
+            ['insert.groups_$.items_$']: ({ value: item, initial }) => {
+                if (!item) return;
+
+                this.#items[item.identifier] = item;
+
+                if (!initial) {
+                    this.dispatchEvent('itemsUpdate', [...this.#items], [item], []);
+                }
+            },
+            ['remove.groups_$.items_$']: ({ value: item }) => {
+                if (!item) return;
+
+                const { identifier } = item;
+
+                this.#itemIds.splice(
+                    this.#itemIds.indexOf(identifier), 1
+                );
+
+                delete this.#items[identifier];
+
+                if (!initial) {
+                    this.dispatchEvent('itemsUpdate', [...this.#items], [], [item]);
+                }
+            }
+        }
+    }
+
     beforeRender() {
-
-        this.on('insert.groups_$.items_$', ({ value: item, initial }) => {
-            if (!item) return;
-
-            this.#items[item.identifier] = item;
-
-            if (!initial) {
-                this.dispatchEvent('itemsUpdate', [...this.#items], [item], []);
-            }
-        });
-
-        this.on('remove.groups_$.items_$', ({ value: item }) => {
-            if (!item) return;
-
-            const { identifier } = item;
-
-            this.#itemIds.splice(
-                this.#itemIds.indexOf(identifier), 1
-            );
-
-            delete this.#items[identifier];
-
-            if (!initial) {
-                this.dispatchEvent('itemsUpdate', [...this.#items], [], [item]);
-            }
-        });
+        this.on('insert.groups_$.items_$', 'insert.groups_$.items_$');
+        this.on('remove.groups_$.items_$', 'remove.groups_$.items_$');
     }
 
     immutablePaths() {

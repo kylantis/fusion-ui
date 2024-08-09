@@ -1,22 +1,38 @@
+
 const fs = require('fs');
 const pathLib = require('path');
-
-const babel = require('@babel/core');
+const UglifyJS = require('uglify-js');
 const gulp = require('gulp');
-
 const through = require('through2');
-
+const utils = require('../lib/utils');
 
 
 const basePath = 'assets/js';
 
 const srcFolder = `src/${basePath}`;
-const distFolder = `dist/${basePath}`;
+const destFolder = `dist/${basePath}`;
 
-const watchTarget = [`${srcFolder}/**/*.js`, `!${srcFolder}/**/*.min.js`];
+const globPattern = [`${srcFolder}/**/*.js`, `!${srcFolder}/**/*.min.js`, `!${srcFolder}/data/**`];
 
 
-const factory = () => through.obj((chunk, enc, cb) => {
+const compressTransform = () => through.obj((chunk, enc, cb) => {
+  const vinylFile = chunk.clone();
+
+  const { contents, path } = vinylFile;
+  const _path = path.replace(srcFolder, destFolder);
+
+  const dir = pathLib.dirname(_path);
+  fs.mkdirSync(dir, { recursive: true });
+
+  utils.getCompressedFiles(_path, contents)
+    .forEach(([p, c]) => {
+      fs.writeFileSync(p, c)
+    });
+
+  cb(null, vinylFile);
+});
+
+const minifyTransform = () => through.obj((chunk, enc, cb) => {
 
   const writeFile = (path, contents) => {
     const dir = pathLib.dirname(path);
@@ -30,33 +46,46 @@ const factory = () => through.obj((chunk, enc, cb) => {
 
   const vinylFile = chunk.clone();
 
-  const { contents, base, relative, basename } = vinylFile;
+  const { contents, base, relative, basename, path } = vinylFile;
 
   const minifiedRelative = toMinifiedName(relative);
   const minifiedBaseName = toMinifiedName(basename);
 
   const contentString = contents.toString();
 
-  const result = babel.transformSync(contentString, {
-    sourceFileName: basename,
-    sourceMaps: true,
-  });
+  const { error, code, map } = UglifyJS.minify(
+    {
+      [basename]: contentString,
+    },
+    {
+      sourceMap: {
+        filename: minifiedBaseName,
+        url: `/${basePath}/${minifiedRelative}.map`,
+      },
+      compress: true,
+      mangle: true,
+    });
+  if (error) {
+    throw Error(error);
+  }
 
   vinylFile.path = pathLib.join(base, minifiedRelative);
-  vinylFile.contents = Buffer.from(`${result.code}
-//# sourceMappingURL=${minifiedBaseName}.map
-//# sourceURL=/${basePath}/${minifiedRelative}`);
+  vinylFile.contents = Buffer.from(
+    `${code}\n//# sourceURL=/${basePath}/${minifiedRelative}`
+  );
 
-  // Write non-minified js file
-  writeFile(pathLib.join(distFolder, relative), contentString)
+  writeFile(pathLib.join(destFolder, relative), contentString)
 
-  // Write .map file  
-  delete result.map.sourcesContent;
-  result.map.file = minifiedBaseName;
-  writeFile(
-    pathLib.join(distFolder, `${minifiedRelative}.map`),
-    JSON.stringify(result.map),
-  )
+  // Write .map file
+
+  const mapFilePath = pathLib.join(destFolder, `${minifiedRelative}.map`);
+
+  writeFile(mapFilePath, map)
+
+  utils.getCompressedFiles(mapFilePath, new TextEncoder().encode(map))
+    .forEach(([p, c]) => {
+      writeFile(p, c)
+    });
 
   cb(null, vinylFile);
 });
@@ -75,15 +104,16 @@ const addPipes = (path, relativize) => {
   }
 
   return stream
-    .pipe(factory())
-    .pipe(gulp.dest(distFolder));
+    .pipe(minifyTransform())
+    .pipe(compressTransform())
+    .pipe(gulp.dest(destFolder));
 };
 
-gulp.task('compile-scripts', () => addPipes(watchTarget));
+gulp.task('compile-scripts', () => addPipes(globPattern));
 
 gulp.task('compile-scripts:watch', () => {
   const watcher = gulp.watch(
-    watchTarget,
+    globPattern,
     { ignoreInitial: true },
   )
 
