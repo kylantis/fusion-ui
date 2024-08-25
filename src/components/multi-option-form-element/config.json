@@ -58,7 +58,6 @@
       "items_$.error"
     ]
   },
-  "useCollectionLengthProperty": true,
   "escapeDynamicHtml": false,
   "hookAccessRate": 1
 }

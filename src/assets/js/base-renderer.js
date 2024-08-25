@@ -5,16 +5,9 @@ class BaseRenderer {
   static #root;
 
   #id;
-
   #input;
-  #inputMap = new Map();
-
   #isRoot;
-
-  #sealed;
-
   #config;
-
   #metaInfo;
 
   constructor({ id, input, logger, config = {} } = {}) {
@@ -23,10 +16,13 @@ class BaseRenderer {
       id = this.#createId();
     }
 
-    // eslint-disable-next-line no-undef
-    assert(id && id.constructor.name === 'String');
-    // eslint-disable-next-line no-undef
-    assert(input && input.constructor.name === 'Object');
+    if (typeof id != 'string') {
+      throw Error(`Unknown component id "${id}"`);
+    }
+
+    if (!(input && input.constructor.name === 'Object')) {
+      throw Error(`Unknown component input`, input);
+    }
 
     this.#id = id;
 
@@ -37,7 +33,7 @@ class BaseRenderer {
     this.#isRoot = BaseRenderer.#root == undefined;
     BaseRenderer.#root = false;
 
-    this.setInput(input);
+    this.#input = input;
 
     this.#config = {
       ...BaseRenderer.getDefaultConfig(),
@@ -63,6 +59,7 @@ class BaseRenderer {
       // Create root proxy
       // eslint-disable-next-line no-undef
       await RootProxy.create(this);
+      this.#input = null;
     }
   }
 
@@ -124,30 +121,11 @@ class BaseRenderer {
   }
 
   getInput() {
-    return this.#input;
-  }
-
-  getInputMap() {
-    return this.#inputMap;
+    return this.#input || this.proxyInstance.getInput();
   }
 
   useWeakRef() {
     return true;
-  }
-
-  setInput(input) {
-    if (this.#sealed) {
-      throw Error(`[${this.#id}] The root object cannot be modified`);
-    }
-    this.#input = input;
-  }
-
-  isSealed() {
-    return this.#sealed;
-  }
-
-  seal() {
-    this.#sealed = true;
   }
 
   /**
@@ -161,7 +139,7 @@ class BaseRenderer {
     return {
       ['@component']: true,
       ['@type']: this.constructor.className || this.constructor.name,
-      ['@data']: this.#input,
+      ['@data']: this.getInput(),
       ['@loadable']: serialization.loadable !== undefined ? !!serialization.loadable : loadable,
     };
   }

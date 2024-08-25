@@ -286,7 +286,6 @@
       "yMarkers"
     ]
   },
-  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false,
   "loadAfterCompile": false,
   "sharedTypes": {

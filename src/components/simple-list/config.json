@@ -15,6 +15,5 @@
   "sample": {
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": true,
   "escapeDynamicHtml": false
 }

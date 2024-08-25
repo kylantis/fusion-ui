@@ -1,9 +1,6 @@
-/* eslint-disable no-case-declarations */
 
-// Todo: Make all members (that are applicable) private
 class RootProxy {
-
-  // eslint-disable-next-line no-useless-escape
+  
   static syntheticMethodPrefix = 's$_';
 
   static globalsBasePath = 'globals';
@@ -13,9 +10,6 @@ class RootProxy {
   static pathSeparator = '__';
 
   static dataPathPrefix = RegExp(`^${RootProxy.dataPathRoot}${RootProxy.pathSeparator}`);
-
-
-  // Note: This variable must always match the one defined in /assets/js/lib/indexed_db.js
 
   static logicGatePathRoot = 'lg';
 
@@ -28,8 +22,6 @@ class RootProxy {
   static literalPrefix = 'l$_';
 
   static lenientMarker = /\?$/g;
-
-  static emptyObject = {};
 
   static pathProperty = '@path';
 
@@ -44,8 +36,6 @@ class RootProxy {
   static randomProperty = '@random';
 
   static typeProperty = '@type';
-
-  static prunedProperty = '@pruned';
 
   static literalType = 'Literal';
 
@@ -94,7 +84,7 @@ class RootProxy {
   static LOGIC_GATE_EXPR = 'LogicGate';
 
 
-  static isMapProperty = '$isMap';
+  static isMapProperty = 'isMap';
 
   static mapSizeProperty = 'size';
 
@@ -104,6 +94,8 @@ class RootProxy {
 
   static parentRefProperty = '@parentRef';
 
+  static isLiveProperty = '@isLive';
+
   static lenientExceptionMsgPattern = /^Cannot read properties of (undefined|null)/g;
 
   static filter_EQ = 'eq';
@@ -112,8 +104,6 @@ class RootProxy {
 
   static filter_GTE_OBJ_MEMBER = 'gte_obj_member';
 
-  static #privilegedMode = false;
-
   static pathSchemaDefPrefix = '__pathSchema';
 
   static mutationType_SET = 'set';
@@ -121,6 +111,9 @@ class RootProxy {
   static mutationType_SPLICE = 'splice';
 
   static mutationType_DELETE = 'delete';
+
+  static mutationType_REORDER = 'reorder';
+
 
 
   static INDEXEDDB_EQUALS_QUERY_TASK = 'equalsQuery';
@@ -140,7 +133,6 @@ class RootProxy {
 
   static #workerCalls = {};
 
-
   #collChildHookUpdatePromise = RootProxy.RESOLVED_PROMISE;
 
 
@@ -152,10 +144,13 @@ class RootProxy {
 
   #dbInfo;
 
+  #inputMap = new Map();
+
+  #input;
 
   constructor({ component }) {
     this.component = component;
-    this.handler = this.createObjectProxy();
+    this.handler = this.createRootObjectProxy();
   }
 
   getPathTrie() {
@@ -169,21 +164,6 @@ class RootProxy {
       );
     }
     return constructor.pathTrie;
-  }
-
-  #createRandomValuesObject() {
-    return new Proxy({}, {
-      get: (object, key) => {
-        if (object[key] === undefined) {
-          object[key] = this.component.randomString('random');
-        }
-
-        const o = object[key];
-        assert(typeof o == 'string');
-
-        return o;
-      },
-    })
   }
 
   doesPathMetadataExist(sPath, property) {
@@ -203,16 +183,6 @@ class RootProxy {
 
   getPathMetadata(sPath) {
     return this.#pathMetadata[sPath] || (this.#pathMetadata[sPath] = {});
-  }
-
-  static #isPriviledgedMode() {
-    return RootProxy.#privilegedMode;
-  }
-
-  static #runPriviledged(fn) {
-    RootProxy.#privilegedMode = true;
-    fn();
-    RootProxy.#privilegedMode = false;
   }
 
   static async create(component) {
@@ -237,15 +207,36 @@ class RootProxy {
 
     const leafs = [];
 
-    component.setInput(
-      proxy.#getObserverProxy(
-        proxy.#toCanonicalTree({
-          path: '', obj: component.getInput(), leafs
-        })
-      )
-    );
+    proxy.#toCanonicalTree({
+      path: '', obj: component.getInput(), visitor: leaf => {
+        leafs.push(leaf)
+      }
+    });
 
-    component.seal();
+    proxy.#input = proxy.lookupInputMap('');
+
+    const metaInfo = component.getMetaInfo();
+
+    const useWeakRef = (typeof metaInfo['useWeakRef'] == 'boolean') ?
+      metaInfo['useWeakRef'] : component.useWeakRef();
+
+    if (!component.isHeadlessContext() && useWeakRef) {
+
+      // we need to wait until loading has been completed before 
+      // creating the weak reference, inorder to prevent the gc from 
+      // pruning it before callers have the opportunity to hold on to it.
+
+      component.once('domLoaded', (callback) => {
+        const registry = component.getInputFinalizationRegistry();
+        registry.register(proxy.#input, component.getId());
+
+        proxy.#input = new WeakRef(proxy.#input);
+
+        if (typeof callback == 'function') {
+          callback();
+        }
+      });
+    }
 
     component.once(
       'beforeRender', () => proxy.#triggerInitialInsertEvents(leafs),
@@ -256,21 +247,99 @@ class RootProxy {
     }
   }
 
-  #lookupInputMap(key) {
-    return this.component.getInputMap().get(key);
+  #ensureInputMapNotPruned() {
+    if (!this.#inputMap) {
+      throw Error(`Input map has been pruned`);
+    }
+  }
+
+  hasInputMap() {
+    return !!this.#inputMap;
+  }
+
+  pruneInputMap() {
+    this.#inputMap = null;
+
+    // Note: the reason we need to set timeout is 
+    // 1. to give indexedb some time to fully persist our hooks... 
+    // as put operations are relatively slow on indexedb.
+    // 2. to maintain optimal TBT
+
+    setTimeout(() => {
+      this.#pruneHooks();
+    }, 15000);
+  }
+
+  #pruneHooks() {
+    const { DEFAULT_PRIMARY_KEY } = K_Database;
+    const { MustacheStatementList, HookList } = RootProxy;
+
+    const db = this.getDbConnection();
+
+    const storeNames = [
+      MustacheStatementList.getStoreName(this),
+      HookList.getStoreName(this)
+    ];
+
+    return Promise.all(
+      storeNames.map(async (storeName) => {
+
+        const ids = (await db.startsWithQuery(this, storeName, null, `${this.component.getId()}_`))
+          .map(({ [DEFAULT_PRIMARY_KEY]: id }) => id);
+
+        await db.delete(storeName, ids);
+      })
+    );
+  }
+
+  #lookupInputMap0(key) {
+    return this.#inputMap.get(key);
+  }
+
+  lookupInputMap(path) {
+    this.#ensureInputMapNotPruned();
+
+    assert(typeof path == 'string');
+
+    const val = this.#lookupInputMap0(path);
+
+    if (val !== undefined) {
+      return val;
+    }
+
+    let type;
+
+    if (path) {
+      type = this.#lookupInputMap0(`${path}.@type`);
+
+      if (!type) {
+        return undefined;
+      }
+    } else {
+      type = 'object';
+    }
+
+    return this.#getDynamicObjectProxy(type, path);
   }
 
   #addToInputMap(key, value) {
-    return this.component.getInputMap().set(key, value);
+    return this.#inputMap.set(key, value);
   }
 
   #removeFromInputMap(key) {
-    return this.component.getInputMap().delete(key);
+    const value = this.#inputMap.get(key);
+    this.#inputMap.delete(key);
+
+    return value;
+  }
+
+  getInput() {
+    return (this.#input instanceof WeakRef) ? this.#input.deref() : this.#input;
   }
 
   #triggerInitialInsertEvents(leafs) {
 
-    leafs.forEach(({ path, sPath, key, value, parentObject }) => {
+    leafs.forEach(({ path, sPath, key, value, parentPath }) => {
       [...(path == sPath) ? [path] : [path, sPath]]
         .map(p => `insert.${p}`)
         .forEach(evtName => {
@@ -278,7 +347,11 @@ class RootProxy {
           this.component.dispatchEvent(
             evtName,
             {
-              path, key, value, parentObject, initial: true,
+              path, key,
+              value: (value && ['Array', 'Object'].includes(value.constructor.name)) ?
+                this.lookupInputMap(path) : value,
+              parentObject: this.lookupInputMap(parentPath),
+              initial: true,
               onMount: (fn) => {
                 this.component.on('onMount', fn);
               },
@@ -297,13 +370,7 @@ class RootProxy {
   }
 
   #setSchemaDefinitions(schema) {
-    const {
-      pathProperty, firstProperty, lastProperty, keyProperty, indexProperty, randomProperty, getEnum,
-    } = RootProxy;
-
-    const syntheticProperties = [
-      pathProperty, firstProperty, lastProperty, keyProperty, indexProperty, randomProperty,
-    ];
+    const { pathProperty, getEnum } = RootProxy;
 
     const componentName = this.component.getComponentName();
 
@@ -327,33 +394,7 @@ class RootProxy {
         // Add definition id
         definition.$id = `${defPrefx}${id}`;
 
-        const addDataVariables = (def) => {
-
-          if (def.properties && def.properties[firstProperty]) {
-            assert(def.shared);
-            // Data variables has been already been registered
-            return;
-          }
-
-          const dataVariables = {
-            [firstProperty]: { type: 'boolean' },
-            [lastProperty]: { type: 'boolean' },
-            [keyProperty]: { type: ['string', 'integer'] },
-            [indexProperty]: { type: 'integer' },
-            [randomProperty]: { type: 'string' },
-          }
-          def.properties = {
-            ...def.properties || {},
-            ...dataVariables
-          }
-          def.required = [
-            ...def.required || [],
-            ...Object.keys(dataVariables)
-          ]
-        }
-
         Object.keys(definition.properties)
-          .filter(k => !syntheticProperties.includes(k))
           .map(k => definition.properties[k])
           .map(def => {
 
@@ -414,26 +455,7 @@ class RootProxy {
                     childProperty = 'items';
                   }
 
-                  // Process children first.
-                  // One reason for this is: it will help us determine enums 
-                  // because the $ref property will be replaced by the enum property
-
                   visit(def[childProperty]);
-
-                  if (
-                    def[childProperty].$ref ||
-                    def[childProperty].additionalProperties ||
-                    def[childProperty].type == 'array'
-                  ) {
-
-                    if (def[childProperty].$ref) {
-                      addDataVariables(definitions[
-                        def[childProperty].$ref.replace(defPrefx, '')
-                      ])
-                    } else {
-                      addDataVariables(def[childProperty])
-                    }
-                  }
 
                 default:
                   // Allow null values
@@ -448,22 +470,12 @@ class RootProxy {
           })
 
 
-        if (id == componentName) {
-          // The root definition should contain an empty string in the path property
-          definition.properties[pathProperty] = {
-            enum: ['']
-          }
-        } else {
-
+        if (id != componentName) {
           definition.type = [definition.type, "null"]
-          definition.properties[pathProperty] = { type: 'string' }
         }
-
-        definition.required.push(pathProperty);
 
         // Register schema, per path
         Object.keys(definition.properties)
-          .filter(k => !syntheticProperties.includes(k))
           .forEach(k => {
 
             const { toDefinitionName } = RootProxy;
@@ -579,7 +591,7 @@ class RootProxy {
     return arr;
   }
 
-  createObjectProxy() {
+  createRootObjectProxy() {
     const { dataPathRoot, dataPathPrefix, logicGatePathRoot, pathSeparator, logicGatePathPrefix, isRootPath } = RootProxy;
     // eslint-disable-next-line no-underscore-dangle
     const _this = this;
@@ -588,7 +600,7 @@ class RootProxy {
 
         switch (true) {
           case prop === Symbol.iterator:
-            return this.getProxyIterator();
+            return this.getRootObjectProxyIterator();
 
           // eslint-disable-next-line no-prototype-builtins
           case !!Object.getPrototypeOf(obj)[prop]:
@@ -602,7 +614,7 @@ class RootProxy {
             return () => this.lastLookup;
 
           case prop == dataPathRoot:
-            return _this.createObjectProxy();
+            return _this.createRootObjectProxy();
 
           case isRootPath(prop):
             return prop.startsWith(`${logicGatePathRoot}${pathSeparator}`) ?
@@ -628,7 +640,7 @@ class RootProxy {
               Object.keys(_this.lastLookup)[prop]
             ];
 
-            return this.createObjectProxy();
+            return this.createRootObjectProxy();
 
           default:
             this.component.throwError(`Invalid path "${prop}"`);
@@ -665,7 +677,7 @@ class RootProxy {
             // eslint-disable-next-line no-unused-expressions
             obj[prop];
 
-            return this.createObjectProxy();
+            return this.createRootObjectProxy();
 
           case prop === 'toJSON':
             return () => array;
@@ -708,7 +720,7 @@ class RootProxy {
     }
   }
 
-  getProxyIterator() {
+  getRootObjectProxyIterator() {
     // eslint-disable-next-line no-underscore-dangle
     const _this = this;
     // eslint-disable-next-line func-names
@@ -1205,7 +1217,7 @@ class RootProxy {
         node = range.createContextualFragment(htmlString);
 
         if (!node || !node.childElementCount) {
-          this.component.logger.error({
+          this.#logError({
             parentNode,
             htmlString
           });
@@ -1288,11 +1300,12 @@ class RootProxy {
     return Promise.all(
       hookList[path]
         .filter(hookInfo => hookFilter(hookInfo))
-        .map(hookInfo => ({
-          ...hookInfo, ...hookOptions || {},
-          blockData: blockDataTransformer(path0, hookInfo.blockData),
-        }))
+        .map(hookInfo => ({ ...hookInfo, ...hookOptions || {} }))
         .map(hookInfo => {
+
+          if (typeof blockDataTransformer == 'function') {
+            hookInfo.blockData = blockDataTransformer(path0, hookInfo.blockData)
+          }
 
           const selector = hookInfo.selector ? this.#getFullyQualifiedSelector(hookInfo.selector) : null;
 
@@ -1974,7 +1987,7 @@ class RootProxy {
             case collChildDetachHookType:
 
               (() => {
-                assert(this.isCollectionObject(value));
+                assert(this.#isCollectionObject(value));
 
                 const targetNode = document.querySelector(selector);
                 const { opaqueWrapper, markerEnd, childKey } = hookInfo;
@@ -1988,7 +2001,7 @@ class RootProxy {
             case arraySpliceHookType:
 
               (() => {
-                assert(this.isCollectionObject(value));
+                assert(this.#isCollectionObject(value));
 
                 const { opaqueWrapper, markerEnd, blockId, deletedElements, offsetIndexes, newIndexes = [], shuffle } = hookInfo;
 
@@ -2093,7 +2106,7 @@ class RootProxy {
 
               return (async () => {
 
-                assert(this.isCollectionObject(value));
+                assert(this.#isCollectionObject(value));
 
                 const { hook, hookPhase, canonicalPath, transform, predicate, opaqueWrapper, markerEnd, loc, blockStack, blockId, childKey } = hookInfo;
 
@@ -2290,17 +2303,7 @@ class RootProxy {
   }
 
   #pruneCollChild({ parent, key, timestamp, trigger }) {
-    const { isNumber } = clientUtils;
-    const { PRUNE_COLL_CHILD_TASK, toFqPath, HookList, MustacheStatementList } = RootProxy;
-
-    const isArray = isNumber(key);
-
-    const path = toFqPath({ isArray, isMap: !isArray, parent, prop: key });
-
-    [path, ...this.getTrieSubPaths(path)]
-      .forEach(p => {
-        this.#removeFromInputMap(p);
-      });
+    const { PRUNE_COLL_CHILD_TASK, HookList, MustacheStatementList } = RootProxy;
 
     return trigger
       .then(() => {
@@ -2336,38 +2339,23 @@ class RootProxy {
   #updateCollChild({ parent, key, info, timestamp, trigger, updateInputMap = true }) {
 
     const { isNumber } = clientUtils;
-    const {
-      pathProperty, UPDATE_COLL_CHILD_TASK, setObjectPath, toFqPath, HookList,
-    } = RootProxy;
+    const { UPDATE_COLL_CHILD_TASK, toFqPath, HookList } = RootProxy;
 
     const isArray = isNumber(key);
 
-    const path = toFqPath({ isArray, isMap: !isArray, parent, prop: key });
     const newPath = (isArray && (info.index != undefined)) ?
       toFqPath({ isArray, parent, prop: `${info.index}` }) : null;
 
-    if (newPath) {
+    if (updateInputMap && newPath) {
+      const path = toFqPath({ isArray, isMap: !isArray, parent, prop: key });
 
       [path, ...this.getTrieSubPaths(path)]
         .forEach(p => {
-          const { value: obj } = this.getInfoFromPath(p);
-
           const _p = p.replace(path, newPath);
 
-          if (obj && ['Object', 'Array'].includes(obj.constructor.name)) {
-            // Update @path
+          const _val = this.#lookupInputMap0(p);
 
-            assert(obj[pathProperty] == p);
-
-            setObjectPath({
-              obj,
-              path: _p
-            });
-          }
-
-          if (updateInputMap) {
-
-            const _val = this.#lookupInputMap(p);
+          if (_val !== undefined) {
             this.#removeFromInputMap(p);
 
             this.#addPathToTrie(_p);
@@ -2444,50 +2432,6 @@ class RootProxy {
     });
   }
 
-  static setObjectAsPruned(obj) {
-
-    const { prunedProperty } = RootProxy;
-    const { visitObject } = clientUtils;
-
-    const addPrunedPropery = (obj) => {
-      Object.defineProperty(obj, prunedProperty, { value: true, configurable: false, enumerable: false });
-    }
-
-    const visitComponent = (val) => {
-      const input = val.getInput();
-      if (!input) return;
-
-      addPrunedPropery(input);
-
-      visitObject(input, visitor);
-    };
-
-    const visitor = (key, val) => {
-      switch (true) {
-        case val instanceof BaseComponent:
-          visitComponent(val);
-          break;
-
-        case val && typeof val == 'object':
-          addPrunedPropery(val);
-          return true;
-      }
-    };
-
-    if (obj instanceof BaseComponent) {
-      visitComponent(obj);
-    } else {
-      addPrunedPropery(obj);
-      visitObject(obj, visitor);
-    }
-  }
-
-  ensurePrivilegedMode() {
-    if (!RootProxy.#isPriviledgedMode()) {
-      this.component.throwError(`Permission denied`);
-    }
-  }
-
   isPathImmutable(fqPath0) {
     const sPath0 = clientUtils.toCanonicalPath(fqPath0);
     const immutablePaths = this.component.immutablePaths();
@@ -2520,22 +2464,21 @@ class RootProxy {
   }
 
   #simpleSetMutationHandler(obj, prop, newValue) {
-
     const {
       pathProperty, isMapProperty, mapKeyPrefix, firstProperty, lastProperty, keyProperty, indexProperty,
       collChildSetHookType, collChildDetachHookType, arraySpliceHookType, filter_EQ, filter_GTE_COLL_MEMBER,
       filter_GTE_OBJ_MEMBER, mutationType_SET, mutationType_SPLICE, mutationType_DELETE, toFqPath,
-      getDataVariables, setObjectAsPruned,
     } = RootProxy;
 
-    const parent = obj[pathProperty];
+    const { toCanonicalPath, isNumber, getCollectionIndexAndLength } = clientUtils;
 
+    const parent = obj[pathProperty];
+    const sParent = toCanonicalPath(parent);
 
     const isArray = Array.isArray(obj);
     const isMap = !isArray && obj[isMapProperty];
 
     const isCollection = isArray || isMap;
-
 
     if (isCollection) {
       this.#ensureNoOpenHandle(parent);
@@ -2561,34 +2504,28 @@ class RootProxy {
             prop = obj.length - 1;
             break;
 
-          case !global.clientUtils.isNumber(prop) && ![...getDataVariables(), pathProperty].includes(prop):
-            return this.tryOrLogError(
-              () => { throw Error(`Invalid index: ${prop} for array: ${obj[pathProperty]}`) }
-            )
+          case !isNumber(prop):
+            this.#logError(`Invalid index: ${prop} for array: ${obj[pathProperty]}`);
+            return false;
         }
 
         prop = Number(prop);
         break;
 
       case isMap:
-        if (!prop || !prop.length || !['String', 'Number', 'Boolean'].includes(prop.constructor.name)) {
-          this.component.logger.error(`Invalid key: ${prop} for map: ${obj[pathProperty]}`);
+
+        if (!prop) {
+          this.#logError(`Empty key provided for setter, map=${obj[pathProperty]}`);
           return false;
         }
 
-        // <obj> is wrapped with our map wrapper, hence this should be true
-        assert(prop.startsWith(mapKeyPrefix));
+        if (!`${prop}`.startsWith(mapKeyPrefix)) {
+          prop = `${mapKeyPrefix}${prop}`
+        }
+        break;
 
       default:
-        if (!prop || !prop.length || prop.constructor.name !== 'String') {
-          this.component.logger.error(`Invalid key: ${prop} for object: ${obj[pathProperty]}`);
-          return false;
-        }
-
-        // Data variables need to set using Object.defineProperty(...) inorder for them to be
-        // properly setup, i.e. configurable: true/false, enumerable: false , e.t.c
-        assert(!prop.startsWith('@'));
-
+        assert(typeof prop == 'string');
         break;
     }
 
@@ -2615,12 +2552,12 @@ class RootProxy {
 
     const fqPath0 = toFqPath({ isArray, isMap, parent, prop });
 
-    const sPath0 = clientUtils.toCanonicalPath(fqPath0);
+    const sPath0 = toCanonicalPath(fqPath0);
 
     // Perform Validations
 
     if (this.isPathImmutable(fqPath0)) {
-      this.component.logger.error(`Path "${fqPath0}" is immutable`);
+      this.#logError(`Path "${fqPath0}" is immutable`);
       return false;
     }
 
@@ -2628,17 +2565,14 @@ class RootProxy {
       this.#ensureNonDiscreteContext();
     }
 
-    const collDef = isCollection ? this.getCollectionDefinition(parent) : false;
-
     const collInfo = (() => {
-
-      if (!collDef) return false;
+      if (!isCollection) return false;
 
       const o = {
-        ...clientUtils.getCollectionIndexAndLength(obj, prop),
-        type: collDef.collectionType,
+        ...getCollectionIndexAndLength(obj, prop),
+        type: isArray ? 'array' : 'map',
         prop,
-        keys: Object.keys(obj),
+        keys: Object.keys(obj).map(k => isArray ? Number(k) : k),
       };
 
       const { index, length, type } = o;
@@ -2690,15 +2624,14 @@ class RootProxy {
     })();
 
     const {
-      newElementAdded, elementRemoved, removedNonLastElement, removedLastElement, keys, index, length, offset, sparseIndexes, offsetIndexes,
+      newElementAdded, elementRemoved, removedNonLastElement, removedLastElement, keys,
+      index, length, offset, sparseIndexes, offsetIndexes,
     } = collInfo || {};
 
 
-    // REGISTER CHANGE SETS
+    // register change set
 
-    const mutationList = [];
     const changeSet = [];
-
     const changedCollMembers = [];
 
 
@@ -2746,6 +2679,11 @@ class RootProxy {
       changedCollMembers.push(fqPath0);
 
     } else {
+
+      if (newValue === undefined) {
+        newValue = null;
+      }
+
       this.#addToChangeSet(changeSet, fqPath0, filter_GTE_OBJ_MEMBER);
     }
 
@@ -2756,7 +2694,7 @@ class RootProxy {
     if (newElementAdded && length > 0) {
 
       this.#setDataVariableForCollMember(
-        obj, length - 1, lastProperty, false,
+        parent, keys[length - 1], lastProperty, false,
       );
 
       this.#addToChangeSet(
@@ -2772,7 +2710,7 @@ class RootProxy {
     if (removedLastElement && index > 0) {
 
       this.#setDataVariableForCollMember(
-        obj, index - 1, lastProperty, true,
+        parent, keys[index - 1], lastProperty, true,
       );
 
       this.#addToChangeSet(
@@ -2791,7 +2729,7 @@ class RootProxy {
 
         if (j == 0) {
           this.#setDataVariableForCollMember(
-            obj, i, firstProperty, true,
+            parent, keys[i], firstProperty, true,
           );
 
           this.#addToChangeSet(
@@ -2805,11 +2743,11 @@ class RootProxy {
         }
 
         this.#setDataVariableForCollMember(
-          obj, i, keyProperty, `${j}`,
+          parent, keys[i], keyProperty, `${j}`,
         );
 
         this.#setDataVariableForCollMember(
-          obj, i, indexProperty, j,
+          parent, keys[i], indexProperty, j,
         );
 
         changedCollMembers.push(
@@ -2837,6 +2775,55 @@ class RootProxy {
     });
 
 
+
+    const mutationType = (newValue !== undefined) ? mutationType_SET : isArray ? mutationType_SPLICE : mutationType_DELETE;
+    const handle = (isCollection && this.isCollectionInView(sParent)) ? parent : this.hasCollectionInView(sPath0) ? fqPath0 : null;
+
+    const changeEvents = {};
+
+    if (mutationType == mutationType_SPLICE) {
+      [parent, ...(sParent != parent) ? [sParent] : []]
+        .forEach(p => {
+          changeEvents[p] = {
+            eventType: mutationType,
+            mutationType,
+            path: parent,
+            sPath: sParent,
+            parentObject: obj,
+            newLength: length + offset,
+            delIndexes: [prop],
+            newIndexes: [],
+            offsetIndexes: { ...offsetIndexes },
+          };
+        });
+    }
+
+    const addEventsForLeaf = (eventType, leaf) => {
+      const { path, sPath } = leaf;
+
+      [path, ...(sPath != path) ? [sPath] : []]
+        .forEach(p => {
+          changeEvents[p] = {
+            eventType, mutationType, ...leaf,
+          }
+        });
+    }
+
+
+    // generate "detach" events
+
+    if (oldValue !== undefined) {
+
+      this.#buildObjectFromMap(
+        fqPath0, null, obj, `${prop}`, true,
+        this.#removeInputMapEntries(fqPath0),
+        leaf => {
+          addEventsForLeaf('remove', leaf);
+        });
+    }
+
+
+
     let collChildHookUpdateResolve;
 
     const collChildHookUpdatePromise = new Promise((resolve) => {
@@ -2849,10 +2836,26 @@ class RootProxy {
 
       const newLength = length + offset;
 
-      this.#addToInputMap(`${parent}.length`, newLength);
+      if (isArray) {
+        this.#addToInputMap(`${parent}.length`, newLength);
+      }
 
+      if (isMap && (newElementAdded || elementRemoved)) {
+        const _keys = [...keys];
 
-      // HOOK RE-BALANCING
+        if (newElementAdded) {
+          _keys.push(prop);
+        } else {
+          const idx = _keys.indexOf(prop);
+          assert(idx >= 0);
+
+          _keys.splice(idx, 1);
+        }
+
+        this.#addToInputMap(`${parent}.@keys`, _keys);
+      }
+
+      // re-balance hooks
 
       const timestamp = new Date();
 
@@ -2896,76 +2899,54 @@ class RootProxy {
 
           break;
       }
-
     }
 
+    // generate "insert" events
 
+    if (newValue !== undefined) {
 
-    // DO SET
+      const elements = [{
+        path: fqPath0,
+        key: prop,
+        value: newValue,
+        dataVariables: isCollection ? this.#getCollChildDataVariables(collInfo) : null
+      }];
 
+      if (sparseIndexes) {
 
-    const elements = [{
-      path: fqPath0,
-      prop,
-      value: (newValue === undefined && !collDef) ? null : newValue,
-      dataVariables: (newValue !== undefined && collDef) ? this.getDataVariablesForSimpleSetOperation(collInfo) : null
-    }];
-
-    if (sparseIndexes) {
-
-      for (let i of sparseIndexes) {
-        elements.push({
-          path: toFqPath({ parent, prop: i }),
-          prop: i,
-          value: null,
-          dataVariables: {
-            first: i == 0,
-            last: false,
-            key: `${i}`,
-            index: i,
-          }
-        });
-      }
-    }
-
-
-    for (let i = 0; i < elements.length; i++) {
-      const { path, prop, value, dataVariables } = elements[i];
-
-      const leafs = [];
-
-      const { error, mutationType, value: val } = this.#getMutationType({
-        path, value, parentObject: obj, collDef, dataVariables, leafs,
-      });
-
-      if (error) {
-        return false;
-      }
-
-      switch (mutationType) {
-
-        case mutationType_SET:
-          mutationList.push({ type: mutationType_SET, obj, key: prop, val, leafs });
-          break;
-
-        case mutationType_SPLICE:
-          mutationList.push({
-            type: mutationType, obj, key: prop, delCount: 1, repl: [],
-            delIndexes: [prop], offsetIndexes, newIndexes: [],
+        for (let i of sparseIndexes) {
+          elements.push({
+            path: toFqPath({ parent, prop: i }),
+            key: i,
+            value: null,
+            dataVariables: {
+              first: i == 0,
+              last: false,
+              key: `${i}`,
+              index: i,
+            },
+            sparse: true,
           });
-          break;
+        }
+      }
 
-        case mutationType_DELETE:
-          mutationList.push({ type: mutationType, obj, key: prop })
-          break;
+      for (let i = 0; i < elements.length; i++) {
+        const { path, key, value, dataVariables, sparse } = elements[i];
+
+        const { error } = this.#addInputMapEntries({
+          path, value, parentObject: obj, key, dataVariables,
+          visitor: leaf => {
+            addEventsForLeaf('insert', { ...leaf, sparse });
+          },
+        });
+
+        if (error) {
+          return false;
+        }
       }
     }
 
-    if (oldValue && typeof oldValue == 'object') {
-      setObjectAsPruned(oldValue);
-    }
-
-    const { finalizers, exclusionSet } = this.#executeMutations({ mutationList });
+    const { finalizers, exclusionSet } = this.#dispatchEventForChanges(handle, changeEvents);
 
     this.#finalizeMutationHandler(
       [isCollection ? parent : fqPath0, changeSet, finalizers, exclusionSet],
@@ -3118,11 +3099,13 @@ class RootProxy {
 
     const {
       pathProperty, firstProperty, lastProperty, keyProperty, indexProperty, arraySpliceHookType,
-      mutationType_SET, mutationType_SPLICE, filter_EQ, filter_GTE_COLL_MEMBER, toFqPath,
-      getArraySpliceInfo, setObjectAsPruned
+      mutationType_SPLICE, filter_EQ, filter_GTE_COLL_MEMBER, toFqPath, getArraySpliceInfo
     } = RootProxy;
 
+    const { toCanonicalPath } = clientUtils;
+
     const parent = obj[pathProperty];
+    const sParent = toCanonicalPath(parent);
 
     assert(Array.isArray(obj));
 
@@ -3136,12 +3119,10 @@ class RootProxy {
     const length = obj.length;
 
 
-    // REGISTER CHANGE SETS
+    // register change set
 
-    const changedCollMembers = [];
-
-    const mutationList = [];
     const changeSet = [];
+    const changedCollMembers = [];
 
 
     if (offset != 0) {
@@ -3152,7 +3133,7 @@ class RootProxy {
       assert(offset > 0);
 
       this.#setDataVariableForCollMember(
-        obj, length - 1, lastProperty, false,
+        parent, length - 1, lastProperty, false,
       );
 
       this.#addToChangeSet(
@@ -3170,7 +3151,7 @@ class RootProxy {
     if (index > 0 && offset < 0 && index == newLength) {
 
       this.#setDataVariableForCollMember(
-        obj, index - 1, lastProperty, true,
+        parent, index - 1, lastProperty, true,
       );
 
       this.#addToChangeSet(
@@ -3191,7 +3172,7 @@ class RootProxy {
 
 
         this.#setDataVariableForCollMember(
-          obj, i, keyProperty, `${j}`,
+          parent, i, keyProperty, `${j}`,
         );
 
         this.#addToChangeSet(
@@ -3202,7 +3183,7 @@ class RootProxy {
 
 
         this.#setDataVariableForCollMember(
-          obj, i, indexProperty, j,
+          parent, i, indexProperty, j,
         );
 
         this.#addToChangeSet(
@@ -3215,7 +3196,7 @@ class RootProxy {
         if ([i, j].includes(0)) {
 
           this.#setDataVariableForCollMember(
-            obj, i, firstProperty, j == 0,
+            parent, i, firstProperty, j == 0,
           );
 
           this.#addToChangeSet(
@@ -3259,7 +3240,64 @@ class RootProxy {
       this.#addToChangeSet(
         changeSet, p, filter_GTE_COLL_MEMBER,
       );
-    })
+    });
+
+
+
+    const removedElements = [];
+
+    const mutationType = mutationType_SPLICE;
+    const handle = this.isCollectionInView(sParent) ? parent : null;
+
+    const changeEvents = {};
+
+    [parent, ...(sParent != parent) ? [sParent] : []]
+      .forEach(p => {
+        changeEvents[p] = {
+          eventType: mutationType,
+          mutationType,
+          path: parent,
+          sPath: sParent,
+          parentObject: obj,
+          newLength: newLength,
+          delIndexes: [...delIndexes],
+          newIndexes: [...newIndexes],
+          offsetIndexes: { ...offsetIndexes },
+        };
+      });
+
+    const addEventsForLeaf = (eventType, leaf) => {
+      const { path, sPath } = leaf;
+
+      [path, ...(sPath != path) ? [sPath] : []]
+        .forEach(p => {
+          changeEvents[p] = {
+            eventType, mutationType, ...leaf,
+          }
+        });
+    }
+
+
+    // generate "detach" events
+
+    delIndexes.forEach(i => {
+      const path = toFqPath({ parent, prop: i });
+
+      this.#buildObjectFromMap(
+        path, null, obj, `${i}`, true,
+        this.#removeInputMapEntries(path),
+        leaf => {
+          const { primary, value } = leaf;
+
+          if (primary) {
+            removedElements.push(value);
+          }
+
+          addEventsForLeaf('remove', leaf);
+        });
+    });
+
+
 
     let collChildHookUpdateResolve;
 
@@ -3272,8 +3310,7 @@ class RootProxy {
 
     this.#addToInputMap(`${parent}.length`, newLength);
 
-
-    // HOOK RE-BALANCING
+    // re-balance hooks
 
     const timestamp = new Date();
 
@@ -3295,7 +3332,7 @@ class RootProxy {
           );
           break;
 
-        // Note: The offset-direction must be opposite of the iteration direction
+        // note: the offset-direction must be opposite of the iteration direction
         case newLength < length && offsetIndexes[i] !== undefined:
           promises.push(
             this.#updateCollChild({
@@ -3318,29 +3355,10 @@ class RootProxy {
       }
     }
 
-
-    // DO SET
-
-
-
-
-    let hasError = false;
-
-    const collDef = this.getCollectionDefinition(parent);
-
-    const leafsList = [];
-
-    replElements = replElements.map((value, i) => {
-
-      if (hasError) {
-        return;
-      }
-
-      const leafs = [];
-      leafsList.push(leafs);
+    for (let i = 0; i < replElements.length; i++) {
+      const value = replElements[i];
 
       const idx = index + i;
-
       const path = toFqPath({ parent, prop: idx });
 
       if (value === undefined) {
@@ -3354,42 +3372,19 @@ class RootProxy {
         index: idx,
       };
 
-      const { error, mutationType, value: val } = this.#getMutationType({ path, value, parentObject: obj, collDef, dataVariables, leafs, });
+      const { error } = this.#addInputMapEntries({
+        path, value, parentObject: obj, key: `${idx}`, dataVariables,
+        visitor: leaf => {
+          addEventsForLeaf('insert', leaf);
+        },
+      });
 
       if (error) {
-        hasError = true;
-        return;
+        return false;
       }
-
-      assert(mutationType == mutationType_SET);
-
-      return val;
-    });
-
-
-    if (hasError) {
-      return false;
     }
 
-    mutationList.push({
-      type: mutationType_SPLICE,
-      obj, key: index,
-      delCount: delIndexes.length,
-      repl: replElements,
-      leafsList,
-      delIndexes, newIndexes, offsetIndexes,
-    });
-
-    const removedElements = delIndexes.map(i => {
-      const e = obj[i];
-
-      if (e && typeof e == 'object') {
-        setObjectAsPruned(e);
-      }
-      return e;
-    });
-
-    const { finalizers, exclusionSet } = this.#executeMutations({ mutationList });
+    const { finalizers, exclusionSet } = this.#dispatchEventForChanges(handle, changeEvents);
 
     this.#finalizeMutationHandler(
       [parent, changeSet, finalizers, exclusionSet],
@@ -3406,20 +3401,19 @@ class RootProxy {
 
     const {
       pathProperty, arraySpliceHookType, filter_EQ, filter_GTE_COLL_MEMBER, keyProperty, indexProperty,
-      firstProperty, lastProperty, toFqPath,
+      firstProperty, lastProperty, toFqPath, mutationType_REORDER,
     } = RootProxy;
 
+    const { toCanonicalPath } = clientUtils;
+
     const parent = obj[pathProperty];
+    const sParent = toCanonicalPath(parent);
 
     assert(Array.isArray(obj));
 
     this.#ensureNonDiscreteContext();
     this.#ensureNoOpenHandle(parent);
 
-
-    // We need to eagerly upate inputMap because unlike other mutation handlers, this mutation
-    // handler is called "after" "input" is updated not "before" - and the "inputMap" must exactly
-    // mirror the "input" at all times
 
     const _inputMap = {};
 
@@ -3431,7 +3425,7 @@ class RootProxy {
         [path, ...this.getTrieSubPaths(path)].forEach(p => {
           const _p = p.replace(path, newPath);
 
-          const _val = this.#lookupInputMap(p);
+          const _val = this.lookupInputMap(p);
           this.#removeFromInputMap(p);
 
           _inputMap[_p] = _val;
@@ -3442,7 +3436,8 @@ class RootProxy {
       this.#addToInputMap(k, v);
     });
 
-    // REGISTER CHANGE SETS
+
+    // register change set
 
     const changeSet = [];
 
@@ -3460,7 +3455,7 @@ class RootProxy {
         const p = toFqPath({ parent, prop: i });
 
 
-        this.#setDataVariableForCollMember(obj, j, keyProperty, `${j}`);
+        this.#setDataVariableForCollMember(parent, j, keyProperty, `${j}`);
 
         this.#addToChangeSet(
           changeSet,
@@ -3469,7 +3464,7 @@ class RootProxy {
         );
 
 
-        this.#setDataVariableForCollMember(obj, j, indexProperty, j);
+        this.#setDataVariableForCollMember(parent, j, indexProperty, j);
 
         this.#addToChangeSet(
           changeSet,
@@ -3480,7 +3475,7 @@ class RootProxy {
 
         if ([i, j].includes(0)) {
 
-          this.#setDataVariableForCollMember(obj, j, firstProperty, j == 0);
+          this.#setDataVariableForCollMember(parent, j, firstProperty, j == 0);
 
           this.#addToChangeSet(
             changeSet,
@@ -3492,7 +3487,7 @@ class RootProxy {
 
         if ([i, j].includes(obj.length - 1)) {
 
-          this.#setDataVariableForCollMember(obj, j, lastProperty, j == obj.length - 1);
+          this.#setDataVariableForCollMember(parent, j, lastProperty, j == obj.length - 1);
 
           this.#addToChangeSet(
             changeSet,
@@ -3507,6 +3502,25 @@ class RootProxy {
       });
 
 
+    const mutationType = mutationType_REORDER;
+    const handle = this.isCollectionInView(sParent) ? parent : null;
+
+    const changeEvents = {};
+
+    [parent, ...(sParent != parent) ? [sParent] : []]
+      .forEach(p => {
+        changeEvents[p] = {
+          eventType: mutationType,
+          mutationType,
+          path: parent,
+          sPath: sParent,
+          parentObject: obj,
+          offsetIndexes: { ...offsetIndexes },
+        };
+      });
+
+
+
     let collChildHookUpdateResolve;
 
     const collChildHookUpdatePromise = new Promise((resolve) => {
@@ -3515,7 +3529,7 @@ class RootProxy {
 
     const promises = [];
 
-    // HOOK RE-BALANCING
+    // re-balance hooks
 
     const timestamp = new Date();
 
@@ -3529,8 +3543,10 @@ class RootProxy {
         );
       });
 
+    const { finalizers, exclusionSet } = this.#dispatchEventForChanges(handle, changeEvents);
+
     this.#finalizeMutationHandler(
-      [parent, changeSet],
+      [parent, changeSet, finalizers, exclusionSet],
       promises,
       collChildHookUpdateResolve,
       offsetIndexes,
@@ -3538,297 +3554,262 @@ class RootProxy {
     );
   }
 
-  #setDataVariableForCollMember(obj, index, key, val) {
-    const { pathProperty, toFqPath, setDataVariable } = RootProxy;
+  #setDataVariableForCollMember(parent, prop, name, val) {
+    const { toFqPath, mapKeyPrefix } = RootProxy;
 
-    assert(key.startsWith('@'));
+    assert(name.startsWith('@'));
 
-    if (typeof obj[index] == "object") {
-      setDataVariable(obj[index], key, val);
-    }
+    const isArray = typeof prop == 'number';
+    const isMap = !isArray && prop.startsWith(mapKeyPrefix);
 
-    const isArray = Array.isArray(obj);
-    const isMap = !isArray;
+    assert(isArray || isMap);
 
     const path = toFqPath({
-      parent: toFqPath({
-        isArray, isMap, parent: obj[pathProperty],
-        prop: isArray ? index : Object.keys()[index]
-      }),
-      key,
+      parent: toFqPath({ isArray, isMap, parent, prop }),
+      key: name,
     });
 
     this.#addToInputMap(path, val);
   }
 
-  #executeMutations({ mutationList }) {
-    const {
-      mutationType_SET, mutationType_SPLICE, mutationType_DELETE, pathProperty, typeProperty, mapType,
-      parentRefProperty, dataPathRoot, pathSeparator, toFqPath, setDataVariable,
-    } = RootProxy;
-
-    const changes = [];
-
-    mutationList.forEach((mutation) => {
-      const { type: mutationType, obj, key, val, leafs = [], leafsList } = mutation;
-
-      const addToChanges = ({ path, key, spliceIndex, val, willPrune, leafs, mutationType }) => {
-
-        const add0 = (opts) => {
-          const { key } = opts;
-
-          if (typeof key == 'string' && !key.startsWith('@')) {
-            changes.push(opts);
-          }
-        };
-
-        const addPrimary = () => {
-          // Note: <spliceIndex> is passed in when <obj> is an array, in order to make it possible for observers 
-          // to be able to mirror changes made in <obj> into a secondary array, such that the caller can 
-          // recursively run a splice on the secondary array and maintain equality with the primary array: <obj>
-
-          add0({
-            mutationType, path, oldValue: willPrune ? val : undefined,
-            currentValue: willPrune ? undefined : val,
-            parentObject: obj, key, spliceIndex, primary: true,
-          });
-        }
-
-        if (willPrune) {
-          if (val && ['Array', 'Object'].includes(val.constructor.name)) {
-
-            this.#visitObject(
-              val,
-              (path, val, obj, key) => {
-                add0({
-                  mutationType, path, oldValue: val, currentValue: undefined,
-                  parentObject: obj, key,
-                });
-              },
-              false,
-            )
-          }
-
-          addPrimary();
-
-        } else {
-
-          addPrimary();
-
-          leafs.forEach(({ path, key, value, parentObject }) => {
-            add0({
-              mutationType, path, oldValue: undefined, currentValue: value,
-              parentObject, key,
-            });
-          });
-        }
-      }
-
-      switch (mutationType) {
-        case mutationType_SET:
-          (() => {
-            if (obj && ['Array', 'Object'].includes(obj.constructor.name)) {
-              assert(!key.startsWith('@'));
-
-              const isArray = Array.isArray(obj);
-              const isMap = !isArray && obj[typeProperty] == mapType;
-
-              const path = toFqPath({ isArray, isMap, parent: obj[pathProperty], prop: key });
-
-              const spliceIndex = isArray ? key : undefined;
-
-              if (obj[key] !== undefined) {
-                addToChanges({ mutationType, path, key, spliceIndex, val: obj[key], willPrune: true });
-              } else {
-                assert(isArray || isMap);
-              }
-
-              addToChanges({ mutationType, path, key, spliceIndex, val, leafs });
-
-              obj[key] = val;
-            }
-          })()
-          break;
-
-        case mutationType_SPLICE:
-          (() => {
-            assert(Array.isArray(obj));
-
-            const { delCount, repl, delIndexes, newIndexes, offsetIndexes } = mutation;
-
-            for (let i = 0; i < delCount; i++) {
-              const idx = key + i;
-              const path = toFqPath({ isArray: true, parent: obj[pathProperty], prop: idx });
-
-              addToChanges({ mutationType, path, key: idx, spliceIndex: key, val: obj[idx], willPrune: true });
-            }
-
-            for (let i = repl.length - 1; i >= 0; i--) {
-              const idx = key + i;
-              const path = toFqPath({ isArray: true, parent: obj[pathProperty], prop: idx });
-
-              addToChanges({ mutationType, path, key: idx, spliceIndex: key, val: repl[i], leafs: leafsList[i] });
-            }
-
-            const deletedElements = obj.splice(key, delCount, ...repl);
-            assert(deletedElements.length == delCount);
-
-            const path = obj[pathProperty];
-            const sPath = clientUtils.toCanonicalPath(path);
-
-            [path, sPath]
-              .forEach(p => {
-                this.component.dispatchEvent(
-                  `splice.${p}`, {
-                  path,
-                  value: obj,
-                  parentObject: obj[parentRefProperty],
-                  newLength: obj.length,
-                  delIndexes: [...delIndexes],
-                  newIndexes: [...newIndexes],
-                  offsetIndexes: { ...offsetIndexes },
-                });
-              });
-          })();
-
-          break;
-
-        case mutationType_DELETE:
-          assert(obj[typeProperty] == mapType);
-
-          const path = toFqPath({ isMap: true, parent: obj[pathProperty], prop: key });
-
-          addToChanges({ mutationType, path, key, val: obj[key], willPrune: true });
-
-          delete obj[key];
-          break;
-      }
-    });
+  #dispatchEventForChanges(handle, changeEvents) {
+    const { dataPathRoot, pathSeparator } = RootProxy;
 
     const exclusionSet = new Set();
     const finalizers = [];
 
     const afterMount = (fn) => finalizers.push(fn);
 
-    changes.forEach((changeInfo) => {
-      const { path, oldValue, currentValue, parentObject, key, spliceIndex, primary } = changeInfo;
+    Object.entries(changeEvents).forEach(([k, v]) => {
+      const { eventType, path } = v;
 
-      const sPath = clientUtils.toCanonicalPath(path);
-      const isCollChild = this.isCollectionObject(parentObject);
+      if (handle) {
+        this.#pushOpenHandle(handle);
+      }
 
-      const parent = parentObject[pathProperty];
-      const sParent = clientUtils.toCanonicalPath(parent);
+      const { defaultPrevented } = this.component.dispatchEvent(
+        `${eventType}.${k}`, {
+        ...v, afterMount, onMount: afterMount
+      },
+      );
 
-      const eventNamePrefix = (currentValue === undefined) ? 'remove' : 'insert';
+      if (handle) {
+        this.#popOpenHandle(handle);
+      }
 
-      const handle = (isCollChild && this.isCollectionInView(sParent)) ? parent : this.hasCollectionInView(sPath) ? path : null;
-
-      [path, ...(sPath != path) ? [sPath] : []]
-        .map(p => `${eventNamePrefix}.${p}`)
-        .forEach(evtName => {
-
-          if (handle) {
-            this.#pushOpenHandle(handle);
-          }
-
-          const { defaultPrevented } = this.component.dispatchEvent(
-            evtName, {
-            path, key, value: (oldValue !== undefined) ? oldValue : currentValue,
-            parentObject, spliceIndex, primary, afterMount, onMount: afterMount,
-          },
-          );
-
-          if (handle) {
-            this.#popOpenHandle(handle);
-          }
-
-          if (!handle && defaultPrevented) {
-            exclusionSet.add(`${dataPathRoot}${pathSeparator}${path}`);
-          }
-        });
+      if (!handle && defaultPrevented) {
+        exclusionSet.add(`${dataPathRoot}${pathSeparator}${path}`);
+      }
     });
 
-    return { finalizers, exclusionSet };
+    return { exclusionSet, finalizers };
   }
 
-  isCollectionObject(obj) {
-    const { typeProperty, mapType } = RootProxy;
-    return Array.isArray(obj) || (obj && obj[typeProperty] == mapType);
-  }
-
-  #getMutationType({ path, value, parentObject, collDef, dataVariables, leafs }) {
+  #buildObjectFromMap(path, sPath, parentObject, key, primary, entries, visitor) {
     const {
-      typeProperty, mapType, mutationType_SET, mutationType_SPLICE,
-      mutationType_DELETE, getMapWrapper, setObjectParentRef,
+      isMapProperty, mapKeyPrefix, mapSizeProperty, mapKeysProperty, mapIndexOfProperty,
+      isLiveProperty, pathProperty, toFqPath, setObjectParentRef, addNonEnumerableProperty,
     } = RootProxy;
 
-    const sPath = clientUtils.toCanonicalPath(path);
+    assert(typeof key == 'string');
 
-    if (value !== undefined) {
-      value = this.invokeTransformers(
-        this.component.getInitializers(), this.component.getTransformers(), path, sPath, value, parentObject,
-      );
+    if (!sPath) {
+      sPath = clientUtils.toCanonicalPath(path);
     }
 
-    if (value != undefined) {
+    const value = (() => {
+      const type = entries.get(`${path}.@type`);
 
-      if (['Object', 'Array'].includes(value.constructor.name)) {
+      switch (type) {
 
-        if (collDef) {
-          this.addDataVariablesToObject(
-            value, dataVariables,
-          )
-        }
+        case 'literal':
+          return entries.get(path);
+        case 'component':
+          return (() => {
+            const ret = entries.get(path);
+            setObjectParentRef(ret, parentObject);
+            return ret;
+          })();
 
-        const b = this.tryOrLogError(
-          () => {
-            value = this.#toCanonicalTree({
-              path, sPath, obj: value, leafs, parentObject,
+        default:
+          assert(['object', 'array', 'map'].includes(type));
+
+          const ret = (type == 'array') ?
+            [...new Array(entries.get(`${path}.length`))] :
+            {};
+
+          addNonEnumerableProperty(ret, pathProperty, path);
+          setObjectParentRef(ret, parentObject);
+
+          addNonEnumerableProperty(ret, isLiveProperty, false);
+          addNonEnumerableProperty(ret, isMapProperty, type == 'map');
+
+          const collInfo = (() => {
+            switch (true) {
+              case parentObject[isMapProperty]:
+                return {
+                  type: 'map',
+                  keys: parentObject[mapKeysProperty]()
+                    .map(k => `${mapKeyPrefix}${k}`),
+                }
+              case Array.isArray(parentObject):
+                return {
+                  type: 'array',
+                  keys: [...new Array(parentObject.length)].map((e, i) => `${i}`),
+                }
+            }
+          })();
+
+          if (collInfo) {
+            const { type, keys } = collInfo;
+            const index = keys.indexOf(key);
+
+            assert(index >= 0);
+
+            const dataVariables = this.#getCollChildDataVariables({
+              index,
+              length: keys.length,
+              type,
+              prop: key,
             });
+
+            Object.entries({
+              ...dataVariables,
+              random: this.component.randomString('random')
+            })
+              .forEach(([k, v]) => {
+                addNonEnumerableProperty(ret, `@${k}`, v);
+              });
           }
+
+          const ownKeys = this.#getOwnKeysFromMap(type, path, entries);
+
+          if (type == 'map') {
+
+            addNonEnumerableProperty(ret, mapSizeProperty, ownKeys.length);
+            addNonEnumerableProperty(
+              ret, mapKeysProperty, () => ownKeys.map(k => k.replace(mapKeyPrefix, ''))
+            );
+            addNonEnumerableProperty(ret, mapIndexOfProperty, (k) => ownKeys.indexOf(
+              `${k.startsWith(mapKeyPrefix) ? '' : mapKeyPrefix}${k}`
+            ));
+          }
+
+          ownKeys
+            .forEach(k => {
+              const _path = toFqPath({ type, parent: path, prop: k });
+              let _sPath = sPath;
+
+              switch (type) {
+                case 'object':
+                  _sPath += `.${k}`;
+                  break;
+                case 'array':
+                  _sPath += `_$`;
+                  break;
+                case 'map':
+                  _sPath += `.$_`;
+                  break;
+              }
+
+              ret[k] = this.#buildObjectFromMap(_path, _sPath, ret, k, false, entries, visitor);
+            });
+
+          return ret;
+      }
+    })();
+
+    if (typeof visitor == 'function') {
+      visitor({ path, sPath, key, value, parentObject, primary });
+    }
+
+    return value;
+  }
+
+  #getOwnKeysFromMap(type, path, entries) {
+    switch (type) {
+      case 'object':
+        const trie = this.getPathTrie();
+        return Object.keys(
+          (path ? trie.getNode(path) : trie.getRoot()).getChildren()
+        )
+          .filter(k => !k.startsWith('@'));
+      case 'array':
+        return [
+          ...new Array(
+            this.#getArrayLengthFromMap(path, entries)
+          )].map((e, i) => `${i}`);
+      case 'map':
+        return entries.get(`${path}.@keys`);
+      default:
+        throw Error(`Unknown type "${type}"`);
+    }
+  }
+
+  #getArrayLengthFromMap(path, entries) {
+    return entries.get(`${path}.length`);
+  }
+
+  #addInputMapEntries({ path, value, parentObject, key, dataVariables, visitor }) {
+    const { typeProperty } = RootProxy;
+    const { toCanonicalPath, getAllSegments } = clientUtils;
+
+    const sPath = toCanonicalPath(path);
+
+    const b = this.#tryOrLogError(
+      () => {
+        value = this.invokeTransformers(
+          this.component.getInitializers(), this.component.getTransformers(), path, sPath, value, parentObject,
         );
 
-        if (!b) {
-          return { error: true };
+        this.validateSchema(path, sPath, value, parentObject);
+      });
+
+    if (!b) {
+      return { error: true };
+    }
+
+    visitor({ path, sPath, key, value, parentObject, primary: true });
+
+    if (value != null && ['Object', 'Array'].includes(value.constructor.name)) {
+
+      const b = this.#tryOrLogError(
+        () => {
+          this.#toCanonicalTree({
+            path, sPath, obj: value, visitor, parentObject,
+          });
         }
+      );
 
-        if (value[typeProperty] == mapType) {
-          value = getMapWrapper(value);
-        }
-
-        value = this.#getObserverProxy(value);
-
-      } else {
-
-        const b = this.tryOrLogError(
-          () => {
-            this.validateSchema(path, sPath, value, parentObject);
-          }
-        );
-
-        if (!b) {
-          return { error: true };
-        }
-      }
-
-      if (typeof value == 'object') {
-        setObjectParentRef(value, parentObject)
-      }
-
-    } else if (value === undefined) {
-      assert(collDef);
-
-      return {
-        mutationType: (collDef.collectionType = 'array') ? mutationType_SPLICE : mutationType_DELETE,
+      if (!b) {
+        return { error: true };
       }
     }
 
-    this.#addPathToTrie(path, null, !!collDef);
+    const segments = getAllSegments(path);
 
-    this.#addToInputMap(path, value);
+    this.#addPathToTrie(path, segments);
 
-    if (collDef && value !== Object(value)) {
-      // Note: since scalar values are leafless, we need to manually add the dataVariables to <inputMap>
+    const type = this.#getValueType(value);
+
+    this.#addPathToTrie(`${path}.@type`, [...segments, '@type']);
+    this.#addToInputMap(`${path}.@type`, type);
+
+    switch (true) {
+
+      case type == 'map':
+        delete value[typeProperty];
+
+        this.#addPathToTrie(`${path}.@keys`, [...segments, '@keys']);
+        this.#addToInputMap(`${path}.@keys`, Object.keys(value));
+        break;
+
+      case ['literal', 'component'].includes(type):
+        this.#addToInputMap(path, value);
+        break;
+    }
+
+    if (dataVariables) {
 
       Object.entries({
         ...dataVariables,
@@ -3836,30 +3817,308 @@ class RootProxy {
       })
         .map(([k, v]) => [`@${k}`, v])
         .forEach(([k, v]) => {
+          this.#addPathToTrie(`${path}.${k}`, [...segments, k]);
           this.#addToInputMap(`${path}.${k}`, v);
         });
     }
 
-    return { mutationType: mutationType_SET, value };
+    return { error: false };
+  }
+
+  #removeInputMapEntries(path) {
+    const entries = new Map();
+
+    const val = this.#removeFromInputMap(path);
+
+    if (val !== undefined) {
+      entries.set(path, val);
+    }
+
+    this.getTrieSubPaths(path)
+      .forEach(p => {
+        const val = this.#removeFromInputMap(p);
+
+        if (val !== undefined) {
+          entries.set(p, val);
+        }
+      });
+
+    return entries;
+  }
+
+  #getDynamicObjectProxy(type, path) {
+    const {
+      pathProperty, isMapProperty, mapSizeProperty, mapKeysProperty, mapIndexOfProperty,
+      parentRefProperty, isLiveProperty, mapKeyPrefix, getReservedObjectKeys,
+      getReservedMapKeys, toFqPath,
+    } = RootProxy;
+
+    const { getPathStringInfo } = clientUtils;
+
+    assert(['array', 'map', 'object'].includes(type));
+
+    this.#ensureInputMapNotPruned();
+
+    const isArray = type == 'array';
+    const isMap = type == 'map';
+
+    const _this = this;
+
+    const proxy = new Proxy(
+      isArray ? [] : {},
+      {
+        ownKeys: () => {
+          this.#ensureInputMapNotPruned();
+
+          return [
+            ...this.#getOwnKeysFromMap(type, path, this.#inputMap),
+            ...isArray ? ['length'] : [],
+          ];
+        },
+
+        getOwnPropertyDescriptor: (obj, prop) => {
+          return {
+            writable: true,
+            value: proxy[prop],
+            enumerable: prop !== 'length',
+            configurable: prop !== 'length',
+          };
+        },
+
+        deleteProperty: (obj, prop) => {
+          this.#ensureInputMapNotPruned();
+
+          return this.#simpleSetMutationHandler(proxy, prop, undefined);
+        },
+
+        get: (obj, prop) => {
+          this.#ensureInputMapNotPruned();
+
+          if (isArray) {
+            switch (prop) {
+
+              case 'length':
+                return this.#getArrayLengthFromMap(path, this.#inputMap);
+
+              case Symbol.iterator:
+                return function* () {
+                  const keys = _this.#getOwnKeysFromMap(type, path, _this.#inputMap);
+
+                  for (let i = 0; i < keys.length; i++) {
+                    yield proxy[i];
+                  }
+                };
+
+              case 'splice':
+                return (index, delCount, ...replElements) => {
+                  return this.#arraySpliceMutationHandler(proxy, index, delCount, replElements);
+                };
+
+              case 'unshift':
+                return (...elements) => {
+                  this.#arraySpliceMutationHandler(proxy, 0, 0, elements);
+                  return proxy.length;
+                };
+
+              case 'shift':
+                return () => {
+                  return this.#arraySpliceMutationHandler(proxy, 0, 1, [])[0];
+                };
+
+              case 'reverse':
+                return () => {
+                  const offsetIndexes = {};
+                  const len = proxy.length;
+
+                  for (let i = 0; i < len; i++) {
+                    offsetIndexes[i] = len - 1 - i;
+                  }
+
+                  this.#arrayReorderMutationHandler(proxy, offsetIndexes);
+                  return proxy;
+                };
+
+              case 'sort':
+                return (sortFn) => {
+                  const arr = Object.keys(proxy).map(k => proxy[k]);
+                  const _arr = [...arr];
+
+                  _arr.sort(sortFn);
+                  const offsetIndexes = {};
+
+                  for (let i = 0; i < arr.length; i++) {
+                    offsetIndexes[i] = _arr.indexOf(arr[i]);
+                  }
+
+                  this.#arrayReorderMutationHandler(proxy, offsetIndexes);
+                  return proxy;
+                };
+
+              case 'filter':
+                return (filterFn) => {
+                  const ret = [];
+                  for (const e of proxy[Symbol.iterator]()) {
+                    if (filterFn(e)) {
+                      ret.push(e);
+                    }
+                  }
+                  return ret;
+                };
+
+              case 'forEach':
+                return (consumerFn) => {
+                  for (const e of proxy[Symbol.iterator]()) {
+                    consumerFn(e)
+                  }
+                };
+
+              case 'findIndex':
+                return (consumerFn) => {
+                  const keys = _this.#getOwnKeysFromMap(type, path, _this.#inputMap);
+
+                  for (let i = 0; i < keys.length; i++) {
+                    if (consumerFn(proxy[i])) {
+                      return i;
+                    }
+                  }
+
+                  return -1;
+                };
+            }
+          }
+
+          if (isMap) {
+            switch (prop) {
+              case mapSizeProperty:
+                return Reflect.ownKeys(proxy).length;
+
+              case mapIndexOfProperty:
+                return (k) => Reflect.ownKeys(proxy).indexOf(
+                  `${k.startsWith(mapKeyPrefix) ? '' : mapKeyPrefix}${k}`
+                );
+
+              case mapKeysProperty:
+                return () => Reflect.ownKeys(proxy).map(k => k.replace(mapKeyPrefix, ''));
+            }
+          }
+
+          if (this.component.isHeadlessContext()) {
+            switch (prop) {
+              case global.nodeCustomInspect:
+                return (depth, options) => global.nodeInspect(
+                  proxy.toJSON(), { ...options, customInspect: false }
+                );
+            }
+          }
+
+          switch (prop) {
+            case pathProperty:
+              return path;
+
+            case parentRefProperty:
+              if (path) {
+                const { parent } = getPathStringInfo(path);
+                const type = parent ? this.#lookupInputMap0(`${parent}.@type`) : 'object';
+
+                return this.#getDynamicObjectProxy(type, parent)
+              }
+              return null;
+
+            case isLiveProperty:
+              return true;
+
+            case isMapProperty:
+              return isMap;
+
+            case Symbol.toPrimitive:
+              return JSON.stringify(proxy.toJSON());
+
+            case Symbol.toStringTag:
+              return 'stringTag';
+
+            case 'toJSON':
+              return () => {
+                if (path) {
+                  const { key } = getPathStringInfo(path);
+
+                  return this.#buildObjectFromMap(
+                    path, null, proxy[parentRefProperty], `${key}`, true, this.#inputMap
+                  );
+                }
+
+                const ret = {};
+                this.#getOwnKeysFromMap(type, path)
+                  .forEach(k => {
+                    ret[k] = this.#buildObjectFromMap(k, k, ret, k, true, this.#inputMap);
+                  });
+                return ret;
+              };
+
+            case 'constructor':
+              return isArray ? Array : Object;
+
+            default:
+
+              const _path = toFqPath({
+                type, parent: path,
+                prop: `${isMap && !prop.startsWith(mapKeyPrefix) ? mapKeyPrefix : ''}${prop}`
+              });
+
+              const val = this.#lookupInputMap0(_path);
+
+              if (val !== undefined) {
+                return val;
+              }
+
+              const _type = this.#lookupInputMap0(`${_path}.@type`);
+
+              if (!_type) {
+                return undefined;
+              }
+
+              return this.#getDynamicObjectProxy(_type, _path);
+          }
+        },
+
+        set: (obj, prop, newValue) => {
+          this.#ensureInputMapNotPruned();
+
+          if (
+            typeof prop == 'string' &&
+            (getReservedObjectKeys().includes(prop) ||
+              (isMap && getReservedMapKeys().includes(prop)))
+          ) {
+            this.#logError(`Unable to set value ${path + (path ? '.' : '')}${prop}`);
+            return false;
+          }
+
+          return this.#simpleSetMutationHandler(proxy, prop, newValue);
+        }
+      });
+
+    return proxy;
   }
 
   /**
-   * The browser will discard our observer proxy if it ever throws a single error hence we must not throw any errors.
-    So we need to route functions that can throw user-generated error through this function
-   */
-  tryOrLogError(fn) {
+ * The browser will discard our observer proxy if it ever throws a single error hence we must not throw any errors.
+  So we need to route functions that can throw user-generated error through this function
+ */
+  #tryOrLogError(fn) {
     try {
       fn();
       return true;
     } catch (e) {
-      this.component.logger.error(`Uncaught ${e.constructor.name}: ${e.message}`);
+      this.#logError(`Uncaught ${e.constructor.name}: ${e.message}`);
       return false;
     }
   }
 
-  getDataVariablesForSimpleSetOperation(collInfo) {
+  #logError(msg) {
+    this.component.logger.error(msg);
+  }
+
+  #getCollChildDataVariables({ index, length, type, prop }) {
     const { mapKeyPrefixRegex } = RootProxy;
-    const { index, length, type, prop } = collInfo;
 
     const first = index == 0 || (index < 0 && length == 0)
     const last = index == length - 1 || type == 'map' ? index < 0 : index >= length;
@@ -3871,144 +4130,9 @@ class RootProxy {
     }
   }
 
-  addDataVariablesToObject(o, { first, last, key, index }) {
-    const { addDataVariables } = RootProxy;
-    addDataVariables(
-      o, first, last, key, index,
-      this.component.randomString('random')
-    );
-  }
-
-  static #getObserverProxyMethods(_this) {
-    return {
-
-      deleteProperty: (obj, prop) => {
-        const dv = prop.startsWith('@');
-
-        if (dv || _this.isPrunedObject(obj)) {
-
-          // Meta properties can only be modified in privilegedMode
-          if (dv && _this.component.isSealed() && !RootProxy.#isPriviledgedMode()) {
-            _this.component.throwError(`Permission denied to modify ${prop}`);
-          }
-
-          delete obj[prop];
-          return true;
-        }
-
-        return _this.#simpleSetMutationHandler(obj, prop, undefined);
-      },
-
-      get: (obj, prop) => {
-
-        if (Array.isArray(obj)) {
-          switch (prop) {
-
-            case 'splice':
-              return (index, delCount, ...replElements) => {
-
-                if (_this.isPrunedObject(obj)) {
-                  return obj.splice(index, delCount, ...replElements);
-                }
-
-                return _this.#arraySpliceMutationHandler(obj, index, delCount, replElements);
-              };
-
-
-            case 'unshift':
-              return (...elements) => {
-
-                if (_this.isPrunedObject(obj)) {
-                  return obj.unshift(...elements);
-                }
-
-                _this.#arraySpliceMutationHandler(obj, 0, 0, elements);
-
-                return obj.length;
-              };
-
-
-            case 'shift':
-              return () => {
-
-                if (_this.isPrunedObject(obj)) {
-                  return obj.shift();
-                }
-
-                return _this.#arraySpliceMutationHandler(obj, 0, 1, [])[0];
-              };
-
-
-            case 'reverse':
-              return () => {
-
-                if (_this.isPrunedObject(obj)) {
-                  return obj.reverse();
-                }
-
-                const offsetIndexes = {};
-
-                for (let i = 0; i < obj.length; i++) {
-                  offsetIndexes[i] = obj.length - 1 - i;
-                }
-
-                obj.reverse();
-
-                _this.#arrayReorderMutationHandler(obj, offsetIndexes);
-                return obj;
-              };
-
-
-            case 'sort':
-              return (sortFn) => {
-
-                if (_this.isPrunedObject(obj)) {
-                  return obj.sort(sortFn);
-                }
-
-                const arr = [...obj];
-
-                obj.sort(sortFn);
-
-                const offsetIndexes = {};
-
-                for (let i = 0; i < arr.length; i++) {
-                  offsetIndexes[i] = obj.indexOf(arr[i]);
-                }
-
-                _this.#arrayReorderMutationHandler(obj, offsetIndexes);
-                return obj;
-              };
-
-          }
-        }
-
-        return obj[prop];
-      },
-
-      set: (obj, prop, newValue) => {
-        if (_this.isPrunedObject(obj)) {
-          obj[prop] = newValue;
-          return true;
-        }
-
-        _this.#simpleSetMutationHandler(obj, prop, newValue)
-        return true;
-      }
-    }
-  }
-
-  #getObserverProxy(object) {
-    return new Proxy(object, {
-      deleteProperty: (obj, prop) => RootProxy.#getObserverProxyMethods(this).deleteProperty(obj, prop),
-      get: (obj, prop) => RootProxy.#getObserverProxyMethods(this).get(obj, prop),
-      set: (obj, prop, newValue) => RootProxy.#getObserverProxyMethods(this).set(obj, prop, newValue),
-    });
-  }
-
-  isPrunedObject(obj) {
-    const { prunedProperty } = RootProxy;
-    return obj[prunedProperty];
+  #isCollectionObject(obj) {
+    const { isMapProperty } = RootProxy;
+    return Array.isArray(obj) || (obj && obj[isMapProperty]);
   }
 
   getInfoFromPath(path) {
@@ -4016,7 +4140,7 @@ class RootProxy {
 
     const value = (p) =>
       this.component.resolver ? this.component.resolver.resolve({ path: p }) :
-        this.#lookupInputMap(p);
+        this.lookupInputMap(p);
 
     const { parent, key: childKey } = clientUtils.getPathStringInfo(path);
 
@@ -4158,15 +4282,9 @@ class RootProxy {
       })
     }
 
-    const startTime = performance.now();
-
     const [_hookList, metadata] = await Promise.all([
       this.getHookListFromPath(parent, true, true), this.component.getMetadata(),
     ]);
-
-    const endTime = performance.now();
-
-    console.info(this.component.getComponentName(), `hook query completed after ${endTime - startTime} milliseconds`);
 
     const promises = [];
 
@@ -4237,23 +4355,6 @@ class RootProxy {
     } : false;
   }
 
-  isScalarCollection(sPath) {
-    if (!sPath.length) return false;
-
-    const { getSchemaKey, isScalarDefinition } = RootProxy;
-
-    const schemaKey = getSchemaKey(sPath);
-    const { items, additionalProperties } = this.#getSchemaDefinitions()[schemaKey];
-
-    return isScalarDefinition(items) || isScalarDefinition(additionalProperties)
-  }
-
-  static isScalarDefinition(def) {
-    return def && (
-      (def.type && ['string', 'number', 'boolean'].includes(def.type[0])) || def.component
-    );
-  }
-
   getArrayDefinition(path) {
     if (!path.length) return false;
     const { getSchemaKey } = RootProxy;
@@ -4286,24 +4387,8 @@ class RootProxy {
     return [firstProperty, lastProperty, keyProperty, indexProperty, randomProperty];
   }
 
-  static addDataVariables(obj, first, last, key, index, random) {
-    const {
-      firstProperty, lastProperty, keyProperty, indexProperty, randomProperty, setDataVariable,
-    } = RootProxy;
-
-    setDataVariable(obj, firstProperty, first);
-    setDataVariable(obj, lastProperty, last);
-    setDataVariable(obj, keyProperty, key);
-    setDataVariable(obj, indexProperty, index);
-    setDataVariable(obj, randomProperty, random);
-
-    return [
-      firstProperty, lastProperty, keyProperty, indexProperty, randomProperty,
-    ];
-  }
-
-  static setDataVariable(obj, prop, value) {
-    Object.defineProperty(obj, prop, { value, enumerable: false, configurable: true, });
+  static addNonEnumerableProperty(obj, prop, value) {
+    Object.defineProperty(obj, prop, { value, enumerable: false, configurable: false, });
   }
 
   /**
@@ -4502,83 +4587,32 @@ class RootProxy {
     return v;
   }
 
-  static setObjectPath({ obj, path }) {
-    const { pathProperty } = RootProxy;
-    Object.defineProperty(obj, pathProperty, { value: path, configurable: true, enumerable: false });
-  }
-
   static setObjectParentRef(value, parentObject) {
-    const { parentRefProperty } = RootProxy;
+    const { parentRefProperty, addNonEnumerableProperty } = RootProxy;
 
     if (['Array', 'Object'].includes(value.constructor.name)) {
-      Object.defineProperty(value, parentRefProperty, { value: parentObject, configurable: false, enumerable: false });
+      addNonEnumerableProperty(value, parentRefProperty, parentObject);
     } else {
       assert(value instanceof BaseComponent);
       value.addMetaInfo('parentRef', parentObject);
     }
   }
 
-  #visitObject(obj, visitor, parentFirst) {
-    const { typeProperty, mapType, pathProperty, toFqPath } = RootProxy;
-
-    assert(
-      parentFirst !== undefined &&
-      ['Array', 'Object'].includes(obj.constructor.name) &&
-      obj[pathProperty] && typeof visitor == "function"
-    );
-
-    const isArray = Array.isArray(obj);
-    const isMap = !isArray && obj[typeProperty] === mapType;
-
-    for (let prop of Object.keys(obj)) {
-      const val = obj[prop];
-      assert(val !== undefined);
-
-      const p = toFqPath({ isArray, isMap, parent: obj[pathProperty], prop });
-
-      if (parentFirst) {
-        visitor(p, val, obj, prop);
-      }
-
-      if (val && ['Array', 'Object'].includes(val.constructor.name)) {
-        this.#visitObject(val, visitor, parentFirst);
-      }
-
-      if (!parentFirst) {
-        visitor(p, val, obj, prop);
-      }
-    }
-
-    return obj;
-  }
-
-  #addPathToTrie(path, segments, withDataVariables) {
-    const { getDataVariables, toFqPath } = RootProxy;
-
+  #addPathToTrie(path, segments) {
     const trie = this.getPathTrie();
 
     if (!segments) {
       segments = clientUtils.getAllSegments(path);
     }
-    
-    trie.insert(path, segments);
 
-    if (withDataVariables) {
-      getDataVariables().forEach((o) => {
-        trie.insert(
-          toFqPath({ parent: path, prop: o }),
-          [...segments, o]
-        );
-      });
-    }
+    trie.insert(path, segments);
   }
 
-  #toCanonicalTree({ path, sPath, segments, obj, leafs, parentObject, initializers, transformers, root = true }) {
+  #toCanonicalTree({ path, sPath, segments, obj, visitor, parentObject, initializers, transformers, root = true }) {
 
     const {
-      dataPathPrefix, typeProperty, mapType, mapKeyPrefix, mapKeyPrefixRegex, pathProperty,
-      getMapWrapper, addDataVariables, getReservedObjectKeys, getReservedMapKeys, getDataVariables,
-      setObjectPath, setObjectParentRef, toFqPath,
+      dataPathPrefix, typeProperty, mapType, mapKeyPrefix, getReservedObjectKeys,
+      getReservedMapKeys, toFqPath,
     } = RootProxy;
 
     if (root) {
@@ -4596,25 +4630,16 @@ class RootProxy {
       }
     }
 
-    if (obj[pathProperty]) {
-      obj = clientUtils.cloneComponentInputData(obj);
-    }
-
     assert(!path.match(dataPathPrefix));
-
-    setObjectPath({ obj, path });
 
     const reservedObjectKeys = getReservedObjectKeys();
 
-    const isArray = Array.isArray(obj);
-
-    if (!isArray) {
-      Object.keys(obj).forEach(k => {
-        if (reservedObjectKeys.includes(k)) {
+    Object.keys(obj)
+      .forEach(k => {
+        if (typeof k == 'string' && reservedObjectKeys.includes(k)) {
           this.component.throwError(`[${path}] An object cannot contain the key: ${k}`);
         }
-      })
-    }
+      });
 
     switch (true) {
 
@@ -4624,7 +4649,7 @@ class RootProxy {
         // If this is a map path, add set @type to Map, and transform the keys
         // to start with the map key prefix: $_
 
-        for (const k of Object.keys(obj).filter(k => !k.startsWith('@'))) {
+        for (const k of Object.keys(obj)) {
 
           if (reservedMapKeys.includes(k)) {
             this.component.throwError(`[${path}] A map cannot contain the reserved key: ${k}`);
@@ -4634,8 +4659,6 @@ class RootProxy {
           delete obj[k];
         }
 
-        // Note: this meta property is only used temporarily and it will be pruned
-        // later by getMapWrapper(...)
         Object.defineProperty(obj, typeProperty, { value: mapType, enumerable: false, configurable: true });
 
         break;
@@ -4652,10 +4675,9 @@ class RootProxy {
 
         // Add missing properties
         def.required
-          .filter(p => !p.startsWith('@') && !keys.includes(p))
+          .filter(p => !keys.includes(p))
           .forEach(p => {
             obj[p] = (() => {
-              // Todo: changes made here should be synchronized wih the server
 
               // Assign a default value based on the data type
               const { type } = def.properties[p];
@@ -4681,40 +4703,26 @@ class RootProxy {
         break;
     }
 
-    if (root && path) {
-      this.validateSchema(path, sPath, obj, parentObject);
-    }
-
+    const isArray = Array.isArray(obj);
     const isMap = !isArray && (obj[typeProperty] === mapType);
 
     const isCollection = isArray || isMap;
 
     const keys = Object.keys(obj);
 
-    if (isCollection) {
-      this.#addToInputMap(`${path}.length`, keys.length);
+    if (isArray) {
       this.#addPathToTrie(`${path}.length`, [...segments, 'length']);
+      this.#addToInputMap(`${path}.length`, keys.length);
     }
 
-    const iterateKeys = (() => {
-      const r = [...keys];
-      getDataVariables().forEach(v => {
-        if (obj[v] !== undefined) {
-          r.push(v);
-        }
-      });
-      return r;
-    })();
+    for (let i = 0; i < keys.length; i++) {
+      const prop = keys[i];
 
-    for (let i = 0; i < iterateKeys.length; i++) {
-      const prop = iterateKeys[i];
-      const isDataVariable = prop.startsWith('@');
-
-      const key = clientUtils.toFqKey({ isArray, isMap, isDataVariable, prop });
+      const key = clientUtils.toFqKey({ isArray, isMap, prop });
 
       const _path = toFqPath({ parent: path, key });
       const _sPath = sPath + (
-        (!isDataVariable && isArray) ? '_$' : (!isDataVariable && isMap) ? '.$_' : `${sPath ? '.' : ''}${prop}`
+        isArray ? '_$' : isMap ? '.$_' : `${sPath ? '.' : ''}${prop}`
       );
       const _segments = [...segments, key];
 
@@ -4722,73 +4730,66 @@ class RootProxy {
         this.component.throwError(`Path "${_path}" cannot have "undefined" as it's value`);
       }
 
-      const nonScalar = () => obj[prop] !== null && ['Object', 'Array'].includes(obj[prop].constructor.name);
+      obj[prop] = this.invokeTransformers(initializers, transformers, _path, _sPath, obj[prop], obj);
 
-      if (!isDataVariable) {
-        obj[prop] = this.invokeTransformers(initializers, transformers, _path, _sPath, obj[prop], obj);
+      this.validateSchema(_path, _sPath, obj[prop], obj);
 
-        this.validateSchema(_path, _sPath, obj[prop], obj);
+      visitor({ path: _path, sPath: _sPath, key: prop, parentPath: path, value: obj[prop] });
 
-        this.#addPathToTrie(_path, _segments, isCollection);
+      if (obj[prop] !== null && ['Object', 'Array'].includes(obj[prop].constructor.name)) {
+
+        this.#toCanonicalTree({
+          path: _path, sPath: _sPath, segments: _segments,
+          obj: obj[prop], parentObject: obj,
+          visitor, initializers, transformers,
+          root: false
+        });
+      }
+
+      this.#addPathToTrie(_path, _segments);
+
+      const type = this.#getValueType(obj[prop]);
+
+      this.#addPathToTrie(`${_path}.@type`, [..._segments, '@type']);
+      this.#addToInputMap(`${_path}.@type`, type);
+
+      switch (true) {
+        case type == 'map':
+          delete obj[prop][typeProperty];
+
+          this.#addPathToTrie(`${_path}.@keys`, [..._segments, '@keys']);
+          this.#addToInputMap(`${_path}.@keys`, Object.keys(obj[prop]));
+          break;
+
+        case ['literal', 'component'].includes(type):
+          this.#addToInputMap(_path, obj[prop]);
+          break;
       }
 
       if (isCollection) {
-        if (nonScalar()) {
-          // Inject data variables, if this is a collection of objects
-          addDataVariables(
-            obj[prop],
-            i == 0,
-            i == keys.length - 1,
-            prop.replace(mapKeyPrefixRegex, ''),
-            i,
-            this.component.randomString('random')
-          );
 
-        } else if (
-          !isDataVariable && this.isScalarCollection(sPath)
-        ) {
-          this.#getLeafsForDataVariables(_path, _sPath, obj, keys, i)
-            .forEach(leaf => {
-              const { path, value } = leaf;
-              leafs.push(leaf);
+        this.#getLeafsForDataVariables(_path, _sPath, keys, i)
+          .forEach(leaf => {
+            const { key, path, value } = leaf;
+            visitor(leaf);
 
-              this.#addToInputMap(path, value);
-            });
-        }
-      }
-
-      const leaf = { path: _path, sPath: _sPath, key: prop, parentObject: obj };
-      leafs.push(leaf);
-
-      if (nonScalar()) {
-
-        obj[prop] = this.#toCanonicalTree({
-          path: _path, sPath: _sPath, segments: _segments,
-          obj: obj[prop], parentObject: obj,
-          leafs, initializers, transformers,
-          root: false
-        });
-
-        if (obj[prop][typeProperty] == mapType) {
-          obj[prop] = getMapWrapper(obj[prop]);
-        }
-
-        obj[prop] = this.#getObserverProxy(obj[prop]);
-      }
-
-      leaf.value = obj[prop];
-
-      this.#addToInputMap(_path, obj[prop]);
-
-      if (obj[prop] && (typeof obj[prop] == 'object')) {
-        setObjectParentRef(obj[prop], obj);
+            this.#addPathToTrie(path, [..._segments, key]);
+            this.#addToInputMap(path, value);
+          });
       }
     }
-
-    return obj;
   }
 
-  #getLeafsForDataVariables(path, sPath, coll, keys, index) {
+  #getValueType(val) {
+    const { typeProperty, mapType } = RootProxy;
+    return val !== Object(val) ? 'literal' :
+      val instanceof BaseComponent ? 'component' :
+        Array.isArray(val) ? 'array' :
+          val[typeProperty] == mapType ? 'map' :
+            'object';
+  }
+
+  #getLeafsForDataVariables(path, sPath, keys, index) {
     const { getDataVariables, randomProperty } = RootProxy;
     const { getDataVariableValue } = RootCtxRenderer;
 
@@ -4797,7 +4798,7 @@ class RootProxy {
         path: `${path}.${name}`,
         sPath: `${sPath}.${name}`,
         key: name,
-        parentObject: coll[keys[index]],
+        parentPath: path,
         value: (name == randomProperty) ?
           this.component.randomString('random') :
           getDataVariableValue(name, index, keys),
@@ -4805,89 +4806,20 @@ class RootProxy {
   }
 
   static getReservedObjectKeys() {
-    const { isMapProperty, parentRefProperty } = RootProxy;
-    return [isMapProperty, parentRefProperty];
+    const {
+      pathProperty, isMapProperty, parentRefProperty, isLiveProperty, keyProperty,
+      indexProperty, firstProperty, lastProperty, randomProperty,
+    } = RootProxy;
+
+    return [
+      pathProperty, isMapProperty, parentRefProperty, isLiveProperty, keyProperty,
+      indexProperty, firstProperty, lastProperty, randomProperty,
+    ];
   }
 
   static getReservedMapKeys() {
     const { mapSizeProperty, mapKeysProperty, mapIndexOfProperty } = RootProxy;
     return [mapSizeProperty, mapKeysProperty, mapIndexOfProperty];
-  }
-
-  static getMapWrapper(obj) {
-    const {
-      typeProperty, mapType, mapKeyPrefix, isMapProperty, mapSizeProperty, mapKeysProperty, mapIndexOfProperty,
-    } = RootProxy;
-
-    assert(obj[typeProperty] == mapType)
-
-    // At this point, obj is already wrapped with our observer proxy, so
-    // we need to run in a privileged context, before we delete this meta property
-    RootProxy.#runPriviledged(() => {
-      delete obj[typeProperty];
-    })
-
-    // Props can start with "@" if <obj> is also a collection child, and the user wants to 
-    // access data variable(s)
-    const toKey = (prop) => `${prop.startsWith('@') || prop.startsWith(mapKeyPrefix)
-      ? '' : mapKeyPrefix}${prop}`;
-
-    const getKeys = (obj) => Reflect.ownKeys(obj)
-      .filter(k => typeof k != 'symbol' && k.startsWith(mapKeyPrefix));
-
-    return new Proxy(obj, {
-      get(obj, prop) {
-
-        switch (true) {
-
-          case !!Object.getPrototypeOf(obj)[prop]:
-            return obj[prop];
-
-          case prop === Symbol.toPrimitive:
-            return () => obj.toString();
-
-          case prop == isMapProperty:
-            return true;
-
-          case prop == mapSizeProperty:
-            return Object.keys(obj).length;
-
-          case prop == mapKeysProperty:
-            return () => getKeys(obj)
-              .map(k => k.replace(mapKeyPrefix, ''));
-
-          case prop == mapIndexOfProperty:
-            return (k) => getKeys(obj).indexOf(toKey(k));
-
-          case typeof prop == 'symbol':
-            return obj[prop];
-
-          default:
-            assert(typeof prop == 'string');
-            return obj[toKey(prop)]
-        }
-      },
-      set(obj, prop, newValue) {
-
-        assert(!Object.getPrototypeOf(obj)[prop]);
-        assert(typeof prop == 'string');
-
-        obj[toKey(prop)] = newValue;
-
-        // Note: according to the JS spec, (see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy/Proxy/set),
-        // proxy.set() should return a boolean value, hence instead of returning <newValue> which
-        // is the default behaviour, we will always return true
-
-        return true;
-      },
-      deleteProperty(obj, prop) {
-
-        assert(!Object.getPrototypeOf(obj)[prop]);
-        assert(typeof prop == 'string');
-
-        return delete obj[toKey(prop)];
-      }
-    })
   }
 
   static isMapObject(obj) {

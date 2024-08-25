@@ -4,7 +4,7 @@
 
         <div style="margin: 2em; background-color: {{getRandomColor}};">
             
-            <div style="text-align: center; font-size: 2em; color: white; text-transform: uppercase;">
+            <div style="text-align: center; font-size: 1.9em; color: white; text-transform: uppercase;">
                 {{!-- {{noOp @key}}  --}}
                 
                 &ensp;&ensp; {{@key}} 

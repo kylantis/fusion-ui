@@ -526,7 +526,7 @@ module.exports = {
   },
 
   isNumber: (n) => {
-    return !Number.isNaN(parseInt(n, 10))
+    return typeof n == 'number' || !Number.isNaN(parseInt(n, 10))
   },
 
   isFunction(value) {

@@ -30,6 +30,8 @@ class RootCtxRenderer extends BaseRenderer {
 
   static #instancesMap = new Map();
 
+  static #inputFinalizationRegistry = this.#createInputFinalizationRegistry();
+
   #hooksQueue = [];
 
   #dataStack;
@@ -81,6 +83,18 @@ class RootCtxRenderer extends BaseRenderer {
 
     this.#syntheticCache = [];
     this.#methodInvokeCache = {};
+  }
+
+  static #createInputFinalizationRegistry() {
+    return new FinalizationRegistry(componentId => {
+
+      const instance = this.#instancesMap.get(componentId);
+      instance.proxyInstance.pruneInputMap();
+    });
+  }
+
+  getInputFinalizationRegistry() {
+    return RootCtxRenderer.#inputFinalizationRegistry;
   }
 
   destroy() {
@@ -489,6 +503,8 @@ class RootCtxRenderer extends BaseRenderer {
    */
 
   async renderDecorator(decoratorName, target, blockData) {
+    await super.init();
+
     const futures = this.renderDecorator0(
       decoratorName, target, blockData, await this.getMetadata(), { data: {} },
     );
@@ -801,6 +817,11 @@ class RootCtxRenderer extends BaseRenderer {
     }
   }
 
+  ensureComponentRendered() {
+    if (!this.#rendered) {
+      this.throwError(`Component not rendered`);
+    }
+  }
 
   isComponentRendered() {
     return this.#rendered;
@@ -874,7 +895,7 @@ class RootCtxRenderer extends BaseRenderer {
     return 0;
   }
 
-  async load({ container, token, html, renderContext, domRelayTimeout = this.getDefaultDomRelayTimeout() }) {
+  async load({ container, token, html, renderContext, domRelayTimeout = this.getDefaultDomRelayTimeout(), callback }) {
 
     const { htmlWrapperCssClassname } = RootCtxRenderer;
 
@@ -882,15 +903,15 @@ class RootCtxRenderer extends BaseRenderer {
       this.throwError(`Component is already mounted`);
     }
 
-    if (token !== RootCtxRenderer.#token && !this.isRoot()) {
+    if (token !== RootCtxRenderer.#token) {
       this.throwError(`Invalid token: ${token}`);
     }
-
-    await super.init();
 
     if (!this.isLoadable()) {
       this.throwError(`Component is not loadable`);
     }
+
+    await super.init();
 
     const parentNode = container ? document.querySelector(container) : document.body;
 
@@ -959,18 +980,22 @@ class RootCtxRenderer extends BaseRenderer {
 
     this.#mounted = true;
 
+    RootCtxRenderer.#instancesMap.set(this.getId(), this);
+
     const rootComponent = this.#getRootComponent();
 
     const wait = () => {
       return new Promise(resolve => {
         setTimeout(() => {
           resolve();
-        }, 350);
+        }, 200);
       });
     }
 
     const afterDomLoaded = () => {
-      Promise.all(renderContext.extendedFutures)
+      Promise.all(
+        !this.isRootComponent ? renderContext.extendedFutures : []
+      )
         .then(() => {
 
           this.dispatchEvent('afterMount');
@@ -979,7 +1004,7 @@ class RootCtxRenderer extends BaseRenderer {
             this.#attachAttributeValueObserver();
           }
 
-          this.dispatchEvent('domLoaded');
+          this.dispatchEvent('domLoaded', callback);
 
           this.pruneLifecycleEventHandlers();
         });
@@ -993,12 +1018,16 @@ class RootCtxRenderer extends BaseRenderer {
         });
 
       } else {
+        // In BaseComponent.render0(), we don't wait for sub-components to load, hence we need to a bit
+        // for the markup of sub-components to be added to the DOM before dispatching "afterMount"
         await wait();
+
         afterDomLoaded();
       }
 
     } else {
       await wait();
+      
       afterDomLoaded();
     }
 
@@ -1014,8 +1043,6 @@ class RootCtxRenderer extends BaseRenderer {
 
     await Promise.all(futures);
     futures.splice(0);
-
-    RootCtxRenderer.#instancesMap.set(this.getId(), this);
   }
 
   awaitExtendedFutures() {
@@ -3205,7 +3232,7 @@ class RootCtxRenderer extends BaseRenderer {
         return this.resolver.resolve({ path, create, stmt });
 
       default:
-        return path ? this.getInputMap().get(path) : this.getInput();
+        return this.proxyInstance.lookupInputMap(path);
     }
   }
 
@@ -3412,13 +3439,14 @@ class RootCtxRenderer extends BaseRenderer {
     const [componentSpec] = params;
     const { loc, hash } = options;
 
-    const { ref, inlineComponent, canonicalPath } = hash;
+    const { ref, inlineComponent, canonicalPath, useWeakRef } = hash;
 
     delete hash.ctx;
 
     delete hash.ref;
     delete hash.inlineComponent;
     delete hash.canonicalPath;
+    delete hash.useWeakRef;
 
     delete hash.hook;
 
@@ -3456,6 +3484,10 @@ class RootCtxRenderer extends BaseRenderer {
     }
 
     if (component) {
+      if (useWeakRef === false) {
+        component.addMetaInfo('useWeakRef', useWeakRef);
+      }
+
       this.#registerInlineComponent(ref, component);
     }
 

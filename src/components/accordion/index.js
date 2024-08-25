@@ -1,6 +1,6 @@
 
 
-// Todo: Update this component is old and uses a deprectaed approach
+// Todo: Update this component is old and uses a deprecated approach
 class Accordion extends components.LightningComponent {
 
     beforeCompile() {

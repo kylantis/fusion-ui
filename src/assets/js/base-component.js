@@ -745,7 +745,9 @@ class BaseComponent extends WebRenderer {
   // #API
   async checkPredicate(path) {
     const { dataPathRoot, pathSeparator, predicateHookType } = RootProxy;
-    const value = this.getInputMap().get(path);
+    this.ensureComponentRendered();
+
+    const value = this.proxyInstance.lookupInputMap(path);
 
     const [hookList, metadata] = await Promise.all([
       this.proxyInstance.getHookListFromPath(path, false, false), this.getMetadata(),

@@ -80,6 +80,5 @@
       "items_$.avatar"
     ]
   },
-  "useCollectionLengthProperty": true,
   "escapeDynamicHtml": false
 }

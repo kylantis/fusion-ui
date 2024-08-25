@@ -133,7 +133,6 @@
       "groups_$.items_$.selected"
     ]
   },
-  "useCollectionLengthProperty": true,
   "escapeDynamicHtml": false,
   "hookAccessRate": 2
 }

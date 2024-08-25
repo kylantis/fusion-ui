@@ -40,7 +40,11 @@
                 {{component Icon alias="leftIcon"}}
 
                 {{#if leftIcon}}
-                    {{> leftIcon marginRight='x-small' useCurrentColor=(feedbackState eq 'warning')}}
+                    {{> leftIcon 
+                          marginRight='x-small' 
+                          useCurrentColor=(feedbackState eq 'warning')
+                          useWeakRef=false
+                    }}
                 {{/if}}
             {{/inline}}
 
@@ -48,7 +52,11 @@
                 {{component Icon alias="rightIcon"}}
 
                 {{#if rightIcon}}
-                  {{> rightIcon marginLeft='small' useCurrentColor=(feedbackState eq 'warning')}}
+                  {{> rightIcon 
+                        marginLeft='small' 
+                        useCurrentColor=(feedbackState eq 'warning')
+                        useWeakRef=false
+                  }}
                 {{/if}}
             {{/inline}}
 

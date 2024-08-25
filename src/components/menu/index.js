@@ -17,12 +17,12 @@ class Menu extends components.OverlayComponent {
 
         // If group role is 'radio' or 'checkbox', this specifies the
         // direction that the check icon should be placed
-        this.getInput().groups[0].checkIconX
+        this.getInput().groups[0].checkIconX;
 
         // If group role is 'radio', this specifies whether the user must specify
         // at least one item. The way it works is: Once an item is the group is selected,
         // we don't allow that to be unselected unless there is a replacement
-        this.getInput().groups[0].required
+        this.getInput().groups[0].required;
 
         // This indicates the preferred x, y direction of submenus
         this.getInput().groups[0].items[0].subMenuX;
@@ -66,9 +66,10 @@ class Menu extends components.OverlayComponent {
                     });
             },
             ['splice.groups_$.items']: ({ parentObject, offsetIndexes, newLength }) => {
-                const { indexProperty } = BaseComponent.CONSTANTS;
+                const { indexProperty, parentRefProperty } = BaseComponent.CONSTANTS;
 
-                const groupIndex = parentObject[indexProperty];
+                const group = parentObject[parentRefProperty];
+                const groupIndex = group[indexProperty];
 
                 Object.values(this.#getItems())
                     .filter(({ group: { index } }) => index == groupIndex)

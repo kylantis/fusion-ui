@@ -53,7 +53,6 @@
   "sample": {
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false,
   "hookAccessRate": 2
 }

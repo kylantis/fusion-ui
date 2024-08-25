@@ -95,10 +95,11 @@ class K_Trie {
     if (!word) return node;
 
     for (const segment of this.getSplitter()(word)) {
-      if (!node.getChildren()[segment]) {
+      const n = node.getChildren()[segment];
+      if (!n) {
         return null;
       }
-      node = node.getChildren()[segment];
+      node = n;
     }
 
     return node;

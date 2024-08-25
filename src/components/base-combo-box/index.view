@@ -32,13 +32,13 @@
                 {{/if}}
 
             </div>
-            {{> options}}
+            {{> options useWeakRef=false}}
         </div>
     </div>
 
     {{#if multiSelect}}
         <div class="slds-listbox_selection-group">
-            {{> selectedOptions}}
+            {{> selectedOptions useWeakRef=false}}
         </div>
     {{/if}}
 {{/inline}}

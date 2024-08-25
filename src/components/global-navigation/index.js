@@ -316,11 +316,9 @@ class GlobalNavigation extends components.LightningComponent {
 
         this.#beforeContentLoaded(containerSelector);
 
-        content.awaitExtendedFutures().then(() => {
-            this.#showContent(identifier);
-        });
-
         await content.load({ container: containerSelector, domRelayTimeout: this.isMounted() ? 50 : 0 });
+
+        this.#showContent(identifier);
 
         this.hideSpinner();
 

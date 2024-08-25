@@ -112,6 +112,5 @@
       "sections_$.items_$.badge"
     ]
   },
-  "useCollectionLengthProperty": true,
   "escapeDynamicHtml": false
 }

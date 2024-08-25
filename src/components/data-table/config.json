@@ -191,6 +191,5 @@
       "rows_$.cells_$.control"
     ]
   },
-  "useCollectionLengthProperty": true,
   "escapeDynamicHtml": false
 }
