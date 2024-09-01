@@ -85,7 +85,7 @@ class ActivityTimeline extends components.LightningComponent {
     transformers() {
         return {
             ['items_$.identifier']: (identifier) => {
-                if (this.#identifiers.includes(identifier)) {
+                if (!identifier || this.#identifiers.includes(identifier)) {
                     identifier = this.randomString();
                 }
                 this.#identifiers.push(identifier);

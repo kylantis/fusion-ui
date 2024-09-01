@@ -12,23 +12,14 @@
     },
     "startDate": {
       "type": "String",
-      "defaults": [
-        null
-      ],
       "date": true
     },
     "rangeStart": {
       "type": "String",
-      "defaults": [
-        null
-      ],
       "date": true
     },
     "rangeEnd": {
       "type": "String",
-      "defaults": [
-        null
-      ],
       "date": true
     }
   },

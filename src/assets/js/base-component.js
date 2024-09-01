@@ -584,7 +584,7 @@ class BaseComponent extends WebRenderer {
           isObject ? x.keys instanceof Function ? x.keys() : Object.keys(x)
             : x
         )
-          .includes(y);
+          .includes(`${y}`);
       },
       INSTANCEOF: (x, y) => {
         if (!x) { return false; }

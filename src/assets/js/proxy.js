@@ -1,6 +1,6 @@
 
 class RootProxy {
-  
+
   static syntheticMethodPrefix = 's$_';
 
   static globalsBasePath = 'globals';
@@ -265,9 +265,11 @@ class RootProxy {
     // as put operations are relatively slow on indexedb.
     // 2. to maintain optimal TBT
 
-    setTimeout(() => {
-      this.#pruneHooks();
-    }, 15000);
+    if (this.component.dataBindingEnabled()) {
+      setTimeout(() => {
+        this.#pruneHooks();
+      }, 15000);
+    }
   }
 
   #pruneHooks() {
@@ -323,7 +325,7 @@ class RootProxy {
   }
 
   #addToInputMap(key, value) {
-    return this.#inputMap.set(key, value);
+    return this.#inputMap.set(key, (value === undefined) ? null : value);
   }
 
   #removeFromInputMap(key) {
@@ -555,6 +557,10 @@ class RootProxy {
 
               default:
                 let v = obj[prop];
+
+                if (!v) {
+                  this.component.throwError(`No schema definition was found for key "${prop}"`);
+                }
 
                 if (v.referencesShared) {
                   v = obj[v.$ref.replace(defPrefx, '')];
@@ -1299,9 +1305,9 @@ class RootProxy {
 
     return Promise.all(
       hookList[path]
-        .filter(hookInfo => hookFilter(hookInfo))
         .map(hookInfo => ({ ...hookInfo, ...hookOptions || {} }))
         .map(hookInfo => {
+          if (!hookFilter(hookInfo)) return;
 
           if (typeof blockDataTransformer == 'function') {
             hookInfo.blockData = blockDataTransformer(path0, hookInfo.blockData)
@@ -2534,9 +2540,8 @@ class RootProxy {
     if (oldValue === undefined) {
       assert(
         isCollection,
-        // In #toCanonicalTree(...), we always default known object properties that are missing
-        // to either null OR a non-undefined value defined by a component initializer, hence if 
-        // oldValue === undefined, it means that <prop> is invalid
+        // In #toCanonicalTree(...), we always populate known object properties that are missing
+        // on the object, hence if oldValue === undefined, it means that <prop> is invalid
         `${parent ? `[${parent}] ` : ''}Property "${prop}" does not exist`
       );
     }
@@ -2680,10 +2685,6 @@ class RootProxy {
 
     } else {
 
-      if (newValue === undefined) {
-        newValue = null;
-      }
-
       this.#addToChangeSet(changeSet, fqPath0, filter_GTE_OBJ_MEMBER);
     }
 
@@ -2776,7 +2777,7 @@ class RootProxy {
 
 
 
-    const mutationType = (newValue !== undefined) ? mutationType_SET : isArray ? mutationType_SPLICE : mutationType_DELETE;
+    const mutationType = (newValue === undefined && isCollection) ? isArray ? mutationType_SPLICE : mutationType_DELETE : mutationType_SET;
     const handle = (isCollection && this.isCollectionInView(sParent)) ? parent : this.hasCollectionInView(sPath0) ? fqPath0 : null;
 
     const changeEvents = {};
@@ -2903,7 +2904,7 @@ class RootProxy {
 
     // generate "insert" events
 
-    if (newValue !== undefined) {
+    if (mutationType == mutationType_SET) {
 
       const elements = [{
         path: fqPath0,
@@ -3361,10 +3362,6 @@ class RootProxy {
       const idx = index + i;
       const path = toFqPath({ parent, prop: idx });
 
-      if (value === undefined) {
-        value = null;
-      }
-
       const dataVariables = {
         first: idx == 0,
         last: (i == replElements.length - 1) && !Object.keys(offsetIndexes).length,
@@ -3758,11 +3755,11 @@ class RootProxy {
 
     const b = this.#tryOrLogError(
       () => {
-        value = this.invokeTransformers(
+        value = this.#invokeTransformers(
           this.component.getInitializers(), this.component.getTransformers(), path, sPath, value, parentObject,
         );
 
-        this.validateSchema(path, sPath, value, parentObject);
+        this.#validateSchema(path, sPath, value, parentObject);
       });
 
     if (!b) {
@@ -4399,12 +4396,7 @@ class RootProxy {
     return clientUtils.toFqPath({ type, isArray, isMap, parent, prop, key });
   }
 
-  validateSchema(path, sPath, value, parentObj) {
-
-    if (value === null) {
-      return;
-    }
-
+  #validateSchema(path, sPath, value, parentObj) {
     const { toDefinitionName, isMapObject, getEnum } = RootProxy;
 
     const schemaDefinitions = this.#getSchemaDefinitions();
@@ -4414,6 +4406,8 @@ class RootProxy {
     } = schemaDefinitions[
       toDefinitionName(sPath || clientUtils.toCanonicalPath(path))
       ];
+
+    if (value == null) return;
 
     const ensureType = (constructorName) => {
       if (value.constructor.name != constructorName) {
@@ -4518,7 +4512,7 @@ class RootProxy {
     }
   }
 
-  #getDefaultValueForType(type) {
+  #getNonNullValueForType(type) {
     switch (type) {
       case 'array':
         return [];
@@ -4535,7 +4529,7 @@ class RootProxy {
     };
   }
 
-  getDefinedInitializerForPath(initializers, path, sPath) {
+  #getDefinedInitializerForPath(initializers, path, sPath) {
     let ret = initializers[path];
 
     if (!ret) {
@@ -4545,26 +4539,20 @@ class RootProxy {
     return ret ? ret[0] : undefined;
   }
 
-  getDefaultInitializerForPath(sPath) {
-    if (!this.component.getNonNullPaths().includes(sPath)) return null;
+  #invokeTransformers(initializers, transformers, path, sPath, val, parentObject) {
 
-    const { type } = this.#getSchemaDefinitions()[
-      getSchemaKey(sPath)
-    ];
+    if (val === undefined) {
+      const initializer = this.#getDefinedInitializerForPath(initializers, path, sPath);
 
-    return this.#getDefaultValueForType(type);
-  }
+      val = (typeof initializer == 'function') ? initializer(parentObject) : initializer;
+    }
 
-  invokeTransformers(initializers, transformers, path, sPath, val, parentObject) {
-    assert(val !== undefined);
+    if (val == null && this.component.getNonNullPaths().includes(sPath)) {
+      const { type } = this.#getSchemaDefinitions()[
+        getSchemaKey(sPath)
+      ];
 
-    if (val == null) {
-      const initializer = this.getDefinedInitializerForPath(initializers, path, sPath) ||
-        this.getDefaultInitializerForPath(sPath);
-
-      if (initializer != null) {
-        val = (typeof initializer == 'function') ? initializer(parentObject) : initializer;
-      }
+      val = this.#getNonNullValueForType(type);
     }
 
     const fnList = [...new Set([
@@ -4572,10 +4560,11 @@ class RootProxy {
       ...transformers[sPath] || [],
     ])];
 
+    const initial = !this.#input;
     let v = val;
 
     fnList.forEach(fn => {
-      let y = fn(v, parentObject);
+      let y = fn(v, initial, parentObject);
 
       if (y === undefined) {
         y = null;
@@ -4665,40 +4654,13 @@ class RootProxy {
 
       case obj.constructor.name == 'Object':
         const def = this.getObjectDefiniton(sPath);
-
-        if (!def) {
-          // Validation error will likely be thrown below, break
-          break;
-        }
-
         const keys = Object.keys(obj);
 
         // Add missing properties
         def.required
           .filter(p => !keys.includes(p))
           .forEach(p => {
-            obj[p] = (() => {
-
-              // Assign a default value based on the data type
-              const { type } = def.properties[p];
-
-              if (!type || ['array', 'string', 'object'].includes(type[0])) {
-                return null;
-              }
-
-              if (
-                this.getDefinedInitializerForPath(
-                  initializers,
-                  toFqPath({ parent: path, prop: p }),
-                  sPath + `${sPath ? '.' : ''}${p}`
-                ) != null
-              ) {
-                // We need to return null, so that invokeTransformers(...) will apply the defined initializer
-                return null;
-              }
-
-              return this.#getDefaultValueForType(type[0]);
-            })();
+            obj[p] = undefined;
           });
         break;
     }
@@ -4726,17 +4688,13 @@ class RootProxy {
       );
       const _segments = [...segments, key];
 
-      if (obj[prop] === undefined) {
-        this.component.throwError(`Path "${_path}" cannot have "undefined" as it's value`);
-      }
+      obj[prop] = this.#invokeTransformers(initializers, transformers, _path, _sPath, obj[prop], obj);
 
-      obj[prop] = this.invokeTransformers(initializers, transformers, _path, _sPath, obj[prop], obj);
-
-      this.validateSchema(_path, _sPath, obj[prop], obj);
+      this.#validateSchema(_path, _sPath, obj[prop], obj);
 
       visitor({ path: _path, sPath: _sPath, key: prop, parentPath: path, value: obj[prop] });
 
-      if (obj[prop] !== null && ['Object', 'Array'].includes(obj[prop].constructor.name)) {
+      if (obj[prop] != null && ['Object', 'Array'].includes(obj[prop].constructor.name)) {
 
         this.#toCanonicalTree({
           path: _path, sPath: _sPath, segments: _segments,

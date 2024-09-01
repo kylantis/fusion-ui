@@ -7,9 +7,6 @@
         "x-small",
         "small",
         "large"
-      ],
-      "defaults": [
-        null
       ]
     },
     "iconType": {
@@ -28,23 +25,14 @@
     },
     "svgForeground": {
       "type": "String",
-      "allowed": "iconColor",
-      "defaults": [
-        null
-      ]
+      "allowed": "iconColor"
     },
     "svgForegroundColor": {
       "type": "String",
-      "allowed": "cssColor",
-      "defaults": [
-        null
-      ]
+      "allowed": "cssColor"
     },
     "svgCssClass": {
       "type": "String",
-      "defaults": [
-        null
-      ],
       "clientOnly": true
     },
     "size": {
@@ -54,16 +42,10 @@
         "x-small",
         "small",
         "large"
-      ],
-      "defaults": [
-        null
       ]
     },
     "title": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
+      "type": "String"
     },
     "type": {
       "type": "String",
@@ -74,9 +56,6 @@
         "border-filled",
         "border-inverse",
         "circular"
-      ],
-      "defaults": [
-        null
       ]
     },
     "container": {
@@ -104,10 +83,7 @@
       "defaultValue": false
     },
     "assistiveText": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
+      "type": "String"
     },
     "hint": {
       "type": "Boolean",

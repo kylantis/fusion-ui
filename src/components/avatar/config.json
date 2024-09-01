@@ -15,10 +15,7 @@
       ]
     },
     "title": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
+      "type": "String"
     },
     "circular": {
       "type": "Boolean",
@@ -29,9 +26,6 @@
       "allowed": [
         "profile-image",
         "group-image"
-      ],
-      "defaults": [
-        null
       ]
     },
     "icon": {
@@ -76,9 +70,6 @@
       "allowed": [
         "primary",
         "secondary"
-      ],
-      "defaults": [
-        null
       ],
       "clientOnly": true
     }

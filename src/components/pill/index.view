@@ -23,8 +23,7 @@
         {{/inline}}
 
         {{#if item.linked}}
-            {{var onClickHelper = (fn 'onClick')}}
-            <a href="#" onclick="{{onClickHelper}}('{{item.identifier}}')" class="slds-pill__action" title="{{item.description ? item.description : item.label}}">
+            <a href="#" onclick="{{fn 'onClick'}}('{{item.identifier}}')" class="slds-pill__action" title="{{item.description ? item.description : item.label}}">
                 {{> render_label}}
             </a>
         {{else}}
@@ -32,8 +31,7 @@
         {{/if}}
         
         {{#if item.deletable}}
-            {{var helperName = (fn 'onRemoveButtonClick')}}
-            {{> ButtonIcon title="Remove" assistiveText="Remove" iconType='utility' iconName='close' cssClass='slds-pill__remove' on-click="${helperName}('${item.identifier}')"}}
+            {{> ButtonIcon title="Remove" assistiveText="Remove" iconType='utility' iconName='close' cssClass='slds-pill__remove' on-click="${fn 'onRemoveButtonClick'}('${item.identifier}')"}}
         {{/if}}
     </span>
 
@@ -47,5 +45,5 @@
                 {{> base_pill item}}
             </li>
         {{/each}}
-        </ul>
+    </ul>
 {{!-- </div> --}}

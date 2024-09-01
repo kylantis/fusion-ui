@@ -3,10 +3,7 @@
   "collections": {},
   "scalars": {
     "name": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
+      "type": "String"
     },
     "checked": {
       "type": "Boolean",
@@ -17,14 +14,10 @@
       "defaultValue": false
     },
     "assistiveText": {
-      "type": "String",
-      "defaults": []
+      "type": "String"
     },
     "labelledBy": {
       "type": "String",
-      "defaults": [
-        null
-      ],
       "clientOnly": true
     },
     "tabIndex": {

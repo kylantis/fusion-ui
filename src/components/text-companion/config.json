@@ -4,23 +4,19 @@
   "scalars": {
     "marginLeft": {
       "type": "String",
-      "allowed": "size",
-      "default": null
+      "allowed": "size"
     },
     "marginRight": {
       "type": "String",
-      "allowed": "size",
-      "default": null
+      "allowed": "size"
     },
     "marginTop": {
       "type": "String",
-      "allowed": "size",
-      "default": null
+      "allowed": "size"
     },
     "marginBottom": {
       "type": "String",
-      "allowed": "size",
-      "default": null
+      "allowed": "size"
     }
   },
   "sample": {

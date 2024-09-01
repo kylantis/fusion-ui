@@ -26,24 +26,15 @@
     },
     "align": {
       "type": "String",
-      "allowed": "alignType",
-      "defaults": [
-        null
-      ]
+      "allowed": "alignType"
     },
     "color": {
       "type": "String",
-      "allowed": "textColor",
-      "defaults": [
-        null
-      ]
+      "allowed": "textColor"
     },
     "font": {
       "type": "String",
-      "allowed": "textFont",
-      "defaults": [
-        null
-      ]
+      "allowed": "textFont"
     }
   },
   "sample": {

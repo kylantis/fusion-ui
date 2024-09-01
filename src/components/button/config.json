@@ -86,9 +86,6 @@
         "not-selected",
         "is-selected",
         "is-selected-clicked"
-      ],
-      "defaults": [
-        null
       ]
     },
     "states.$_.title": {

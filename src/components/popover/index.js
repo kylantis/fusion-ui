@@ -33,7 +33,7 @@ class Popover extends components.OverlayComponent {
             target = document.querySelector(targetElement);
         }
 
-        if (targetComponent) {
+        if (targetComponent && targetComponent.isComponentRendered()) {
             target = targetComponent.getNode();
         }
 

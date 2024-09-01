@@ -72,6 +72,10 @@ class Button extends components.LightningComponent {
     transformers() {
         return {
             ['states']: (states) => {
+                if (!states) {
+                    states = {};
+                }
+
                 this.getStatesNames()
                     .filter(k => !states[k])
                     .forEach(k => {

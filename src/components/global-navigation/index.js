@@ -53,7 +53,7 @@ class GlobalNavigation extends components.LightningComponent {
     transformers() {
         return {
             ['tabs_$.identifier']: (tabId) => {
-                if (this.#tabIds.includes(tabId)) {
+                if (!tabId || this.#tabIds.includes(tabId)) {
                     tabId = this.randomString();
                 }
                 this.#tabIds.push(tabId);

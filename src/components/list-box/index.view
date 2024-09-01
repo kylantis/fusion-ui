@@ -1,24 +1,34 @@
-  
-  {{#*inline "loadSpinner"}}
-    <div class="slds-align_absolute-center slds-p-top_medium">
-      {{> Spinner size='x-small' container=null inline=true }}
-    </div>
-  {{/inline}}
 
-<div 
-  class="
-    slds-dropdown 
-    {{length ? length : '' transform='lengthTransform'}}
-    {{fluid ? 'slds-dropdown_fluid' : ''}}"
-  style="{{not groups.length ? 'display: none;' : ''}}"
-  role="listbox" aria-label="" tabindex="0" aria-busy="false"
-  >
-  {{!-- Todo: Why is "aria-busy" above always false? --}}
+{{script url="/components/list_box/assets/siema.min.js" namespace='Siema'}}
+{{style url="/components/list_box/style.min.css"}}
 
-  {{#if loading}}
-    {{> loadSpinner}}
+{{#*inline "spinner"}}
+  <div class="slds-align_absolute-center slds-p-top_medium">
+    {{> Spinner size='x-small' container=null inline=true }}
+  </div>
+{{/inline}}
+
+{{#*inline "listbox"}}
+
+  {{#if searchTerm}}
+    <ul class="slds-listbox slds-listbox_vertical" role="presentation">
+        <li role="presentation" class="slds-listbox__item">
+          <div aria-selected="true" id="option0" class="slds-media slds-listbox__option slds-listbox__option_entity slds-listbox__option_term slds-has-focus" role="option">
+            
+            <span class="slds-media__figure slds-listbox__option-icon">
+              {{> Icon type="utility" name="search" size="x-small" }}
+            </span>
+
+            <span class="slds-media__body">
+              <span class="slds-listbox__option-text slds-listbox__option-text_entity">
+                {{searchTerm}}
+              </span>
+            </span>
+          </div>
+        </li>
+    </ul>
   {{/if}}
-  
+
   {{#each groups as |group groupIndex|}}
     <ul class="slds-listbox {{../type ? 'slds-listbox_${../type}' : ''}}" role="presentation">
       
@@ -29,13 +39,14 @@
       </li>
       
       {{#each items as |item itemIndex|}}
+        {{var entity = (@root.entity and metaText) clone=true}}
 
-        {{var onClickHelper = (fn 'onClick')}}
-
-        <li role="presentation" class="slds-listbox__item" onclick="{{onClickHelper}}('{{identifier}}')" >
-          <div 
-            id="{{identifier}}" 
-            class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small {{selected ? 'slds-is-selected' : ''}}" 
+        <li role="presentation" class="slds-listbox__item" onclick="{{fn 'onClick'}}('{{identifier}}')" >
+          <div
+            id="{{@root.componentId}}-{{identifier}}" 
+            class="slds-media slds-listbox__option 
+            {{entity ? "slds-listbox__option_entity slds-listbox__option_has-meta" : "slds-listbox__option_plain slds-media_small"}}
+            {{selected ? 'slds-is-selected' : ''}} {{focus ? "slds-has-focus" : ''}}" 
             {{disabled ? "aria-disabled='true'" : ''}}
             {{selected ? "aria-checked='true'" : ''}}
             role="option"
@@ -55,25 +66,60 @@
             </span>
             
             <span class="slds-media__body">
-              <span class="slds-truncate" title="{{title}}">{{title}}</span>
+              {{#if entity}}
+                <span class="slds-listbox__option-text slds-listbox__option-text_entity">
+                    <span>{{title}}</span>
+                </span>
+              {{else}}
+                <span class="slds-truncate" title="{{title}}">{{title}}</span>
+              {{/if}}
               
               {{#if metaText}}
-                  <span class="slds-listbox__option-meta">{{metaText}}</span>
+                  <span class="slds-listbox__option-meta {{entity ? "slds-listbox__option-meta_entity" : ""}}">{{metaText}}</span>
               {{/if}}
             </span>
-            
+
+            {{#if drillsIn}}
+              {{> Icon type="utility" name="chevronright" size="x-small" cssClass="slds-align-middle"}}
+            {{/if}}
+
           </div>
         </li>
       {{/each}}
 
       {{#if loading}}
         <li role="presentation" class="slds-listbox__item">
-          {{> loadSpinner}}
+          {{> spinner}}
         </li>
       {{/if}}
 
     </ul>
   {{/each}}
+{{/inline}}
 
+<div 
+  class="
+    slds-dropdown 
+    {{length ? length : '' transform='lengthTransform'}}
+    {{fluid ? 'slds-dropdown_fluid' : ''}}"
+  style="{{not groups.length ? 'display: none;' : ''}}"
+  role="listbox" aria-label="" tabindex="0" aria-busy="{{loading}}"
+  >
+
+  {{#if loading}}
+    {{> spinner}}
+  {{/if}}
+  
+  {{#if stateIndex gt 0}}
+    <div class="listbox-siema-back-btn">
+      {{> ButtonIcon iconType='utility' iconName='back' iconSize="large" on-click="popState"}}
+    </div>
+  {{/if}}
+
+  <div id="{{componentId}}-siema">
+    <div class="listbox-siema-child">
+      {{> listbox}}
+    </div>
+  </div>
 
 </div>

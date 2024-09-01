@@ -9,23 +9,14 @@
   "scalars": {
     "itemPredicate": {
       "type": "String",
-      "defaults": [
-        null
-      ],
       "clientOnly": true
     },
     "alignment": {
       "type": "String",
-      "allowed": "alignment",
-      "defaults": [
-        "undefined"
-      ]
+      "allowed": "alignment"
     },
     "items_$.identifier": {
-      "type": "String",
-      "defaults": [
-        "undefined"
-      ]
+      "type": "String"
     },
     "items_$.deletable": {
       "type": "Boolean",

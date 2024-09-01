@@ -4,7 +4,8 @@
     {{size ? 'slds-spinner_${size}' : '' transform='sizeTransform'}}
     {{delayed ? 'slds-spinner_delayed' : ''}}
     {{color ? 'slds-spinner_${color}' : ''}}
-    {{inline ? 'slds-spinner_inline' : ''}}"
+    {{inline ? 'slds-spinner_inline' : ''}}
+    {{cssClass ? cssClass : ""}}"
   >
       <span class="slds-assistive-text">{{assistiveText}}</span>
       <div class="slds-spinner__dot-a"></div>
@@ -14,12 +15,17 @@
 
 
 {{#if container}}
-  <div class="slds-spinner_container {{(container eq 'fixed') ? 'slds-is-fixed' : ''}}">
-    {{> render_base inline=false}}
-    {{#if backdropped}}
-      <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
-    {{/if}}
+
+  <div style="width: 100%; height: 100%;" class="slds-is-relative" {{rtl ? "dir='rtl'" : ""}}>
+    <div class="slds-spinner_container {{(container eq 'fixed') ? 'slds-is-fixed' : ''}}">
+      {{> render_base inline=false}}
+      
+      {{#if backdropped}}
+        <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+      {{/if}}
+    </div>
   </div>
+
 {{else}}
     {{> render_base inline}}
 {{/if}}

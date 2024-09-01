@@ -35,9 +35,6 @@
     },
     "bodyCssClass": {
       "type": "String",
-      "defaults": [
-        null
-      ],
       "clietOnly": true
     }
   },

@@ -11,17 +11,11 @@
   "scalars": {
     "padding": {
       "type": "String",
-      "allowed": "spacingType",
-      "defaults": [
-        null
-      ]
+      "allowed": "spacingType"
     },
     "margin": {
       "type": "String",
-      "allowed": "spacingType",
-      "defaults": [
-        null
-      ]
+      "allowed": "spacingType"
     },
     "content": {
       "type": "componentRef",
@@ -32,9 +26,6 @@
       "allowed": [
         "shrink-none",
         "grow-none"
-      ],
-      "defaults": [
-        null
       ]
     },
     "col": {
@@ -44,10 +35,7 @@
     },
     "bump": {
       "type": "String",
-      "allowed": "positionX",
-      "defaults": [
-        null
-      ]
+      "allowed": "positionX"
     },
     "columnAlignment": {
       "type": "String",
@@ -55,24 +43,15 @@
         "top",
         "middle",
         "bottom"
-      ],
-      "defaults": [
-        null
       ]
     },
     "size_$": {
       "type": "String",
-      "allowed": "columnSize",
-      "defaults": [
-        null
-      ]
+      "allowed": "columnSize"
     },
     "order_$": {
       "type": "String",
-      "allowed": "columnOrder",
-      "defaults": [
-        null
-      ]
+      "allowed": "columnOrder"
     }
   },
   "events": {

@@ -47,8 +47,7 @@
       "defaultValue": false
     },
     "items_$.name": {
-      "type": "String",
-      "defaults": []
+      "type": "String"
     }
   },
   "sample": {

@@ -1,0 +1,81 @@
+{
+  "enableTypeMerging": false,
+  "collections": {},
+  "scalars": {
+    "options": {
+      "type": "ListBox",
+      "isNull": false
+    },
+    "multiSelect": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "selectedOptions": {
+      "type": "Pill",
+      "isNull": true,
+      "clientOnly": true
+    },
+    "placeholderText": {
+      "type": "String"
+    },
+    "type": {
+      "type": "String",
+      "allowed": [
+        "autocomplete",
+        "select",
+        "autocomplete-select"
+      ],
+      "defaults": [
+        "autocomplete-select"
+      ]
+    },
+    "searchIconPosition": {
+      "type": "String",
+      "allowed": "positionX",
+      "defaults": [
+        "left"
+      ]
+    },
+    "clearInputIcon": {
+      "type": "String",
+      "allowed": [
+        "clear",
+        "close"
+      ]
+    },
+    "loading": {
+      "type": "Boolean",
+      "defaultValue": true
+    }
+  },
+  "sample": {
+    "nullifyRandomly": []
+  },
+  "events": {
+    "select": {
+      "parameters": {
+        "identifier": {
+          "type": "String"
+        }
+      }
+    },
+    "unselect": {
+      "parameters": {
+        "identifier": {
+          "type": "String"
+        }
+      }
+    }
+  },
+  "behaviours": {
+    "setValueFromOptions": {
+      "parameters": {
+        "identifier": {
+          "type": "String"
+        }
+      }
+    }
+  },
+  "escapeDynamicHtml": false,
+  "hookAccessRate": 2
+}

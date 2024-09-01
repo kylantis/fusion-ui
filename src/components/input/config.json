@@ -14,16 +14,10 @@
       "clientOnly": true
     },
     "placeholder": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
+      "type": "String"
     },
     "value": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
+      "type": "String"
     },
     "leftIcon": {
       "type": "String",
@@ -34,10 +28,7 @@
     },
     "rightIcon": {
       "type": "String",
-      "allowed": "utilityIconName",
-      "defaults": [
-        null
-      ]
+      "allowed": "utilityIconName"
     },
     "rightButton": {
       "type": "String",

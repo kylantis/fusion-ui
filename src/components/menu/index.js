@@ -146,6 +146,15 @@ class Menu extends components.OverlayComponent {
         this.on('insert.groups_$.items_$.feedbackState', 'insert.groups_$.items_$.feedbackState');
     }
 
+    destroy() {
+        super.destroy();
+
+        this.#renderingArea = null;
+        this.#selectedItems = null;
+        this.#items = null;
+        this.#identifiers = null;
+    }
+
     immutablePaths() {
         return [
             'isSubMenu',
@@ -190,7 +199,7 @@ class Menu extends components.OverlayComponent {
     transformers() {
         return {
             ['groups_$.items_$.identifier']: (identifier) => {
-                if (this.#identifiers.includes(identifier)) {
+                if (!identifier || this.#identifiers.includes(identifier)) {
                     identifier = this.randomString();
                 }
                 this.#identifiers.push(identifier);

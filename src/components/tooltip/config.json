@@ -7,10 +7,7 @@
   },
   "scalars": {
     "parts_$.component": {
-      "type": "componentRef",
-      "defaults": [
-        null
-      ]
+      "type": "componentRef"
     },
     "parts_$.text": {
       "type": "String",

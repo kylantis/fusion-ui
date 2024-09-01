@@ -3,10 +3,7 @@
   "collections": {},
   "scalars": {
     "assistiveText": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
+      "type": "String"
     },
     "container": {
       "type": "String",

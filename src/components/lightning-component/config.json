@@ -4,16 +4,10 @@
   "scalars": {
     "cssStyle": {
       "type": "String",
-      "defaults": [
-        null
-      ],
       "clientOnly": true
     },
     "cssClass": {
       "type": "String",
-      "defaults": [
-        null
-      ],
       "clientOnly": true
     }
   },

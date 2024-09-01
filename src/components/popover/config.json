@@ -3,9 +3,6 @@
   "scalars": {
     "targetElement": {
       "type": "String",
-      "defaults": [
-        null
-      ],
       "clientOnly": true
     },
     "targetComponent": {
@@ -13,16 +10,10 @@
     },
     "role": {
       "type": "String",
-      "defaults": [
-        null
-      ],
       "clientOnly": true
     },
     "label": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
+      "type": "String"
     },
     "closeIcon": {
       "type": "Boolean",
@@ -55,9 +46,6 @@
         "bottom",
         "left",
         "right"
-      ],
-      "defaults": [
-        null
       ]
     },
     "position": {

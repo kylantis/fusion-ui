@@ -95,10 +95,6 @@ class SidebarLayout extends components.Drawer {
 
     }
 
-    getSearchBar() {
-        return this.getInlineComponent('searchBar');
-    }
-
     getNavigationItems() {
         const { navigation } = this.getInput();
         return Object.values(navigation.getItems());

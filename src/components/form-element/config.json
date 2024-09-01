@@ -12,10 +12,7 @@
       ]
     },
     "message": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
+      "type": "String"
     },
     "titleIcon": {
       "type": "ButtonIcon",
@@ -50,17 +47,11 @@
     },
     "padding": {
       "type": "String",
-      "allowed": "spacingType",
-      "defaults": [
-        null
-      ]
+      "allowed": "spacingType"
     },
     "margin": {
       "type": "String",
-      "allowed": "spacingType",
-      "defaults": [
-        null
-      ]
+      "allowed": "spacingType"
     },
     "displayOnlyControl": {
       "type": "Boolean",
@@ -68,7 +59,7 @@
     },
     "readonly": {
       "type": "Boolean",
-      "defaultValue": false
+      "defaultValue": true
     },
     "editable": {
       "type": "Boolean",

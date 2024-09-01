@@ -49,7 +49,6 @@
             disabled
             iconType='utility' iconName=rightButton
             cssClass="slds-input__icon slds-input__icon_right" 
-            svgForeground=(clearButton ? "text-light" : null)
             on-click=(clearButton ? "clearInput" : null)
             assistiveText="Clear" title="Clear"
             ref="rightButton"

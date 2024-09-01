@@ -7,6 +7,10 @@ class MultiOptionFormElement extends components.FormElement {
         return true;
     }
 
+    beforeCompile() {
+        this.getInput().items[0].name;
+    }
+
     eventHandlers() {
         return {
             ['remove.items_$']: ({ value: item }) => {

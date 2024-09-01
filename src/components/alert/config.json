@@ -18,10 +18,7 @@
       "isNull": false
     },
     "assistiveText": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
+      "type": "String"
     },
     "link": {
       "type": "Link",

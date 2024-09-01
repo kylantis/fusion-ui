@@ -26,9 +26,6 @@
         "large",
         "x-large",
         "xx-large"
-      ],
-      "defaults": [
-        null
       ]
     },
     "gutterSize": {
@@ -68,9 +65,6 @@
         "end",
         "space",
         "spread"
-      ],
-      "defaults": [
-        null
       ]
     },
     "verticalAlignment": {
@@ -79,9 +73,6 @@
         "center",
         "end",
         "start"
-      ],
-      "defaults": [
-        null
       ]
     },
     "boxPadding": {

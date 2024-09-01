@@ -81,7 +81,7 @@ class VerticalNavigation extends components.LightningComponent {
     transformers() {
         return {
             ['sections_$.id']: (sectionId) => {
-                if (this.#sectionIds.includes(sectionId)) {
+                if (!sectionId || this.#sectionIds.includes(sectionId)) {
                     sectionId = this.randomString();
                 }
                 this.#sectionIds.push(sectionId);

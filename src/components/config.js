@@ -9,7 +9,7 @@ module.exports = {
     scalarComponents: ["Icon"],
     
     extendedWindowProperties: [
-        'HTMLElement', 'Node', 'ResizeObserver'
+        'HTMLElement', 'Element', 'Node', 'ResizeObserver'
     ],
 
     componentReferences: ["Tooltip"],

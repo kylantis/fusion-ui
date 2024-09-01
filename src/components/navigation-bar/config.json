@@ -22,16 +22,14 @@
       ]
     },
     "items_$.assistiveText": {
-      "type": "String",
-      "defaults": []
+      "type": "String"
     },
     "items_$.subMenu": {
       "type": "Menu",
       "isNull": false
     },
     "items_$.id": {
-      "type": "String",
-      "defaults": []
+      "type": "String"
     }
   },
   "behaviours": {

@@ -45,10 +45,7 @@
       ]
     },
     "colors_$": {
-      "type": "string",
-      "defaults": [
-        null
-      ]
+      "type": "string"
     },
     "labels_$": {
       "type": "String",
@@ -81,9 +78,6 @@
       "allowed": [
         "line",
         "bar"
-      ],
-      "defaults": [
-        null
       ]
     },
     "yMarkers_$.label": {
