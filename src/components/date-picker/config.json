@@ -6,10 +6,6 @@
       "type": "Boolean",
       "defaultValue": false
     },
-    "startDatePicker": {
-      "type": "DatePicker",
-      "isNull": true
-    },
     "startDate": {
       "type": "String",
       "date": true
@@ -21,6 +17,16 @@
     "rangeEnd": {
       "type": "String",
       "date": true
+    },
+    "format": {
+      "type": "String"
+    },
+    "locale": {
+      "type": "String"
+    },
+    "dependsOn": {
+      "type": "DatePicker",
+      "isNull": true
     }
   },
   "events": {

@@ -153,46 +153,40 @@ class ActivityTimeline extends components.LightningComponent {
 
     setupExpandBtn({ node }) {
         const identifier = node.querySelector(':scope > li').getAttribute('identifier');
+        const expandBtn = this.getExpandButton(identifier)
 
-        this.onceInlineComponentLoad(
-            this.getExpandButtonRef(identifier),
+        expandBtn.on('click', new EventHandler(
             () => {
-                const expandBtn = this.getExpandButton(identifier)
+                const input = _this.getInput();
 
-                expandBtn.on('click', new EventHandler(
-                    () => {
-                        const input = _this.getInput();
+                if (input) {
+                    const item = _this.getItem(_identifier);
+                    item.expanded = !item.expanded;
+                } else {
 
-                        if (input) {
-                            const item = _this.getItem(_identifier);
-                            item.expanded = !item.expanded;
-                        } else {
+                    const btn = _this.getExpandButton(_identifier).getButton();
+                    const currentValue = (btn.getAttribute("aria-expanded") == 'true') ? true : false;
 
-                            const btn = _this.getExpandButton(_identifier).getButton();
-                            const currentValue = (btn.getAttribute("aria-expanded") == 'true') ? true : false;
+                    btn.setAttribute("aria-expanded", !currentValue);
 
-                            btn.setAttribute("aria-expanded", !currentValue);
+                    _this.toggleCssClass0(
+                        _this.getTimelineItem(_identifier), !currentValue, 'slds-is-open',
+                    );
+                }
+            },
+            null,
+            { _this: this, _identifier: identifier },
+        ));
 
-                            _this.toggleCssClass0(
-                                _this.getTimelineItem(_identifier), !currentValue, 'slds-is-open',
-                            );
-                        }
-                    },
-                    null,
-                    { _this: this, _identifier: identifier  },
-                ));
-
-                expandBtn.on('load', new EventHandler(
-                    function () {
-                        this.component.getButton().setAttribute(
-                            "aria-controls", _this.getArticle(_identifier).id
-                        );
-                    },
-                    null,
-                    { _this: this, _identifier: identifier },
-                ));
-            }
-        );
+        expandBtn.on('load', new EventHandler(
+            function () {
+                this.component.getButton().setAttribute(
+                    "aria-controls", _this.getArticle(_identifier).id
+                );
+            },
+            null,
+            { _this: this, _identifier: identifier },
+        ));
     }
 
     getTimelineItem(identifier) {

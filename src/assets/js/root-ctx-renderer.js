@@ -52,7 +52,7 @@ class RootCtxRenderer extends BaseRenderer {
 
   #renderContext;
 
-  #hooks;
+  #resolveContext;
 
   #addAttributeValueObserver;
 
@@ -67,10 +67,9 @@ class RootCtxRenderer extends BaseRenderer {
 
     this.#inlineComponentInstances = {};
 
-    this.#hooks = {};
-
     this.#emitContext = [];
     this.#renderContext = [];
+    this.#resolveContext = [];
 
     // Todo: Move these to the emit context
     this.#dataStack = [];
@@ -137,6 +136,29 @@ class RootCtxRenderer extends BaseRenderer {
     RootCtxRenderer.#token = token;
   }
 
+  #getDefaultSelectorRoot() {
+    return `#${this.getId()}`;
+  }
+
+  hasResolveContext() {
+    return !!this.#resolveContext.length;
+  }
+
+  getResolveContext() {
+    if (!this.hasResolveContext()) {
+      this.throwError(`No resolve context exists`);
+    }
+    return this.#resolveContext.at(-1);
+  }
+
+  pushToResolveContext(ctx) {
+    this.#resolveContext.push(ctx);
+  }
+
+  popResolveContext() {
+    this.#resolveContext.pop();
+  }
+
   hasRenderContext() {
     return !!this.#renderContext.length;
   }
@@ -164,6 +186,10 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   pushToEmitContext(ctx) {
+    if (this.hasRenderContext()) {
+      this.getRenderContext().tokenizationContext = ctx;
+    }
+
     this.#emitContext.push(ctx);
   }
 
@@ -171,7 +197,7 @@ class RootCtxRenderer extends BaseRenderer {
     this.#emitContext.pop();
   }
 
-  startTokenizationContext({ blockStack = [] } = {}) {
+  startTokenizationContext({ blockStack = [], htmlPosition = -1, selectorRoot = this.#getDefaultSelectorRoot() } = {}) {
 
     const hasBlockTransform = this.hasBlockTransform();
     const streamTokenizer = hasBlockTransform ? new hyntax.StreamTokenizer() : null;
@@ -185,9 +211,11 @@ class RootCtxRenderer extends BaseRenderer {
     }
 
     const ctx = {
-      tokenList: [], blockStack, variables: {},
+      tokenList: [], blockStack, variables: {}, selectorRoot,
       transforms: {}, stringBuffer: [], tokenize: !!streamTokenizer,
-      nodeIdStore: {}, logicGates: {}, mustacheStatements: {}, hooks: [],
+      nodeIdStore: {}, logicGates: {}, mustacheStatements: {}, proxyHooks: [],
+      nextHtmlPosition: () => ++htmlPosition,
+      currentHtmlPosition: () => htmlPosition,
       write: (value, force) => {
         if (!blockStack.length || force) {
           if (streamTokenizer) {
@@ -211,7 +239,7 @@ class RootCtxRenderer extends BaseRenderer {
 
     const ctx = this.getEmitContext();
 
-    const { mustacheStatements, hooks, tokenList, tokenize, stringBuffer } = ctx;
+    const { mustacheStatements, proxyHooks, tokenList, tokenize, stringBuffer } = ctx;
 
     let ast;
     let ret;
@@ -241,7 +269,7 @@ class RootCtxRenderer extends BaseRenderer {
 
     if (this.dataBindingEnabled()) {
 
-      if (hooks.length) {
+      if (proxyHooks.length) {
         this.#hooksQueue.push('');
       }
 
@@ -259,19 +287,23 @@ class RootCtxRenderer extends BaseRenderer {
           )
         ];
 
-        hooks.forEach(([path, hook]) => {
+        promises.push(
+          HookList.add(
+            this.proxyInstance,
+            proxyHooks.map(([path, hook]) => {
 
-          // Remove internal data from blockStack
-          hook.blockStack = hook.blockStack.map(block => {
-            const ret = { ...block };
-            delete ret.variables;
-            return ret;
-          });
+              // Remove internal data from blockStack
+              hook.blockStack = hook.blockStack.map(block => {
+                const ret = { ...block };
+                delete ret.variables;
+                return ret;
+              });
 
-          promises.push(
-            HookList.add(this.proxyInstance, path, hook)
-          );
-        });
+              hook.owner = path;
+              return hook;
+            })
+          )
+        );
 
         Promise.all(promises).then(() => {
           this.#hooksQueue.pop();
@@ -282,7 +314,7 @@ class RootCtxRenderer extends BaseRenderer {
     }
 
     this.popEmitContext();
-    
+
     return ret;
   }
 
@@ -505,22 +537,24 @@ class RootCtxRenderer extends BaseRenderer {
   async renderDecorator(decoratorName, target, blockData) {
     await super.init();
 
-    const futures = this.renderDecorator0(
+    const { futures, extendedFutures } = this.renderDecorator0(
       decoratorName, target, blockData, await this.getMetadata(), { data: {} },
     );
 
     this.dispatchEvent('domLoaded');
     this.pruneLifecycleEventHandlers();
 
-    return futures;
+    return { futures, extendedFutures };
   }
 
-  renderDecorator0(decoratorName, target, blockData, metadata, runtimeOptions) {
+  renderDecorator0(decoratorName, target, blockData, metadata, runtimeOptions, htmlPosition) {
 
     const { templateSpec, locString } = this.#getDecoratorFromMetadata(decoratorName, metadata);
 
+    const selectorRoot = (target instanceof Node) ? this.#getSelectorRootFromElement(target) : this.#getDefaultSelectorRoot();
+
     this.startRenderingContext({ decoratorName, runtimeOptions });
-    this.startTokenizationContext();
+    this.startTokenizationContext({ htmlPosition, selectorRoot });
 
     /////=====================================/////
 
@@ -545,8 +579,14 @@ class RootCtxRenderer extends BaseRenderer {
       }
     }
 
-    const { futures, extendedFutures } = this.finalizeRenderingContext();
-    return [...futures, ...extendedFutures];
+    return this.finalizeRenderingContext();
+  }
+
+  #getSelectorRootFromElement(targetNode) {
+    if (!targetNode.id) {
+      targetNode.id = clientUtils.randomString('nodeId');
+    }
+    return `#${targetNode.id}`;
   }
 
   #getProgram(metadata, id) {
@@ -574,14 +614,13 @@ class RootCtxRenderer extends BaseRenderer {
 
     if (transform) {
       const { content: { children } } = ast;
+      assert(children.length == 1);
 
-      if (children) {
-        (
-          (typeof transform == 'function') ? [transform] :
-            this.getFunctionListFromString(transform)
-        )
-          .forEach(fn => fn(children))
-      }
+      (
+        (typeof transform == 'function') ? [transform] :
+          this.getFunctionListFromString(transform)
+      )
+        .forEach(fn => fn(children[0]))
     }
 
     if (Object.keys(transforms).length) {
@@ -882,7 +921,7 @@ class RootCtxRenderer extends BaseRenderer {
 
     const htmlString = this.finalizeTokenizationContext();
 
-    const renderContext = this.#finalizeRenderingContext();
+    const renderContext = this.#finalizeRenderingContext0();
 
     this.blockData = null;
 
@@ -927,7 +966,7 @@ class RootCtxRenderer extends BaseRenderer {
 
     this.node.id = this.getId();
     this.node.classList.add(htmlWrapperCssClassname);
-    this.node.setAttribute('__component', this.getId())
+    this.node.setAttribute('__component', this.getId());
 
     parentNode.appendChild(this.node);
 
@@ -952,7 +991,6 @@ class RootCtxRenderer extends BaseRenderer {
 
     resolve();
 
-
     this.dispatchEvent('beforeMount');
 
     futures.push(
@@ -966,11 +1004,6 @@ class RootCtxRenderer extends BaseRenderer {
     }
 
     this.dispatchEvent('render', renderContext);
-
-
-    futures.push(
-      this.triggerInitialHooks('onMount')
-    )
 
     futures.push(
       this.invokeLifeCycleMethod('onMount')
@@ -987,7 +1020,7 @@ class RootCtxRenderer extends BaseRenderer {
 
     RootCtxRenderer.#instancesMap.set(this.getId(), this);
 
-    const rootComponent = this.#getRootComponent();
+    const rootComponent = this.getRootComponent();
 
     const waitFn = () => {
       return new Promise(resolve => {
@@ -1032,19 +1065,13 @@ class RootCtxRenderer extends BaseRenderer {
 
     } else {
       await waitFn();
-      
+
       afterDomLoaded();
     }
 
     futures.push(
-      this.triggerInitialHooks('afterMount')
-    );
-
-    futures.push(
       this.invokeLifeCycleMethod('afterMount')
     );
-
-    this.#hooks = null;
 
     await Promise.all(futures);
     futures.splice(0);
@@ -1060,13 +1087,13 @@ class RootCtxRenderer extends BaseRenderer {
     });
   }
 
-  #getRootComponent() {
+  getRootComponent() {
     const { appContext } = self;
     return appContext.rootComponent || appContext.getRootComponent();
   }
 
   isRootComponent() {
-    return this == this.#getRootComponent();
+    return this == this.getRootComponent();
   }
 
   refreshNode() {
@@ -1094,7 +1121,7 @@ class RootCtxRenderer extends BaseRenderer {
       'attributeBindContext', 'domLoaded',
     ];
 
-    return evtNames.includes(evtName) || evtName.startsWith('inlineComponentInit-');
+    return evtNames.includes(evtName);
   }
 
   getNode0() {
@@ -1203,29 +1230,44 @@ class RootCtxRenderer extends BaseRenderer {
     const futures = [];
     const extendedFutures = [];
 
-    this.#renderContext.push({
-      promise, futures, extendedFutures, resolve, decoratorName, runtimeOptions,
+    const ctx = {
+      promise, futures, extendedFutures, resolve, decoratorName, runtimeOptions, hooks: {},
+    };
+
+    promise.then(() => {
+      this.#triggerInitialHooks(ctx, 'onMount');
+
+      Promise.all(extendedFutures).then(() => {
+        this.#triggerInitialHooks(ctx, 'afterMount');
+      });
     });
+
+    this.#renderContext.push(ctx);
 
     this.startSyntheticCacheContext();
   }
 
-  #finalizeRenderingContext() {
+  #finalizeRenderingContext0() {
     this.pruneSyntheticCache();
 
     return this.#renderContext.pop();
   }
 
-  /**
-   * As a general contract, this method should be called after rendering has completed and
-   * the resulting html has been added to the DOM
-   */
   finalizeRenderingContext() {
-    const renderContext = this.#finalizeRenderingContext();
+    const renderContext = this.#finalizeRenderingContext0();
+    const { resolve } = renderContext;
 
-    renderContext.resolve();
+    if (!this.#renderContext.length) {
 
-    this.dispatchEvent('render', renderContext);
+      resolve();
+      this.dispatchEvent('render', renderContext);
+
+    } else {
+
+      this.#renderContext.at(-1).promise.then(() => {
+        resolve();
+      });
+    }
 
     return renderContext;
   }
@@ -1274,23 +1316,24 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   getDefaultHookPhase() {
-    return 'onMount';
+    return 'afterMount';
   }
 
-  async triggerInitialHooks(phase) {
+  async #triggerInitialHooks(renderContext, phase) {
+    const { hooks, tokenizationContext: { selectorRoot } } = renderContext;
 
     await Promise.all(
-      Object.keys(this.#hooks)
+      Object.keys(hooks)
         .sort((e1, e2) => {
 
-          const o1 = this.#hooks[e1].order;
-          const o2 = this.#hooks[e2].order;
+          const o1 = hooks[e1].order;
+          const o2 = hooks[e2].order;
 
           return o1 < o2 ? -1 : o2 < o1 ? 1 : 0;
         })
         .map(async (selector) => {
 
-          const node = document.querySelector(`#${this.getElementId()} ${selector}`);
+          const node = document.querySelector(`${selectorRoot} ${selector}`);
 
           if (!node) {
             // <node> could not be found - likely because a block transform removed it from the html ast
@@ -1305,7 +1348,7 @@ class RootCtxRenderer extends BaseRenderer {
             return;
           }
 
-          const { fnList, blockData } = this.#hooks[selector];
+          const { fnList, blockData } = hooks[selector];
 
           await Promise.all(
             fnList
@@ -1316,8 +1359,6 @@ class RootCtxRenderer extends BaseRenderer {
                 return hook({
                   node,
                   blockData,
-                  // This indicates that this hook is triggered just before this component
-                  // is fully mounted, as opposed to on data update
                   initial: true,
                 });
               })
@@ -1372,10 +1413,7 @@ class RootCtxRenderer extends BaseRenderer {
     return result;
   }
 
-  registerHook(selector, hookNameString, hookPhaseString, hookOrder, loc, blockData) {
-    const { nodeIdSelector } = RootCtxRenderer;
-    assert(selector && selector.match(nodeIdSelector));
-
+  #registerHook(selector, hookNameString, hookPhaseString, hookOrder, loc, blockData) {
     const fnList = [];
 
     this.getBlockHookList(hookNameString, hookPhaseString, null, loc)
@@ -1385,11 +1423,11 @@ class RootCtxRenderer extends BaseRenderer {
         });
       });
 
-    if (!this.#rendered) {
-      this.#hooks[selector] = {
-        order: hookOrder != undefined ? hookOrder : this.getDefaultHookOrder(),
-        blockData, fnList
-      }
+    const { hooks } = this.getRenderContext();
+
+    hooks[selector] = {
+      order: hookOrder != undefined ? hookOrder : this.getDefaultHookOrder(),
+      blockData, fnList
     }
   }
 
@@ -1504,10 +1542,12 @@ class RootCtxRenderer extends BaseRenderer {
 
     const { arrayBlockPath, blockData } = this.#getBlockDataInfo();
 
+    const emitContext = this.getEmitContext();
+
     const conditional0 = (value) => {
 
       if (hook) {
-        this.registerHook(
+        this.#registerHook(
           `#${nodeId}`, hook, hookPhase, hookOrder, loc, blockData,
         );
       }
@@ -1549,7 +1589,7 @@ class RootCtxRenderer extends BaseRenderer {
 
       if (nodeId) {
         this.afterRender(() => {
-          const node = document.querySelector(`#${this.getElementId()} #${nodeId}`);
+          const node = document.querySelector(`${emitContext.selectorRoot} #${nodeId}`);
 
           if (node) {
             node.setAttribute('branch', branch);
@@ -1560,7 +1600,7 @@ class RootCtxRenderer extends BaseRenderer {
       return markup;
     }
 
-    const blockStack = [...this.getEmitContext().blockStack];
+    const blockStack = [...emitContext.blockStack];
     const blockId = this.startBlockContext({ loc });
 
     // Todo: If target is a logicGate, I can optimize space by having the blockData
@@ -1572,6 +1612,8 @@ class RootCtxRenderer extends BaseRenderer {
       const hookObj = {
         type: conditionalBlockHookType, selector: `#${nodeId}`, blockStack, blockId, hook,
         hookPhase, invert, transient, arrayBlockPath, blockData, canonicalPath, loc, transform,
+        htmlPosition: emitContext.nextHtmlPosition(),
+        selectorRoot: emitContext.selectorRoot,
       };
 
       if (path.match(logicGatePathPrefix)) {
@@ -1587,7 +1629,7 @@ class RootCtxRenderer extends BaseRenderer {
 
     this.endBlockContext();
 
-    this.getEmitContext().write(html);
+    emitContext.write(html);
 
     if (this.#attributeEmitContext) {
       assert(!nodeId);
@@ -1689,13 +1731,18 @@ class RootCtxRenderer extends BaseRenderer {
 
     const _blockId = this.randomString('blockId');
 
+    const emitContext = this.getEmitContext();
+
+    const htmlPosition = emitContext.nextHtmlPosition();
+    const { selectorRoot } = emitContext;
+
     const forEach0 = () => {
 
       let ret = "";
 
       if (markerId) {
         const markup = `<${markerTagName} class="${htmlWrapperCssClassname}" id="${this.getMarkerStartNodeId(markerId)}"></${markerTagName}>`
-        this.getEmitContext().write(markup);
+        emitContext.write(markup);
 
         ret += markup;
       }
@@ -1718,7 +1765,7 @@ class RootCtxRenderer extends BaseRenderer {
 
         const keys = Object.keys(rawValue);
 
-        const blockStack = [...this.getEmitContext().blockStack];
+        const blockStack = [...emitContext.blockStack];
 
         for (let i = 0; i < keys.length; i++) {
 
@@ -1748,7 +1795,7 @@ class RootCtxRenderer extends BaseRenderer {
 
             this.pruneSyntheticCache();
 
-            this.getEmitContext().write(markup);
+            emitContext.write(markup);
 
             return markup;
           }
@@ -1766,7 +1813,7 @@ class RootCtxRenderer extends BaseRenderer {
           this.endBlockContext();
 
           if (hook) {
-            this.registerHook(
+            this.#registerHook(
               `#${memberNodeId}`, hook, hookPhase, hookOrder, loc, blockData,
             );
           }
@@ -1777,18 +1824,17 @@ class RootCtxRenderer extends BaseRenderer {
             );
           }
 
-          if (dataBinding) {
-            if (predicate) {
+          if (dataBinding && predicate) {
 
-              this.#createHook(
-                p,
-                {
-                  type: predicateHookType, selector: `#${memberNodeId}`,
-                  blockStack, blockId: _blockId, predicate, hook, hookPhase, transform, opaqueWrapper,
-                  arrayBlockPath, blockData, canonicalPath: `${canonicalPath}_$`, loc,
-                }
-              );
-            }
+            this.#createHook(
+              p,
+              {
+                type: predicateHookType, selector: `#${memberNodeId}`,
+                blockStack, blockId: _blockId, predicate, hook, hookPhase, transform, opaqueWrapper,
+                arrayBlockPath, blockData, canonicalPath: `${canonicalPath}_$`, loc, htmlPosition,
+                selectorRoot,
+              }
+            );
           }
 
           ret += markup;
@@ -1803,14 +1849,14 @@ class RootCtxRenderer extends BaseRenderer {
       } else if (inverse) {
 
         const markup = inverse(ctx);
-        this.getEmitContext().write(markup);
+        emitContext.write(markup);
 
         ret += markup;
       }
 
       if (markerId) {
         const markup = `<${markerTagName} class="${htmlWrapperCssClassname}" id="${this.getMarkerEndNodeId(markerId)}"></${markerTagName}>`
-        this.getEmitContext().write(markup);
+        emitContext.write(markup);
 
         ret += markup;
       }
@@ -1818,11 +1864,11 @@ class RootCtxRenderer extends BaseRenderer {
       return ret;
     }
 
-    const blockStack = [...this.getEmitContext().blockStack];
+    const blockStack = [...emitContext.blockStack];
 
     const blockId = this.startBlockContext({ loc });
 
-    const _blockStack = [...this.getEmitContext().blockStack];
+    const _blockStack = [...emitContext.blockStack];
 
     if (dataBinding) {
       const { arrayBlockPath, blockData } = this.#getBlockDataInfo();
@@ -1831,7 +1877,8 @@ class RootCtxRenderer extends BaseRenderer {
         path,
         {
           type: eachBlockHookType, selector, blockStack, blockId, memberBlockId: _blockId, markerEnd, predicate,
-          hook, hookPhase, arrayBlockPath, blockData, canonicalPath, transform, opaqueWrapper, loc,
+          hook, hookPhase, arrayBlockPath, blockData, canonicalPath, transform, opaqueWrapper, loc, htmlPosition,
+          selectorRoot,
         }
       );
 
@@ -1849,6 +1896,7 @@ class RootCtxRenderer extends BaseRenderer {
               {
                 type: hookType, selector, blockStack: _blockStack, blockId: _blockId, markerEnd, predicate,
                 hook, hookPhase, arrayBlockPath, blockData, canonicalPath, transform, opaqueWrapper, loc,
+                htmlPosition, selectorRoot,
               }
             );
           })
@@ -1859,7 +1907,7 @@ class RootCtxRenderer extends BaseRenderer {
 
     this.endBlockContext();
 
-    this.getEmitContext().write(html);
+    emitContext.write(html);
 
     if (this.#attributeEmitContext) {
       assert(!nodeId);
@@ -2323,7 +2371,9 @@ class RootCtxRenderer extends BaseRenderer {
 
     const { loc } = options;
 
-    const { mustacheStatements } = this.getEmitContext();
+    const emitContext = this.getEmitContext();
+
+    const { mustacheStatements, selectorRoot } = emitContext;
     const { tokenList } = this.#attributeEmitContext;
 
     const nodeId = this.getNodeIdFromTokenList({ tokenList, loc }) ||
@@ -2371,7 +2421,9 @@ class RootCtxRenderer extends BaseRenderer {
           }
         }
 
-        const blockStack = [...this.getEmitContext().blockStack];
+        const htmlPosition = emitContext.nextHtmlPosition();
+
+        const blockStack = [...emitContext.blockStack];
 
         const { arrayBlockPath, blockData } = this.#getBlockDataInfo();
 
@@ -2399,8 +2451,8 @@ class RootCtxRenderer extends BaseRenderer {
               const hookObj = {
                 type: this.#getHookTypeFromAttributeTokenType(attrTokenType),
                 attrTokenType, selector: `#${nodeId}`, canonicalPath, mustacheRef,
-                tokenList, tokenIndex, transform, loc,
-                blockStack, arrayBlockPath, blockData,
+                tokenList, tokenIndex, transform, blockStack, arrayBlockPath, blockData,
+                loc, htmlPosition, selectorRoot,
               };
 
               if (attrValueGroupId) {
@@ -2426,7 +2478,7 @@ class RootCtxRenderer extends BaseRenderer {
         this.#addAttributeValueObserver = true;
 
         this.afterRender(() => {
-          const node = document.querySelector(`#${this.getElementId()} #${nodeId}`);
+          const node = document.querySelector(`${emitContext.selectorRoot} #${nodeId}`);
 
           if (node) {
             node.dataset.attrValueGroups = attrValueGroups;
@@ -2443,7 +2495,7 @@ class RootCtxRenderer extends BaseRenderer {
 
     const ret = Object.entries(attributesMap).map(([k, v]) => ` ${k}='${v}'`).join('');
 
-    this.getEmitContext().write(ret);
+    emitContext.write(ret);
 
     return ret;
   }
@@ -2597,6 +2649,8 @@ class RootCtxRenderer extends BaseRenderer {
       );
     }
 
+    const emitContext = this.getEmitContext();
+
     let renderedValueTransformer;
 
     switch (true) {
@@ -2627,7 +2681,7 @@ class RootCtxRenderer extends BaseRenderer {
               const { valid, value } = validate(val);
 
               if (valid) {
-                const { mustacheStatements } = this.getEmitContext();
+                const { mustacheStatements } = emitContext;
                 let mustacheRef = this.randomString('mustacheRef');
 
                 const mustacheInfo = {
@@ -2680,7 +2734,11 @@ class RootCtxRenderer extends BaseRenderer {
           transform = null;
         }
 
-        const blockStack = [...this.getEmitContext().blockStack];
+        const htmlPosition = emitContext.nextHtmlPosition();
+
+        const { selectorRoot } = emitContext;
+
+        const blockStack = [...emitContext.blockStack];
 
         const { arrayBlockPath, blockData } = this.#getBlockDataInfo();
 
@@ -2689,7 +2747,7 @@ class RootCtxRenderer extends BaseRenderer {
           const hookObj = {
             type: textNodeHookType, selector, blockStack,
             hook, hookPhase, canonicalPath, transform,
-            loc, arrayBlockPath, blockData,
+            blockData, arrayBlockPath, loc, htmlPosition, selectorRoot,
           };
 
           if (path.match(logicGatePathPrefix)) {
@@ -2710,13 +2768,13 @@ class RootCtxRenderer extends BaseRenderer {
               type: inlineComponentHookType, selector, blockStack,
               syntheticPath: path, ref: bindContext.ref,
               hook, hookPhase, canonicalPath: bindContext.canonicalPath, transform,
-              arrayBlockPath, blockData, loc,
+              arrayBlockPath, blockData, loc, htmlPosition, selectorRoot,
             }
           );
         }
 
         if (hook) {
-          this.registerHook(
+          this.#registerHook(
             selector, hook, hookPhase, hookOrder, loc, blockData,
           );
         }
@@ -2740,8 +2798,8 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   #createHook(path, hook) {
-    const { hooks } = this.getEmitContext();
-    hooks.push([path, hook]);
+    const { proxyHooks } = this.getEmitContext();
+    proxyHooks.push([path, hook]);
   }
 
   getPathValue({ path, includePath = false, indexResolver }) {
@@ -3241,7 +3299,8 @@ class RootCtxRenderer extends BaseRenderer {
         return this.resolver.resolve({ path, create, stmt });
 
       default:
-        return this.proxyInstance.lookupInputMap(path);
+        const { inputMap } = this.hasResolveContext() ? this.getResolveContext() : {};
+        return this.proxyInstance.lookupInputMap(path, inputMap);
     }
   }
 
@@ -3507,10 +3566,6 @@ class RootCtxRenderer extends BaseRenderer {
     if (ref) {
       this.#inlineComponentInstances[ref] = component;
 
-      this.on('onMount', () => {
-        this.dispatchEvent(`inlineComponentInit-${ref}`);
-      });
-
       component.on('destroy', new EventHandler(
         () => {
           delete this.getInlineComponentInstances()[ref];
@@ -3521,10 +3576,6 @@ class RootCtxRenderer extends BaseRenderer {
     }
 
     component.setInlineParent(this);
-  }
-
-  onceInlineComponentLoad(ref, fn) {
-    this.once(`inlineComponentInit-${ref}`, fn);
   }
 
   getInlineComponent(ref) {
@@ -3612,6 +3663,25 @@ class RootCtxRenderer extends BaseRenderer {
       });
 
     return events;
+  }
+
+  getEventHandlers() {
+    const handlers = {};
+
+    this.recursivelyInvokeMethod('eventHandlers').forEach(r => {
+      Object.entries(r)
+        .forEach(([key, value]) => {
+          assert(value instanceof Function);
+
+          if (!handlers[key]) {
+            handlers[key] = [];
+          }
+
+          handlers[key].push(value);
+        });
+    });
+
+    return handlers;
   }
 
   getTransformers() {

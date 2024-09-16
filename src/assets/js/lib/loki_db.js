@@ -1,5 +1,5 @@
 
-class LokiDatabase {
+class LokiDb {
 
     #databaseName;
     #primaryKey;
@@ -8,19 +8,20 @@ class LokiDatabase {
     #collections = {};
     #indexToColumn = {};
 
-    constructor(databaseName, primaryKey, storeInfoList) {
+    constructor(databaseName, primaryKey, storeInfoList, options = {}) {
 
         this.#databaseName = databaseName;
         this.#primaryKey = primaryKey;
 
-        this.#adapter = new Loki.LokiMemoryAdapter();
-        const db = new Loki(databaseName, { adapter: this.#adapter });
+        this.#adapter = new self.loki.LokiMemoryAdapter();
+        const db = new loki(databaseName, { adapter: this.#adapter, env: 'BROWSER' });
 
         storeInfoList.forEach(({ storeName, indexedColumns }) => {
 
             this.#collections[storeName] = db.addCollection(storeName, {
                 unique: [this.#primaryKey],
                 indices: indexedColumns,
+                ...options,
             });
 
             indexedColumns.forEach(colName => {
@@ -35,7 +36,8 @@ class LokiDatabase {
 
     put(storeName, rows) {
         rows.forEach(row => {
-            if (this.#findById(storeName, row[this.#primaryKey])) {
+            const doc = this.#findById(storeName, row[this.#primaryKey]);
+            if (doc) {
                 this.#collections[storeName].update(row);
             } else {
                 this.#collections[storeName].insert(row);
@@ -43,12 +45,12 @@ class LokiDatabase {
         });
     }
 
-    startsWithQuery(proxyInstance, storeName, indexName, prefix) {
+    startsWithQuery(trie, storeName, indexName, prefix) {
         const dataPathPrefix = 'data__';
-        const hasDataPrefix = prefix.startsWith(dataPathPrefix)
+        const hasDataPrefix = prefix.startsWith(dataPathPrefix);
 
-        const subpaths = proxyInstance.getTrieSubPaths(
-            hasDataPrefix ? prefix.replace(`${dataPathPrefix}`, '') : prefix
+        const subpaths = self.clientUtils.getTrieSubPaths(
+            trie, hasDataPrefix ? prefix.replace(`${dataPathPrefix}`, '') : prefix
         )
             .map(p => hasDataPrefix ? `${dataPathPrefix}${p}` : p);
 
@@ -61,7 +63,7 @@ class LokiDatabase {
     equalsQuery(storeName, indexName, eqValue) {
         if (indexName) {
             const colName = this.#indexToColumn[indexName];
-            
+
             return this.#collections[storeName]
                 .find({ [colName]: { '$contains': eqValue } });
         } else {
@@ -84,7 +86,10 @@ class LokiDatabase {
 
     #deleteById(storeName, key) {
         const row = this.#findById(storeName, key);
-        this.#collections[storeName].remove(row);
+
+        if (row) {
+            this.#collections[storeName].remove(row);
+        }
     }
 
     all(storeName) {
@@ -101,4 +106,4 @@ class LokiDatabase {
     }
 }
 
-module.exports = LokiDatabase;
+module.exports = LokiDb;

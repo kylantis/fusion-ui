@@ -96,7 +96,6 @@ module.exports = {
     each() {
         const _this = this;
         return function (context, options) {
-            const { randomString } = BaseComponent;
 
             if (!options) {
                 _this.throwError('Must pass iterator to #each block');
@@ -161,7 +160,7 @@ module.exports = {
                         return markup;
                     }
 
-                    const memberNodeId = randomString('nodeId');
+                    const memberNodeId = clientUtils.randomString('nodeId');
                     const markup = nodeId ? _this.execBlockIteration(func, opaqueWrapper, field, memberNodeId, loc) : func();
 
                     ret = ret + markup;

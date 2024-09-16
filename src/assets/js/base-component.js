@@ -344,13 +344,22 @@ class BaseComponent extends WebRenderer {
       });
   }
 
-  getAllHandlerFunctions() {
-    let handlerFunctions = {};
+  getAllHandlerFunctions(event) {
+    const handlerFunctions = {};
+    const _this = this;
 
-    this.recursivelyInvokeMethod('eventHandlers').forEach(o => {
-      assert(o.constructor.name == 'Object');
-      handlerFunctions = { ...handlerFunctions, ...o }
-    });
+    Object.entries(this.getEventHandlers())
+      .forEach(([k, v]) => {
+        handlerFunctions[k] = function (...args) {
+          v.forEach(fn => {
+            try {
+              fn.bind(this)(...args);
+            } catch (e) {
+              _this.#logEventHandlerError(e, event, fn);
+            }
+          });
+        }
+      });
 
     return {
       ...handlerFunctions,
@@ -447,7 +456,7 @@ class BaseComponent extends WebRenderer {
     }
 
     const helpersNamespace = this.getHelpersNamespace();
-    const definedHandlers = this.getAllHandlerFunctions();
+    const definedHandlers = this.getAllHandlerFunctions(event);
 
     // Note: Only dispatch event to server if event is clientOnly as well as defined in getEvents()
 
@@ -509,9 +518,7 @@ class BaseComponent extends WebRenderer {
         try {
           fn.bind((type == 'method') ? this : ctx)(...args)
         } catch (e) {
-          console.info(`Error occured while running handler for event "${event}": \n ${fn.toString()}`);
-
-          this.logger.error(null, e);
+          this.#logEventHandlerError(e, event, fn);
         }
       });
 
@@ -526,7 +533,10 @@ class BaseComponent extends WebRenderer {
     return ctx;
   }
 
-
+  #logEventHandlerError(err, event, fn) {
+    console.info(`Error occured while running handler for event "${event}": \n ${fn.toString()}`);
+    this.logger.error(null, err);
+  }
 
 
 
@@ -747,8 +757,6 @@ class BaseComponent extends WebRenderer {
     const { dataPathRoot, pathSeparator, predicateHookType } = RootProxy;
     this.ensureComponentRendered();
 
-    const value = this.proxyInstance.lookupInputMap(path);
-
     const [hookList, metadata] = await Promise.all([
       this.proxyInstance.getHookListFromPath(path, false, false), this.getMetadata(),
     ]);
@@ -757,10 +765,8 @@ class BaseComponent extends WebRenderer {
 
     if (!hookList[p]) return;
 
-    return this.proxyInstance.triggerHooks0({
-      path: p,
-      value, hookTypes: [predicateHookType],
-      hookList, metadata,
+    return this.proxyInstance.triggerHooks({
+      path: p, hookType: predicateHookType, hookList, metadata,
     });
   }
 }

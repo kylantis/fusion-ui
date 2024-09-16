@@ -20,8 +20,8 @@ class K_TrieNode {
 }
 
 class K_Trie {
-  constructor(splitter, nodeCache) {
-    this.n = nodeCache;
+  constructor(splitter) {
+    this.n = {};
     this.s = splitter;
     this.r = new K_TrieNode();
   }

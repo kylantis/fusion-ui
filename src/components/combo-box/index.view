@@ -3,7 +3,7 @@
 {{component ListBox alias="options"}}
 {{component Pill alias="selectedOptions"}}
 
-{{#*inline "render_standalone_control" eager=true}}
+{{#*inline "render_combobox"}}
 
     {{var overlayAttribute = getOverlayAttribute}}        
 
@@ -52,7 +52,7 @@
                     {{#if loading}}
                         <div class="slds-input__icon-group slds-input__icon-group_right">
                             {{setInputIconPosition 'group-right'}}
-                            {{> Spinner size='x-small' container=null cssClass="slds-input__spinner" }}
+                            {{> Spinner size='x-small' cssClass="slds-input__spinner" }}
                             {{> clear_input_button}}
                         </div>
                     {{else}}
@@ -76,7 +76,7 @@
 
                     <div class="slds-input_faux slds-combobox__input" 
                         role="combobox" tabindex="0" 
-                        id="{{@root.componentId}}_selected-value"
+                        id="{{@root.componentId}}_input"
                         aria-labelledby="{{@root.componentId}}_label {{@root.componentId}}_selected-value"
                         {{options ? "aria-controls=\"${getListBoxId}\"" : "" }}
                         aria-expanded="false"
@@ -124,6 +124,27 @@
     {{/if}}
 
 {{/inline}}
+
+{{#*inline "render_readonly"}}
+
+  <div 
+    id="{{@root.componentId}}-readonly" 
+    class="{{not readonly ? "slds-hide" : "slds-show"}}">
+  </div>
+  
+  {{loadReadonly}}
+
+{{/inline}}
+
+
+{{#*inline "render_standalone_control"}}
+    <div class="{{readonly ? "slds-hide" : "slds-show"}}">
+        {{> render_combobox}}
+    </div>
+
+    {{> render_readonly}}
+{{/inline}}
+
 
 
 {{> render_standalone }}

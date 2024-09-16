@@ -424,7 +424,7 @@ class Menu extends components.OverlayComponent {
 
         let wrapper;
 
-        const futures = await this.renderDecorator('submenu', (htmlString) => {
+        const { futures } = await this.renderDecorator('submenu', (htmlString) => {
             wrapper = this.#parseHTMLString(htmlString);
             li.appendChild(wrapper);
         }, blockData);
@@ -465,7 +465,7 @@ class Menu extends components.OverlayComponent {
         const x = (role == 'presentation') ? subMenuX : checkIconX;
         const container = (x == 'left') ? leftIconContainer : rightIconContainer;
 
-        const futures = await this.renderDecorator(`${x}IconDecorator`, container, blockData);
+        const { futures } = await this.renderDecorator(`${x}IconDecorator`, container, blockData);
         await Promise.all(futures);
     }
 

@@ -16,8 +16,7 @@
 {{#*inline "render_standalone_control" eager=true}}
   {{var item=items.[0]}}
   
-  {{#if item}}
-    {{registerItem item}}
+  {{#if item}}    
 
     {{#if readonly}}
       {{> ?render_readonly checked=item.checked}}
@@ -36,8 +35,6 @@
 {{#*inline "render_compound_control" eager=true}}
   
   {{#each items hookPhase='onMount' as |item itemIndex|}}
-    {{registerItem item}}
-
     <div class="mst-w {{error ? 'slds-has-error' : ''}}">
       
       <div class="slds-{{../type}}">

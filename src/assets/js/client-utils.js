@@ -35,18 +35,18 @@ module.exports = {
   },
 
   toFqPath({ parent, key, type, isArray, isMap, prop }) {
-    
+
     if (!key) {
       switch (true) {
         case Number.isInteger(prop) || type == 'array':
           isArray = true;
           break;
-  
+
         case type == 'map':
           isMap = true;
           break;
       }
-  
+
       key = clientUtils.toFqKey({ isArray, isMap, prop });
     }
 
@@ -641,7 +641,6 @@ module.exports = {
 
     const ARRAY_BLOCK_PATH_INDEX = 'arrayBlockPath_index';
 
-
     const isArray = isNumber(key);
 
     const canonicalParent = toCanonicalPath(parent);
@@ -652,7 +651,7 @@ module.exports = {
     const rows = await db.equalsQuery(hooklistStoreName, ARRAY_BLOCK_PATH_INDEX, path);
 
     const updates = rows
-      .filter(({ [primaryKey]: id, updatedAt }) => id.startsWith(`${componentId}_`) && updatedAt < timestamp)
+      .filter(({ [primaryKey]: id, createdAt }) => id.startsWith(`${componentId}_`) && createdAt < timestamp)
       .map((row) => {
         const {
           arrayBlockPath, canonicalPath, owner, blockData, blockStack, participants, canonicalParticipants,
@@ -741,7 +740,7 @@ module.exports = {
     const mustacheRefIds = [];
 
     const ids = rows
-      .filter(({ [primaryKey]: id, updatedAt }) => id.startsWith(`${componentId}_`) && updatedAt < timestamp)
+      .filter(({ [primaryKey]: id, createdAt }) => id.startsWith(`${componentId}_`) && createdAt < timestamp)
       .map(({ id, mustacheRef }) => {
         if (mustacheRef) {
           mustacheRefIds.push(`${componentId}_${mustacheRef}`);
@@ -749,10 +748,24 @@ module.exports = {
         return id
       });
 
-
     await Promise.all([
       db.delete(hooklistStoreName, ids),
       db.delete(mustachelistStoreName, mustacheRefIds)
     ]);
+  },
+
+  getTrieSubPaths: (trie, path) => {
+    const arr = [];
+
+    const trieNode = trie.getNode(path);
+
+    if (trieNode) {
+      trie.getLeafs(trieNode)
+        .forEach(node => {
+          arr.push(trie.getReverseWord(node));
+        })
+    }
+
+    return arr;
   }
 };

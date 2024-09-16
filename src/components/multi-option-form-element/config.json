@@ -48,6 +48,10 @@
     },
     "items_$.name": {
       "type": "String"
+    },
+    "items_$.inputId": {
+      "type": "String",
+      "clientOnly": true
     }
   },
   "sample": {

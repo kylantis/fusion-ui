@@ -107,6 +107,10 @@ class ComboBox extends components.FormElement {
         ];
     }
 
+    hasValue() {
+        return this.isSelectable() ? !!this.getSelectedOptions().length : !!this.#getComboBoxInput().value;
+    }
+
     onInputClick() {
         const { multiSelect } = this.getInput();
 
@@ -127,7 +131,22 @@ class ComboBox extends components.FormElement {
 
     onChange(evt) {
         const { value } = evt.target;
+
         this.dispatchEvent('input', value);
+        this.dispatchEvent('change');
+    }
+
+    loadReadonly() {
+        const { options } = this.getInput();
+
+        if (!options) return;
+
+        this.afterRender(() => {
+            const target = this.getNode().querySelector(`#${this.getId()}-readonly`);
+            options.renderDecorator('readonly', target, {});
+        });
+
+        return "";
     }
 
     selectedOptionPredicate({ identifier }) {
@@ -286,6 +305,7 @@ class ComboBox extends components.FormElement {
 
     unselectValueFromOptions(identifier) {
         this.#unselectValueFromOptions(identifier, true);
+        this.dispatchEvent('change');
     }
 
     #unselectValueFromOptions(identifier, updateValue) {
@@ -361,9 +381,10 @@ class ComboBox extends components.FormElement {
             item.focus = true;
         }
 
-        this.dispatchEvent('select', identifier);
-
         this.#updateComboBoxInput();
+
+        this.dispatchEvent('select', identifier);
+        this.dispatchEvent('change');
     }
 
     async #updateComboBoxInput() {
@@ -490,10 +511,6 @@ class ComboBox extends components.FormElement {
     }
 
     isCompound() {
-        return false;
-    }
-
-    hasInputElement() {
         return false;
     }
 

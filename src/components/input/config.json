@@ -17,7 +17,8 @@
       "type": "String"
     },
     "value": {
-      "type": "String"
+      "type": "String",
+      "defaults": []
     },
     "leftIcon": {
       "type": "String",

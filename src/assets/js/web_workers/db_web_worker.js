@@ -14,8 +14,19 @@ self.assert = (condition, message) => {
 };
 
 const clientUtils = fetch('/assets/js/client-utils.min.js');
+self.clientUtils = clientUtils;
 
 fetch('/assets/js/lib/database.min.js');
+self.K_Database = K_Database;
+
+importScripts('/assets/js/lib/lokijs.min.js');
+
+fetch('/assets/js/lib/loki_db.min.js');
+self.LokiDb = LokiDb;
+
+fetch('/assets/js/lib/indexed_db.min.js');
+
+fetch('/assets/js/lib/trie.min.js');
 
 const { DEFAULT_PRIMARY_KEY: primaryKey } = K_Database;
 
@@ -25,8 +36,26 @@ let currentIndex = -1;
 
 let db;
 
-const connectDatabase = (dbName) => {
-    db = new K_Database(dbName);
+const pathTries = new Map();
+
+const createPathTries = (pathList) => {
+    Object.entries(pathList).forEach(([className, _pathList]) => {
+        const pathTrie = new K_Trie(clientUtils.getAllSegments);
+
+        _pathList.forEach(p => {
+            pathTrie.insert(p);
+        });
+
+        pathTries.set(className, pathTrie);
+    });
+}
+
+const addPathToTrie = (className, path, segments) => {
+    pathTries.get(className).insert(path, segments);
+}
+
+const connectDatabase = (dbName, storeInfoList) => {
+    db = new K_Database(dbName, storeInfoList);
     return db.createPersistenceLayer();
 }
 
@@ -51,8 +80,30 @@ onmessage = async (event) => {
 
         case 'connectDatabase':
             (async () => {
-                const [dbName, type] = params;
-                await connectDatabase(dbName);
+                const [dbName, storeInfoList] = params;
+                await connectDatabase(dbName, storeInfoList);
+
+                self.postMessage({ callId });
+                self.postMessage({ callId: auxCallId });
+            })();
+            break;
+
+        case 'createPathTries':
+            (async () => {
+                const [pathList] = params;
+
+                createPathTries(pathList);
+
+                self.postMessage({ callId });
+                self.postMessage({ callId: auxCallId });
+            })();
+            break;
+
+        case 'addPathToTrie':
+            (async () => {
+                const [className, path, segments] = params;
+
+                addPathToTrie(className, path, segments);
 
                 self.postMessage({ callId });
                 self.postMessage({ callId: auxCallId });
@@ -62,23 +113,20 @@ onmessage = async (event) => {
         case 'put':
             (async () => {
                 const [storeName, rows] = params;
-                db.put(storeName, rows)
-                    .then(() => {
-                        self.postMessage({ callId: auxCallId });
-                    });
+                await db.put(storeName, rows);
 
                 self.postMessage({ callId });
+                self.postMessage({ callId: auxCallId });
             })();
             break;
 
         case 'delete':
             (async () => {
                 const [storeName, keys] = params;
-                db.delete(storeName, keys).then(() => {
-                    self.postMessage({ callId: auxCallId });
-                });;
+                await db.delete(storeName, keys);
 
                 self.postMessage({ callId });
+                self.postMessage({ callId: auxCallId });
             })();
             break;
 
@@ -94,8 +142,10 @@ onmessage = async (event) => {
 
         case 'startsWithQuery':
             (async () => {
-                const [storeName, indexName, prefix] = params;
-                const ret = await db.startsWithQuery(null, storeName, indexName, prefix);
+                const [className, storeName, indexName, prefix] = params;
+                const ret = await db.startsWithQuery(
+                    pathTries.get(className), storeName, indexName, prefix
+                );
 
                 self.postMessage({ callId, ret });
                 self.postMessage({ callId: auxCallId });

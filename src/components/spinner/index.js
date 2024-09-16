@@ -5,7 +5,6 @@ class Spinner extends components.LightningComponent {
         return {
             ['color']: 'brand',
             ['size']: 'medium',
-            ['container']: 'default',
         };
     }
 

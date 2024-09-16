@@ -4,7 +4,7 @@
 
 {{#*inline "spinner"}}
   <div class="slds-align_absolute-center slds-p-top_medium">
-    {{> Spinner size='x-small' container=null inline=true }}
+    {{> Spinner size='x-small' inline=true }}
   </div>
 {{/inline}}
 
@@ -123,3 +123,8 @@
   </div>
 
 </div>
+
+
+{{#*inline "readonly" runtime=true}}
+    {{#each selectedItems as |i j|}}{{. transform="titleTransform"}}{{#if not @last transform="removeWhitespaceTransform"}},&nbsp;{{/if}}{{/each}}
+{{/inline}}

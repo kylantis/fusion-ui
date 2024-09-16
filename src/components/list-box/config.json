@@ -8,6 +8,9 @@
     "groups_$.items": {
       "minLength": 5,
       "singularType": "Item"
+    },
+    "selectedItems": {
+      "minLength": 10
     }
   },
   "scalars": {
@@ -117,6 +120,10 @@
       "type": "boolean"
     },
     "searchTerm": {
+      "type": "String",
+      "clientOnly": true
+    },
+    "selectedItems_$": {
       "type": "String",
       "clientOnly": true
     }

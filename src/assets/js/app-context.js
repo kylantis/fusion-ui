@@ -12,7 +12,13 @@ class AppContext {
 
   static DB_COUNT = 5;
   static BUCKET_COUNT_PER_DB = 50;
+
+  // Note: as long as each connection caches database entries in-memory (as is currently the case),
+  // we can only maintain a ONE connection per db, see lib/indexed_db.js
   static CONNECTIONS_PER_DB = 1;
+
+  static CREATE_DB_WORKER = false;
+
   static DEFAULT_PLATFORM_APPID = 'platform';
   static RTL = false;
 
@@ -102,7 +108,8 @@ class AppContext {
 
   #readUserGlobals() {
     const {
-      DB_COUNT, BUCKET_COUNT_PER_DB, CONNECTIONS_PER_DB, DEFAULT_PLATFORM_APPID, RTL
+      DB_COUNT, BUCKET_COUNT_PER_DB, CONNECTIONS_PER_DB, DEFAULT_PLATFORM_APPID, RTL,
+      CREATE_DB_WORKER,
     } = this.#userGlobals;
 
     if (typeof DB_COUNT == 'number') {
@@ -123,6 +130,10 @@ class AppContext {
 
     if (typeof RTL == 'boolean') {
       AppContext.RTL = RTL;
+    }
+
+    if (typeof CREATE_DB_WORKER == 'boolean') {
+      AppContext.CREATE_DB_WORKER = CREATE_DB_WORKER;
     }
   }
 
@@ -238,6 +249,10 @@ class AppContext {
       dbName,
       bucketName: this.#getNextBucket(dbName, groupName),
     }
+  }
+
+  getDbWorkers() {
+    return Object.values(this.#dbWorkers);
   }
 
   getDbWorker(dbName) {
@@ -580,18 +595,21 @@ class AppContext {
 
     setTimeout(
       async () => {
+        console.info('start migration');
         await this.#connectDatabase();
+        console.info('finish migration');
       },
       AppContext.DB_PERSISTENCE_TIMEOUT,
     );
   }
 
   async #connectDatabase() {
+    const { CREATE_DB_WORKER } = AppContext;
 
     await Promise.all(
       Object.entries(this.#dbConnections)
-        .map(([dbName, { connections }]) =>
-          connections[0].createPersistenceLayer()
+        .map(([dbName, { connections, storeInfoList }]) =>
+          connections[0].createPersistenceLayer(true)
             .then(() => {
               const promises = [];
 
@@ -601,9 +619,11 @@ class AppContext {
                 );
               }
 
-              promises.push(
-                this.#createDbWorker(dbName)
-              );
+              if (CREATE_DB_WORKER) {
+                promises.push(
+                  this.#createDbWorker(dbName, storeInfoList)
+                );
+              }
 
               return Promise.all(promises);
             }))
@@ -945,13 +965,18 @@ class AppContext {
     return this.#dbSpec;
   }
 
-  async #createDbWorker(dbName) {
-    const worker = new Worker('/assets/js/web_workers/db_web_worker.min.js');
+  async #createDbWorker(dbName, storeInfoList) {
+    const worker = new Worker(`/assets/js/web_workers/db_web_worker.min.js?v=${new Date().getTime()}`);
     this.#dbWorkers[dbName] = worker;
 
-    return RootProxy.runTask(
-      worker, 'connectDatabase', dbName,
-    )
+    await Promise.all([
+      RootProxy.runTask(
+        worker, 'connectDatabase', dbName, storeInfoList,
+      ),
+      RootProxy.runTask(
+        worker, 'createPathTries', RootProxy.getPathList(),
+      ),
+    ]);
   }
 
   #createDatabaseConnections(dbName, storeInfoList) {
@@ -968,12 +993,12 @@ class AppContext {
     connections.push(connection);
 
     for (let i = 1; i < CONNECTIONS_PER_DB; i++) {
-      const connection = new K_Database(dbName);
+      const connection = new K_Database(dbName, storeInfoList);
       connections.push(connection);
     }
 
     this.#dbConnections[dbName] = {
-      currentIndex: -1, connections,
+      currentIndex: -1, connections, storeInfoList,
     }
   }
 
@@ -992,8 +1017,9 @@ class AppContext {
   static #getBaseDependencies() {
     return [
       '/assets/js/lib/database.min.js',
-      { url: '/assets/js/lib/lokijs.min.js', namespace: 'Loki' },
-      '/assets/js/lib/loki_database.min.js',
+      { url: '/assets/js/lib/lokijs.min.js', namespace: 'loki' },
+      '/assets/js/lib/loki_db.min.js',
+      '/assets/js/lib/indexed_db.min.js',
 
       '/assets/js/base-renderer.min.js',
       '/assets/js/root-ctx-renderer.min.js',

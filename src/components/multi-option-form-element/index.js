@@ -1,23 +1,22 @@
 
 class MultiOptionFormElement extends components.FormElement {
 
-    #items = {};
-
     static isAbstract() {
         return true;
     }
 
     beforeCompile() {
         this.getInput().items[0].name;
+        this.getInput().items[0].inputId;
     }
 
     eventHandlers() {
         return {
-            ['remove.items_$']: ({ value: item }) => {
+            ['insert.items_$']: ({ value: item }) => {
                 if (!item) return;
 
-                delete this.getItems()[this.getItemInputId(item)];
-            }
+                item.inputId = this.getItemInputId(item);
+            },
         }
     }
 
@@ -39,7 +38,7 @@ class MultiOptionFormElement extends components.FormElement {
             }
         }
 
-        this.on('remove.items_$', 'remove.items_$');
+        this.on('insert.items_$', 'insert.items_$');
     }
 
     isLoadable() {
@@ -61,10 +60,6 @@ class MultiOptionFormElement extends components.FormElement {
     isCompound() {
         const { items } = this.getInput();
         return super.isCompound() || items.length > 1;
-    }
-
-    getItems() {
-        return this.#items;
     }
 
     isMultiCheckable() {
@@ -102,18 +97,6 @@ class MultiOptionFormElement extends components.FormElement {
         return this.getCheckedItems()[0];
     }
 
-    registerItem(item) {
-
-        if (!this.isMultiCheckable() && item.checked) {
-            this.uncheck();
-        }
-
-        const inputId = this.getItemInputId(item);
-        this.getItems()[inputId] = item;
-
-        return '';
-    }
-
     uncheck() {
         const checkeditem = this.getCheckedItem();
 
@@ -125,16 +108,21 @@ class MultiOptionFormElement extends components.FormElement {
     }
 
     onChange(evt) {
+        const { items } = this.getInput();
         const { checked, id } = evt.target;
 
         if (!this.isMultiCheckable()) {
             this.uncheck();
         }
 
-        const item = this.getItems()[id];
+        const [item] = items.filter(({ inputId }) => inputId == id);
         item.checked = checked;
 
         this.dispatchEvent('change', item.name, checked);
+    }
+
+    hasValue() {
+        return !!this.getCheckedItem();
     }
 }
 

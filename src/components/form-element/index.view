@@ -1,7 +1,5 @@
 
-{{#each dependsOn as |i j|}}
-  {{component FormElement alias="."}}
-{{/each}}
+{{component FormElement alias="dependsOn"}}
 
 {{#*inline "render_required_label"}}
   <abbr class="slds-required" title="required">*</abbr>
@@ -36,22 +34,23 @@
     {{/if}}
 {{/inline}}
 
-{{#*inline "render_edit_icon_container" visible=true}}
-
-{{!-- Note: If your form element has an Icon or ButtonIcon on the right, ensure to only render it when
-readonly is false, so that this edit icon does not display on top of it --}}
+{{#*inline "render_edit_icon_container"}}
 
   {{#if readonly and editable}}
-      {{> ButtonIcon 
-            iconType='utility' iconName='edit' 
-            cssClass="slds-input__icon slds-input__icon_right"
-            svgCssClass="slds-button__icon_edit"
+      {{> ButtonIcon
+            iconType='utility' iconName='edit'
             hint=true
             ref="edit-button"
-            marginLeft='x-small'
             on-click='onEditButtonClick'
       }}
   {{/if}}
+{{/inline}}
+
+{{#*inline "form_element_css_classes"}}
+  {{error ? 'slds-has-error' : ''}}
+  {{editable ? 'slds-form-element_edit' : ''}}
+  {{readonly ? 'slds-form-element_readonly' : ''}}
+  {{(editing and not readonly) ? 'slds-is-editing slds-hint-parent' : ''}}
 {{/inline}}
 
 {{#*inline "render_standalone"}}
@@ -59,12 +58,13 @@ readonly is false, so that this edit icon does not display on top of it --}}
         slds-form-element 
         {{padding ? 'slds-p-${padding}' : ''}} 
         {{margin ? 'slds-m-${margin}' : ''}} 
+        {{> form_element_css_classes}}
         {{> ?standalone_classes}}"
   >
 
     {{#if readonly neq undefined transform='labelTransform' transient=true}}
       <label class="slds-form-element__label {{displayOnlyControl ? "slds-assistive-text" : ""}}" 
-        {{hasInputElement ? "for='${@root.componentId}_input'" : ''}}
+        {{hasInputWidget ? "for='${@root.componentId}_input'" : ''}}
         id="{{@root.componentId}}_label"
       >
           {{> render_title}}
@@ -74,23 +74,14 @@ readonly is false, so that this edit icon does not display on top of it --}}
     {{> render_title_icon}}
 
     <div class="slds-form-element__control {{> ?standalone_control_classes}}">
-      
-      {{!-- 
-        Because of the way we are re-rendering "render_standalone_control", we need to register add the
-        hook "loadStandaloneControl" to allow subclasses perform initialization each time the control markup 
-        is rendered
-       --}}
-      
-      {{#if readonly hook='loadStandaloneControl' hookPhase='afterMount'}}
-        <div class="slds-form-element__static">
-          {{> ?render_standalone_control}}
-        </div>
-      {{else}}
+
+      <div class="{{readonly ? 'slds-form-element__static' : ''}}">
         {{> ?render_standalone_control}}
-      {{/if}}
+      </div>
 
       {{> render_edit_icon_container}}
     </div>
+
     {{#if message}}
       {{> render_message}}
     {{/if}}
@@ -101,8 +92,15 @@ readonly is false, so that this edit icon does not display on top of it --}}
 {{/inline}}
 
 
-{{#*inline "render_compound" visible=true}}
-  <fieldset class="slds-form-element {{padding ? 'slds-p-${padding}' : ''}} {{margin ? 'slds-m-${margin}' : ''}} {{visible ? "slds-visible" : "slds-hidden"}} {{required ? 'slds-is-required' : ''}} {{> ?compound_classes}}">
+{{#*inline "render_compound"}}
+  <fieldset 
+      class="slds-form-element
+        {{padding ? 'slds-p-${padding}' : ''}}
+        {{margin ? 'slds-m-${margin}' : ''}}
+        {{required ? 'slds-is-required' : ''}}
+        {{> form_element_css_classes}}
+        {{> ?compound_classes}}"
+  >
     
     <legend class="slds-form-element__legend slds-form-element__label {{displayOnlyControl ? "slds-assistive-text" : ""}}">
       {{> render_title}}
@@ -121,10 +119,10 @@ readonly is false, so that this edit icon does not display on top of it --}}
 {{/inline}}
 
 
-{{#*inline "render_form_element" visible=true}}
+{{#*inline "render_form_element"}}
   {{#if isCompound}}
-    {{> render_compound visible}}
+    {{> render_compound}}
   {{else}}
-    {{> render_standalone visible}}
+    {{> render_standalone}}
   {{/if}}
 {{/inline}}

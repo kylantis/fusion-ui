@@ -14,6 +14,7 @@ class ListBox extends components.LightningComponent {
     beforeCompile() {
         this.getInput().stateIndex;
         this.getInput().allowMultipleStates;
+        this.getInput().selectedItems[0];
     }
 
     eventHandlers() {
@@ -24,7 +25,20 @@ class ListBox extends components.LightningComponent {
                 this.#items[item.identifier] = item;
 
                 if (!initial) {
-                    this.dispatchEvent('itemsUpdate', [...this.#items], [item], []);
+                    this.dispatchEvent('itemsUpdate', Object.values(this.#items), [item], []);
+                }
+            },
+            ['insert.groups_$.items_$.selected']: ({ value: selected, initial, parentObject }) => {
+                const { selectedItems } = this.getInput();
+                const { identifier } = parentObject;
+
+                if (selected) {
+                    selectedItems.push(identifier);
+                } else if (!initial) {
+                    const idx = selectedItems.indexOf(identifier);
+                    assert(idx >= 0);
+
+                    selectedItems.splice(idx, 1);
                 }
             },
             ['remove.groups_$.items_$']: ({ value: item }) => {
@@ -39,14 +53,19 @@ class ListBox extends components.LightningComponent {
                 delete this.#items[identifier];
 
                 if (!initial) {
-                    this.dispatchEvent('itemsUpdate', [...this.#items], [], [item]);
+                    this.dispatchEvent('itemsUpdate', Object.values(this.#items), [], [item]);
                 }
-            }
+            },
         }
     }
 
     beforeRender() {
+        const input = this.getInput();
+
+        input.selectedItems = [];
+
         this.on('insert.groups_$.items_$', 'insert.groups_$.items_$');
+        this.on('insert.groups_$.items_$.selected', 'insert.groups_$.items_$.selected');
         this.on('remove.groups_$.items_$', 'remove.groups_$.items_$');
     }
 
@@ -145,6 +164,20 @@ class ListBox extends components.LightningComponent {
                     return 'with-icon-10';
             }
         })()}`
+    }
+
+    titleTransform(identifier) {
+        const { selectedItems } = this.getInput();
+
+        const { title } = this.#items[identifier];
+        const idx = selectedItems.indexOf(identifier);
+
+        return title;
+    }
+
+    removeWhitespaceTransform(node) {
+        const { content: { children: [{ content: { value } }] } } = node;
+        value.content = value.content.trim();
     }
 
     isSolidIcon(icon) {
@@ -247,7 +280,7 @@ class ListBox extends components.LightningComponent {
         ));
     }
 
-    addHighlight(searchTerm, caseSensitive, displaySearchTerm=true) {
+    addHighlight(searchTerm, caseSensitive, displaySearchTerm = true) {
         if (this.#highlighted) {
             this.removeHightlight();
         }
