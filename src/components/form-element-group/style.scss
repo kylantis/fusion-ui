@@ -1,0 +1,11 @@
+@media (min-width: 48em) {
+    .slds-form-element_horizontal .slds-form-element__row {
+        .slds-input-has-icon_left-right .slds-input__icon_left {
+            left: .75rem;
+        }
+
+        .slds-form-element_horizontal .slds-form-element__icon {
+            padding-top: 0;
+        }
+    }
+}

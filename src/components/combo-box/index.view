@@ -118,7 +118,7 @@
     </div>
 
     {{#if isSelectable and multiSelect}}
-        <div class="slds-listbox_selection-group">
+        <div class="slds-listbox_selection-group slds-is-expanded">
             {{> selectedOptions }}
         </div>
     {{/if}}

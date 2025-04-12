@@ -1,9 +1,14 @@
 
+/**
+ * Subsclasses must override: getValue(), isCompound(). And the subclass must also dispatch the 'change'
+ * event - passing in a string as the eventArg that represents the new value
+ */
 class FormElement extends components.LightningComponent {
 
     beforeCompile() {
         components.Tooltip;
 
+        this.getInput().name;
         this.getInput().disabled;
         this.getInput().readonly;
         this.getInput().error;
@@ -14,6 +19,28 @@ class FormElement extends components.LightningComponent {
         this.getInput().editing;
     }
 
+    initializers() {
+        return {
+            ['name']: () => this.randomString()
+        };
+    }
+
+    onMount() {
+        const input = this.getInput();
+        const { dependsOn } = input;
+
+        if (dependsOn) {
+            if (dependsOn.getValue() == null) {
+                input.disabled = true;
+
+                dependsOn.once('change', value => {
+                    this.dispatchEvent('activate', value);
+                    input.disabled = false;
+                });
+            }
+        }
+    }
+
     static isAbstract() {
         return true;
     }
@@ -21,7 +48,7 @@ class FormElement extends components.LightningComponent {
     useWeakRef() {
         return false;
     }
-    
+
     isLoadable() {
         if (this.isHeadlessContext()) {
             return true;
@@ -30,8 +57,7 @@ class FormElement extends components.LightningComponent {
     }
 
     isCompound() {
-        const { layoutType } = this.getInput();
-        return layoutType == 'compound';
+        return false;
     }
 
     immutablePaths() {
@@ -39,7 +65,7 @@ class FormElement extends components.LightningComponent {
     }
 
     events() {
-        return ['change'];
+        return ['change', 'activate'];
     }
 
     getTooltipTarget() {
@@ -112,8 +138,8 @@ class FormElement extends components.LightningComponent {
         return true;
     }
 
-    hasValue() {
-        return true;
+    getValue() {
+        return null;
     }
 }
 

@@ -6,7 +6,6 @@ class BaseRenderer {
 
   #id;
   #input;
-  #isRoot;
   #config;
   #metaInfo;
 
@@ -30,7 +29,6 @@ class BaseRenderer {
       logger || self.appContext ? self.appContext.getLogger() : console,
     );
 
-    this.#isRoot = BaseRenderer.#root == undefined;
     BaseRenderer.#root = false;
 
     this.#input = input;
@@ -41,10 +39,6 @@ class BaseRenderer {
     };
 
     this.#metaInfo = {};
-  }
-
-  inWorker() {
-    return typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope;
   }
 
   destroy() {
@@ -101,6 +95,7 @@ class BaseRenderer {
       hookCleanupInterval: 300,
       allowHooksForNonExistentPaths: true,
       serialization: {},
+      useWeakRef: true,
     }
   }
 
@@ -112,10 +107,6 @@ class BaseRenderer {
     return this.#config;
   }
 
-  isRoot() {
-    return this.#isRoot;
-  }
-
   getId() {
     return this.#id;
   }
@@ -125,7 +116,8 @@ class BaseRenderer {
   }
 
   useWeakRef() {
-    return true;
+    const { useWeakRef } = this.#config;
+    return !!useWeakRef;
   }
 
   /**

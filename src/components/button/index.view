@@ -14,14 +14,15 @@
 {{/inline}}
 
 <button class="slds-button
-{{type ? 'slds-button_${type}' : ''}}
-{{stretch ? 'slds-button_stretch' : ''}}
-{{fullWidth ? 'slds-button_full-width' : ''}}
-{{stateful ? 'slds-button_stateful' : ''}}
-{{stateful ? selectState ? 'slds-${selectState}' : 'slds-not-selected' : '' transform="selectStateTransform"}}
-{{cssClass ? cssClass : ""}}
-"
- {{disabled ? "disabled='disabled'" : ""}}
+    {{type ? 'slds-button_${type}' : ''}}
+    {{stretch ? 'slds-button_stretch' : ''}}
+    {{fullWidth ? 'slds-button_full-width' : ''}}
+    {{stateful ? 'slds-button_stateful' : ''}}
+    {{stateful ? selectState ? 'slds-${selectState}' : 'slds-not-selected' : '' transform="selectStateTransform"}}
+    {{cssClass ? cssClass : ""}}
+    "
+    {{disabled ? "disabled='disabled'" : ""}}
+    {{ariaDescribedBy ? "aria-describedby='${ariaDescribedBy}'" : ""}}
 >
 
     <span class="{{stateful ? 'slds-text-not-selected' : ''}}">

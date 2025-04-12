@@ -54,6 +54,22 @@
       "clientOnly": true
     }
   },
+  "events": {
+    "select": {
+      "parameters": {
+        "optionName": {
+          "type": "string"
+        }
+      }
+    },
+    "unselect": {
+      "parameters": {
+        "optionName": {
+          "type": "string"
+        }
+      }
+    }
+  },
   "sample": {
     "nullifyRandomly": [
       "items_$.checked",

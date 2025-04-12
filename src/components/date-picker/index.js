@@ -19,11 +19,6 @@ class DatePicker extends components.Input {
         this.getInput().format;
     }
 
-    activate(startDatePicker) {
-        const input = this.getInput();
-        input.startDate = startDatePicker.getInput().value;
-    }
-
     beforeRender() {
 
         const input = this.getInput();
@@ -121,10 +116,12 @@ class DatePicker extends components.Input {
                 const { value } = _this.getInput();
 
                 if (value) {
-                    // The change went through, dispatch select event
+                    // The change went through, dispatch select and change events
                     const date = _this.createDate(value);
 
                     _this.dispatchEvent('select', date.getDate(), date.getMonth() + 1, date.getFullYear());
+
+                    _this.dispatchEvent('change', value);
                 }
             }
         }
@@ -137,6 +134,17 @@ class DatePicker extends components.Input {
         this.on('insert.rangeEnd', 'insert.rangeEnd');
         this.on('insert.startDate', 'insert.startDate');
         this.on('insert.value', 'insert.value');
+    }
+
+    setStartDate(isoString) {
+        const input = this.getInput();
+        input.startDate = isoString;
+    }
+
+    behaviours() {
+        return [
+            'setStartDate',
+        ];
     }
 
     #setDefaultRangeStart() {

@@ -46,7 +46,8 @@ class GlobalNavigation extends components.LightningComponent {
 
     initializers() {
         return {
-            ['tabs_$.identifier']: () => this.randomString()
+            ['tabs_$.identifier']: () => this.randomString(),
+            ['useWaffleIcon']: () => true
         };
     }
 
@@ -72,18 +73,17 @@ class GlobalNavigation extends components.LightningComponent {
         super.destroy();
     }
 
-    isSolidIcon(icon) {
-        return icon.isSolid();
-    }
 
-    onTabIconSolidStateChange(icon) {
-        const input = icon.getInput();
-        input.marginRight = icon.isSolid() ? 'x-small' : null;
+    behaviours() {
+        return [
+            'showSpinner', 'hideSpinner', 'setActiveItem', 'closeOpenSubMenu',
+            'toggleSubMenuVisibility', 'closeSubMenu'
+        ];
     }
 
     events() {
         return [
-            'tabActive', 'tabInactive', 'tabItemClick', 'tabClose'
+            'tabActive', 'tabInactive', 'tabItemClick', 'tabClose', 'waffleClick'
         ]
     }
 
@@ -139,15 +139,17 @@ class GlobalNavigation extends components.LightningComponent {
         };
     }
 
-    behaviours() {
-        return [
-            'showSpinner', 'hideSpinner', 'setActiveItem', 'closeOpenSubMenu',
-            'toggleSubMenuVisibility', 'closeSubMenu'
-        ];
-    }
-
     #getItems() {
         return this.#items;
+    }
+
+    isSolidIcon(icon) {
+        return icon.isSolid();
+    }
+
+    onTabIconSolidStateChange(icon) {
+        const input = icon.getInput();
+        input.marginRight = icon.isSolid() ? 'x-small' : null;
     }
 
     #getTabSubmenuTriggerButton(identifier) {
@@ -637,5 +639,8 @@ class GlobalNavigation extends components.LightningComponent {
         }
     }
 
+    onWaffleButtonClick() {
+        this.dispatchEvent('waffleClick');
+    }
 }
 module.exports = GlobalNavigation;

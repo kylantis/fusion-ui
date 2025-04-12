@@ -2,8 +2,9 @@
 const Popover = require('./index');
 
 class PopoverTest extends Popover {
-    setPosition() {
-        
+    setPosition(...args) {
+        if (!self.appContext) return;
+        return super.setPosition(...args);
     }
 }
 

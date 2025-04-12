@@ -1,6 +1,13 @@
 
 class ExpandableSection extends components.LightningComponent {
 
+    initializers() {
+        return {
+            ['collapsible']: () => true,
+            ['expanded']: () => true,
+        };
+    }
+
     toggleExpanded() {
         const input = this.getInput();
 

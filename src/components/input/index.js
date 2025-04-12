@@ -22,6 +22,7 @@ class Input extends components.FormElement {
         return {
             ['editable']: true,
             ['inlineEdit']: true,
+            ['type']: 'text',
         }
     }
 
@@ -33,8 +34,8 @@ class Input extends components.FormElement {
         return this.getNode().querySelector('input');
     }
 
-    hasValue() {
-        return !!this.getInput().value;
+    getValue() {
+        return this.getInput().value || null;
     }
 
     events() {
@@ -56,7 +57,7 @@ class Input extends components.FormElement {
             this.getInput().value = value;
         });
 
-        this.dispatchEvent('change');
+        this.dispatchEvent('change', value);
     }
 
     onKeyDown(evt) {

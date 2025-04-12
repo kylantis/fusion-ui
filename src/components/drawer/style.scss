@@ -88,19 +88,23 @@
 
     &.slds-panel_docked-left {
         transform: translate3d(-120%, 0, 0);
+        // transform: translateX(-120%);
 
         &.slds-is-open {
             opacity: 1;
-            transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0); 
+            // transform: translateX(0);
         }
     }
 
     &.slds-panel_docked-right {
         transform: translate3d(120%, 0, 0);
+        // transform: translateX(120%);
 
         &.slds-is-open {
             opacity: 1;
             transform: translate3d(0, 0, 0);
+            // transform: translateX(0);
         }
     }
 }

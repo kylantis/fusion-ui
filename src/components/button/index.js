@@ -17,6 +17,12 @@ class Button extends components.LightningComponent {
                     parentObject.type = 'neutral';
                 }
             },
+            ['insert.fullWidth']: ({ value: fullWidth, parentObject }) => {
+                if (fullWidth && this.hasBackgroundColor()) {
+                    // .slds-button_full-width does not play well with button types that has a background
+                    parentObject['type'] = 'neutral';
+                }
+            },
             ['remove.states.$_']: ({ mutationType, parentObject, key, afterMount }) => {
                 const { mutationType_DELETE } = BaseComponent.CONSTANTS;
                 if (mutationType != mutationType_DELETE) return;
@@ -35,6 +41,8 @@ class Button extends components.LightningComponent {
     beforeRender() {
         this.on('insert.stateful', 'insert.stateful');
         this.on('insert.type', 'insert.type');
+        this.on('insert.fullWidth', 'insert.fullWidth');
+
         this.on('remove.states.$_', 'remove.states.$_');
     }
 
@@ -63,7 +71,7 @@ class Button extends components.LightningComponent {
 
     initializers() {
         return {
-            ['type']: this.getDefaultType(),
+            ['type']: (type) => type === null ? type : this.getDefaultType(),
             ['states']: () => ({}),
             ['states.$_']: () => this.#geEmptyStateObject(),
         };
@@ -192,6 +200,11 @@ class Button extends components.LightningComponent {
 
     getDefaultType() {
         return 'brand';
+    }
+
+    hasBackgroundColor() {
+        const { type } = this.getInput();
+        return !['neutral', 'outline-brand', 'text-destructive'].includes(type);
     }
 }
 module.exports = Button;

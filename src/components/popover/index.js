@@ -9,7 +9,7 @@ class Popover extends components.OverlayComponent {
     useWeakRef() {
         return false;
     }
-    
+
     initializers() {
         return {
             nubbin: true,
@@ -21,7 +21,21 @@ class Popover extends components.OverlayComponent {
     }
 
     behaviours() {
-        return ['setPosition', 'showPopover', 'closePopover'];
+        return ['setTargetComponent', 'setPosition', 'showPopover', 'closePopover'];
+    }
+
+    setTargetComponent(component) {
+        if (typeof component == 'string') {
+            component = BaseComponent.getComponentByRef(component);
+        }
+
+        if (!(component instanceof BaseComponent)) {
+            this.logger.error(null, 'Unknown component: ', component);
+            return;
+        }
+
+        this.getInput().targetComponent = component;
+        this.setPosition();
     }
 
     setPosition() {

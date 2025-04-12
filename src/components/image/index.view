@@ -1,0 +1,40 @@
+
+{{!-- {{#*inline "render_media_condition" mediaCondition}}
+    {{var value=mediaCondition.value}}
+    {{var left=mediaCondition.left}}
+    {{var operand=mediaCondition.operand}}
+    {{var right=mediaCondition.right}}
+    (
+    {{#if (left neq null) and (right neq null)}}
+        {{> render_media_condition mediaCondition=left}}
+        {{ operand}}
+        {{> render_media_condition mediaCondition=right}}
+    {{else}}
+        {{value}}
+    {{/if}}
+    )
+{{/inline}} --}}
+
+{{#*inline "render_sizes"}}
+    {{!-- {{#each sizes as |x y|}}
+        {{#each mediaConditions as |x y|}}
+            {{> render_media_condition mediaCondition=.}}
+        {{/each}}
+
+        {{imageSize}}
+        {{#if not @last}},{{/if}}
+    {{/each}} --}}
+{{/inline}}
+
+{{#*inline "render_srcset"}}
+    {{#each srcset as |x y|}}
+        {{imageSource}} {{sizeDescriptor}}
+        {{#if not @last}},{{/if}}
+    {{/each}}
+{{/inline}}
+
+<img
+    src="{{src}}" alt="{{alt}}" loading="{{loading}}"
+    width="{{width}}" height="{{height}}"
+    srcset="{{> render_srcset}}" sizes="{{> render_sizes}}"
+>

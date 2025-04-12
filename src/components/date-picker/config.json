@@ -29,6 +29,15 @@
       "isNull": true
     }
   },
+  "behaviours": {
+    "setStartDate": {
+      "parameters": {
+        "isoString": {
+          "type": "string"
+        }
+      }
+    }
+  },
   "events": {
     "select": {
       "parameters": {

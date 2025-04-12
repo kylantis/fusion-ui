@@ -5,12 +5,6 @@ class Icon extends components.TextCompanion {
         return ['solidStateChange'];
     }
 
-    initializers() {
-        return {
-            ['size']: 'small'
-        }
-    }
-
     eagerlyInline() {
         return true;
     }    
@@ -40,7 +34,7 @@ class Icon extends components.TextCompanion {
         return {
             ['foreground']: type == 'utility' ? 'text-default' : null,
             ['solid']: true,
-            ['size']: 'small'
+            ['size']: ({ size }) => size === null ? null : 'small'
         };
     }
 

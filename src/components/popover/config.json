@@ -6,7 +6,8 @@
       "clientOnly": true
     },
     "targetComponent": {
-      "type": "componentRef"
+      "type": "componentRef",
+      "clientOnly": true
     },
     "role": {
       "type": "String",
@@ -65,6 +66,15 @@
     "nubbin": {
       "type": "Boolean",
       "defaultValue": true
+    }
+  },
+  "behaviours": {
+    "setTargetComponent": {
+      "parameters": {
+        "ref": {
+          "type": "String"
+        }
+      }
     }
   },
   "escapeDynamicHtml": false

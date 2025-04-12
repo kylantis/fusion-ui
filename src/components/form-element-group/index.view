@@ -1,0 +1,20 @@
+{{style url="/components/form_element_group/style.min.css"}}
+
+{{#*inline "render_compound_control"}}
+  {{#each rows as |x y|}}
+    <div class="slds-form-element__row">
+      {{#each fields as |x y|}}
+        {{component Input alias="formElement"}}
+        <div class="slds-{{columnSize}}">
+            {{> formElement}}
+        </div>
+      {{/each}}
+    </div>
+  {{/each}}
+{{/inline}}
+
+{{#*inline "compound_classes"}}
+  slds-form-element_compound
+{{/inline}}
+
+{{> render_form_element}}

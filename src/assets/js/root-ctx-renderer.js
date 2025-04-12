@@ -32,6 +32,8 @@ class RootCtxRenderer extends BaseRenderer {
 
   static #inputFinalizationRegistry = this.#createInputFinalizationRegistry();
 
+  #isRoot;
+
   #hooksQueue = [];
 
   #dataStack;
@@ -59,12 +61,13 @@ class RootCtxRenderer extends BaseRenderer {
   #methodInvokeCache;
 
   constructor({
-    id, input, logger, config,
+    id, input, logger, config, isRoot,
   } = {}) {
     super({
       id, input, logger, config,
     });
 
+    this.#isRoot = isRoot;
     this.#inlineComponentInstances = {};
 
     this.#emitContext = [];
@@ -88,7 +91,15 @@ class RootCtxRenderer extends BaseRenderer {
     return new FinalizationRegistry(componentId => {
 
       const instance = this.#instancesMap.get(componentId);
-      instance.proxyInstance.pruneInputMap();
+      const proxy = instance.proxyInstance;
+
+      if (!proxy.isInputMapPruned()) {
+        proxy.pruneInputMap();
+      } else {
+        console.info(
+          `ERROR: The input map for "${componentId}" was already pruned`, instance
+        )
+      }
     });
   }
 
@@ -97,9 +108,11 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   destroy() {
+    const id = this.getId();
+
     super.destroy();
 
-    const b = RootCtxRenderer.#instancesMap.delete(this.getId());
+    const b = RootCtxRenderer.#instancesMap.delete(id);
 
     assert(b);
 
@@ -115,6 +128,8 @@ class RootCtxRenderer extends BaseRenderer {
     }, 5000);
 
     this.#pruneRuntimeGlobalHelpers();
+
+    BaseComponent.onComponentPruned(id);
   }
 
   static onComponentNodeRemoved(id) {
@@ -123,6 +138,8 @@ class RootCtxRenderer extends BaseRenderer {
     if (instance) {
       instance.destroy();
     }
+
+    BaseComponent.onComponentPruned(id);
   }
 
   isMounted() {
@@ -884,6 +901,14 @@ class RootCtxRenderer extends BaseRenderer {
     return classMmetadata.metadata;
   }
 
+  isRoot() {
+    return this.#isRoot;
+  }
+
+  useBodyIfRoot() {
+    return false;
+  }
+
   async getRenderedHtml({ token }) {
 
     if (token !== RootCtxRenderer.#token && !this.isRoot()) {
@@ -934,7 +959,22 @@ class RootCtxRenderer extends BaseRenderer {
     return 0;
   }
 
-  async load({ container, token, html, renderContext, domRelayTimeout = this.getDefaultDomRelayTimeout(), callback, wait = true }) {
+  getBodyClass() {
+    return '';
+  }
+
+  #isBodyEmpty() {
+    return !Array.from(document.body.children)
+      .some(child => {
+        const tagName = child.tagName.toLowerCase();
+        if (tagName === 'script') return false;
+        if (tagName === 'style') return false;
+        if (tagName === 'link' && child.getAttribute('rel') === 'stylesheet') return false;
+        return true;
+      });
+  }
+
+  async load({ container, token, html, renderContext, domRelayTimeout = this.getDefaultDomRelayTimeout(), wait = true }) {
 
     const { htmlWrapperCssClassname } = RootCtxRenderer;
 
@@ -950,25 +990,36 @@ class RootCtxRenderer extends BaseRenderer {
       this.throwError(`Component is not loadable`);
     }
 
-    let parentNode;
+    var useBody = this.isRoot() && this.useBodyIfRoot();
 
-    if (container instanceof Element) {
-      parentNode = container;
-    } else {
-      parentNode = container ? document.querySelector(container) : document.body;
-    }
+    const parentNode = useBody ? document.body :
+      container instanceof Element ? container :
+        container ? document.querySelector(container) : document.body;
 
     if (parentNode === null) return;
 
     await super.init();
 
-    this.node = document.createElement('div');
+    if (useBody) {
+      if (!this.#isBodyEmpty()) {
+        this.throwError(`An empty document body is required`);
+      }
+
+      var bodyClass = this.getBodyClass();
+      this.node = parentNode;
+
+      if (bodyClass) {
+        this.node.classList.add(bodyClass);
+      }
+    } else {
+      this.node = document.createElement('div');
+      this.node.classList.add(htmlWrapperCssClassname);
+
+      parentNode.appendChild(this.node);
+    }
 
     this.node.id = this.getId();
-    this.node.classList.add(htmlWrapperCssClassname);
     this.node.setAttribute('__component', this.getId());
-
-    parentNode.appendChild(this.node);
 
     // const startTime = performance.now();
 
@@ -1014,9 +1065,9 @@ class RootCtxRenderer extends BaseRenderer {
 
     assert(Object.keys(this.syntheticContext).length == 0);
 
-    this.dispatchEvent('load', renderContext);
-
     this.#mounted = true;
+
+    this.dispatchEvent('load', renderContext);
 
     RootCtxRenderer.#instancesMap.set(this.getId(), this);
 
@@ -1042,7 +1093,7 @@ class RootCtxRenderer extends BaseRenderer {
             this.#attachAttributeValueObserver();
           }
 
-          this.dispatchEvent('domLoaded', callback);
+          this.dispatchEvent('domLoaded');
 
           this.pruneLifecycleEventHandlers();
         });
@@ -1068,10 +1119,6 @@ class RootCtxRenderer extends BaseRenderer {
 
       afterDomLoaded();
     }
-
-    futures.push(
-      this.invokeLifeCycleMethod('afterMount')
-    );
 
     await Promise.all(futures);
     futures.splice(0);
@@ -1237,9 +1284,9 @@ class RootCtxRenderer extends BaseRenderer {
     promise.then(() => {
       this.#triggerInitialHooks(ctx, 'onMount');
 
-      Promise.all(extendedFutures).then(() => {
-        this.#triggerInitialHooks(ctx, 'afterMount');
-      });
+      Promise.all(extendedFutures)
+        .then(() => this.#triggerInitialHooks(ctx, 'afterMount'))
+        .then(() => this.invokeLifeCycleMethod('afterMount'));
     });
 
     this.#renderContext.push(ctx);
@@ -2657,13 +2704,21 @@ class RootCtxRenderer extends BaseRenderer {
 
       case !!this.#attributeEmitContext:
         (() => {
-          const { attrTokenType } = hash;
+          let { attrTokenType } = hash;
 
           const ATTR_STRING_VALUE = 'attr-string-value';
           const ATTR_VALUE = 'attr-value';
 
           const validate = (_value) => {
             let valid = true;
+
+            if (attrTokenType == null) {
+              // If this mustache statment is inside a block that is rendered
+              // within an attribute value, <attrTokenType> will be null, hence
+              // default to <ATTR_VALUE>
+              attrTokenType = ATTR_VALUE;
+            }
+
             let value = this.#validateAttributeToken(attrTokenType, _value);
 
             if (value == null) {
@@ -3108,14 +3163,18 @@ class RootCtxRenderer extends BaseRenderer {
   }
 
   getSyntheticMethod({ name }) {
+    const { syntheticMethodPrefix } = RootProxy;
+
     // eslint-disable-next-line no-undef
-    const f = this[`${RootProxy.syntheticMethodPrefix}${name}`];
+    const f = this[`${syntheticMethodPrefix}${name}`];
     return f ? f.bind(this) : null;
   }
 
   static getSyntheticMethod({ name }) {
+    const { syntheticMethodPrefix } = RootProxy;
+
     // eslint-disable-next-line no-undef
-    const f = this[`${RootProxy.syntheticMethodPrefix}${name}`];
+    const f = this[`${syntheticMethodPrefix}${name}`];
     return f ? f.bind(this) : null;
   }
 
@@ -3422,10 +3481,10 @@ class RootCtxRenderer extends BaseRenderer {
 
           component.on(evtName, new EventHandler(
             () => {
-              _this[_handler].bind(_this)();
+              _this[_handler].bind(_this)(_component);
             },
             null,
-            { _handler: handler, _this: this }
+            { _handler: handler, _this: this, _component: component }
           ));
         }
       });
@@ -3565,6 +3624,8 @@ class RootCtxRenderer extends BaseRenderer {
   #registerInlineComponent(ref, component) {
     if (ref) {
       this.#inlineComponentInstances[ref] = component;
+
+      component.addMetaInfo('inlineRef', ref);
 
       component.on('destroy', new EventHandler(
         () => {

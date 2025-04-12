@@ -3,7 +3,6 @@ const pathLib = require('path');
 const restify = require('restify');
 const { NotFoundError, InternalServerError, PreconditionFailedError } = require('restify-errors');
 const mime = require('mime-types');
-const LZString = require('lz-string');
 const AppContext = require('../src/assets/js/app-context');
 
 const server = restify.createServer({
@@ -64,9 +63,8 @@ const serveStaticFile = (req, res, next) => {
 const requestNetworkCacheFile = async (req, res) => {
   res.setHeader('Cache-Control', `public, max-age=${604800}`); // 1 Week
 
-  const _opts = req.query().replace('_opts=', '');
-
-  const { assetId, numFiles } = JSON.parse(LZString.decompressFromEncodedURIComponent(_opts))
+  const params = new URLSearchParams(req.query());
+  const { assetId, numFiles } = Object.fromEntries(params.entries());
 
   const getFileBuffer = (path, compressed) => new Promise(resolve => {
     fs.readFile(getFilePath(`${path}${compressed ? `.deflate` : ''}`), (err, data) => {
@@ -80,7 +78,7 @@ const requestNetworkCacheFile = async (req, res) => {
     getFileBuffer(`/components/list.json`).then(buf => JSON.parse((buf.toString('utf8'))))
   ]);
 
-  const fileList = AppContext.getNetworkCacheFiles(
+  const fileList = AppContext.getAllDependencies(
     assetId, bootConfig, componentList, true
   );
 
@@ -103,12 +101,12 @@ const requestNetworkCacheFile = async (req, res) => {
   });
 
   res.setHeader('Content-Type', 'application/octet-stream');
-  res.setHeader('File-Indices', fileIndices.join(','))
+  res.setHeader('File-Indices', fileIndices.join(','));
 
   res.end(buffer);
 }
 
-server.get('/web/components/request-network-cache-file', requestNetworkCacheFile);
+server.get(`/web/components/request-network-cache-file`, requestNetworkCacheFile);
 server.get('/*', serveStaticFile);
 
 server.listen(8090, () => { });

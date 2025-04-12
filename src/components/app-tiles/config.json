@@ -1,0 +1,67 @@
+{
+  "enableTypeMerging": false,
+  "collections": {
+    "items": {
+      "minLength": 6,
+      "keyType": "String",
+      "singularType": "Item"
+    },
+    "items.$_.sizes": {
+      "minLength": 2
+    }
+  },
+  "scalars": {
+    "maxDescriptionLength": {
+      "type": "Number"
+    },
+    "items.$_.sizes_$": {
+      "type": "String",
+      "allowed": "columnSize"
+    },
+    "items.$_.title": {
+      "type": "String",
+      "defaults": [
+        "Sales Cloud",
+        "Marketing Cloud",
+        "HR Concierge",
+        "My Money",
+        "Call Center",
+        "Customer Support Community"
+      ]
+    },
+    "items.$_.description": {
+      "type": "String",
+      "defaults": [
+        "The primary internal kylantis org. Used to run our online sales business and manages every aspect of our core operations",
+        "Kylantis Marketing Cloud lets businesses of any size conduct effective campaigns and ensures an operational sales funneling",
+        "Community for managing employee benefits and time off. The process of tracking employee benefits made easy",
+        "Manage your finances across multiple financial platforms and gain valuable insights of your net income",
+        "The key to call center and contact center management is ensure that customers are happy",
+        "Areas of Focus are used to track customer support for your org to ensure maximum customer happiness"
+      ]
+    },
+    "items.$_.avatar": {
+      "type": "Avatar",
+      "isNull": false
+    }
+  },
+  "events": {
+    "click": {
+      "parameters": {
+        "identifier": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "sample": {
+    "nullifyRandomly": [],
+    "nullify": [
+      "maxDescriptionLength",
+      "items.$_.sizes"
+    ]
+  },
+  "escapeDynamicHtml": false,
+  "inferCollections": false,
+  "inferStringLength": true
+}

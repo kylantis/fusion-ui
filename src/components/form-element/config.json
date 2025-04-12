@@ -1,6 +1,9 @@
 {
   "collections": {},
   "scalars": {
+    "name": {
+      "type": "String"
+    },
     "titleText": {
       "type": "String",
       "defaults": [
@@ -32,15 +35,7 @@
     },
     "layoutType": {
       "type": "String",
-      "allowed": [
-        "compound",
-        "stacked",
-        "horizontal"
-      ],
-      "defaults": [
-        "stacked"
-      ],
-      "clientOnly": true
+      "allowed": "formLayoutType"
     },
     "padding": {
       "type": "String",
@@ -73,6 +68,22 @@
     "editing": {
       "type": "Boolean",
       "clientOnly": true
+    }
+  },
+  "events": {
+    "change": {
+      "parameters": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "activate": {
+      "parameters": {
+        "value": {
+          "type": "string"
+        }
+      }
     }
   },
   "sample": {

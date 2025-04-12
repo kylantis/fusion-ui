@@ -103,12 +103,16 @@ class ComboBox extends components.FormElement {
     behaviours() {
         return [
             'selectValueFromOptions', 'unselectValueFromOptions', 'unselectCurrentValue',
-            'showOptions', 'hideOptions', 'toggleOptions'
+            'showOptions', 'hideOptions', 'toggleOptions', 'setOptions'
         ];
     }
 
-    hasValue() {
-        return this.isSelectable() ? !!this.getSelectedOptions().length : !!this.#getComboBoxInput().value;
+    getValue() {
+        const { multiSelect } = this.getInput();
+
+        return this.isSelectable() ?
+            multiSelect ? this.getSelectedIdentifiers().join(',') : this.getSelectedIdentifiers()[0] || null :
+            this.#getComboBoxInput().value || null;
     }
 
     onInputClick() {
@@ -129,11 +133,15 @@ class ComboBox extends components.FormElement {
         }
     }
 
+    #dispatchChangeEvent() {
+        this.dispatchEvent('change', this.getValue());
+    }
+
     onChange(evt) {
         const { value } = evt.target;
 
         this.dispatchEvent('input', value);
-        this.dispatchEvent('change');
+        this.#dispatchChangeEvent();
     }
 
     loadReadonly() {
@@ -295,6 +303,11 @@ class ComboBox extends components.FormElement {
         return '';
     }
 
+    setOptions(options) {
+        const input = this.getInput();
+        input.options = options;
+    }
+
     unselectCurrentValue() {
         const selectedIdentifiers = this.getSelectedIdentifiers();
 
@@ -305,7 +318,7 @@ class ComboBox extends components.FormElement {
 
     unselectValueFromOptions(identifier) {
         this.#unselectValueFromOptions(identifier, true);
-        this.dispatchEvent('change');
+        this.#dispatchChangeEvent();
     }
 
     #unselectValueFromOptions(identifier, updateValue) {
@@ -384,7 +397,7 @@ class ComboBox extends components.FormElement {
         this.#updateComboBoxInput();
 
         this.dispatchEvent('select', identifier);
-        this.dispatchEvent('change');
+        this.#dispatchChangeEvent();
     }
 
     async #updateComboBoxInput() {

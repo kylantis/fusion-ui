@@ -266,16 +266,16 @@ class RootProxy {
       // creating the weak reference, inorder to prevent the gc from 
       // pruning it before callers have the opportunity to hold on to it.
 
-      component.once('domLoaded', (callback) => {
-        const registry = component.getInputFinalizationRegistry();
-        registry.register(proxy.#input, component.getId());
+      component.once(
+        'afterMount', () => {
+          setTimeout(() => {
+            const registry = component.getInputFinalizationRegistry();
+            registry.register(proxy.#input, component.getId());
 
-        proxy.#input = new WeakRef(proxy.#input);
-
-        if (typeof callback == 'function') {
-          callback();
+            proxy.#input = new WeakRef(proxy.#input);
+          }, 1000);
         }
-      });
+      );
     }
 
     component.once(
@@ -285,6 +285,10 @@ class RootProxy {
     if (component.dataBindingEnabled()) {
       proxy.#dbInfo = self.appContext.getDbInfo(component.getComponentName());
     }
+  }
+
+  isInputMapPruned() {
+    return !this.#inputMap;
   }
 
   pruneInputMap() {
@@ -2486,13 +2490,13 @@ class RootProxy {
     const sPath0 = clientUtils.toCanonicalPath(fqPath0);
 
     for (
-      const arr of this.recursivelyInvokeMethod('immutablePaths', 
-      (c) => !(c.prototype instanceof BaseComponent))
+      const arr of this.component.recursivelyInvokeMethod('immutablePaths',
+        (c) => !(c.prototype instanceof BaseComponent))
     ) {
-      if (arr[fqPath0] || arr[sPath0]) return false;
+      if (arr[fqPath0] || arr[sPath0]) return true;
     }
-    
-    return true;
+
+    return false;
   }
 
   isCollectionInView(sPath) {
@@ -3873,7 +3877,7 @@ class RootProxy {
           this.component.getInitializers(), this.component.getTransformers(), path, sPath, value, parentObject,
         );
 
-        this.#validateSchema(path, sPath, value, parentObject);
+        this.validateSchema(path, sPath, value, parentObject);
       });
 
     if (!b) {
@@ -3915,6 +3919,11 @@ class RootProxy {
 
     if (['literal', 'component'].includes(type)) {
       this.#addToInputMap(path, value);
+
+      if (typeof value == 'string') {
+        this.#addPathToTrie(`${path}.length`, [...segments, 'length']);
+        this.#addToInputMap(`${path}.length`, value.length);
+      }
     } else {
       const refId = clientUtils.randomString('refId');
 
@@ -4154,9 +4163,24 @@ class RootProxy {
 
               case 'forEach':
                 return (consumerFn) => {
+                  let i = 0;
                   for (const e of proxy[Symbol.iterator]()) {
-                    consumerFn(e)
+                    consumerFn(e, i, proxy);
+                    i++;
                   }
+                };
+
+              case 'map':
+                return (consumerFn) => {
+                  let i = 0;
+                  const ret = [];
+                  for (const e of proxy[Symbol.iterator]()) {
+                    ret.push(
+                      consumerFn(e, i, proxy)
+                    );
+                    i++;
+                  }
+                  return ret;
                 };
 
               case 'findIndex':
@@ -4601,7 +4625,7 @@ class RootProxy {
     return clientUtils.toFqPath({ type, isArray, isMap, parent, prop, key });
   }
 
-  #validateSchema(path, sPath, value, parentObj) {
+  validateSchema(path, sPath, value, parentObj) {
     const { toDefinitionName, isMapObject, getEnum } = RootProxy;
 
     const schemaDefinitions = this.#getSchemaDefinitions();
@@ -4902,7 +4926,7 @@ class RootProxy {
 
       obj[prop] = this.#invokeTransformers(initializers, transformers, _path, _sPath, obj[prop], obj);
 
-      this.#validateSchema(_path, _sPath, obj[prop], obj);
+      this.validateSchema(_path, _sPath, obj[prop], obj);
 
       visitor({ path: _path, sPath: _sPath, key: prop, parentPath: path, value: obj[prop] });
 
@@ -4932,6 +4956,11 @@ class RootProxy {
 
       if (['literal', 'component'].includes(type)) {
         this.#addToInputMap(_path, obj[prop]);
+
+        if (typeof obj[prop] == 'string') {
+          this.#addPathToTrie(`${_path}.length`, [..._segments, 'length']);
+          this.#addToInputMap(`${_path}.length`, obj[prop].length);
+        }
       } else {
         const refId = clientUtils.randomString('refId');
 

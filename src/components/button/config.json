@@ -91,6 +91,10 @@
     "states.$_.title": {
       "type": "String",
       "defaults": []
+    },
+    "ariaDescribedBy": {
+      "type": "String",
+      "clientOnly": true
     }
   },
   "sample": {

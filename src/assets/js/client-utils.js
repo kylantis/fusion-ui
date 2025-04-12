@@ -767,5 +767,13 @@ module.exports = {
     }
 
     return arr;
+  },
+
+  objectValuesAsKeys: (obj) => {
+    const r = {};
+    Object.entries(obj).forEach(([k, v]) => {
+      r[v] = k;
+    });
+    return r;
   }
 };

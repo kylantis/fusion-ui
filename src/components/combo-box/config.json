@@ -55,23 +55,32 @@
     "select": {
       "parameters": {
         "identifier": {
-          "type": "String"
+          "type": "string"
         }
       }
     },
     "unselect": {
       "parameters": {
         "identifier": {
-          "type": "String"
+          "type": "string"
         }
       }
     }
   },
   "behaviours": {
-    "setValueFromOptions": {
+    "setOptions": {
+      "parameters": {
+        "options": {
+          "type": {
+            "$ref": "options"
+          }
+        }
+      }
+    },
+    "selectValueFromOptions": {
       "parameters": {
         "identifier": {
-          "type": "String"
+          "type": "string"
         }
       }
     }

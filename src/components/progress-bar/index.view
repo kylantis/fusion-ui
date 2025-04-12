@@ -1,0 +1,36 @@
+
+{{#*inline "render_progressbar"}}
+    <div class="
+        slds-progress-bar {{vertical ? "slds-progress-bar_vertical" : ""}}
+        {{radius ? "slds-progress-bar_circular" : ""}}
+        {{thickness ? "slds-progress-bar_${thickness}" : ""}}
+        " 
+        aria-valuemin="{{min}}"
+        aria-valuemax="{{max}}" 
+        aria-valuenow="{{value}}"
+        {{assistiveText ? "aria-labelledby='${componentId}-label'" : ""}}
+        aria-label="{{label}}" 
+        role="progressbar"
+    >
+
+        <span class="slds-progress-bar__value {{success ? "slds-progress-bar__value_success" : ""}}" style="width: {{value}}%">
+            {{#if assistiveText}}
+                <span id="{{componentId}}-label" class="slds-assistive-text">{{assistiveText}}</span>
+            {{/if}}
+        </span>
+    </div>
+{{/inline}}
+
+{{#if title}}
+    <div>
+        <div class="slds-grid slds-grid_align-spread slds-p-bottom_x-small" id="{{componentId}}-label">
+            <span>{{title}}</span>
+            <span aria-hidden="true">
+                <strong>{{value}}% Complete</strong>
+            </span>
+        </div>
+        {{> render_progressbar}}
+    </div>
+{{else}}
+    {{> render_progressbar}}
+{{/if}}

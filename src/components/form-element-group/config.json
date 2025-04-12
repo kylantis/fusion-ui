@@ -1,0 +1,25 @@
+{
+  "collections": {
+    "rows": {
+      "minLength": 2,
+      "singularType": "Row"
+    },
+    "rows_$.fields": {
+      "minLength": 2,
+      "singularType": "Field"
+    }
+  },
+  "scalars": {
+    "rows_$.fields_$.formElement": {
+      "type": "FormElement",
+      "isNull": false
+    },
+    "rows_$.fields_$.columnSize": {
+      "type": "String",
+      "allowed": "columnSize"
+    }
+  },
+  "sample": {},
+  "escapeDynamicHtml": false,
+  "hookAccessRate": 2
+}

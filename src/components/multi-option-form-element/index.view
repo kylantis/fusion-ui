@@ -1,8 +1,8 @@
 {{style url="/components/multi_option_form_element/style.min.css"}}
 
 {{#*inline "render_input_element" item eager=true}}
-    {{var id=(getItemInputId item)}}
-    {{var name=(getItemInputName item)}}
+    {{var id=item.inputId}}
+    {{var name=(generateItemInputName)}}
 
     <input type="{{type}}" name="{{name}}" id="{{id}}" value="{{id}}"
       {{item.checked ? "checked='checked'" : "" }}
@@ -44,7 +44,7 @@
         {{/if}}
 
         {{#*inline "render_label"}}
-          <label class="slds-{{../type}}__label" for="{{getItemInputId item}}">
+          <label class="slds-{{../type}}__label" for="{{item.inputId}}">
 
             {{#unless ../readonly}}
               <span class="slds-{{../type}}_faux"></span>

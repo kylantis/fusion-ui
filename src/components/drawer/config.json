@@ -30,7 +30,7 @@
     },
     "overlay": {
       "type": "Boolean",
-      "defaultValue": false
+      "defaultValue": true
     },
     "backdrop": {
       "type": "Boolean",

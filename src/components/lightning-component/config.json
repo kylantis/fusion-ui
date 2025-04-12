@@ -1,10 +1,14 @@
 {
   "enableTypeMerging": false,
-  "collections": {},
+  "collections": {
+    "cssStyles": {
+      "minLength": 0,
+      "keyType": "String"
+    }
+  },
   "scalars": {
-    "cssStyle": {
-      "type": "String",
-      "clientOnly": true
+    "cssStyles.$_": {
+      "type": "String"
     },
     "cssClass": {
       "type": "String",

@@ -1,7 +1,45 @@
 {
   "enableTypeMerging": false,
-  "collections": {},
-  "scalars": {},
+  "collections": {
+    "elements": {
+      "minLength": 5
+    },
+    "elements_$": {
+      "minLength": 2
+    },
+    "formValues": {
+      "minLength": 1,
+      "keyType": "String",
+      "clientOnly": true
+    }
+  },
+  "scalars": {
+    "layoutType": {
+      "type": "String",
+      "allowed": "formLayoutType"
+    },
+    "editing": {
+      "type": "Boolean"
+    },
+    "elements_$_$": {
+      "type": "FormElement",
+      "isNull": false
+    },
+    "formValues.$_": {
+      "type": "String"
+    }
+  },
+  "events": {
+    "submit": {
+      "parameters": {
+        "formValues": {
+          "type": {
+            "$ref": "formValues"
+          }
+        }
+      }
+    }
+  },
   "sample": {
     "nullifyRandomly": []
   },

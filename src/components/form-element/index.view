@@ -47,10 +47,14 @@
 {{/inline}}
 
 {{#*inline "form_element_css_classes"}}
+  {{layoutType ? 'slds-form-element_${layoutType}' : ''}}
   {{error ? 'slds-has-error' : ''}}
   {{editable ? 'slds-form-element_edit' : ''}}
   {{readonly ? 'slds-form-element_readonly' : ''}}
-  {{(editing and not readonly) ? 'slds-is-editing slds-hint-parent' : ''}}
+  {{(editing and not readonly) ? 'slds-is-editing' : ''}}
+  {{!-- TODO this should only be added on hover --}}
+  {{inlineEdit ? 'slds-hint-parent' : ''}}
+  {{cssClass ? cssClass : ""}}
 {{/inline}}
 
 {{#*inline "render_standalone"}}

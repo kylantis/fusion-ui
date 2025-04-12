@@ -14,10 +14,10 @@ class CustomCtxRenderer extends RootCtxRenderer {
   #stack = [];
 
   constructor({
-    id, input, logger, config,
+    id, input, logger, config, isRoot,
   } = {}) {
     super({
-      id, input, logger, config,
+      id, input, logger, config, isRoot,
     });
   }
 

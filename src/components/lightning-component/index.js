@@ -7,7 +7,7 @@ class LightningComponent extends BaseComponent {
     }
 
     beforeCompile() {
-        this.getInput().cssStyle;
+        this.getInput().cssStyles['@mapKey'];
         this.getInput().cssClass;
     }
 
@@ -29,6 +29,17 @@ class LightningComponent extends BaseComponent {
             'setTooltipText', 'showTooltip', 'hideTooltip', 'refreshTooltip', 'removeTooltip',
             'resetTooltipHover', 'showTooltipOnHover', 'show', 'hide', 'toggleCssClass',
         ];
+    }
+
+    onMount() {
+        const { cssStyles } = this.getInput();
+        const node = this.getNode();
+
+        if (node && cssStyles && cssStyles.size) {
+            for (var name in cssStyles) {
+                node.style[name] = cssStyles[name];
+            }
+        }
     }
 
     getNode() {
@@ -133,6 +144,7 @@ class LightningComponent extends BaseComponent {
                     parts: [{
                         text: title,
                     }],
+                    nubbin: true,
                 },
             });
 
@@ -223,7 +235,13 @@ class LightningComponent extends BaseComponent {
     }
 
     getTooltipTarget() {
-        return this.isMounted() ? `#${this.getElementId()}` : null;
+        if (!this.isMounted()) return null;
+
+        const rootSelector = `#${this.getElementId()}`;
+        const node = this.getNode();
+
+        return (node && (node != this.getNode0())) ?
+            `${rootSelector} ${node.tagName.toLowerCase()}` : rootSelector;
     }
 
     getTooltipHoverTarget() {

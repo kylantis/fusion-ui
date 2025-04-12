@@ -38,7 +38,7 @@ const compressTransform = () => through.obj((chunk, enc, cb) => {
 });
 
 gulp.task(
-  'copy-component-assets', () => gulp.src([`${srcFolder}/**/assets/*`])
+  'copy-component-assets', () => gulp.src([`${srcFolder}/**/assets/**/*.*`])
     .pipe(renameComponentAssetId())
     .pipe(compressTransform())
     .pipe(gulp.dest(destFolder))
