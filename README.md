@@ -10,12 +10,12 @@ This repository contains the tools needed to compile component libraries for kyl
 - Schema modelling tooling
 - Sample components
 
-The sample components to help you quickly learn how to build your own components. The sample components are provided for your reference and based on Lightning Design: https://www.lightningdesignsystem.com, but you can use any css library of your choice. There are almost 100 UI components for you to choose from.
+The sample components to help you quickly learn how to build your own components. The sample components are provided for your reference and based on Lightning Design, but you can use any css library of your choice. There are almost 100 UI components for you to choose from.
 
 
 ### Philosophy
 
-We believe that the future of web development is templating-based and model-driven, and this cutting edge platform aims to explore this new frontier.
+We believe that the future of web development is templating-based and model-driven, and this cutting edge web ui framework aims to explore this new frontier.
 
 From our research, we know that the current paradigm for building web applications is not sustainable, as it is unable to evolve to meet the demands of tomorrow's data-driven applications.
 
