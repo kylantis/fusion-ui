@@ -107,7 +107,13 @@ class ListBox extends components.LightningComponent {
     }
 
     behaviours() {
-        return ['pushState', 'popState', 'addHighlight', 'removeHightlight'];
+        return [
+            'setValue', 'pushState', 'popState', 'addHighlight', 'removeHightlight'
+        ];
+    }
+
+    setValue(groups) {
+        this.getInput().groups = groups;
     }
 
     destroy() {

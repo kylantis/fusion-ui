@@ -26,7 +26,11 @@ class Popover extends components.OverlayComponent {
 
     setTargetComponent(component) {
         if (typeof component == 'string') {
-            component = BaseComponent.getComponentByRef(component);
+            const componentsByRef = BaseComponent.getComponentsByRef(component)
+
+            if (componentsByRef) {
+                component = componentsByRef.values().next().value;
+            }
         }
 
         if (!(component instanceof BaseComponent)) {

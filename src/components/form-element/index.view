@@ -14,7 +14,7 @@
 {{#*inline "render_title_icon"}}
   {{component ButtonIcon alias="titleIcon"}}
   {{#if titleIcon}}
-    <div class="slds-form-element__icon {{displayOnlyControl ? "slds-assistive-text" : ""}}">
+    <div class="slds-form-element__icon {{controlOnly ? "slds-assistive-text" : ""}}">
         {{> titleIcon }}
     </div>
   {{/if}}
@@ -66,14 +66,14 @@
         {{> ?standalone_classes}}"
   >
 
-    {{#if readonly neq undefined transform='labelTransform' transient=true}}
-      <label class="slds-form-element__label {{displayOnlyControl ? "slds-assistive-text" : ""}}" 
+    {{#block transform='labelTransform' transient=true}}
+      <label class="slds-form-element__label {{controlOnly ? "slds-assistive-text" : ""}}" 
         {{hasInputWidget ? "for='${@root.componentId}_input'" : ''}}
         id="{{@root.componentId}}_label"
       >
           {{> render_title}}
       </label>
-    {{/if}}
+    {{/block}}
 
     {{> render_title_icon}}
 
@@ -106,7 +106,7 @@
         {{> ?compound_classes}}"
   >
     
-    <legend class="slds-form-element__legend slds-form-element__label {{displayOnlyControl ? "slds-assistive-text" : ""}}">
+    <legend class="slds-form-element__legend slds-form-element__label {{controlOnly ? "slds-assistive-text" : ""}}">
       {{> render_title}}
     </legend>
 

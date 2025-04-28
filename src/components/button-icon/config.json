@@ -20,7 +20,10 @@
       "type": "String",
       "allowed": "utilityIconName",
       "defaults": [
-        "info"
+        "info",
+        "salesforce1",
+        "search",
+        "help"
       ]
     },
     "svgForeground": {
@@ -56,6 +59,9 @@
         "border-filled",
         "border-inverse",
         "circular"
+      ],
+      "defaults": [
+        "border-filled"
       ]
     },
     "container": {
@@ -81,9 +87,6 @@
     "error": {
       "type": "Boolean",
       "defaultValue": false
-    },
-    "assistiveText": {
-      "type": "String"
     },
     "hint": {
       "type": "Boolean",

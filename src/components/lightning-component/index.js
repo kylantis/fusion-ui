@@ -9,6 +9,7 @@ class LightningComponent extends BaseComponent {
     beforeCompile() {
         this.getInput().cssStyles['@mapKey'];
         this.getInput().cssClass;
+        this.getInput().assistiveText;
     }
 
     beforeRender() {
@@ -36,7 +37,7 @@ class LightningComponent extends BaseComponent {
         const node = this.getNode();
 
         if (node && cssStyles && cssStyles.size) {
-            for (var name in cssStyles) {
+            for (var name of cssStyles.keys()) {
                 node.style[name] = cssStyles[name];
             }
         }
@@ -161,6 +162,14 @@ class LightningComponent extends BaseComponent {
     }
 
     showTooltip() {
+        if (!this.tooltip) {
+            const { assistiveText } = this.getInput();
+
+            if (assistiveText) {
+                this.setTooltipText(assistiveText);
+            }
+        }
+
         if (this.tooltip) {
             this.tooltip.showPopover();
         }
@@ -212,8 +221,9 @@ class LightningComponent extends BaseComponent {
 
         const onMouseEnter = () => {
             isMouseHover = true;
-            setTimeout(() => {
+            setTimeout(async () => {
                 if (isMouseHover) {
+                    await this.tooltip.setPosition();
                     this.showTooltip();
                 }
             }, 200);
@@ -267,28 +277,6 @@ class LightningComponent extends BaseComponent {
 
     events() {
         return [];
-    }
-
-    behaviours() {
-        return [
-            'setHtmlAttribute', 'removeHtmlAttribute',
-        ];
-    }
-
-    setHtmlAttribute(name, value) {
-        const node = this.getNode();
-        if (!node) {
-            return;
-        }
-        node.setAttribute(name, value);
-    }
-
-    removeHtmlAttribute(name) {
-        const node = this.getNode();
-        if (!node) {
-            return;
-        }
-        node.removeAttribute(name);
     }
 
     getOverlayAttribute() {

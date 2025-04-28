@@ -601,7 +601,26 @@ class RootProxy {
                 return () => obj;
 
               default:
-                let v = obj[prop];
+
+                let v;
+
+                if (prop.startsWith("!")) {
+                  prop = prop.replace("!", "");
+                  v = obj[prop];
+                } else {
+                  let { component } = this;
+
+                  while ((component = Reflect.getPrototypeOf(component))
+                    // eslint-disable-next-line no-undef
+                    && component.constructor.name !== BaseComponent.name
+                  ) {
+                    const classMetadata = self.appContext.getComponentClassMetadataMap()[component.constructor.name];
+                    if (!classMetadata) continue;
+                    const { schemaDefinitions } = classMetadata
+                    v = schemaDefinitions[`!${prop}`];
+                    if (v) break;
+                  }
+                }
 
                 if (!v) {
                   this.component.throwError(`No schema definition was found for key "${prop}"`);
@@ -2490,7 +2509,7 @@ class RootProxy {
     const sPath0 = clientUtils.toCanonicalPath(fqPath0);
 
     for (
-      const arr of this.component.recursivelyInvokeMethod('immutablePaths',
+      const { returnValue: arr } of this.component.recursivelyInvokeMethod('immutablePaths',
         (c) => !(c.prototype instanceof BaseComponent))
     ) {
       if (arr[fqPath0] || arr[sPath0]) return true;

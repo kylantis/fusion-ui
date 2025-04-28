@@ -1,8 +1,8 @@
 
-class Input extends components.FormElement {
+class TextArea extends components.FormElement {
 
     loadStandaloneControl() {
-        this.getInputElement()
+        this.getTextAreaElement()
             .addEventListener('click', () => {
                 this.dispatchEvent('click');
             });
@@ -21,22 +21,16 @@ class Input extends components.FormElement {
         }
     }
 
-    initializers() {
-        return {
-            ['type']: 'text',
-        }
-    }
-
     beforeRender() {
         this.on('insert.disabled', 'insert.disabled');
     }
-
+    
     afterMount() {
         this.on('insert.value', 'insert.value');
     }
     
-    getInputElement() {
-        return this.getNode().querySelector('input');
+    getTextAreaElement() {
+        return this.getNode().querySelector('textarea');
     }
 
     getValue() {
@@ -49,10 +43,6 @@ class Input extends components.FormElement {
 
     isCompound() {
         return false;
-    }
-
-    clearInput() {
-        this.getInput().value = null;
     }
 
     onChange(evt) {
@@ -71,13 +61,9 @@ class Input extends components.FormElement {
         }
     }
 
-    getWidgetElementId() {
-        return `${this.getId()}-widget`
-    }
-
     prettifyTransform(value) {
         return value || '';
     }
 }
 
-module.exports = Input;
+module.exports = TextArea;

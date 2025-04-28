@@ -1,8 +1,10 @@
 
-{{#each formValues as |val|}}
-{{/each}}
-
-<div class="slds-form" role="list">
+<form 
+  class="slds-form" role="list"
+  {{autoComplete ? "autocomplete='${autoComplete}'" : "" }}
+  {{action ? "action='${action}'" : "" }}
+  {{method ? "method='${method}'" : "" }}
+>
   {{#each elements as |x y|}}
     <div class="slds-form__row">
       {{#each . as |x y|}}
@@ -13,4 +15,9 @@
       {{/each}}
     </div>
   {{/each}}
-</div>
+
+  {{#if action}}
+    <br><br>
+    {{> Button title="Submit" buttonType="submit"}}
+  {{/if}}
+</form>

@@ -1,0 +1,22 @@
+{
+  "collections": {},
+  "scalars": {
+    "placeholder": {
+      "type": "String"
+    },
+    "value": {
+      "type": "String",
+      "defaults": []
+    },
+    "autoComplete": {
+      "type": "String",
+      "allowed": "formInputAutoComplete"
+    },
+    "inputRequired": {
+      "type": "Boolean"
+    }
+  },
+  "sample": {},
+  "escapeDynamicHtml": false,
+  "hookAccessRate": 2
+}

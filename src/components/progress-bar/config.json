@@ -12,9 +12,6 @@
       "type": "Number",
       "defaultValue": 45
     },
-    "assistiveText": {
-      "type": "String"
-    },
     "label": {
       "type": "String"
     },

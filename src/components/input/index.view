@@ -7,10 +7,14 @@
 {{var hasRightIconOrButton = (hasRightIcon or hasRightButton)}}
 
 {{#*inline "render_input_element" eager=true}}
+    {{var required = ((inputRequired neq undefined) ? inputRequired : required)}}
+
     <input type="{{type}}" id="{{@root.componentId}}_input"
       class="slds-input {{(not readonly and hasWidget) ? "hasWidget" : ""}}"
       style="{{readonly ? 'box-shadow: none;' : ''}}"
       value="{{(value neq null) ? value : "" transform="prettifyTransform"}}"
+      {{name ? "name='${name}'" : "" }}
+      {{autoComplete ? "autocomplete='${autoComplete}'" : "" }}
       {{required ? "required='required'" : "" }}
       {{disabled ? "disabled='disabled'" : "" }}
       {{(readonly or hasWidget) ? "readonly='readonly'" : "" }}

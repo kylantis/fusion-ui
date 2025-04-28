@@ -4,8 +4,7 @@ class Form extends components.LightningComponent {
     beforeCompile() {
         this.getInput().layoutType;
         this.getInput().editing;
-
-        // string
+        this.getInput().formValues['@mapKey'];
     }
 
     initializers() {
@@ -65,6 +64,12 @@ class Form extends components.LightningComponent {
     }
 
     submit() {
+        const form = this.getNode();
+
+        if (!form.reportValidity()) {
+            return;
+        }
+
         var formValues = {};
 
         this.#getElements().forEach(e => {

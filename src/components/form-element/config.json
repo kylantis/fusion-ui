@@ -45,7 +45,7 @@
       "type": "String",
       "allowed": "spacingType"
     },
-    "displayOnlyControl": {
+    "controlOnly": {
       "type": "Boolean",
       "defaultValue": false
     },
@@ -65,9 +65,33 @@
       "type": "FormElement",
       "isNull": true
     },
+    "dependsOnRef": {
+      "type": "String",
+      "isNull": true
+    },
     "editing": {
       "type": "Boolean",
       "clientOnly": true
+    }
+  },
+  "behaviours": {
+    "setError": {
+      "parameters": {
+        "error": {
+          "type": {
+            "$ref": "error"
+          }
+        }
+      }
+    },
+    "setMessage": {
+      "parameters": {
+        "message": {
+          "type": {
+            "$ref": "message"
+          }
+        }
+      }
     }
   },
   "events": {

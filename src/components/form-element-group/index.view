@@ -4,7 +4,7 @@
   {{#each rows as |x y|}}
     <div class="slds-form-element__row">
       {{#each fields as |x y|}}
-        {{component Input alias="formElement"}}
+        {{component FormElement alias="formElement"}}
         <div class="slds-{{columnSize}}">
             {{> formElement}}
         </div>

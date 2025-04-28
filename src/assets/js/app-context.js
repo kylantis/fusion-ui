@@ -26,7 +26,7 @@ class AppContext {
   static RTL = false;
 
   #loadedStyles = [];
-  #loadedScripts = [];
+  #loadedScripts = new Set();
 
   #logger;
   #userGlobals;
@@ -680,6 +680,7 @@ class AppContext {
 
     return Promise.all(
       Object.entries(list)
+        .filter(([className]) => !self.components[className])
         .map(async ([className, assetId]) => {
           const { jsURL, testJsURL } = getComponentAssetURLs(assetId);
 
@@ -1258,17 +1259,17 @@ class AppContext {
       }
       return req;
     })
-      .filter(({ url }) => !this.#loadedScripts.includes(url))
+      .filter(({ url }) => !this.#loadedScripts.has(url))
       .filter(({ screenTargets }) => !screenTargets || screenTargets.includes(AppContext.#getScreenSize()))
+
+    requests.forEach(({ url }) => {
+      this.#loadedScripts.add(url);
+    });
 
     var groups = {};
 
     requests.forEach((req) => {
-      const { url, group = AppContext.#getRandomString() } = req;
-
-      if (!this.#loadedScripts.includes(url)) {
-        this.#loadedScripts.push(url);
-      }
+      const { group = AppContext.#getRandomString() } = req;
 
       if (!groups[group]) {
         groups[group] = [];

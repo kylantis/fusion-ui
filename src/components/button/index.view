@@ -22,6 +22,7 @@
     {{cssClass ? cssClass : ""}}
     "
     {{disabled ? "disabled='disabled'" : ""}}
+    {{buttonType ? "type='${buttonType}'" : ""}}
     {{ariaDescribedBy ? "aria-describedby='${ariaDescribedBy}'" : ""}}
 >
 

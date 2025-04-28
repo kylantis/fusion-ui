@@ -5,10 +5,6 @@ class KylantisSiteLanding extends BaseComponent {
         this.getInput().contactUrl;
     }
 
-    awaitHtmlDependencies() {
-        return true;
-    }
-
     useBodyIfRoot() {
         return true;
     }

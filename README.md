@@ -1,7 +1,7 @@
 
 ## Project Panther FE
 
-This repository contains the tools needed to compile component libraries for the Kylantis enterprise server. It also includes sample components to help you quickly learn how to build your own components. The sample components here are based on Lightning Design: https://www.lightningdesignsystem.com, but you can use any css library of your choice
+This repository contains the tools needed to compile component libraries for the Kylantis Apps. It also includes sample components to help you quickly learn how to build your own components. The sample components are provided for your reference and based on Lightning Design: https://www.lightningdesignsystem.com, but you can use any css library of your choice
 
 
 ### Setup

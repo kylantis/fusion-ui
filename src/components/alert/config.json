@@ -17,9 +17,6 @@
       "type": "Icon",
       "isNull": false
     },
-    "assistiveText": {
-      "type": "String"
-    },
     "link": {
       "type": "Link",
       "isNull": false

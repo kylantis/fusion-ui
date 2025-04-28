@@ -151,6 +151,15 @@
     }
   },
   "behaviours": {
+    "setValue": {
+      "parameters": {
+        "groups": {
+          "type": {
+            "$ref": "groups"
+          }
+        }
+      }
+    },
     "pushState": {
       "parameters": {
         "state": {

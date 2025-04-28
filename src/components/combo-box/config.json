@@ -83,6 +83,13 @@
           "type": "string"
         }
       }
+    },
+    "setLoading": {
+      "parameters": {
+        "loading": {
+          "type": "boolean"
+        }
+      }
     }
   },
   "escapeDynamicHtml": false,

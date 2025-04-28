@@ -21,12 +21,26 @@
     "editing": {
       "type": "Boolean"
     },
+    "autoComplete": {
+      "type": "String",
+      "allowed": "formAutoComplete"
+    },
     "elements_$_$": {
       "type": "FormElement",
       "isNull": false
     },
     "formValues.$_": {
       "type": "String"
+    },
+    "action": {
+      "type": "String"
+    },
+    "method": {
+      "type": "String",
+      "allowed": [
+        "get",
+        "post"
+      ]
     }
   },
   "events": {

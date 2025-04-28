@@ -1199,7 +1199,7 @@ class RootCtxRenderer extends BaseRenderer {
     const methods = this.recursivelyGetMethods(name);
     const promises = [];
 
-    for (const fn of methods) {
+    for (const { fn } of methods) {
       promises.push(
         fn(...args)
       )
@@ -1212,7 +1212,8 @@ class RootCtxRenderer extends BaseRenderer {
     let ret = this.#methodInvokeCache[name];
 
     if (ret === undefined) {
-      ret = this.recursivelyGetMethods(name, classPredicate).map(fn => fn(...args));
+      ret = this.recursivelyGetMethods(name, classPredicate)
+        .map(({ fn, prototype }) => ({ returnValue: fn(...args), prototype }));
       this.#methodInvokeCache[name] = ret;
     }
 
@@ -1236,7 +1237,7 @@ class RootCtxRenderer extends BaseRenderer {
       assert(name !== 'constructor');
 
       if (Reflect.ownKeys(component).includes(name)) {
-        methods.unshift(component[name].bind(this));
+        methods.unshift({ fn: component[name].bind(this), prototype: component });
       }
     }
 
@@ -3662,7 +3663,7 @@ class RootCtxRenderer extends BaseRenderer {
 
     [...this.recursivelyInvokeMethod('booleanOperators')]
       .reverse()
-      .forEach(r => {
+      .forEach(({ returnValue: r }) => {
         Object.entries(r)
           .forEach(([key, value]) => {
             assert(value instanceof Function);
@@ -3697,12 +3698,26 @@ class RootCtxRenderer extends BaseRenderer {
   getBehaviours() {
     let behaviours = [];
 
-    this.recursivelyInvokeMethod('behaviours').forEach(arr => {
-      assert(arr.constructor.name == 'Array');
-      behaviours = behaviours.concat(arr);
-    });
+    this.recursivelyInvokeMethod('behaviours')
+      .forEach(({ returnValue: arr }) => {
+        assert(arr.constructor.name == 'Array');
+        behaviours = behaviours.concat(arr);
+      });
 
     return behaviours;
+  }
+
+  getBehaviourOwner(behaviourName) {
+    let className = null;
+
+    for (const { returnValue: arr, prototype } of this.recursivelyInvokeMethod('behaviours')) {
+      if (arr.includes(behaviourName)) {
+        className = prototype.constructor.name;
+        break;
+      }
+    }
+
+    return className;
   }
 
   events() {
@@ -3718,7 +3733,7 @@ class RootCtxRenderer extends BaseRenderer {
     let events = [];
 
     this.recursivelyInvokeMethod('events', (c) => !(c.prototype instanceof BaseComponent))
-      .forEach(arr => {
+      .forEach(({ returnValue: arr }) => {
         assert(arr.constructor.name == 'Array');
         events = events.concat(arr);
       });
@@ -3729,18 +3744,19 @@ class RootCtxRenderer extends BaseRenderer {
   getEventHandlers() {
     const handlers = {};
 
-    this.recursivelyInvokeMethod('eventHandlers').forEach(r => {
-      Object.entries(r)
-        .forEach(([key, value]) => {
-          assert(value instanceof Function);
+    this.recursivelyInvokeMethod('eventHandlers')
+      .forEach(({ returnValue: r }) => {
+        Object.entries(r)
+          .forEach(([key, value]) => {
+            assert(value instanceof Function);
 
-          if (!handlers[key]) {
-            handlers[key] = [];
-          }
+            if (!handlers[key]) {
+              handlers[key] = [];
+            }
 
-          handlers[key].push(value);
-        });
-    });
+            handlers[key].push(value);
+          });
+      });
 
     return handlers;
   }
@@ -3748,18 +3764,19 @@ class RootCtxRenderer extends BaseRenderer {
   getTransformers() {
     const transformers = {};
 
-    this.recursivelyInvokeMethod('transformers').forEach(r => {
-      Object.entries(r)
-        .forEach(([key, value]) => {
-          assert(value instanceof Function);
+    this.recursivelyInvokeMethod('transformers')
+      .forEach(({ returnValue: r }) => {
+        Object.entries(r)
+          .forEach(([key, value]) => {
+            assert(value instanceof Function);
 
-          if (!transformers[key]) {
-            transformers[key] = [];
-          }
+            if (!transformers[key]) {
+              transformers[key] = [];
+            }
 
-          transformers[key].push(value);
-        });
-    });
+            transformers[key].push(value);
+          });
+      });
 
     Object.values(transformers).forEach(arr => arr.reverse());
 
@@ -3769,17 +3786,18 @@ class RootCtxRenderer extends BaseRenderer {
   getInitializers() {
     const initializers = {};
 
-    this.recursivelyInvokeMethod('initializers').forEach(r => {
-      Object.entries(r)
-        .forEach(([key, value]) => {
+    this.recursivelyInvokeMethod('initializers')
+      .forEach(({ returnValue: r }) => {
+        Object.entries(r)
+          .forEach(([key, value]) => {
 
-          if (!initializers[key]) {
-            initializers[key] = [];
-          }
+            if (!initializers[key]) {
+              initializers[key] = [];
+            }
 
-          initializers[key].push(value);
-        });
-    });
+            initializers[key].push(value);
+          });
+      });
 
     return initializers;
   }

@@ -11,8 +11,10 @@
       "type": "String"
     },
     "cssClass": {
-      "type": "String",
-      "clientOnly": true
+      "type": "String"
+    },
+    "assistiveText": {
+      "type": "String"
     }
   },
   "behaviours": {
@@ -21,34 +23,10 @@
         "title": {
           "type": "string"
         }
-      }
-    },
-    "toggleCssClass": {
-      "parameters": {
-        "predicate": {
-          "type": "boolean"
-        },
-        "className": {
-          "type": "string"
-        }
-      }
-    },
-    "setHtmlAttribute": {
-      "parameters": {
-        "name": {
-          "type": "string"
-        },
-        "value": {
-          "type": "string"
-        }
-      }
-    },
-    "removeHtmlAttribute": {
-      "parameters": {
-        "name": {
-          "type": "string"
-        }
-      }
+      },
+      "requires": [
+        "Tooltip"
+      ]
     }
   },
   "sample": {

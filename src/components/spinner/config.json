@@ -2,9 +2,6 @@
   "enableTypeMerging": false,
   "collections": {},
   "scalars": {
-    "assistiveText": {
-      "type": "String"
-    },
     "container": {
       "type": "String",
       "allowed": [

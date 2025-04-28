@@ -13,9 +13,6 @@
       "type": "Boolean",
       "defaultValue": false
     },
-    "assistiveText": {
-      "type": "String"
-    },
     "labelledBy": {
       "type": "String",
       "clientOnly": true

@@ -17,6 +17,8 @@ class FormElement extends components.LightningComponent {
         this.getInput().editable;
         this.getInput().inlineEdit;
         this.getInput().editing;
+
+        this.getInput().dependsOnRef;
     }
 
     initializers() {
@@ -25,9 +27,33 @@ class FormElement extends components.LightningComponent {
         };
     }
 
+    eventHandlers() {
+        return {
+            ['insert.dependsOnRef']: ({ value: dependsOnRef, parentObject }) => {
+                if (!dependsOnRef) return;
+
+                const componentsByRef = BaseComponent.getComponentsByRef(dependsOnRef)
+
+                if (componentsByRef) {
+                    const component = componentsByRef.values().next().value;
+    
+                    if (!(component instanceof FormElement)) {
+                        this.logger.error(null, 'Unknown component: ', component);
+                    } else {
+                        parentObject.dependsOn = component;
+                    }
+                }
+            },
+        }
+    }
+
+    beforeRender() {
+        this.on('insert.dependsOnRef', 'insert.dependsOnRef');
+    }
+
     onMount() {
         const input = this.getInput();
-        const { dependsOn } = input;
+        let { dependsOn } = input;
 
         if (dependsOn) {
             if (dependsOn.getValue() == null) {
@@ -64,8 +90,22 @@ class FormElement extends components.LightningComponent {
         return ['dependsOn'];
     }
 
+    behaviours() {
+        return ['setError', 'setMessage'];
+    }
+
     events() {
         return ['change', 'activate'];
+    }
+
+    setError(error) {
+        const input = this.getInput();
+        input.error = error;
+    }
+
+    setMessage(message) {
+        const input = this.getInput();
+        input.message = message;
     }
 
     getTooltipTarget() {

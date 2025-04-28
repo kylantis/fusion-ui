@@ -93,6 +93,28 @@ class Button extends components.LightningComponent {
         };
     }
 
+    behaviours() {
+        return ['disableButton', 'enableButton'];
+    }
+
+    disableButton() {
+        const input =  this.getInput();
+        if (input) {
+            input.disabled = true;
+        } else {
+            this.getNode().disabled = true;
+        }
+    }
+
+    enableButton() {
+        const input =  this.getInput();
+        if (input) {
+            input.disabled = false;
+        } else {
+            this.getNode().disabled = false;
+        }
+    }
+
     #geEmptyStateObject() {
         return {};
     }

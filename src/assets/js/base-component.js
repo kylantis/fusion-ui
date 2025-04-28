@@ -83,7 +83,21 @@ class BaseComponent extends WebRenderer {
     this.#handlers = {};
 
     if (ref) {
-      BaseComponent.#refsMap.set(ref, this);
+      let refSet;
+      
+      if (!BaseComponent.#refsMap.has(ref)) {
+        refSet = new Set();
+        BaseComponent.#refsMap.set(ref, refSet);
+      } else {
+        refSet = BaseComponent.#refsMap.get(ref);
+        const componentName = refSet.values().next().value.getComponentName();
+
+        if (this.getComponentName() != componentName) {
+          this.throwError(`Expected componentName "${componentName}" but found "${this.getComponentName()}"`);
+        }
+      }
+      
+      refSet.add(this);
       BaseComponent.#idToRefMap.set(this.getId(), ref);
     }
 
@@ -91,7 +105,7 @@ class BaseComponent extends WebRenderer {
   }
 
   awaitHtmlDependencies() {
-    return false;
+    return true;
   }
 
   static onComponentPruned(id) {
@@ -99,11 +113,11 @@ class BaseComponent extends WebRenderer {
 
     if (ref) {
       BaseComponent.#idToRefMap.delete(id);
-      BaseComponent.#refsMap.delete(ref);
+      BaseComponent.#refsMap.get(ref).delete(this);
     }
   }
 
-  static getComponentByRef(ref) {
+  static getComponentsByRef(ref) {
     return BaseComponent.#refsMap.get(ref);
   }
 
@@ -501,7 +515,7 @@ class BaseComponent extends WebRenderer {
     return classMetadata.eventsSignature;
   }
 
-  #validateArgTypes(resourceType, resourceName, argTypes, args) {
+  #validateArgTypes(resourceType, resourceName, component, argTypes, args) {
     const throwSchemaError = (msg) => {
       throw Error(`Schema mismatch occured for ${resourceType} "${resourceName}": ${msg}`);
     }
@@ -511,17 +525,18 @@ class BaseComponent extends WebRenderer {
     }
 
     for (let i = 0; i < argTypes.length; i++) {
-      const { type, $ref } = argTypes[i];
+      const { type } = argTypes[i];
 
-      if (type) {
+      if (typeof type == 'string') {
         if (typeof args[i] != type.toLowerCase()) {
           throwSchemaError(`expected ${type.toLowerCase()} but found ${typeof args[i]} at arg[${i}]`);
         }
       } else {
+        const { $ref } = type;
         assert($ref, `Unable to parse signature for ${resourceType} "${resourceName}"`);
 
         try {
-          this.proxyInstance.validateSchema(`arg[${i}]`, $ref, args[i]);
+          component.proxyInstance.validateSchema(`arg[${i}]`, $ref, args[i]);
         } catch (e) {
           throwSchemaError(e.message);
         }
@@ -542,6 +557,16 @@ class BaseComponent extends WebRenderer {
     const uri = this.#serverEventListeners[event];
     if (!uri) return;
 
+    if (this.isLifecycleEvent(event) && !this.__extendedFuturesResolved) {
+      const [{ extendedFutures }] = args;
+
+      Promise.all(extendedFutures).then(() => {
+        this.__extendedFuturesResolved = true;
+        this.#dispatchServerEvent(event, ...args);
+      });
+      return;
+    }
+
     const initial = !this.#serverEventDispatches.has(event);
 
     this.#serverEventDispatches.set(event, true);
@@ -557,7 +582,7 @@ class BaseComponent extends WebRenderer {
     const argTypes = this.getEventsSignature()[event];
 
     if (argTypes) {
-      this.#validateArgTypes('event', event, argTypes, args);
+      this.#validateArgTypes('event', event, this, argTypes, args);
     }
 
     const queryParams = new URLSearchParams();
@@ -617,43 +642,50 @@ class BaseComponent extends WebRenderer {
     const dataEnd = new TextDecoder('utf-8').decode(buffer.slice(
       fileEntries.length ? fileEntries.at(-1)[1] + filesStart : filesStart, buffer.byteLength
     ));
-    const { actions } = unsafeEval(`module.exports=${dataEnd}`);
+    const { actions, redirectUri } = unsafeEval(`module.exports=${dataEnd}`);
+
+    if (redirectUri) {
+      window.location.href = redirectUri;
+      return;
+    }
 
     await jsDepsPromise;
 
     await Promise.all(
       Object.entries(actions)
         .map(async ([ref, specList]) => {
-          const component = BaseComponent.#refsMap.get(ref);
+          var componentsByRef = BaseComponent.getComponentsByRef(ref);
 
-          if (!component) {
-            this.logger.warn(`Could not find component with ref "${ref}"`);
+          if (!componentsByRef) {
+            this.logger.warn(null, `Could not find any component with ref "${ref}"`);
             return;
           }
 
-          if (!component.isComponentRendered()) {
-            await component.load({ wait: false });
+          for (const component of componentsByRef) {
+            if (!component.isComponentRendered()) {
+              await component.load({ wait: false });
 
-            await new Promise(resolve => {
-              requestAnimationFrame(resolve);
+              await new Promise(resolve => {
+                requestAnimationFrame(resolve);
+              });
+
+              await cssDepsPromise;
+            }
+
+            const behavioursSignature = component.getBehavioursSignature();
+
+            specList.forEach(({ behaviourName, args }) => {
+              const argTypes = behavioursSignature[behaviourName];
+
+              if (argTypes) {
+                this.#validateArgTypes('behaviour', behaviourName, component, argTypes, args);
+              }
+
+              if (typeof component[behaviourName] == 'function') {
+                component[behaviourName].bind(component)(...args);
+              }
             });
-
-            await cssDepsPromise;
           }
-
-          const behavioursSignature = component.getBehavioursSignature();
-
-          specList.forEach(({ behaviourName, args }) => {
-            const argTypes = behavioursSignature[behaviourName];
-
-            if (argTypes) {
-              this.#validateArgTypes('behaviour', behaviourName, argTypes, args);
-            }
-
-            if (typeof component[behaviourName] == 'function') {
-              component[behaviourName].bind(component)(...args);
-            }
-          });
         })
     );
 

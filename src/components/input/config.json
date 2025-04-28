@@ -37,6 +37,13 @@
       "defaults": [
         "clear"
       ]
+    },
+    "autoComplete": {
+      "type": "String",
+      "allowed": "formInputAutoComplete"
+    },
+    "inputRequired": {
+      "type": "Boolean"
     }
   },
   "sample": {},

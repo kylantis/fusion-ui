@@ -103,8 +103,12 @@ class ComboBox extends components.FormElement {
     behaviours() {
         return [
             'selectValueFromOptions', 'unselectValueFromOptions', 'unselectCurrentValue',
-            'showOptions', 'hideOptions', 'toggleOptions', 'setOptions'
+            'showOptions', 'hideOptions', 'toggleOptions', 'setOptions', 'setLoading'
         ];
+    }
+
+    setLoading(loading) {
+        this.getInput().loading = loading;
     }
 
     getValue() {
