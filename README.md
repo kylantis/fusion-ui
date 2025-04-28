@@ -2,7 +2,7 @@
 
 ## Fusion UI
 
-Fusion UI is an open source web framework that enables developers create UI components using web technologies, and then embed the components into their server-side applications written in java and other languages. We currently support Java, but support for other languages is coming soon.
+Fusion UI is a next-generation UI framework that enables developers create UI components using web technologies, and then embed these components into their server-side applications written in java and other server-side languages. We currently support Java, but support for other languages is coming soon.
 
 This repository contains the tools needed to compile component libraries for the Kylantis enterprise server (or any server that implements the fusion archiecture). The tools include:
 - The core compiler
