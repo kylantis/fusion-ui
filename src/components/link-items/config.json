@@ -1,0 +1,47 @@
+{
+  "enableTypeMerging": false,
+  "collections": {
+    "items": {
+      "minLength": 5,
+      "keyType": "String",
+      "singularType": "Item"
+    },
+    "items.$_.sizes": {
+      "minLength": 1
+    }
+  },
+  "scalars": {
+    "items.$_.sizes_$": {
+      "type": "String",
+      "allowed": "columnSize"
+    },
+    "items.$_.title": {
+      "type": "String",
+      "defaults": [
+        "Accounts",
+        "Announcements",
+        "Approvals",
+        "Campaigns",
+        "Cases",
+        "Coaching",
+        "Contacts"
+      ]
+    }
+  },
+  "events": {
+    "click": {
+      "parameters": {
+        "identifier": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "sample": {
+    "nullifyRandomly": [],
+    "nullify": [
+      "items.$_.sizes"
+    ]
+  },
+  "escapeDynamicHtml": false
+}

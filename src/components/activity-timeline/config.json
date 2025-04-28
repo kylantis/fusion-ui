@@ -41,10 +41,7 @@
   },
   "scalars": {
     "items_$.identifier": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
+      "type": "String"
     },
     "items_$.expanded": {
       "type": "Boolean",
@@ -55,8 +52,7 @@
       "defaultValue": true
     },
     "items_$.assistiveText": {
-      "type": "String",
-      "defaults": []
+      "type": "String"
     },
     "items_$.lineColor": {
       "type": "String",

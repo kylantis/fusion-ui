@@ -86,20 +86,28 @@
         "not-selected",
         "is-selected",
         "is-selected-clicked"
-      ],
-      "defaults": [
-        null
       ]
     },
     "states.$_.title": {
       "type": "String",
       "defaults": []
+    },
+    "ariaDescribedBy": {
+      "type": "String",
+      "clientOnly": true
+    },
+    "buttonType": {
+      "type": "String",
+      "allowed": [
+        "submit",
+        "button",
+        "reset"
+      ]
     }
   },
   "sample": {
     "count": 15,
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false
 }

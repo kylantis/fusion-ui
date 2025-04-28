@@ -4,10 +4,10 @@
 class WebRenderer extends CustomCtxRenderer {
 
   constructor({
-    id, input, logger, config,
+    id, input, logger, config, isRoot,
   } = {}) {
     super({
-      id, input, logger, config,
+      id, input, logger, config, isRoot,
     });
   }
 
@@ -19,7 +19,7 @@ class WebRenderer extends CustomCtxRenderer {
   load(opts) {
     let deps = [];
     // eslint-disable-next-line no-restricted-globals
-    if (!this.isHeadlessContext()) {
+    if (!this.isHeadlessContext() && !this.isRoot()) {
       deps = [
         this.loadCSSDependencies(),
         this.loadJSDependencies(),

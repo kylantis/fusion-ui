@@ -1,10 +1,36 @@
 {
   "enableTypeMerging": false,
   "collections": {},
-  "scalars": {},
+  "scalars": {
+    "header": {
+      "type": "String",
+      "defaults": [
+        "App launcher"
+      ]
+    },
+    "searchPlaceholder": {
+      "type": "String",
+      "defaults": [
+        "Find an app"
+      ]
+    },
+    "appstoreName": {
+      "type": "String",
+      "defaults": [
+        "App Exchange"
+      ]
+    },
+    "appTiles": {
+      "type": "AppTiles",
+      "isNull": false
+    },
+    "links": {
+      "type": "LinkItems",
+      "isNull": false
+    }
+  },
   "sample": {
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false
 }

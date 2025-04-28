@@ -10,7 +10,7 @@
     {{error ? "slds-button_icon-error" : ""}}
     {{cssClass ? cssClass : ''}}
     {{> add_margin_classes}}
- "  
+ "
  title="{{title ? title : ""}}"
  {{disabled ? "disabled='disabled'" : ""}}
  >

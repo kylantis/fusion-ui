@@ -86,7 +86,7 @@ class DataTable extends components.LightningComponent {
     transformers() {
         return {
             ['rows_$.id']: (id) => {
-                if (this.#rowIds.includes(id)) {
+                if (!id || this.#rowIds.includes(id)) {
                     id = this.randomString();
                 }
                 this.#rowIds.push(id);

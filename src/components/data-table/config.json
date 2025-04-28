@@ -45,10 +45,7 @@
       "defaultValue": true
     },
     "label": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
+      "type": "String"
     },
     "bordered": {
       "type": "Boolean",
@@ -64,9 +61,6 @@
     },
     "labelledBy": {
       "type": "String",
-      "defaults": [
-        null
-      ],
       "clientOnly": true
     },
     "inlineEdit": {
@@ -79,10 +73,7 @@
       "clientOnly": true
     },
     "rows_$.id": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
+      "type": "String"
     },
     "rows_$.selected": {
       "type": "Boolean",
@@ -191,6 +182,5 @@
       "rows_$.cells_$.control"
     ]
   },
-  "useCollectionLengthProperty": true,
   "escapeDynamicHtml": false
 }

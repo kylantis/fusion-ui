@@ -4,4 +4,7 @@
     class="{{cssClass ? cssClass : ""}}"
 >
     {{title}}
+    {{#if assistiveText}}
+        <span class="slds-assistive-text">{{assistiveText}}</span>
+    {{/if}}
 </a>

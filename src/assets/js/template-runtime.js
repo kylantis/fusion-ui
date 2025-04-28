@@ -169,17 +169,26 @@ function template(component, metadata, templateSpec, helpers) {
             const { name: decoratorName, data } = options;
             let html;
 
-            const { futures } = component.getRenderContext();
+            const { futures, extendedFutures } = component.getRenderContext();
+            const emitContext = component.getEmitContext();
+            const { currentHtmlPosition } = emitContext;
 
-            const _futures = component.renderDecorator0(
+            const { futures: _futures, extendedFutures: _extendedFutures } = component.renderDecorator0(
                 decoratorName, (_html) => {
                     html = _html;
                 }, null, metadata, { data },
+                currentHtmlPosition()
             );
 
             _futures.forEach(f => {
                 futures.push(f);
             });
+
+            _extendedFutures.forEach(f => {
+                extendedFutures.push(f);
+            });
+
+            emitContext.write(html);
 
             return html;
         },

@@ -1,0 +1,202 @@
+
+{{script url="/components/kylantis_site_landing/assets/js/browser.min.js" namespace="browser"}}
+{{script url="/components/kylantis_site_landing/assets/js/breakpoints.min.js" namespace="breakpoints"}}
+
+{{style url="/components/kylantis_site_landing/style.min.css"}}
+
+{{var imageBaseUrl="/components/kylantis_site_landing/assets/images"}}
+
+<!-- Wrapper -->
+<div class="kylantis-site-landing-wrapper">
+
+    <!-- Intro -->
+        <section class="intro">
+            <header>
+                <h1>The New Frontier Of Enterprise Software</h1>
+                <p> Find great business apps on our <a href="{{consoleUrl}}">@marketplace</a></p>
+                <ul class="actions">
+                    <li><a href="#" class="arrow scrolly"><span class="label">Next</span></a></li>
+                </ul>
+            </header>
+            <div class="content">
+                <span class="image fill" data-position="center"><img src="{{imageBaseUrl}}/pic01.jpg" alt="" /></span>
+            </div>
+        </section>
+
+    <!-- Section -->
+        <section id="first">
+            <header>
+                <h2>Empowering Enterprise Innovation</h2>
+            </header>
+            <div class="content">
+                <p><strong>The Intelligent Application Ecosystem:</strong> 
+                    At Kylantis, we recognize the imperative for a unified and intelligent application landscape. Our marketplace represents a strategically curated ecosystem of enterprise-grade solutions, meticulously vetted to drive tangible business outcomes and accelerate your organization's strategic imperatives. Integrate best-of-breed capabilities with the assurance of robust security and seamless interoperability.
+                </p>
+                <span class="image main"><img src="{{imageBaseUrl}}/pic02.jpg" alt="" /></span>
+            </div>
+        </section>
+
+    <!-- Section -->
+        <section>
+            <header>
+                <h2>Strategic Application Acquisition</h2>
+            </header>
+            <div class="content">
+                <p><strong>Unlock Rapid Innovation:</strong>
+                Find software solutions that enable innovation, drive business outcomes, and help you get more done with what you already have.
+                </p>
+                <ul class="feature-icons">
+                    <li class="icon solid fa-lock-open">Avoid Vendor Lock in</li>
+                    <li class="icon solid fa-cubes">Curated Ecosystem of Enterprise Applications</li>
+                    <li class="icon solid fa-users">Enhanced Collaboration among Teams</li>
+                    <li class="icon solid fa-search">Streamlined Software Discovery and Procurement</li>
+                    <li class="icon solid fa-minus-square">Reduced IT Overhead and Complexity</li>
+                    <li class="icon solid fa-shield-alt">Secure and Reliable Platform</li>
+                </ul>
+                <p>
+                    Unleash the potential of every department in your enterprise. With an expansive library spanning sales, IT, analytics, and more, you can streamline operations, optimize workflows, and drive strategic outcomes—all under one digital roof
+                </p>
+            </div>
+        </section>
+
+    <!-- Section -->
+        <section>
+            <header>
+                <h2>Enterprise Software is here.</h2>
+            </header>
+            <div class="content">
+                <p><strong>Rapid Deployment, Maximum Impact:</strong>
+                    Accelerate time-to-market for new initiatives with a platform designed for swift deployments. Our streamlined processes ensure that your innovative ideas become operational faster, giving you a competitive edge.
+                </p>
+
+                <!-- Section -->
+                    <section>
+                        <header>
+                            <h3>Stay Ahead.</h3>
+                            <p>Discover a one-stop marketplace where business solutions converge. Our platform enables a seamless discovery and deployment of next-generation apps, empowering every business unit to innovate and stay ahead in today's rapidly evolving market.</p>
+                        </header>
+                        <div class="content">
+                            <div class="gallery">
+                                <a href="{{imageBaseUrl}}/gallery/fulls/01.jpg" class="landscape"><img src="{{imageBaseUrl}}/gallery/thumbs/01.jpg" alt="" /></a>
+                                <a href="{{imageBaseUrl}}/gallery/fulls/02.jpg"><img src="{{imageBaseUrl}}/gallery/thumbs/02.jpg" alt="" /></a>
+                                <a href="{{imageBaseUrl}}/gallery/fulls/03.jpg"><img src="{{imageBaseUrl}}/gallery/thumbs/03.jpg" alt="" /></a>
+                                <a href="{{imageBaseUrl}}/gallery/fulls/04.jpg" class="landscape"><img src="{{imageBaseUrl}}/gallery/thumbs/04.jpg" alt="" /></a>
+                            </div>
+                        </div>
+                    </section>
+
+                <!-- Section -->
+                    <section>
+                        <header>
+                            <h3>Avoid Vendor Lock In.</h3>
+                            <p>
+                                Designed on the principles of open interoperability and modular integration, our platform enables you to mix and match best-of-breed solutions with unparalleled ease. This vendor-agnostic approach not only safeguards your strategic flexibility but also ensures that you can innovate without boundaries
+                                </p>
+                        </header>
+                        <div class="content">
+                            <div class="gallery">
+                                <a href="{{imageBaseUrl}}/gallery/fulls/05.jpg" class="landscape"><img src="{{imageBaseUrl}}/gallery/thumbs/05.jpg" alt="" /></a>
+                                <a href="{{imageBaseUrl}}/gallery/fulls/06.jpg"><img src="{{imageBaseUrl}}/gallery/thumbs/06.jpg" alt="" /></a>
+                                <a href="{{imageBaseUrl}}/gallery/fulls/07.jpg"><img src="{{imageBaseUrl}}/gallery/thumbs/07.jpg" alt="" /></a>
+                            </div>
+                        </div>
+                    </section>
+
+                <!-- Section -->
+                    <section>
+                        <header>
+                            <h3>Seamlessly Unified Interface.</h3>
+                            <p>
+                                Engineered with a robust architectural foundation and a sleek, intuitive design, our platform sets a new standard by delivering a fully integrated UI experience that unifies application interactions across your enterprise into a single, coherent interface.
+                            </p>
+                        </header>
+                        <div class="content">
+                            <div class="gallery">
+                                <a href="{{imageBaseUrl}}/gallery/fulls/08.jpg" class="portrait"><img src="{{imageBaseUrl}}/gallery/thumbs/08.jpg" alt="" /></a>
+                                <a href="{{imageBaseUrl}}/gallery/fulls/09.jpg" class="portrait"><img src="{{imageBaseUrl}}/gallery/thumbs/09.jpg" alt="" /></a>
+                                <a href="{{imageBaseUrl}}/gallery/fulls/10.jpg" class="landscape"><img src="{{imageBaseUrl}}/gallery/thumbs/10.jpg" alt="" /></a>
+                            </div>
+                        </div>
+                    </section>
+
+            </div>
+        </section>
+
+    <!-- Section -->
+        <section>
+            <header>
+                <h2>Find great business apps on our marketplace</h2>
+            </header>
+            <div class="content">
+                <p>
+                    According to <strong>Forrester</strong>,
+                    "SaaS Marketplaces Are The New Frontier Of Enterprise Software. Software-As-A-Service Buyers Get A Faster, Simpler Buying Experience As Well As Better Security And Integration"
+                    <br> <br>
+                    Read the full <a href="{{forresterReportUrl}}">Report</a>
+                    <br> <br>
+                </p>
+                <br>
+                <ul class="actions">
+                    <li><a href="{{consoleUrl}}" class="button primary large">Get Started</a></li>
+                    <li><a href="mailto:{{salesEmailAddress}}" class="button large">Contact Sales</a></li>
+                </ul>
+            </div>
+        </section>
+
+    <!-- Section -->
+        <section>
+            <header>
+                <h2>Get in touch</h2>
+            </header>
+            <div class="content">
+                <p><strong>Drop us a line:</strong>
+                    We want to hear from you!
+                </p>
+                <form id="contact_form">
+                    <div class="fields">
+                        <div class="field half">
+                            <input type="text" name="name" placeholder="Name" />
+                        </div>
+                        <div class="field half">
+                            <input type="email" name="email" placeholder="Email" />
+                        </div>
+                        <div class="field">
+                            <textarea name="message" placeholder="Message" rows="7"></textarea>
+                        </div>
+                    </div>
+                    <ul class="actions">
+                        <li><input type="submit" value="Send Message" class="button primary" /></li>
+                    </ul>
+                </form>
+            </div>
+            <footer>
+                <ul class="items">
+                    <li>
+                        <h3>Email</h3>
+                        <a href="mailto:{{companyEmail}}">{{companyEmail}}</a>
+                    </li>
+                    <li>
+                        <h3>Phone</h3>
+                        <a href="#">(000) 000-0000</a>
+                    </li>
+                    <li>
+                        <h3>Address</h3>
+                        <span>1234 Somewhere Road, Some City, CA 00000</span>
+                    </li>
+                    <li>
+                        <h3>Elsewhere</h3>
+                        <ul class="icons">
+                            <li><a href="#" class="icon brands fa-twitter"><span class="label">Twitter</span></a></li>
+                            <li><a href="#" class="icon brands fa-facebook-f"><span class="label">Facebook</span></a></li>
+                            <li><a href="#" class="icon brands fa-instagram"><span class="label">Instagram</span></a></li>
+                            <li><a href="#" class="icon brands fa-linkedin-in"><span class="label">LinkedIn</span></a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </footer>
+        </section>
+
+    <!-- Copyright -->
+        <div class="copyright">&copy; {{companyName}}. All rights reserved.</div>
+
+</div>

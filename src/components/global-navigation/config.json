@@ -32,8 +32,7 @@
       "defaultValue": false
     },
     "tabs_$.identifier": {
-      "type": "String",
-      "defaults": []
+      "type": "String"
     },
     "tabs_$.title": {
       "type": "String",
@@ -47,10 +46,7 @@
       ]
     },
     "tabs_$.assistiveText": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
+      "type": "String"
     },
     "icon": {
       "type": "Icon",
@@ -70,10 +66,7 @@
     },
     "tabs_$.feedbackState": {
       "type": "String",
-      "allowed": "feedbackState",
-      "defaults": [
-        null
-      ]
+      "allowed": "feedbackState"
     },
     "tabs_$.closeable": {
       "type": "Boolean",
@@ -103,6 +96,36 @@
       }
     },
     "closeSubMenu": {
+      "parameters": {
+        "identifier": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "events": {
+    "tabItemClick": {
+      "parameters": {
+        "identifier": {
+          "type": "string"
+        }
+      }
+    },
+    "tabClose": {
+      "parameters": {
+        "identifier": {
+          "type": "string"
+        }
+      }
+    },
+    "tabActive": {
+      "parameters": {
+        "identifier": {
+          "type": "string"
+        }
+      }
+    },
+    "tabInactive": {
       "parameters": {
         "identifier": {
           "type": "string"

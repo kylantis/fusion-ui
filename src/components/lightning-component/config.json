@@ -1,20 +1,20 @@
 {
   "enableTypeMerging": false,
-  "collections": {},
+  "collections": {
+    "cssStyles": {
+      "minLength": 0,
+      "keyType": "String"
+    }
+  },
   "scalars": {
-    "cssStyle": {
-      "type": "String",
-      "defaults": [
-        null
-      ],
-      "clientOnly": true
+    "cssStyles.$_": {
+      "type": "String"
     },
     "cssClass": {
-      "type": "String",
-      "defaults": [
-        null
-      ],
-      "clientOnly": true
+      "type": "String"
+    },
+    "assistiveText": {
+      "type": "String"
     }
   },
   "behaviours": {
@@ -23,40 +23,15 @@
         "title": {
           "type": "string"
         }
-      }
-    },
-    "toggleCssClass": {
-      "parameters": {
-        "predicate": {
-          "type": "boolean"
-        },
-        "className": {
-          "type": "string"
-        }
-      }
-    },
-    "setHtmlAttribute": {
-      "parameters": {
-        "name": {
-          "type": "string"
-        },
-        "value": {
-          "type": "string"
-        }
-      }
-    },
-    "removeHtmlAttribute": {
-      "parameters": {
-        "name": {
-          "type": "string"
-        }
-      }
+      },
+      "requires": [
+        "Tooltip"
+      ]
     }
   },
   "sample": {
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false,
   "loadAfterCompile": false
 }

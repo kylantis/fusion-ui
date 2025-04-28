@@ -1,11 +1,11 @@
 
 <div style="left: 20%;position: absolute;">
-    {{#each arr opaqueWrapper=true as |i j|}}
+    {{#each arr opaqueWrapper=false as |i j|}}
 
         <div style="margin: 2em; background-color: {{getRandomColor}};">
             
-            <div style="text-align: center; font-size: 2em; color: white; text-transform: uppercase;">
-                {{!-- {{noOp @key}}  --}}
+            <div style="text-align: center; font-size: 1.9em; color: white; text-transform: uppercase;">
+                {{noOp @key}} 
                 
                 &ensp;&ensp; {{@key}} 
 

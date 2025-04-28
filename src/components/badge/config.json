@@ -25,22 +25,15 @@
     },
     "leftIcon": {
       "type": "String",
-      "allowed": "utilityIconName",
-      "defaults": [
-        null
-      ]
+      "allowed": "utilityIconName"
     },
     "rightIcon": {
       "type": "String",
-      "allowed": "utilityIconName",
-      "defaults": [
-        null
-      ]
+      "allowed": "utilityIconName"
     }
   },
   "sample": {
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false
 }

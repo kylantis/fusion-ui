@@ -1,9 +1,14 @@
 
+/**
+ * Subsclasses must override: getValue(), isCompound(). And the subclass must also dispatch the 'change'
+ * event - passing in a string as the eventArg that represents the new value
+ */
 class FormElement extends components.LightningComponent {
 
     beforeCompile() {
         components.Tooltip;
 
+        this.getInput().name;
         this.getInput().disabled;
         this.getInput().readonly;
         this.getInput().error;
@@ -11,6 +16,55 @@ class FormElement extends components.LightningComponent {
 
         this.getInput().editable;
         this.getInput().inlineEdit;
+        this.getInput().editing;
+
+        this.getInput().dependsOnRef;
+    }
+
+    initializers() {
+        return {
+            ['name']: () => this.randomString()
+        };
+    }
+
+    eventHandlers() {
+        return {
+            ['insert.dependsOnRef']: ({ value: dependsOnRef, parentObject }) => {
+                if (!dependsOnRef) return;
+
+                const componentsByRef = BaseComponent.getComponentsByRef(dependsOnRef)
+
+                if (componentsByRef) {
+                    const component = componentsByRef.values().next().value;
+    
+                    if (!(component instanceof FormElement)) {
+                        this.logger.error(null, 'Unknown component: ', component);
+                    } else {
+                        parentObject.dependsOn = component;
+                    }
+                }
+            },
+        }
+    }
+
+    beforeRender() {
+        this.on('insert.dependsOnRef', 'insert.dependsOnRef');
+    }
+
+    onMount() {
+        const input = this.getInput();
+        let { dependsOn } = input;
+
+        if (dependsOn) {
+            if (dependsOn.getValue() == null) {
+                input.disabled = true;
+
+                dependsOn.once('change', value => {
+                    this.dispatchEvent('activate', value);
+                    input.disabled = false;
+                });
+            }
+        }
     }
 
     static isAbstract() {
@@ -20,7 +74,7 @@ class FormElement extends components.LightningComponent {
     useWeakRef() {
         return false;
     }
-    
+
     isLoadable() {
         if (this.isHeadlessContext()) {
             return true;
@@ -29,18 +83,29 @@ class FormElement extends components.LightningComponent {
     }
 
     isCompound() {
-        const { layoutType } = this.getInput();
-        return layoutType == 'compound';
+        return false;
     }
 
-    setupFormElement() {
+    immutablePaths() {
+        return ['dependsOn'];
     }
 
-    loadStandaloneControl() {
+    behaviours() {
+        return ['setError', 'setMessage'];
     }
 
     events() {
-        return ['change'];
+        return ['change', 'activate'];
+    }
+
+    setError(error) {
+        const input = this.getInput();
+        input.error = error;
+    }
+
+    setMessage(message) {
+        const input = this.getInput();
+        input.message = message;
     }
 
     getTooltipTarget() {
@@ -82,27 +147,12 @@ class FormElement extends components.LightningComponent {
         }
     }
 
-    toggleErrorClass(error) {
-        this.toggleCssClass(error, 'slds-has-error');
-    }
-
-    toggleReadOnlyClass(readonly) {
-        this.toggleCssClass(readonly, 'slds-form-element_readonly');
-
-        if (readonly) {
-            this.toggleEditMode(false);
-        }
-    }
-
-    toggleEditableClass(editable) {
-        this.toggleCssClass(editable, 'slds-form-element_edit');
-    }
-
     onEditButtonClick() {
         if (this.canEditInline()) {
+            const input = this.getInput();
 
-            this.getInput().readonly = false;
-            this.toggleEditMode(true);
+            input.editing = true;
+            input.readonly = false;
 
         } else {
             alert(`Todo: Load a popover to allow the user make edit ${this.getId()}`);
@@ -118,50 +168,18 @@ class FormElement extends components.LightningComponent {
         return this.supportsInlineEdits() && inlineEdit;
     }
 
-    toggleEditMode(isEditing) {
-        if (isEditing) {
-            this.toggleCssClass(false, 'slds-hint-parent');
-            this.toggleCssClass(true, 'slds-is-editing');
-        } else {
-            this.toggleCssClass(true, 'slds-hint-parent');
-            this.toggleCssClass(false, 'slds-is-editing');
-        }
-    }
-
-    eventHandlers() {
-        return {
-            ['insert.error']: ({ value, onMount }) => {
-                onMount(() => {
-                    this.toggleErrorClass(value);
-                })
-            },
-            ['insert.readonly']: ({ value, onMount }) => {
-                onMount(() => {
-                    this.toggleReadOnlyClass(value);
-                })
-            },
-            ['insert.editable']: ({ value, onMount }) => {
-                onMount(() => {
-                    this.toggleEditableClass(value);
-                })
-            }
-        };
-    }
-
-    beforeRender() {
-        this.on('insert.error', 'insert.error');
-        this.on('insert.readonly', 'insert.readonly');
-        this.on('insert.editable', 'insert.editable');
-    }
-
     getPopupWidgetContainer() {
         return !this.isCompound() ?
             document.querySelector(`#${this.getElementId()}-popup-widget`) :
             null;
     }
 
-    hasInputElement() {
+    hasInputWidget() {
         return true;
+    }
+
+    getValue() {
+        return null;
     }
 }
 

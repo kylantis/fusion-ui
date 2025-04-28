@@ -3,6 +3,10 @@ class Pill extends components.LightningComponent {
 
     #identifiers = [];
 
+    beforeCompile() {
+        this.getInput().itemPredicate;
+    }
+
     useWeakRef() {
         return false;
     }
@@ -48,7 +52,7 @@ class Pill extends components.LightningComponent {
     transformers() {
         return {
             ['items_$.identifier']: (identifier) => {
-                if (this.#identifiers.includes(identifier)) {
+                if (!identifier || this.#identifiers.includes(identifier)) {
                     identifier = this.randomString();
                 }
                 this.#identifiers.push(identifier);

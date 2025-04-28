@@ -5,7 +5,11 @@
 
 // Todo: Create HeatMap component
 
-class Chart extends BaseComponent {
+
+
+// TDDO: Rewrite chart to use billboard js
+
+class Chart extends components.LightningComponent {
 
     beforeCompile() {
         this.getInput().title;
@@ -45,20 +49,20 @@ class Chart extends BaseComponent {
     }
 
     static fisherYatesShuffle(array) {
-        let currentIndex = array.length,  randomIndex;
-      
+        let currentIndex = array.length, randomIndex;
+
         // While there remain elements to shuffle.
         while (currentIndex != 0) {
-      
-          // Pick a remaining element.
-          randomIndex = Math.floor(Math.random() * currentIndex);
-          currentIndex--;
-      
-          // And swap it with the current element.
-          [array[currentIndex], array[randomIndex]] = [
-            array[randomIndex], array[currentIndex]];
+
+            // Pick a remaining element.
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex--;
+
+            // And swap it with the current element.
+            [array[currentIndex], array[randomIndex]] = [
+                array[randomIndex], array[currentIndex]];
         }
-      
+
         return array;
     }
 
@@ -115,6 +119,14 @@ class Chart extends BaseComponent {
         return cloneData({ labels, datasets, yMarkers, yRegions });
     }
 
+    initializers() {
+        return {
+            ['type']: 'axis-mixed',
+            ['height']: 300,
+            ['labels']: [1, 2, 3, 4, 5].map(i => `Label ${i}`)
+        };
+    }
+
     afterMount() {
         const { getWrapperCssClass } = BaseComponent;
         const {
@@ -143,12 +155,12 @@ class Chart extends BaseComponent {
 
     behaviours() {
         return [
-            'push', 'addDataPoint', 'removeDataPoint', 'update', 'export', 'startPulsateCurrentDataPoint', 'stopPulsateCurrentDataPoint', 
+            'push', 'addDataPoint', 'removeDataPoint', 'update', 'export', 'startPulsateCurrentDataPoint', 'stopPulsateCurrentDataPoint',
             'setCurrentDataPoint'
         ];
     }
 
-    setCurrentDataPoint(index=0) {
+    setCurrentDataPoint(index = 0) {
         this.chart.setCurrentDataPoint(index)
     }
 

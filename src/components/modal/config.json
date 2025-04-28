@@ -35,15 +35,11 @@
     },
     "bodyCssClass": {
       "type": "String",
-      "defaults": [
-        null
-      ],
       "clietOnly": true
     }
   },
   "sample": {
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false
 }

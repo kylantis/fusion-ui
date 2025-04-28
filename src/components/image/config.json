@@ -1,0 +1,70 @@
+{
+  "enableTypeMerging": false,
+  "collections": {
+    "srcset": {
+      "minLength": 10,
+      "singularType": "SrcSetElement"
+    },
+    "sizes": {
+      "minLength": 10,
+      "singularType": "SizeElement"
+    },
+    "sizes_$.mediaConditions": {
+      "minLength": 10,
+      "singularType": "MediaCondition"
+    }
+  },
+  "scalars": {
+    "src": {
+      "type": "String"
+    },
+    "alt": {
+      "type": "String"
+    },
+    "loading": {
+      "type": "String",
+      "allowed": [
+        "lazy",
+        "eager",
+        "auto"
+      ]
+    },
+    "width": {
+      "type": "Number"
+    },
+    "height": {
+      "type": "Number"
+    },
+    "srcset_$.imageSource": {
+      "type": "String"
+    },
+    "srcset_$.sizeDescriptor": {
+      "type": "String"
+    },
+    "sizes_$.mediaConditions_$.value": {
+      "type": "String"
+    },
+    "sizes_$.mediaConditions_$.left": {
+      "type": "String",
+      "isNull": true
+    },
+    "sizes_$.mediaConditions_$.operand": {
+      "type": "String",
+      "allowed": [
+        "and",
+        "or"
+      ]
+    },
+    "sizes_$.mediaConditions_$.right": {
+      "type": "String",
+      "isNull": true
+    },
+    "sizes_$.imageSize": {
+      "type": "String"
+    }
+  },
+  "sample": {
+    "nullifyRandomly": []
+  },
+  "escapeDynamicHtml": false
+}

@@ -53,7 +53,7 @@ class NavigationBar extends components.LightningComponent {
     transformers() {
         return {
             ['items_$.id']: (id) => {
-                if (this.#itemsBlockData[id]) {
+                if (!id || this.#itemsBlockData[id]) {
                     id = this.randomString();
                 }
                 return id;

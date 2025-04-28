@@ -1,0 +1,52 @@
+@import 'sass/libs/vars';
+@import 'sass/libs/functions';
+@import 'sass/libs/mixins';
+@import 'sass/libs/vendor';
+@import 'sass/libs/breakpoints';
+@import 'sass/libs/html-grid';
+@import '/components/kylantis_site_landing/assets/css/fontawesome-all.min.css';
+@import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,600,700,300i,600i,700i|Raleway:600,800');
+
+/*
+	Paradigm Shift by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+*/
+
+// Breakpoints.
+
+	@include breakpoints((
+		default:   (1681px,   null     ),
+		xlarge:    (1281px,   1920px   ),
+		large:     (1153px,   1280px   ),
+		medium:    (737px,    1152px   ),
+		small:     (481px,    736px    ),
+		xsmall:    (361px,    480px    ),
+		xxsmall:   (null,     360px    )
+	));
+
+// Base.
+
+	@import 'sass/base/reset';
+	@import 'sass/base/page';
+	@import 'sass/base/typography';
+
+// Component.
+
+	@import 'sass/components/row';
+	@import 'sass/components/box';
+	@import 'sass/components/button';
+	@import 'sass/components/form';
+	@import 'sass/components/icon';
+	@import 'sass/components/image';
+	@import 'sass/components/list';
+	@import 'sass/components/actions';
+	@import 'sass/components/icons';
+	@import 'sass/components/table';
+	@import 'sass/components/arrow';
+	@import 'sass/components/gallery';
+	@import 'sass/components/feature-icons';
+
+// Layout.
+
+	@import 'sass/layout/wrapper';

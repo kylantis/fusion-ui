@@ -2,13 +2,11 @@
 
 {{#*inline "render_panel_body"}}
     {{component VerticalNavigation alias="navigation"}}
+     {{component ComboBox alias="searchBar"}}
 
     {{#if searchBar}}
         <div style="margin-bottom: 1em;">
-            {{> Input 
-                type="text" leftIcon="search" rightButton='clear' placeholder="Search"
-                ref="searchBar"
-            }}
+            {{> searchBar type="autocomplete" searchIconPosition="left" clearInputIcon="clear"}}
         </div>
     {{/if}}
 

@@ -1,7 +1,7 @@
 
     <svg class="
         slds-icon
-        slds-icon_{{size ? size : (type eq 'utility') ? 'x-small' : 'small' }}
+        {{size ? "slds-icon_${size}" : ""}}
         {{solid ? 'slds-icon-${type}-${name}' : '' transform='toIconClassName'}}
         {{foreground ? "slds-icon-${foreground}" : ''}}
         {{cssClass ? cssClass : ""}}"

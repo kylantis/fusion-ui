@@ -81,7 +81,7 @@ class VerticalNavigation extends components.LightningComponent {
     transformers() {
         return {
             ['sections_$.id']: (sectionId) => {
-                if (this.#sectionIds.includes(sectionId)) {
+                if (!sectionId || this.#sectionIds.includes(sectionId)) {
                     sectionId = this.randomString();
                 }
                 this.#sectionIds.push(sectionId);
@@ -156,16 +156,15 @@ class VerticalNavigation extends components.LightningComponent {
             const newLabel = !currentValue ? 'Show Less' : 'Show More';
 
             btn.setAttribute('aria-expanded', !currentValue);
-            btn.querySelector('.slds-nav-vertical__action-text').childNodes
+            [...btn.querySelector('.slds-nav-vertical__action-text').children]
                 .forEach((node, i) => {
                     switch (i) {
                         case 0:
-                            assert(node.nodeType == Node.TEXT_NODE);
-                            node.textContent = newLabel;
+                            node.innerHTML = newLabel;
                             break;
                         case 1:
-                            assert(node.classList.has('.slds-assistive-text'));
-                            node.innerHTML = newLabel;
+                            assert(node.classList.contains('slds-assistive-text'));
+                            node.children[0].innerHTML = newLabel;
                             break;
                     }
                 });
@@ -173,9 +172,14 @@ class VerticalNavigation extends components.LightningComponent {
             const sectionArea = node.querySelector(`#section-${sectionIndex}-overflow`);
 
             if (!currentValue) {
-                this.show0(sectionArea);
+
+                this.toggleCssClass0(sectionArea, false, 'slds-hide');
+                this.toggleCssClass0(sectionArea, true, 'slds-show');
+
             } else {
-                this.hide0(sectionArea);
+                this.toggleCssClass0(sectionArea, true, 'slds-hide');
+                this.toggleCssClass0(sectionArea, false, 'slds-show');
+
             }
         }
     }

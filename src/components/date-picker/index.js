@@ -1,10 +1,12 @@
 
 class DatePicker extends components.Input {
 
+    static DEFAULT_LOCALE = 'en-US';
+    static DEFAULT_FORMAT = 'DD/MM/YY';
+
     #yearInView;
     #monthInView;
 
-    #locale;
     #datesCache;
 
     beforeCompile() {
@@ -12,31 +14,9 @@ class DatePicker extends components.Input {
         this.getInput().startDate;
         this.getInput().rangeStart;
         this.getInput().rangeEnd;
-    }
 
-    setupFormElement() {
-        const input = this.getInput();
-
-        let { startDatePicker, dependsOn } = input;
-
-        if (startDatePicker) {
-
-            if (!dependsOn) {
-                dependsOn = input.dependsOn = [];
-            }
-
-            if (!dependsOn.includes(startDatePicker)) {
-                dependsOn.push(startDatePicker);
-            }
-
-            startDatePicker.on('change', new EventHandler(
-                function () {
-                    input.startDate = this.component.getInput().value;
-                },
-                null,
-                { input }
-            ));
-        }
+        this.getInput().locale;
+        this.getInput().format;
     }
 
     beforeRender() {
@@ -70,8 +50,14 @@ class DatePicker extends components.Input {
 
             input.type = 'text';
             input.rightButton = 'event';
+        }
+    }
 
-            this.#locale = input.locale || 'en-US';
+    initializers() {
+        const { DEFAULT_FORMAT, DEFAULT_LOCALE } = DatePicker;
+        return {
+            ['format']: DEFAULT_FORMAT,
+            ['locale']: DEFAULT_LOCALE,
         }
     }
 
@@ -130,10 +116,12 @@ class DatePicker extends components.Input {
                 const { value } = _this.getInput();
 
                 if (value) {
-                    // The change went through, dispatch select event
+                    // The change went through, dispatch select and change events
                     const date = _this.createDate(value);
 
                     _this.dispatchEvent('select', date.getDate(), date.getMonth() + 1, date.getFullYear());
+
+                    _this.dispatchEvent('change', value);
                 }
             }
         }
@@ -146,6 +134,17 @@ class DatePicker extends components.Input {
         this.on('insert.rangeEnd', 'insert.rangeEnd');
         this.on('insert.startDate', 'insert.startDate');
         this.on('insert.value', 'insert.value');
+    }
+
+    setStartDate(isoString) {
+        const input = this.getInput();
+        input.startDate = isoString;
+    }
+
+    behaviours() {
+        return [
+            'setStartDate',
+        ];
     }
 
     #setDefaultRangeStart() {
@@ -336,6 +335,10 @@ class DatePicker extends components.Input {
         this.refreshValue();
     }
 
+    prettifyTransform(value) {
+        return value ? this.toPrettyString(value) : '';
+    }
+
     #getDatePickerTriggers() {
         const { readonly } = this.getInput();
 
@@ -479,68 +482,42 @@ class DatePicker extends components.Input {
     }
 
     toPrettyString(date) {
-        const options = this.getLocaleStyleOptions();
-
-        return ((typeof date == 'string') ? this.createDate(date) : date)
-            .toLocaleDateString(options.locale, options);
+        const d = (typeof date == 'string') ? this.createDate(date) : date;
+        return isNaN(d.getTime()) ? '' : this.getDateTimeFormat().format(d);
     }
 
     getDateTimeFormat() {
-        const options = this.getLocaleStyleOptions();
-        return new Intl.DateTimeFormat(options);
-    }
+        const { DEFAULT_FORMAT, DEFAULT_LOCALE } = DatePicker;
+        const { locale, format } = this.getInput();
 
-    getLocaleStyleOptions() {
-        return {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            locale: this.#locale,
-        };
+        try {
+            return new Intl.DateTimeFormat(locale, format);
+        } catch (e) {
+            return new Intl.DateTimeFormat(DEFAULT_LOCALE, DEFAULT_FORMAT);
+        }
     }
 
     generatePlaceholder() {
-
-        const options = this.getLocaleStyleOptions();
-
-        const dtf = this.getDateTimeFormat();
-        const parts = [];
-
-        for (const part of dtf.formatToParts()) {
-            if (part.type === "day") {
-                parts.push("DD");
-            } else if (part.type === "month") {
-                parts.push("MM");
-            } else if (part.type === "year") {
-                parts.push("YYYY");
-            } else if (part.type === "hour") {
-                parts.push("HH");
-            } else if (part.type === "minute") {
-                parts.push("mm");
-            } else if (part.type === "second") {
-                parts.push("ss");
-            }
-        }
-
-        const timeSeparator = options.timeSeparator || ":";
-        let placeholder = parts.join("/");
-
-        if (options.hour || options.minute || options.second) {
-            placeholder += ` ${timeSeparator} `;
-            if (options.hour) {
-                placeholder += "HH";
-            }
-            if (options.minute) {
-                placeholder += "mm";
-            }
-            if (options.second) {
-                placeholder += "ss";
-            }
-        }
-        return placeholder;
+        return this.getDateTimeFormat()
+            .formatToParts()
+            .map(part => {
+                switch (part.type) {
+                    case 'day': return 'DD';
+                    case 'month': return 'MM';
+                    case 'year': return 'YY';
+                    case 'hour': return 'HH';
+                    case 'minute': return 'mm';
+                    case 'second': return 'ss';
+                    case 'literal': return part.value;
+                    default: return '';
+                }
+            }).join('');
     }
 
     getMonthsInRange(startDate, endDate) {
+        const dtf = this.getDateTimeFormat();
+        const monthFormat = new Intl.DateTimeFormat(dtf.resolvedOptions().locale, { month: 'long' });
+
         const months = {};
         let currentDate = new Date(startDate.getTime());
 
@@ -551,7 +528,7 @@ class DatePicker extends components.Input {
                 break;
             }
 
-            months[monthNumber] = new Intl.DateTimeFormat(this.getLocaleStyleOptions().locale, { month: 'long' }).format(currentDate);
+            months[monthNumber] = monthFormat.format(currentDate);
 
             currentDate.setMonth(monthNumber);
             currentDate.setDate(1);

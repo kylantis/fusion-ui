@@ -30,7 +30,7 @@
     },
     "overlay": {
       "type": "Boolean",
-      "defaultValue": false
+      "defaultValue": true
     },
     "backdrop": {
       "type": "Boolean",
@@ -44,6 +44,5 @@
   "sample": {
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false
 }

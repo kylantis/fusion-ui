@@ -8,6 +8,9 @@
     "groups_$.items": {
       "minLength": 5,
       "singularType": "Item"
+    },
+    "selectedItems": {
+      "minLength": 10
     }
   },
   "scalars": {
@@ -20,9 +23,6 @@
         "with-icon-five",
         "with-icon-seven",
         "with-icon-ten"
-      ],
-      "defaults": [
-        "undefined"
       ]
     },
     "fluid": {
@@ -31,14 +31,14 @@
     },
     "type": {
       "type": "String",
-      "allowed": "alignment",
-      "defaults": [
-        "undefined"
-      ]
+      "allowed": "alignment"
     },
     "loading": {
       "type": "Boolean",
       "defaultValue": false
+    },
+    "entity": {
+      "type": "boolean"
     },
     "groups_$.title": {
       "type": "String",
@@ -63,23 +63,26 @@
     "groups_$.items_$.title": {
       "type": "string",
       "defaults": [
-        "Order now",
-        "Create Profile",
-        "Continue",
-        "Global settings",
+        "Edge Communications",
+        "Alexandria Textiles Corp of America",
+        "Express Logistics and Transport",
+        "Reliance Communications",
+        "Profiling Tools",
+        "Flight Recorder Feature",
+        "Global settings configuration",
         "My Profile",
         "Delete Account",
-        "Send gift",
-        "Refresh",
-        "Create Step",
+        "Send gift to Peer",
+        "Refresh Private Folder",
+        "Create Alliance Charter",
         "Order item",
-        "Preview",
+        "Preview user realm",
         "Send message",
-        "Detect language",
+        "Detect multi-lingual channel",
         "Facilitate",
         "Incorporate",
-        "Evaluate",
-        "Conceptualize",
+        "Evaluate insurance risk",
+        "Conceptualize startup paradigm",
         "Enable feature",
         "Generate",
         "Implement"
@@ -89,17 +92,40 @@
       "type": "boolean",
       "defaultValue": true
     },
+    "groups_$.items_$.focus": {
+      "type": "boolean",
+      "defaultValue": false
+    },
     "groups_$.items_$.identifier": {
-      "type": "string",
-      "defaults": [
-        "undefined"
-      ]
+      "type": "string"
     },
     "groups_$.items_$.metaText": {
       "type": "string",
       "defaults": [
-        null
+        "Durham, NC",
+        "Alexandria, VA",
+        "Cherry Creek, CO",
+        "S. Valley, CA"
       ]
+    },
+    "groups_$.items_$.drillsIn": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "stateIndex": {
+      "type": "Number",
+      "clientOnly": true
+    },
+    "allowMultipleStates": {
+      "type": "boolean"
+    },
+    "searchTerm": {
+      "type": "String",
+      "clientOnly": true
+    },
+    "selectedItems_$": {
+      "type": "String",
+      "clientOnly": true
     }
   },
   "events": {
@@ -124,16 +150,48 @@
       }
     }
   },
+  "behaviours": {
+    "setValue": {
+      "parameters": {
+        "groups": {
+          "type": {
+            "$ref": "groups"
+          }
+        }
+      }
+    },
+    "pushState": {
+      "parameters": {
+        "state": {
+          "type": "componentRef"
+        }
+      }
+    },
+    "addHighlight": {
+      "parameters": {
+        "searchTerm": {
+          "type": "string"
+        },
+        "caseSensitive": {
+          "type": "boolean"
+        },
+        "displaySearchTerm": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
   "sample": {
     "count": 5,
     "nullifyRandomly": [
       "groups_$.loading",
       "groups_$.items_$.icon",
       "items_$.icon",
-      "groups_$.items_$.selected"
+      "groups_$.items_$.selected",
+      "groups_$.items_$.metaText",
+      "groups_$.items_$.drillsIn"
     ]
   },
-  "useCollectionLengthProperty": true,
   "escapeDynamicHtml": false,
   "hookAccessRate": 2
 }

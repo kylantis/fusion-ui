@@ -1,8 +1,8 @@
 {{style url="/components/multi_option_form_element/style.min.css"}}
 
 {{#*inline "render_input_element" item eager=true}}
-    {{var id=(getItemInputId item)}}
-    {{var name=(getItemInputName item)}}
+    {{var id=item.inputId}}
+    {{var name=(generateItemInputName)}}
 
     <input type="{{type}}" name="{{name}}" id="{{id}}" value="{{id}}"
       {{item.checked ? "checked='checked'" : "" }}
@@ -16,8 +16,7 @@
 {{#*inline "render_standalone_control" eager=true}}
   {{var item=items.[0]}}
   
-  {{#if item}}
-    {{registerItem item}}
+  {{#if item}}    
 
     {{#if readonly}}
       {{> ?render_readonly checked=item.checked}}
@@ -36,8 +35,6 @@
 {{#*inline "render_compound_control" eager=true}}
   
   {{#each items hookPhase='onMount' as |item itemIndex|}}
-    {{registerItem item}}
-
     <div class="mst-w {{error ? 'slds-has-error' : ''}}">
       
       <div class="slds-{{../type}}">
@@ -47,7 +44,7 @@
         {{/if}}
 
         {{#*inline "render_label"}}
-          <label class="slds-{{../type}}__label" for="{{getItemInputId item}}">
+          <label class="slds-{{../type}}__label" for="{{item.inputId}}">
 
             {{#unless ../readonly}}
               <span class="slds-{{../type}}_faux"></span>

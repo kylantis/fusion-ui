@@ -6,30 +6,36 @@
       "type": "Boolean",
       "defaultValue": false
     },
-    "startDatePicker": {
-      "type": "DatePicker",
-      "isNull": true
-    },
     "startDate": {
       "type": "String",
-      "defaults": [
-        null
-      ],
       "date": true
     },
     "rangeStart": {
       "type": "String",
-      "defaults": [
-        null
-      ],
       "date": true
     },
     "rangeEnd": {
       "type": "String",
-      "defaults": [
-        null
-      ],
       "date": true
+    },
+    "format": {
+      "type": "String"
+    },
+    "locale": {
+      "type": "String"
+    },
+    "dependsOn": {
+      "type": "DatePicker",
+      "isNull": true
+    }
+  },
+  "behaviours": {
+    "setStartDate": {
+      "parameters": {
+        "isoString": {
+          "type": "string"
+        }
+      }
     }
   },
   "events": {
@@ -53,7 +59,6 @@
   "sample": {
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false,
   "hookAccessRate": 2
 }

@@ -1,11 +1,9 @@
 {
-  "collections": {
-    "dependsOn": {
-      "minLength": 0
-    }
-  },
-  "useCollectionLengthProperty": false,
+  "collections": {},
   "scalars": {
+    "name": {
+      "type": "String"
+    },
     "titleText": {
       "type": "String",
       "defaults": [
@@ -13,10 +11,7 @@
       ]
     },
     "message": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
+      "type": "String"
     },
     "titleIcon": {
       "type": "ButtonIcon",
@@ -40,30 +35,17 @@
     },
     "layoutType": {
       "type": "String",
-      "allowed": [
-        "compound",
-        "stacked",
-        "horizontal"
-      ],
-      "defaults": [
-        "stacked"
-      ]
+      "allowed": "formLayoutType"
     },
     "padding": {
       "type": "String",
-      "allowed": "spacingType",
-      "defaults": [
-        null
-      ]
+      "allowed": "spacingType"
     },
     "margin": {
       "type": "String",
-      "allowed": "spacingType",
-      "defaults": [
-        null
-      ]
+      "allowed": "spacingType"
     },
-    "displayOnlyControl": {
+    "controlOnly": {
       "type": "Boolean",
       "defaultValue": false
     },
@@ -79,9 +61,53 @@
       "type": "Boolean",
       "defaultValue": true
     },
-    "dependsOn_$": {
+    "dependsOn": {
       "type": "FormElement",
       "isNull": true
+    },
+    "dependsOnRef": {
+      "type": "String",
+      "isNull": true
+    },
+    "editing": {
+      "type": "Boolean",
+      "clientOnly": true
+    }
+  },
+  "behaviours": {
+    "setError": {
+      "parameters": {
+        "error": {
+          "type": {
+            "$ref": "error"
+          }
+        }
+      }
+    },
+    "setMessage": {
+      "parameters": {
+        "message": {
+          "type": {
+            "$ref": "message"
+          }
+        }
+      }
+    }
+  },
+  "events": {
+    "change": {
+      "parameters": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "activate": {
+      "parameters": {
+        "value": {
+          "type": "string"
+        }
+      }
     }
   },
   "sample": {

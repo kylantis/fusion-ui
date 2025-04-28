@@ -1,6 +1,5 @@
 {
   "collections": {},
-  "useCollectionLengthProperty": false,
   "scalars": {
     "type": {
       "type": "String",
@@ -15,16 +14,11 @@
       "clientOnly": true
     },
     "placeholder": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
+      "type": "String"
     },
     "value": {
       "type": "String",
-      "defaults": [
-        null
-      ]
+      "defaults": []
     },
     "leftIcon": {
       "type": "String",
@@ -35,10 +29,7 @@
     },
     "rightIcon": {
       "type": "String",
-      "allowed": "utilityIconName",
-      "defaults": [
-        null
-      ]
+      "allowed": "utilityIconName"
     },
     "rightButton": {
       "type": "String",
@@ -46,6 +37,13 @@
       "defaults": [
         "clear"
       ]
+    },
+    "autoComplete": {
+      "type": "String",
+      "allowed": "formInputAutoComplete"
+    },
+    "inputRequired": {
+      "type": "Boolean"
     }
   },
   "sample": {},

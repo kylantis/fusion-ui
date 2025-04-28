@@ -1,0 +1,7 @@
+.slds-listbox_selection-group {
+    visibility: hidden;
+
+    &.visible {
+        visibility: visible;
+    }
+}

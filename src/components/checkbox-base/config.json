@@ -3,10 +3,7 @@
   "collections": {},
   "scalars": {
     "name": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
+      "type": "String"
     },
     "checked": {
       "type": "Boolean",
@@ -16,15 +13,8 @@
       "type": "Boolean",
       "defaultValue": false
     },
-    "assistiveText": {
-      "type": "String",
-      "defaults": []
-    },
     "labelledBy": {
       "type": "String",
-      "defaults": [
-        null
-      ],
       "clientOnly": true
     },
     "tabIndex": {
@@ -35,6 +25,5 @@
   "sample": {
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false
 }

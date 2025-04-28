@@ -2,20 +2,11 @@
   "enableTypeMerging": false,
   "collections": {},
   "scalars": {
-    "assistiveText": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
-    },
     "container": {
       "type": "String",
       "allowed": [
         "default",
         "fixed"
-      ],
-      "defaults": [
-        "default"
       ]
     },
     "size": {
@@ -51,7 +42,6 @@
   "sample": {
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false,
   "hookAccessRate": 1
 }

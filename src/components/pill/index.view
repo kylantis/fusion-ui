@@ -23,8 +23,7 @@
         {{/inline}}
 
         {{#if item.linked}}
-            {{var onClickHelper = (fn 'onClick')}}
-            <a href="#" onclick="{{onClickHelper}}('{{item.identifier}}')" class="slds-pill__action" title="{{item.description ? item.description : item.label}}">
+            <a href="#" onclick="{{fn 'onClick'}}('{{item.identifier}}')" class="slds-pill__action" title="{{item.description ? item.description : item.label}}">
                 {{> render_label}}
             </a>
         {{else}}
@@ -32,19 +31,19 @@
         {{/if}}
         
         {{#if item.deletable}}
-            {{var helperName = (fn 'onRemoveButtonClick')}}
-            {{> ButtonIcon title="Remove" assistiveText="Remove" iconType='utility' iconName='close' cssClass='slds-pill__remove' on-click="${helperName}('${item.identifier}')"}}
+            {{> ButtonIcon title="Remove" assistiveText="Remove" iconType='utility' iconName='close' cssClass='slds-pill__remove' on-click="${fn 'onRemoveButtonClick'}('${item.identifier}')"}}
         {{/if}}
     </span>
 
 {{/inline}}
 
-<div class="slds-pill_container">
+
+{{!-- <div class="{{items.length ? 'slds-pill_container' : ''}}"> --}}
     <ul class="slds-listbox slds-listbox_{{alignment}}">
         {{#each items predicate='itemPredicateFn' as |item itemIndex|}}
             <li class="slds-listbox-item">
                 {{> base_pill item}}
             </li>
         {{/each}}
-        </ul>
-</div>
+    </ul>
+{{!-- </div> --}}

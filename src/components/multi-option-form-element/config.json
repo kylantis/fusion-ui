@@ -47,8 +47,27 @@
       "defaultValue": false
     },
     "items_$.name": {
+      "type": "String"
+    },
+    "items_$.inputId": {
       "type": "String",
-      "defaults": []
+      "clientOnly": true
+    }
+  },
+  "events": {
+    "select": {
+      "parameters": {
+        "optionName": {
+          "type": "string"
+        }
+      }
+    },
+    "unselect": {
+      "parameters": {
+        "optionName": {
+          "type": "string"
+        }
+      }
     }
   },
   "sample": {
@@ -58,7 +77,6 @@
       "items_$.error"
     ]
   },
-  "useCollectionLengthProperty": true,
   "escapeDynamicHtml": false,
   "hookAccessRate": 1
 }

@@ -11,8 +11,7 @@
   },
   "scalars": {
     "label": {
-      "type": "String",
-      "defaults": []
+      "type": "String"
     },
     "size": {
       "type": "String",
@@ -22,9 +21,6 @@
         "small",
         "medium",
         "large"
-      ],
-      "defaults": [
-        null
       ]
     },
     "isSubMenu": {
@@ -66,8 +62,7 @@
       "type": "Boolean"
     },
     "groups_$.items_$.identifier": {
-      "type": "String",
-      "defaults": []
+      "type": "String"
     },
     "groups_$.items_$.title": {
       "type": "String",
@@ -78,10 +73,7 @@
     },
     "groups_$.items_$.feedbackState": {
       "type": "String",
-      "allowed": "feedbackState",
-      "defaults": [
-        null
-      ]
+      "allowed": "feedbackState"
     },
     "groups_$.items_$.leftMargin": {
       "type": "Boolean",

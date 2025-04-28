@@ -1,0 +1,69 @@
+
+{{#*inline "modal-content"}}
+
+    <style>
+        .slds-welcome-mat {
+            --_slds-c-welcomemat-image-background: url('/components/welcome_mat/assets/images/bg-info@2x.png');
+        }
+    </style>
+
+    {{component ProgressBar alias="progressBar"}}
+
+    <div class="slds-welcome-mat">
+        <div class="slds-welcome-mat__content slds-grid">
+            <div class="slds-welcome-mat__info slds-size_1-of-2" tabindex="0" role="region">
+                <div class="slds-welcome-mat__info-content">
+                    <h2 class="slds-welcome-mat__info-title" id="{{componentId}}-label">
+                        {{header}}
+                    </h2>
+                    <div class="slds-welcome-mat__info-description slds-text-longform">
+                        <p>
+                            {{description}}
+                        </p>
+                    </div>
+                    <div class="slds-welcome-mat__info-progress">
+                        <p>
+                            <strong>{{tasks transform="getProgressInfo"}}</strong>
+                        </p>
+                    </div>
+
+                    {{#if progressBar}}
+                        {{> progressBar}}
+                    {{/if}}
+                </div>
+            </div>
+            <ul class="slds-welcome-mat__tiles slds-size_1-of-2">
+
+                {{#each tasks as |x y|}}
+                    <li identifier="{{identifier}}"  class="slds-welcome-mat__tile {{completed ? "slds-welcome-mat__tile_complete" : ""}}">
+                        <a class="slds-box slds-box_link slds-media" onclick="{{fn "onTaskClick"}}(event)">
+                            <div class="slds-media__figure slds-media__figure_fixed-width slds-align_absolute-center">
+                                <div class="slds-welcome-mat__tile-figure">
+                                    <div class="slds-welcome-mat__tile-icon-container">
+                                        {{> Icon type="utility" name="${icon}" size=null}}
+                                        {{> Icon
+                                                type="action" name="check" size=null cssClass="slds-icon-action-check"
+                                                solid=false svgCssClass="slds-welcome-mat__icon-check"
+                                                title="Completed"
+                                        }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="slds-media__body">
+                                <div class="slds-welcome-mat__tile-body">
+                                    <h3 class="slds-welcome-mat__tile-title">{{title}}</h3>
+                                    <p class="slds-welcome-mat__tile-description">
+                                        {{description}}
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                    </li>
+                {{/each}}
+            </ul>
+        </div>
+    </div>
+
+{{/inline}}
+
+{{> modal-dialog}}

@@ -23,6 +23,7 @@
         "build-watch": "npm run build && npm run watch",
         "compile-components": "APP_ID=platform gulp compile-components",
         "compile-component": "APP_ID=platform gulp compile-component",
+        "copy-component-assets": "gulp copy-component-assets",
         "lint": "eslint --ext js --fix src/ tasks/",
         "pretest": "npm run lint",
         "test": "jest --runInBand --forceExit --coverage"
@@ -40,7 +41,6 @@
         "jsdom": "^24.1.1",
         "line-column": "^1.0.2",
         "lodash": "^4.17.21",
-        "lz-string": "^1.5.0",
         "normalize-scss": "7.0.1",
         "quicktype-core": "^23.0.170",
         "randomstring": "1.1.5",

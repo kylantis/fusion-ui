@@ -7,10 +7,14 @@
 {{var hasRightIconOrButton = (hasRightIcon or hasRightButton)}}
 
 {{#*inline "render_input_element" eager=true}}
+    {{var required = ((inputRequired neq undefined) ? inputRequired : required)}}
+
     <input type="{{type}}" id="{{@root.componentId}}_input"
       class="slds-input {{(not readonly and hasWidget) ? "hasWidget" : ""}}"
       style="{{readonly ? 'box-shadow: none;' : ''}}"
-      value="{{(value neq null) ? value : "" }}"
+      value="{{(value neq null) ? value : "" transform="prettifyTransform"}}"
+      {{name ? "name='${name}'" : "" }}
+      {{autoComplete ? "autocomplete='${autoComplete}'" : "" }}
       {{required ? "required='required'" : "" }}
       {{disabled ? "disabled='disabled'" : "" }}
       {{(readonly or hasWidget) ? "readonly='readonly'" : "" }}
@@ -19,6 +23,7 @@
       {{error ? "aria-invalid=\"true\"" : ""}}
       {{(not readonly and placeholder) ? "placeholder=\"${placeholder}\"" : ""}}
       oninput="{{fn "onChange"}}(event)"
+      onkeydown="{{fn "onKeyDown"}}(event)"
     >
 {{/inline}}
 
@@ -30,8 +35,7 @@
   {{(not readonly and (hasLeftIcon or hasRightIconOrButton)) ? "slds-input-has-icon slds-input-has-icon_${iconPosition}" : ""}}
 {{/inline}}
 
-{{#*inline "render_standalone_control" eager=true}}
-
+{{#*inline "render_editable"}}
   {{#if hasLeftIcon}}
     {{> IconSvg type="utility" name=leftIcon cssClass="slds-input__icon slds-input__icon_left"}}
   {{/if}}
@@ -42,20 +46,32 @@
 
   {{> render_input_element}}
 
-    {{#if hasRightButton }}
-      {{var clearButton = (rightButton eq 'clear')}}
+  {{#if hasRightButton }}
+    {{var clearButton = (rightButton eq 'clear')}}
 
-      {{> ButtonIcon 
-            disabled
-            iconType='utility' iconName=rightButton
-            cssClass="slds-input__icon slds-input__icon_right" 
-            svgForeground=(clearButton ? "text-light" : null)
-            on-click=(clearButton ? "clearInput" : null)
-            assistiveText="Clear" title="Clear"
-            ref="rightButton"
-      }}
-    {{/if}}
+    {{> ButtonIcon 
+          disabled
+          iconType='utility' iconName=rightButton
+          cssClass="slds-input__icon slds-input__icon_right" 
+          on-click=(clearButton ? "clearInput" : null)
+          assistiveText="Clear" title="Clear"
+          ref="rightButton"
+    }}
+  {{/if}}
+{{/inline}}
 
+{{#*inline "render_readonly"}}
+  {{value transform="prettifyTransform"}}
+{{/inline}}
+
+{{#*inline "render_standalone_control" eager=true}}
+  {{#if readonly}}
+    {{> render_readonly}}
+  {{else}}
+    {{#block hook='loadStandaloneControl' hookPhase='afterMount'}}
+      {{> render_editable}}
+    {{/block}}
+  {{/if}}
 {{/inline}}
 
 {{> render_standalone }}

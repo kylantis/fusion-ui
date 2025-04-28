@@ -1,0 +1,45 @@
+{
+  "enableTypeMerging": false,
+  "collections": {},
+  "scalars": {
+    "min": {
+      "type": "Number"
+    },
+    "max": {
+      "type": "Number"
+    },
+    "value": {
+      "type": "Number",
+      "defaultValue": 45
+    },
+    "label": {
+      "type": "String"
+    },
+    "success": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "title": {
+      "type": "String"
+    },
+    "vertical": {
+      "type": "Boolean"
+    },
+    "radius": {
+      "type": "Boolean"
+    },
+    "thickness": {
+      "type": "String",
+      "allowed": [
+        "x-small",
+        "small",
+        "medium",
+        "large"
+      ]
+    }
+  },
+  "sample": {
+    "nullifyRandomly": []
+  },
+  "escapeDynamicHtml": false
+}

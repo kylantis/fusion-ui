@@ -3,7 +3,7 @@
     
     {{#if collapsible}}
         <h3 class="slds-section__title">
-            <button 
+            <button
                 aria-controls="{{@random}}-content" aria-expanded="{{expanded ? " true" : "false" }}"
                 class="slds-button slds-section__title-action" onclick="{{fn "toggleExpanded"}}()"
             >

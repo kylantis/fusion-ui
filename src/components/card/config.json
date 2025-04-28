@@ -1,0 +1,60 @@
+{
+  "enableTypeMerging": false,
+  "collections": {
+    "einsteinHeader.actions": {
+      "minLength": 2
+    }
+  },
+  "scalars": {
+    "einsteinHeader.icon": {
+      "type": "String",
+      "allowed": "utilityIconName",
+      "defaults": [
+        "salesforce1"
+      ]
+    },
+    "einsteinHeader.title": {
+      "type": "String",
+      "defaults": [
+        "Einstein (10+)"
+      ]
+    },
+    "einsteinHeader.actions_$": {
+      "type": "ButtonIcon",
+      "isNull": false
+    },
+    "header.title": {
+      "type": "String",
+      "defaults": [
+        "Accounts"
+      ]
+    },
+    "header.icon": {
+      "type": "Icon",
+      "isNull": false
+    },
+    "header.actionButton": {
+      "type": "Button",
+      "isNull": false
+    },
+    "content": {
+      "type": "componentRef",
+      "isNull": false
+    },
+    "bodyPadding": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "footerLink": {
+      "type": "Link",
+      "isNull": false
+    },
+    "loading": {
+      "type": "Boolean"
+    }
+  },
+  "sample": {
+    "nullifyRandomly": []
+  },
+  "escapeDynamicHtml": false
+}

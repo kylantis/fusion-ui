@@ -1,0 +1,150 @@
+{{style url="/components/combo_box/style.min.css"}}
+
+{{component ListBox alias="options"}}
+{{component Pill alias="selectedOptions"}}
+
+{{#*inline "render_combobox"}}
+
+    {{var overlayAttribute = getOverlayAttribute}}        
+
+    <div class="slds-combobox_container" {{overlayAttribute}}="true">
+
+        <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click">
+
+            <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_left-right" role="none">
+
+                {{#*inline "clear_input_button" runtime=true}}
+                    {{> ButtonIcon
+                            iconType='utility' iconName='${clearInputIcon}'
+                            cssClass="slds-input__icon slds-input__icon_right"
+                            on-click="clearAutoCompleteInput"
+                            assistiveText="Clear" title="Clear"
+                    }}
+                {{/inline}}
+
+                {{#*inline "search_icon" runtime=true}}
+                    {{> Icon
+                        type='utility' name='search' svgCssClass='slds-input__icon slds-input__icon_${searchIconPosition}'
+                        size="x-small"
+                    }}
+                {{/inline}}
+
+                {{#*inline "input" runtime=true}}
+                
+                    {{#if searchIconPosition eq 'left' and not loading}}
+                        {{> search_icon}}
+                    {{/if}}
+
+                    <input type="text" 
+                        class="slds-input slds-combobox__input"
+                        id="{{@root.componentId}}_input"
+                        aria-autocomplete="list" 
+                        {{options ? "aria-controls=\"${getListBoxId}\"" : "" }}
+                        aria-expanded="false" 
+                        aria-haspopup="listbox"
+                        autoComplete="off"
+                        role="combobox"
+                        placeholder="{{placeholderText}}"
+                        oninput="{{fn "onChange"}}(event)"
+                        onclick="{{fn "onInputClick"}}()"
+                    >
+
+                    {{#if loading}}
+                        <div class="slds-input__icon-group slds-input__icon-group_right">
+                            {{setInputIconPosition 'group-right'}}
+                            {{> Spinner size='x-small' cssClass="slds-input__spinner" }}
+                            {{> clear_input_button}}
+                        </div>
+                    {{else}}
+                        {{#if searchIconPosition eq 'right'}}
+                            {{setInputIconPosition 'right'}}
+                            {{> search_icon}}
+                        {{else}}
+                            {{#if searchIconPosition eq 'left'}}
+                                {{setInputIconPosition 'left-right'}}
+                            {{else}}
+                                {{setInputIconPosition 'right'}}
+                            {{/if}}
+                            {{> clear_input_button}}
+                        {{/if}}
+                    {{/if}}
+
+                {{/inline}}
+
+                {{#*inline "input_faux" runtime=true}}
+                    {{setInputIconPosition 'right'}}
+
+                    <div class="slds-input_faux slds-combobox__input" 
+                        role="combobox" tabindex="0" 
+                        id="{{@root.componentId}}_input"
+                        aria-labelledby="{{@root.componentId}}_label {{@root.componentId}}_selected-value"
+                        {{options ? "aria-controls=\"${getListBoxId}\"" : "" }}
+                        aria-expanded="false"
+                        aria-haspopup="listbox"
+                        onclick="{{fn "onInputClick"}}()"
+                        >
+                            <span class="slds-truncate value"></span>            
+                    </div>
+
+                    {{#if isAutoComplete}}
+                        {{> ButtonIcon
+                            iconType='utility' iconName='clear'
+                            cssClass="slds-input__icon slds-input__icon_right"
+                            on-click="unselectCurrentValue"
+                            assistiveText="Clear" title="Clear"
+                        }}
+                    {{else}}
+                        {{#if options}}
+                            {{> Icon 
+                                    type='utility' name='down' cssClass='slds-input__icon slds-input__icon_right'
+                                    size="x-small"
+                            }}
+                        {{/if}}
+                    {{/if}}
+
+                {{/inline}}
+            
+                {{#if isAutoComplete}}
+                    {{> input}}
+                {{else}}
+                    {{> input_faux}}
+                {{/if}}
+
+            </div>
+
+            {{> options }}
+
+        </div>
+    </div>
+
+    {{#if isSelectable and multiSelect}}
+        <div class="slds-listbox_selection-group slds-is-expanded">
+            {{> selectedOptions }}
+        </div>
+    {{/if}}
+
+{{/inline}}
+
+{{#*inline "render_readonly"}}
+
+  <div 
+    id="{{@root.componentId}}-readonly" 
+    class="{{not readonly ? "slds-hide" : "slds-show"}}">
+  </div>
+  
+  {{loadReadonly}}
+
+{{/inline}}
+
+
+{{#*inline "render_standalone_control"}}
+    <div class="{{readonly ? "slds-hide" : "slds-show"}}">
+        {{> render_combobox}}
+    </div>
+
+    {{> render_readonly}}
+{{/inline}}
+
+
+
+{{> render_standalone }}

@@ -7,8 +7,8 @@
       "isNull": false
     },
     "searchBar": {
-      "type": "Boolean",
-      "defaultValue": true
+      "type": "ComboBox",
+      "isNull": false
     }
   },
   "behaviours": {
@@ -23,6 +23,5 @@
   "sample": {
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false
 }

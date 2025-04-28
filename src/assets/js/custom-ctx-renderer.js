@@ -14,10 +14,10 @@ class CustomCtxRenderer extends RootCtxRenderer {
   #stack = [];
 
   constructor({
-    id, input, logger, config,
+    id, input, logger, config, isRoot,
   } = {}) {
     super({
-      id, input, logger, config,
+      id, input, logger, config, isRoot,
     });
   }
 
@@ -343,21 +343,21 @@ class CustomCtxRenderer extends RootCtxRenderer {
 
     // eslint-disable-next-line default-case
     switch (true) {
-      case validType === arrayType && value != null && value.constructor.name === 'Array':
+      case validType === arrayType && value != null && value.constructor.name === arrayType:
         if (value.length || allowEmptyCollection) {
           return value;
         }
         err = emptyCollectionErrorMsg();
         break;
 
-      case validType === mapType && value != null && value.constructor.name === 'Map':
+      case validType === mapType && value != null && value.constructor.name === mapType:
         if (value.size || allowEmptyCollection) {
           return value;
         }
         err = emptyCollectionErrorMsg();
         break;
 
-      case validType === objectType && value != null && value.constructor.name === 'Object':
+      case validType === objectType && value != null && value.constructor.name === objectType:
         return value;
 
       case validType === literalType && isPrimitive(value):

@@ -80,8 +80,4 @@
 {{/inline}}
 
 
-<div 
-    class="slds-illustration {{cssClass ? cssClass : ''}}"
-    {{cssStyle ? "style=\"${cssStyle};\"" : ""}}
-    >
-</div>
+<div class="slds-illustration {{cssClass ? cssClass : ''}}"></div>

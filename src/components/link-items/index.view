@@ -1,0 +1,10 @@
+
+<ul class="slds-grid slds-wrap">
+    {{#each items as |item|}}
+        <li
+            class="slds-col_padded slds-p-vertical_xx-small {{sizes transform='sizesTransform'}}"
+        >
+            <a identifier="{{@key}}" class="slds-truncate" title="{{title}}" onclick="{{fn "onItemClick"}}(event)">{{title}}</a>
+        </li>
+    {{/each}}
+</ul>

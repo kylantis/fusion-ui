@@ -552,17 +552,11 @@
     },
     "foreground": {
       "type": "String",
-      "allowed": "iconColor",
-      "defaults": [
-        null
-      ]
+      "allowed": "iconColor"
     },
     "foregroundColor": {
       "type": "String",
-      "allowed": "cssColor",
-      "defaults": [
-        null
-      ]
+      "allowed": "cssColor"
     },
     "focusable": {
       "type": "Boolean",

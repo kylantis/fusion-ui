@@ -3,10 +3,7 @@
   "scalars": {
     "size": {
       "type": "String",
-      "allowed": "iconSize",
-      "defaults": [
-        null
-      ]
+      "allowed": "iconSize"
     },
     "name": {
       "type": "String",
@@ -472,10 +469,7 @@
       "defaultValue": false
     },
     "title": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
+      "type": "String"
     },
     "useCurrentColor": {
       "type": "Boolean",
@@ -483,17 +477,11 @@
     },
     "backgroundColor": {
       "type": "String",
-      "allowed": "cssColor",
-      "defaults": [
-        null
-      ]
+      "allowed": "cssColor"
     },
     "foregroundColor": {
       "type": "String",
-      "allowed": "cssColor",
-      "defaults": [
-        null
-      ]
+      "allowed": "cssColor"
     },
     "foreground": {
       "type": "String",
@@ -504,9 +492,6 @@
     },
     "svgCssClass": {
       "type": "String",
-      "defaults": [
-        null
-      ],
       "clientOnly": true
     }
   },

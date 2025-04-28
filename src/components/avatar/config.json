@@ -15,10 +15,7 @@
       ]
     },
     "title": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
+      "type": "String"
     },
     "circular": {
       "type": "Boolean",
@@ -29,9 +26,6 @@
       "allowed": [
         "profile-image",
         "group-image"
-      ],
-      "defaults": [
-        null
       ]
     },
     "icon": {
@@ -43,7 +37,6 @@
       "defaults": [
         "/assets/images/avatar1.jpg",
         "/assets/images/avatar2.jpg",
-        "/assets/images/avatar3.jpg",
         "/assets/images/product1.jpg",
         "/assets/images/product2.jpg",
         "/assets/images/product3.jpg",
@@ -77,9 +70,6 @@
         "primary",
         "secondary"
       ],
-      "defaults": [
-        null
-      ],
       "clientOnly": true
     }
   },
@@ -90,7 +80,6 @@
       "initials"
     ]
   },
-  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false,
   "hookAccessRate": 2
 }

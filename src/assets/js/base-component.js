@@ -14,6 +14,9 @@ class BaseComponent extends WebRenderer {
 
   static #staticHandlers = {};
 
+  static #refsMap = new Map();
+  static #idToRefMap = new Map();
+
   #inlineParent;
 
   #handlers;
@@ -24,6 +27,12 @@ class BaseComponent extends WebRenderer {
   #randomString;
 
   #domUpdateHooks = [];
+
+
+  static #serverEvents;
+  #serverEventDispatches = new Map();
+  #serverEventListeners;
+
 
   // #API
   static CONSTANTS = {
@@ -60,9 +69,9 @@ class BaseComponent extends WebRenderer {
     mutationType_DELETE: RootProxy.mutationType_DELETE,
   };
 
-  constructor({ id, input = {}, logger, config } = {}) {
+  constructor({ id, input = {}, logger, config, ref, serverEventListeners, isRoot, } = {}) {
 
-    super({ id, input, logger, config });
+    super({ id, input, logger, config, isRoot });
 
     if (!BaseComponent.#token) {
       // eslint-disable-next-line no-undef
@@ -72,6 +81,44 @@ class BaseComponent extends WebRenderer {
     }
 
     this.#handlers = {};
+
+    if (ref) {
+      let refSet;
+      
+      if (!BaseComponent.#refsMap.has(ref)) {
+        refSet = new Set();
+        BaseComponent.#refsMap.set(ref, refSet);
+      } else {
+        refSet = BaseComponent.#refsMap.get(ref);
+        const componentName = refSet.values().next().value.getComponentName();
+
+        if (this.getComponentName() != componentName) {
+          this.throwError(`Expected componentName "${componentName}" but found "${this.getComponentName()}"`);
+        }
+      }
+      
+      refSet.add(this);
+      BaseComponent.#idToRefMap.set(this.getId(), ref);
+    }
+
+    this.#serverEventListeners = serverEventListeners;
+  }
+
+  awaitHtmlDependencies() {
+    return true;
+  }
+
+  static onComponentPruned(id) {
+    const ref = BaseComponent.#idToRefMap.get(id);
+
+    if (ref) {
+      BaseComponent.#idToRefMap.delete(id);
+      BaseComponent.#refsMap.get(ref).delete(this);
+    }
+  }
+
+  static getComponentsByRef(ref) {
+    return BaseComponent.#refsMap.get(ref);
   }
 
   #addDomUpdateHook(fn) {
@@ -344,13 +391,22 @@ class BaseComponent extends WebRenderer {
       });
   }
 
-  getAllHandlerFunctions() {
-    let handlerFunctions = {};
+  getAllHandlerFunctions(event) {
+    const handlerFunctions = {};
+    const _this = this;
 
-    this.recursivelyInvokeMethod('eventHandlers').forEach(o => {
-      assert(o.constructor.name == 'Object');
-      handlerFunctions = { ...handlerFunctions, ...o }
-    });
+    Object.entries(this.getEventHandlers())
+      .forEach(([k, v]) => {
+        handlerFunctions[k] = function (...args) {
+          v.forEach(fn => {
+            try {
+              fn.bind(this)(...args);
+            } catch (e) {
+              _this.#logEventHandlerError(e, event, fn);
+            }
+          });
+        }
+      });
 
     return {
       ...handlerFunctions,
@@ -437,7 +493,206 @@ class BaseComponent extends WebRenderer {
     }
   }
 
-  #dispatchEvent0(event, ...args) {
+  getBehavioursSignature() {
+    const name = this.getComponentName();
+    const classMetadata = self.appContext.getComponentClassMetadataMap()[name];
+
+    if (!classMetadata.behavioursSignature) {
+      classMetadata.behavioursSignature = this.getSyntheticMethod({ name: 'behavioursSignature' })();
+    }
+
+    return classMetadata.behavioursSignature;
+  }
+
+  getEventsSignature() {
+    const name = this.getComponentName();
+    const classMetadata = self.appContext.getComponentClassMetadataMap()[name];
+
+    if (!classMetadata.eventsSignature) {
+      classMetadata.eventsSignature = this.getSyntheticMethod({ name: 'eventsSignature' })();
+    }
+
+    return classMetadata.eventsSignature;
+  }
+
+  #validateArgTypes(resourceType, resourceName, component, argTypes, args) {
+    const throwSchemaError = (msg) => {
+      throw Error(`Schema mismatch occured for ${resourceType} "${resourceName}": ${msg}`);
+    }
+
+    if (argTypes.length != args.length) {
+      throwSchemaError(`expected arg length of ${argTypes.length} but found ${args.length}`);
+    }
+
+    for (let i = 0; i < argTypes.length; i++) {
+      const { type } = argTypes[i];
+
+      if (typeof type == 'string') {
+        if (typeof args[i] != type.toLowerCase()) {
+          throwSchemaError(`expected ${type.toLowerCase()} but found ${typeof args[i]} at arg[${i}]`);
+        }
+      } else {
+        const { $ref } = type;
+        assert($ref, `Unable to parse signature for ${resourceType} "${resourceName}"`);
+
+        try {
+          component.proxyInstance.validateSchema(`arg[${i}]`, $ref, args[i]);
+        } catch (e) {
+          throwSchemaError(e.message);
+        }
+      }
+    }
+  }
+
+  async #dispatchServerEvent(event, ...args) {
+    const { unsafeEval, decompressArrayBuf } = AppContext;
+
+    if (!this.#serverEventListeners) return;
+
+    if (this.#serverEventDispatches.get(event)) {
+      // this event is already currently being dispatched, return
+      return;
+    }
+
+    const uri = this.#serverEventListeners[event];
+    if (!uri) return;
+
+    if (this.isLifecycleEvent(event) && !this.__extendedFuturesResolved) {
+      const [{ extendedFutures }] = args;
+
+      Promise.all(extendedFutures).then(() => {
+        this.__extendedFuturesResolved = true;
+        this.#dispatchServerEvent(event, ...args);
+      });
+      return;
+    }
+
+    const initial = !this.#serverEventDispatches.has(event);
+
+    this.#serverEventDispatches.set(event, true);
+
+    const body = { uri, initial };
+
+    for (let i = 0; i < args.length; i++) {
+      body[`arg${i}`] = args[i];
+    }
+
+    const sessionId = self.appContext.getSessionId();
+
+    const argTypes = this.getEventsSignature()[event];
+
+    if (argTypes) {
+      this.#validateArgTypes('event', event, this, argTypes, args);
+    }
+
+    const queryParams = new URLSearchParams();
+    queryParams.append('sessionId', sessionId);
+    queryParams.append('eventName', event);
+    queryParams.append('componentType', this.constructor.name);
+
+    const loadedComponents = Object.entries(self.appContext.getComponentList())
+      .map(([k], i) => global.components[k] ? i : null)
+      .filter(e => e != null);
+
+    const response = await self.fetch(
+      `${self.appContext.getComponentServiceUri()}/dispatch-event?${queryParams.toString()}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Loaded-Components': JSON.stringify(loadedComponents)
+        },
+        body: JSON.stringify(body)
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Unable to dispatch event "${event}" to the server`);
+    }
+
+    const filesStart = Number(response.headers.get('Files-Start'));
+    const buffer = await response.arrayBuffer();
+
+    const dataStart = new TextDecoder('utf-8').decode(buffer.slice(0, filesStart));
+
+    const { runtimeBootConfig, fileIndices } = JSON.parse(dataStart);
+    const { renderTree, cssDependencies, jsDependencies } = runtimeBootConfig;
+
+    const cssDepsPromise = self.appContext.loadCSSDependencies(cssDependencies);
+    const jsDepsPromise = self.appContext.loadJSDependencies(jsDependencies);
+
+    const fileEntries = Object.entries(fileIndices);
+
+    for (let i = 0; i < fileEntries.length; i++) {
+      const start = (i == 0) ? filesStart : fileEntries[i - 1][1] + filesStart;
+      const end = fileEntries[i][1] + filesStart;
+
+      self.appContext.getNetworkCache()
+        .set(
+          fileEntries[i][0], decompressArrayBuf(
+            buffer.slice(start, end)
+          ).then(buf => new TextDecoder('utf-8').decode(buf))
+        );
+    }
+
+    await self.appContext.loadComponentClasses(
+      clientUtils.objectValuesAsKeys(renderTree)
+    );
+
+    const dataEnd = new TextDecoder('utf-8').decode(buffer.slice(
+      fileEntries.length ? fileEntries.at(-1)[1] + filesStart : filesStart, buffer.byteLength
+    ));
+    const { actions, redirectUri } = unsafeEval(`module.exports=${dataEnd}`);
+
+    if (redirectUri) {
+      window.location.href = redirectUri;
+      return;
+    }
+
+    await jsDepsPromise;
+
+    await Promise.all(
+      Object.entries(actions)
+        .map(async ([ref, specList]) => {
+          var componentsByRef = BaseComponent.getComponentsByRef(ref);
+
+          if (!componentsByRef) {
+            this.logger.warn(null, `Could not find any component with ref "${ref}"`);
+            return;
+          }
+
+          for (const component of componentsByRef) {
+            if (!component.isComponentRendered()) {
+              await component.load({ wait: false });
+
+              await new Promise(resolve => {
+                requestAnimationFrame(resolve);
+              });
+
+              await cssDepsPromise;
+            }
+
+            const behavioursSignature = component.getBehavioursSignature();
+
+            specList.forEach(({ behaviourName, args }) => {
+              const argTypes = behavioursSignature[behaviourName];
+
+              if (argTypes) {
+                this.#validateArgTypes('behaviour', behaviourName, component, argTypes, args);
+              }
+
+              if (typeof component[behaviourName] == 'function') {
+                component[behaviourName].bind(component)(...args);
+              }
+            });
+          }
+        })
+    );
+
+    this.#serverEventDispatches.set(event, false);
+  }
+
+  #dispatchClientEvent(event, ...args) {
     const { handlerFunctionPrefix, oncePattern } = BaseComponent;
 
     let defaultHandler = this.defaultHandlers()[event]
@@ -447,12 +702,9 @@ class BaseComponent extends WebRenderer {
     }
 
     const helpersNamespace = this.getHelpersNamespace();
-    const definedHandlers = this.getAllHandlerFunctions();
-
-    // Note: Only dispatch event to server if event is clientOnly as well as defined in getEvents()
+    const definedHandlers = this.getAllHandlerFunctions(event);
 
     const ctx = this.#newEventContext();
-
     const finalizers = [];
 
     const handlers = Object.keys(this.#handlers[event] || {})
@@ -509,9 +761,7 @@ class BaseComponent extends WebRenderer {
         try {
           fn.bind((type == 'method') ? this : ctx)(...args)
         } catch (e) {
-          console.info(`Error occured while running handler for event "${event}": \n ${fn.toString()}`);
-
-          this.logger.error(null, e);
+          this.#logEventHandlerError(e, event, fn);
         }
       });
 
@@ -526,7 +776,10 @@ class BaseComponent extends WebRenderer {
     return ctx;
   }
 
-
+  #logEventHandlerError(err, event, fn) {
+    console.info(`Error occured while running handler for event "${event}": \n ${fn.toString()}`);
+    this.logger.error(null, err);
+  }
 
 
 
@@ -559,7 +812,8 @@ class BaseComponent extends WebRenderer {
 
   // #API
   dispatchEvent(event, ...args) {
-    return this.#dispatchEvent0(event, ...args);
+    this.#dispatchServerEvent(event, ...args);
+    return this.#dispatchClientEvent(event, ...args);
   }
 
   // #API
@@ -584,7 +838,7 @@ class BaseComponent extends WebRenderer {
           isObject ? x.keys instanceof Function ? x.keys() : Object.keys(x)
             : x
         )
-          .includes(y);
+          .includes(`${y}`);
       },
       INSTANCEOF: (x, y) => {
         if (!x) { return false; }
@@ -745,7 +999,7 @@ class BaseComponent extends WebRenderer {
   // #API
   async checkPredicate(path) {
     const { dataPathRoot, pathSeparator, predicateHookType } = RootProxy;
-    const value = this.getInputMap().get(path);
+    this.ensureComponentRendered();
 
     const [hookList, metadata] = await Promise.all([
       this.proxyInstance.getHookListFromPath(path, false, false), this.getMetadata(),
@@ -755,10 +1009,8 @@ class BaseComponent extends WebRenderer {
 
     if (!hookList[p]) return;
 
-    return this.proxyInstance.triggerHooks0({
-      path: p,
-      value, hookTypes: [predicateHookType],
-      hookList, metadata,
+    return this.proxyInstance.triggerHooks({
+      path: p, hookType: predicateHookType, hookList, metadata,
     });
   }
 }

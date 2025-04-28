@@ -22,10 +22,7 @@
       ]
     },
     "sections_$.id": {
-      "type": "String",
-      "defaults": [
-        null
-      ]
+      "type": "String"
     },
     "sections_$.name": {
       "type": "String",
@@ -50,8 +47,7 @@
       "defaultValue": false
     },
     "sections_$.items_$.id": {
-      "type": "String",
-      "defaults": []
+      "type": "String"
     },
     "sections_$.items_$.name": {
       "type": "String",
@@ -73,9 +69,6 @@
     },
     "sections_$.items_$.sectionId": {
       "type": "String",
-      "defaults": [
-        null
-      ],
       "clientOnly": true
     },
     "sections_$.items_$.rendered": {
@@ -112,6 +105,5 @@
       "sections_$.items_$.badge"
     ]
   },
-  "useCollectionLengthProperty": true,
   "escapeDynamicHtml": false
 }

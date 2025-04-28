@@ -5,6 +5,10 @@ class SimpleList extends components.LightningComponent {
         return x;
     }
 
+    useWeakRef() {
+        return false;
+    }
+
     getRandomColor() {
         // generate random r, g, b values
         const r = Math.floor(Math.random() * 256);

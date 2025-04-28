@@ -1,0 +1,23 @@
+
+<form 
+  class="slds-form" role="list"
+  {{autoComplete ? "autocomplete='${autoComplete}'" : "" }}
+  {{action ? "action='${action}'" : "" }}
+  {{method ? "method='${method}'" : "" }}
+>
+  {{#each elements as |x y|}}
+    <div class="slds-form__row">
+      {{#each . as |x y|}}
+        <div class="slds-form__item" role="listitem">
+            {{component FormElement alias="."}}
+            {{> .}}
+        </div>
+      {{/each}}
+    </div>
+  {{/each}}
+
+  {{#if action}}
+    <br><br>
+    {{> Button title="Submit" buttonType="submit"}}
+  {{/if}}
+</form>

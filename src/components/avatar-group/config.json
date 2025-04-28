@@ -28,6 +28,5 @@
     "nullifyRandomly": [],
     "nullify": []
   },
-  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false
 }

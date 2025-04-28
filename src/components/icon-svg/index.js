@@ -2,10 +2,10 @@
 class IconSvg extends components.LightningComponent {
 
     initializers() {
-        const { type } = this.getInput();
         return {
-            foreground: type == 'utility' ? 'text-default' : null,
+            foreground: ({ type }) => type == 'utility' ? 'text-default' : null,
             solid: true,
+            size: ({ size, type }) => size === null ? null : (type == 'utility') ? 'x-small' : 'small'
         };
     }
 

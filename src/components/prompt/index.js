@@ -12,5 +12,11 @@ class Prompt extends components.Modal {
         input.closeIcon = false;
     }
 
+    initializers() {
+        return {
+            ['type']: 'shade'
+        }
+    }
+
 }
 module.exports = Prompt;

@@ -1,7 +1,7 @@
 
 {{style url="/components/date_picker/style.min.css"}}
 
-{{component DatePicker alias="startDatePicker"}}
+{{component DatePicker alias="dependsOn"}}
 
 {{#*inline "date_picker" runtime=true }}
     {{var overlayAttribute = getOverlayAttribute}}
@@ -94,7 +94,7 @@
 {{/inline}}
 
 {{#*inline "standalone_classes"}}
-  slds-dropdown-trigger {{(readonly or not displayOnHover) ? 'slds-dropdown-trigger_click' : ''}}
+  {{not readonly ? 'slds-dropdown-trigger' : ''}} {{(readonly or not displayOnHover) ? 'slds-dropdown-trigger_click' : ''}}
 {{/inline}}
 
 {{> render_standalone}}

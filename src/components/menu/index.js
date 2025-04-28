@@ -17,12 +17,12 @@ class Menu extends components.OverlayComponent {
 
         // If group role is 'radio' or 'checkbox', this specifies the
         // direction that the check icon should be placed
-        this.getInput().groups[0].checkIconX
+        this.getInput().groups[0].checkIconX;
 
         // If group role is 'radio', this specifies whether the user must specify
         // at least one item. The way it works is: Once an item is the group is selected,
         // we don't allow that to be unselected unless there is a replacement
-        this.getInput().groups[0].required
+        this.getInput().groups[0].required;
 
         // This indicates the preferred x, y direction of submenus
         this.getInput().groups[0].items[0].subMenuX;
@@ -66,9 +66,10 @@ class Menu extends components.OverlayComponent {
                     });
             },
             ['splice.groups_$.items']: ({ parentObject, offsetIndexes, newLength }) => {
-                const { indexProperty } = BaseComponent.CONSTANTS;
+                const { indexProperty, parentRefProperty } = BaseComponent.CONSTANTS;
 
-                const groupIndex = parentObject[indexProperty];
+                const group = parentObject[parentRefProperty];
+                const groupIndex = group[indexProperty];
 
                 Object.values(this.#getItems())
                     .filter(({ group: { index } }) => index == groupIndex)
@@ -145,6 +146,15 @@ class Menu extends components.OverlayComponent {
         this.on('insert.groups_$.items_$.feedbackState', 'insert.groups_$.items_$.feedbackState');
     }
 
+    destroy() {
+        super.destroy();
+
+        this.#renderingArea = null;
+        this.#selectedItems = null;
+        this.#items = null;
+        this.#identifiers = null;
+    }
+
     immutablePaths() {
         return [
             'isSubMenu',
@@ -189,7 +199,7 @@ class Menu extends components.OverlayComponent {
     transformers() {
         return {
             ['groups_$.items_$.identifier']: (identifier) => {
-                if (this.#identifiers.includes(identifier)) {
+                if (!identifier || this.#identifiers.includes(identifier)) {
                     identifier = this.randomString();
                 }
                 this.#identifiers.push(identifier);
@@ -414,7 +424,7 @@ class Menu extends components.OverlayComponent {
 
         let wrapper;
 
-        const futures = await this.renderDecorator('submenu', (htmlString) => {
+        const { futures } = await this.renderDecorator('submenu', (htmlString) => {
             wrapper = this.#parseHTMLString(htmlString);
             li.appendChild(wrapper);
         }, blockData);
@@ -455,7 +465,7 @@ class Menu extends components.OverlayComponent {
         const x = (role == 'presentation') ? subMenuX : checkIconX;
         const container = (x == 'left') ? leftIconContainer : rightIconContainer;
 
-        const futures = await this.renderDecorator(`${x}IconDecorator`, container, blockData);
+        const { futures } = await this.renderDecorator(`${x}IconDecorator`, container, blockData);
         await Promise.all(futures);
     }
 

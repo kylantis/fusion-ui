@@ -1,10 +1,10 @@
 
 class K_Database {
 
-    static #NO_OP = () => { };
     static #resolvedResultSet = Promise.resolve([]);
 
     #deferredDeletes = [];
+
     #migrating;
     #migrated;
 
@@ -12,7 +12,7 @@ class K_Database {
     #storeInfoList;
 
     #idb;
-    #lds;
+    #ldb;
 
     static DEFAULT_PRIMARY_KEY = 'id';
 
@@ -24,25 +24,29 @@ class K_Database {
     #getLds() {
         if (this.#migrated) return null;
 
-        if (!this.#lds) {
-            this.#lds = new self.LokiDatabase(this.#databaseName, K_Database.DEFAULT_PRIMARY_KEY, this.#storeInfoList);
+        if (!this.#ldb) {
+            this.#ldb = new self.LokiDb(this.#databaseName, K_Database.DEFAULT_PRIMARY_KEY, this.#storeInfoList);
         }
-        return this.#lds;
+        return this.#ldb;
     }
 
-    async createPersistenceLayer() {
-        this.#idb = await K_Database.#_connect(this.#databaseName, this.#storeInfoList);
+    async createPersistenceLayer(setupDb) {
 
-        if (this.#storeInfoList) {
+        const idb = new IndexedDb(this.#databaseName, K_Database.DEFAULT_PRIMARY_KEY);
+        await idb.connect(this.#storeInfoList);
 
-            if (this.#lds) {
+        this.#idb = idb;
+
+        if (setupDb) {
+
+            if (this.#ldb) {
 
                 const promises = []
                 this.#migrating = true;
 
                 this.#storeInfoList.forEach(({ storeName }) => {
                     promises.push(
-                        this.put(storeName, this.#lds.all(storeName))
+                        this.put(storeName, this.#ldb.all(storeName))
                     )
                 });
 
@@ -54,9 +58,10 @@ class K_Database {
                     this.delete(storeName, keys);
                 });
 
-                const _lds = this.#lds;
+                const _lds = this.#ldb;
+                this.#ldb = null;
+
                 _lds.dropDatabase();
-                this.#lds = null;
             }
 
             this.#deferredDeletes = null;
@@ -66,78 +71,32 @@ class K_Database {
         this.#migrated = true;
     }
 
-    static #_connect(databaseName, storeInfoList) {
-        const { DEFAULT_PRIMARY_KEY } = K_Database;
-
-        return new Promise((resolve, reject) => {
-            const openRequest = self.indexedDB.open(databaseName, 1);
-
-            openRequest.onerror = event => reject(event.target.error);
-            openRequest.onsuccess = event => {
-                resolve(event.target.result);
-            };
-            openRequest.onupgradeneeded = (event) => {
-                const db = event.target.result;
-
-                const indexName = (colName) => `${colName}_index`;
-
-                storeInfoList.forEach(({ storeName, indexedColumns }) => {
-                    const store = db.createObjectStore(storeName, { keyPath: DEFAULT_PRIMARY_KEY });
-
-                    indexedColumns.forEach(colName => {
-                        store.createIndex(indexName(colName), colName, { unique: false, multiEntry: true });
-                    });
-                });
-            }
-        });
-    }
-
-    put(storeName, rows) {
-        const lokiReservedColumns = self.LokiDatabase ? self.LokiDatabase.getReservedColumns() : null;
-
-        const updatedAt = new Date();
+    static removeLokiMetadataFromRows(rows) {
+        const lokiReservedColumns = self.LokiDb.getReservedColumns();
 
         rows.forEach(row => {
-            row.updatedAt = updatedAt;
-        });
-
-        const transform = this.#migrating ? (row) => {
             lokiReservedColumns.forEach(k => {
                 delete row[k];
             });
-        } : K_Database.#NO_OP;
-
-        return this.#idb ? K_Database.#_put(this.#idb, storeName, rows, transform) : this.#getLds().put(storeName, rows);
-    }
-
-    static #_put(dbInstance, storeName, rows, transform) {
-        const transaction = dbInstance.transaction([storeName], 'readwrite', { durability: 'relaxed' });
-        const store = transaction.objectStore(storeName);
-
-        return new Promise((resolve, reject) => {
-
-            transaction.oncomplete = resolve;
-            transaction.onerror = reject;
-
-            for (const row of rows) {
-                transform(row);
-                store.put(row);
-            }
-
-            if (transaction.commit) {
-                transaction.commit();
-            }
         });
     }
 
-    static async #combineFetchResults(...promises) {
+    static async combineFetchResults(...promises) {
         const keys = {};
         const values = [];
 
         await Promise.all(
             promises
-                .map(p => p.then(arr => {
+                .map((p, i) => p.then(arr => {
                     arr.forEach(row => {
+
+                        // we want to ensure that loki results come first before indexeddb results, the reason
+                        // for this is that - we want to priorize adding loki documents to the result set
+                        // because it contains indexing metadata used by loki, and in the event that an
+                        // update operation is triggered against the document(s), loki is able to
+                        // internally reconcile the document against it's indexes
+                        assert(i || row.$loki);
+
                         const pk = row[this.DEFAULT_PRIMARY_KEY];
 
                         if (!keys[pk]) {
@@ -152,40 +111,27 @@ class K_Database {
         return values;
     }
 
-    startsWithQuery(proxyInstance, storeName, indexName, prefix) {
-        return K_Database.#combineFetchResults(
-            this.#getLds() ? Promise.resolve(this.#getLds().startsWithQuery(proxyInstance, storeName, indexName, prefix)) : K_Database.#resolvedResultSet,
-            this.#idb ? this.#getAll0(storeName, indexName, IDBKeyRange.bound(prefix, prefix + 'uffff', false, false)) : K_Database.#resolvedResultSet
+    put(storeName, rows) {
+
+        if (this.#idb && this.#migrating) {
+            K_Database.removeLokiMetadataFromRows(rows);
+        }
+
+        return this.#idb ? this.#idb.put(storeName, rows) : this.#getLds().put(storeName, rows);
+    }
+
+    startsWithQuery(trie, storeName, indexName, prefix) {
+        return K_Database.combineFetchResults(
+            this.#getLds() ? Promise.resolve(this.#getLds().startsWithQuery(trie, storeName, indexName, prefix)) : K_Database.#resolvedResultSet,
+            this.#idb ? this.#idb.startsWithQuery(trie, storeName, indexName, prefix) : K_Database.#resolvedResultSet
         )
     }
 
     equalsQuery(storeName, indexName, eqValue) {
-        return K_Database.#combineFetchResults(
+        return K_Database.combineFetchResults(
             this.#getLds() ? Promise.resolve(this.#getLds().equalsQuery(storeName, indexName, eqValue)) : K_Database.#resolvedResultSet,
-            this.#idb ? this.#getAll0(storeName, indexName, eqValue) : K_Database.#resolvedResultSet
+            this.#idb ? this.#idb.equalsQuery(storeName, indexName, eqValue) : K_Database.#resolvedResultSet
         )
-    }
-
-    async #getAll0(storeName, indexName, range, keysOnly) {
-        return K_Database.#_getAll0(this.#idb, storeName, indexName, range, keysOnly);
-    }
-
-    static #_getAll0(dbInstance, storeName, indexName, range, keysOnly) {
-
-        const transaction = dbInstance.transaction([storeName], 'readonly');
-        const store = transaction.objectStore(storeName);
-        const target = indexName ? store.index(indexName) : store;
-
-        const getRequest = (...args) => keysOnly ? target.getAllKeys(...args) : target.getAll(...args);
-
-        const request = (range != undefined) ? getRequest(range) : getRequest();
-
-        return new Promise((resolve, reject) => {
-            request.onsuccess = event => {
-                resolve(event.target.result);
-            };
-            request.onerror = event => reject(event.target.error);
-        });
     }
 
     delete(storeName, keys) {
@@ -194,25 +140,7 @@ class K_Database {
             return;
         }
 
-        return this.#idb ? K_Database.#_delete(this.#idb, storeName, keys) : this.#getLds().delete(storeName, keys);
-    }
-
-    static #_delete(dbInstance, storeName, keys) {
-        const transaction = dbInstance.transaction([storeName], 'readwrite', { durability: 'relaxed' });
-        const store = transaction.objectStore(storeName);
-
-        return new Promise((resolve, reject) => {
-            transaction.oncomplete = resolve;
-            transaction.onerror = reject;
-
-            keys.forEach(key => {
-                store.delete(key);
-            });
-
-            if (transaction.commit) {
-                transaction.commit();
-            }
-        });
+        return this.#idb ? this.#idb.delete(storeName, keys) : this.#getLds().delete(storeName, keys);
     }
 }
 

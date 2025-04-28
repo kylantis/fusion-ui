@@ -12,12 +12,21 @@ class AppContext {
 
   static DB_COUNT = 5;
   static BUCKET_COUNT_PER_DB = 50;
+
+  // Note: as long as each connection caches database entries in-memory (as is currently the case),
+  // we can only maintain a ONE connection per db, see lib/indexed_db.js
   static CONNECTIONS_PER_DB = 1;
-  static DEFAULT_PLATFORM_APPID = 'platform';
+
+  static CREATE_DB_WORKER = false;
+
+  static COMPONENT_SERVICE_URI = '/web/components';
+
+  static SESSION_QUERY_PARAMS;
+
   static RTL = false;
 
   #loadedStyles = [];
-  #loadedScripts = [];
+  #loadedScripts = new Set();
 
   #logger;
   #userGlobals;
@@ -26,6 +35,7 @@ class AppContext {
   #className;
   #rootComponent;
   #componentList;
+  #sessionId;
 
   #alphaList = {};
   #omegaList = {};
@@ -42,9 +52,9 @@ class AppContext {
   #loaded;
 
   #indexedDbReady = false;
-  #networkCache;
+  #networkCache = new Map();
 
-  constructor({ logger, userGlobals, assetId, className, bootConfig, componentList }) {
+  constructor({ logger, userGlobals, assetId, className, bootConfig, componentList, testMode, sessionId }) {
 
     this.#logger = logger;
     this.#userGlobals = (userGlobals == '{{userGlobals}}') ? {} : userGlobals;
@@ -55,7 +65,9 @@ class AppContext {
     this.#bootConfigs[className] = bootConfig;
     this.#componentList = this.#parseComponentList(componentList);
 
-    this.testMode = window.location.hostname == 'localhost';
+    this.#sessionId = (sessionId == '{{sessionId}}') ? null : sessionId;
+
+    this.testMode = !!testMode;
 
     Object.defineProperty(self, 'appContext', {
       value: this, configurable: false, writable: false,
@@ -66,12 +78,81 @@ class AppContext {
     this.#readUserGlobals();
   }
 
+  static getComponentAssetURLs(assetId) {
+    return {
+      schemaURL: `/components/${assetId}/schema.json`,
+      metadataURL: `/components/${assetId}/metadata.min.js`,
+      jsURL: `/components/${assetId}/index.min.js`,
+      testJsURL: `/components/${assetId}/index.test.min.js`
+    }
+  }
+
+  static getDependencies() {
+    return [
+      '/assets/js/lib/event_handler.min.js',
+      '/assets/js/lib/trie.min.js',
+      '/assets/js/data/interned_strings_6480.js',
+      '/assets/js/client-bundles/hyntax.js',
+      { url: '/assets/js/client-utils.min.js', namespace: 'clientUtils' },
+      { url: '/assets/js/template-runtime.min.js', namespace: 'TemplateRuntime' },
+      { url: '/assets/js/custom-ctx-helpers.min.js', namespace: 'customCtxHelpers' },
+    ];
+  }
+
+  static getBaseDependencies() {
+    return [
+      '/assets/js/lib/database.min.js',
+      { url: '/assets/js/lib/lokijs.min.js', namespace: 'loki' },
+      '/assets/js/lib/loki_db.min.js',
+      '/assets/js/lib/indexed_db.min.js',
+
+      '/assets/js/base-renderer.min.js',
+      '/assets/js/root-ctx-renderer.min.js',
+      '/assets/js/custom-ctx-renderer.min.js',
+      '/assets/js/web-renderer.min.js',
+      '/assets/js/proxy.min.js',
+      '/assets/js/base-component.min.js',
+    ]
+  }
+
+  static getAllDependencies(assetId, bootConfig, componentList, testMode) {
+    const { getComponentAssetURLs, getDependencies, getBaseDependencies } = AppContext;
+    const { renderTree } = bootConfig;
+
+    const toURL = (dep) => (typeof dep == 'object') ? dep.url : dep;
+
+    let fileList = [
+      ...testMode ? [`/components/${assetId}/samples.js`] : [],
+      ...getBaseDependencies().map(toURL),
+      '/components/enums.json',
+      ...getDependencies().map(toURL),
+      ...Object.values(componentList)
+        .filter(_assetId => _assetId != assetId)
+        .map(assetId => `/components/${assetId}/boot-config.json`),
+    ];
+
+    [...new Set([assetId, ...Object.keys(renderTree)])]
+      .forEach(assetId => {
+        fileList = fileList.concat(
+          Object.values(
+            getComponentAssetURLs(assetId)
+          )
+        );
+      });
+
+    return fileList;
+  }
+
   #parseComponentList(str) {
     const markerStart = '<componentList>';
     const markerEnd = '</componentList>';
 
     const jsonStr = str.substring(markerStart.length, str.length - markerEnd.length);
     return JSON.parse(jsonStr);
+  }
+
+  getComponentList() {
+    return { ...this.#componentList };
   }
 
   isLoaded() {
@@ -90,6 +171,10 @@ class AppContext {
     return this.#rootComponent;
   }
 
+  getSessionId() {
+    return this.#sessionId;
+  }
+
   #addPolyfills() {
     self.assert = (condition, message) => {
       if (!condition) {
@@ -102,7 +187,7 @@ class AppContext {
 
   #readUserGlobals() {
     const {
-      DB_COUNT, BUCKET_COUNT_PER_DB, CONNECTIONS_PER_DB, DEFAULT_PLATFORM_APPID, RTL
+      DB_COUNT, BUCKET_COUNT_PER_DB, CONNECTIONS_PER_DB, COMPONENT_SERVICE_URI, SESSION_QUERY_PARAMS, RTL, CREATE_DB_WORKER,
     } = this.#userGlobals;
 
     if (typeof DB_COUNT == 'number') {
@@ -117,12 +202,20 @@ class AppContext {
       AppContext.CONNECTIONS_PER_DB = CONNECTIONS_PER_DB;
     }
 
-    if (typeof DEFAULT_PLATFORM_APPID == 'string') {
-      AppContext.DEFAULT_PLATFORM_APPID = DEFAULT_PLATFORM_APPID;
+    if (typeof COMPONENT_SERVICE_URI == 'string') {
+      AppContext.COMPONENT_SERVICE_URI = COMPONENT_SERVICE_URI;
+    }
+
+    if (typeof SESSION_QUERY_PARAMS == 'string') {
+      AppContext.SESSION_QUERY_PARAMS = SESSION_QUERY_PARAMS;
     }
 
     if (typeof RTL == 'boolean') {
       AppContext.RTL = RTL;
+    }
+
+    if (typeof CREATE_DB_WORKER == 'boolean') {
+      AppContext.CREATE_DB_WORKER = CREATE_DB_WORKER;
     }
   }
 
@@ -159,33 +252,6 @@ class AppContext {
     }
 
     return fn(...args.values);
-  }
-
-  #setupSessionSocket() {
-    return;
-
-    this.socketSessionId = global.clientUtils.randomString('ungrouped');
-    document.cookie = `socketSessionId=${this.socketSessionId};path=/`
-
-    const port = 4583;
-    const sessionSocket = new WebSocket(`ws://${location.hostname}:${port}/client-session`);
-
-    sessionSocket.onopen = () => {
-      const data = {
-        op: 'init',
-        sessionId: this.socketSessionId,
-      }
-
-      sessionSocket.send(JSON.stringify(data));
-      this.#logger.info(`Initialized new client session; id=${this.socketSessionId}`);
-    };
-
-    sessionSocket.onmessage = (event) => {
-      const { op, path, value } = JSON.parse(event);
-
-    };
-
-    this.sessionSocket = sessionSocket;
   }
 
   #getNextDatabase(groupName) {
@@ -238,6 +304,10 @@ class AppContext {
       dbName,
       bucketName: this.#getNextBucket(dbName, groupName),
     }
+  }
+
+  getDbWorkers() {
+    return Object.values(this.#dbWorkers);
   }
 
   getDbWorker(dbName) {
@@ -298,92 +368,11 @@ class AppContext {
     return Object.keys(classNames);
   }
 
-  static getNetworkCacheFiles(assetId, bootConfig, componentList, testMode) {
-    const { jsDependencies, renderTree } = bootConfig;
-
-    const toURL = (dep) => (typeof dep == 'object') ? dep.url : dep;
-
-    let fileList = [
-      ...testMode ? [`/components/${assetId}/samples.js`] : [],
-      ...this.#getBaseDependencies().map(toURL),
-      '/components/enums.json',
-      ...this.#getDependencies().map(toURL),
-      ...jsDependencies.map(toURL),
-      ...Object.values(componentList)
-        .filter(_assetId => _assetId != assetId)
-        .map(assetId => `/components/${assetId}/boot-config.json`),
-    ];
-
-    [assetId, ...Object.keys(renderTree)].forEach(assetId => {
-      fileList = fileList.concat(
-        Object.values(
-          this.#getComponentAssetURLs(assetId)
-        )
-      );
-    });
-
-    return fileList;
+  getNetworkCache() {
+    return this.#networkCache;
   }
 
-  async #requestNetworkCacheFile(bootConfig, runtime) {
-
-    const fileList = AppContext.getNetworkCacheFiles(
-      this.#assetId, bootConfig, this.#componentList, this.testMode,
-    );
-
-    const numFiles = fileList.length;
-
-    const opts = {
-      assetId: this.#assetId,
-      bootConfig: runtime ? bootConfig : undefined,
-      numFiles,
-    };
-
-    const _opts = LZString.compressToEncodedURIComponent(JSON.stringify(opts));
-
-    const url = `/web/components/request-network-cache-file?_opts=${_opts}`;
-
-    if (url.length > AppContext.#getMaxUrlLength()) return;
-
-    const response = await self.fetch(
-      url, { method: 'GET', priority: 'high' }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Unable to fetch network cache file: ${response.statusText}`);
-    }
-
-    const fileIndices = response.headers.get('File-Indices').split(',').map(Number);
-    const buffer = await response.arrayBuffer();
-    this.#networkCache = new Map();
-
-    for (let i = 0; i < fileList.length; i++) {
-      let start = (i == 0) ? 0 : fileIndices[i - 1];
-      let end = fileIndices[i];
-
-      this.#networkCache.set(
-        fileList[i], this.#decompressArrayBuf(
-          buffer.slice(start, end)
-        ).then(buf => new TextDecoder('utf-8').decode(buf))
-      );
-    }
-  }
-
-  async #decompressArrayBuf(inputBuf) {
-    const decompressionStream = new DecompressionStream('deflate');
-
-    const compressedStream = new ReadableStream({
-      start(controller) {
-        controller.enqueue(new Uint8Array(inputBuf));
-        controller.close();
-      }
-    });
-
-    const decompressedStream = compressedStream.pipeThrough(decompressionStream);
-    return await this.#streamToArrayBuffer(decompressedStream);
-  }
-
-  async #streamToArrayBuffer(stream) {
+  static async streamToArrayBuffer(stream) {
     const reader = stream.getReader();
     const chunks = [];
     let result;
@@ -404,17 +393,73 @@ class AppContext {
     return arrayBuffer.buffer;
   }
 
+  static async decompressArrayBuf(inputBuf) {
+    const { streamToArrayBuffer } = AppContext;
+    const decompressionStream = new DecompressionStream('deflate');
+
+    const compressedStream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new Uint8Array(inputBuf));
+        controller.close();
+      }
+    });
+
+    const decompressedStream = compressedStream.pipeThrough(decompressionStream);
+    return await streamToArrayBuffer(decompressedStream);
+  }
+
+  getComponentServiceUri() {
+    return AppContext.COMPONENT_SERVICE_URI;
+  }
+
+  async #requestNetworkCacheFile(bootConfig) {
+    const { decompressArrayBuf, getAllDependencies } = AppContext;
+
+    const fileList = getAllDependencies(
+      this.#assetId, bootConfig, this.#componentList, this.testMode,
+    );
+
+    const numFiles = fileList.length;
+
+    const queryParams = new URLSearchParams();
+    queryParams.append('sessionId', this.#sessionId);
+    queryParams.append('assetId', this.#assetId);
+    queryParams.append('numFiles', numFiles);
+
+    const url = `${this.getComponentServiceUri()}/request-network-cache-file?${queryParams.toString()}`;
+
+    const response = await self.fetch(
+      url, { method: 'GET', priority: 'high' }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Unable to fetch network cache file: ${response.statusText}`);
+    }
+
+    const fileIndices = response.headers.get('File-Indices').split(',').map(Number);
+    const buffer = await response.arrayBuffer();
+
+    for (let i = 0; i < fileList.length; i++) {
+      const start = (i == 0) ? 0 : fileIndices[i - 1];
+      const end = fileIndices[i];
+
+      this.#networkCache.set(
+        fileList[i], decompressArrayBuf(
+          buffer.slice(start, end)
+        ).then(buf => new TextDecoder('utf-8').decode(buf))
+      );
+    }
+  }
+
   async load({ data, runtimeBootConfig }) {
     runtimeBootConfig = (runtimeBootConfig == '{{runtimeBootConfig}}') ? null : runtimeBootConfig;
 
     const rootBootConfig = this.#bootConfigs[this.#className];
     const _rootBootConfig = runtimeBootConfig || rootBootConfig;
 
-    const cacheFilePromise = this.#requestNetworkCacheFile(
-      _rootBootConfig, !!runtimeBootConfig
-    );
+    const cacheFilePromise = this.#requestNetworkCacheFile(_rootBootConfig);
 
-    let htmlDepsPromise = this.loadCSSDependencies(_rootBootConfig.cssDependencies)
+    let htmlDepsPromise = this.#loadCSSDependencies(_rootBootConfig.cssDependencies)
 
     await cacheFilePromise;
 
@@ -429,13 +474,11 @@ class AppContext {
     const enumPromise = this.#loadEnums();
 
     const depsPromise = this.#loadDependencies();
-    const sessionSocketPromise = this.#setupSessionSocket();
-
 
     if (runtimeBootConfig || !rootBootConfig.hasDynamicBootConfig) {
       const { jsDependencies, renderTree } = _rootBootConfig;
 
-      htmlDepsPromise = Promise.all([htmlDepsPromise, this.loadJSDependencies(jsDependencies)]);
+      htmlDepsPromise = Promise.all([htmlDepsPromise, this.#loadJSDependencies(jsDependencies)]);
       alphaListPromise = Promise.resolve();
 
       alphaBootConfigsPromise = Promise.all(
@@ -494,8 +537,8 @@ class AppContext {
 
             htmlDepsPromises.push(
               Promise.all([
-                this.loadCSSDependencies(cssDependencies),
-                this.loadJSDependencies(jsDependencies)
+                this.#loadCSSDependencies(cssDependencies),
+                this.#loadJSDependencies(jsDependencies)
               ])
             );
 
@@ -535,7 +578,7 @@ class AppContext {
     self.components = {};
 
     const alphaComponentClassesPromise = alphaListPromise
-      .then(() => this.#loadComponentClasses(this.#alphaList, baseDepsPromise));
+      .then(() => this.loadComponentClasses(this.#alphaList, baseDepsPromise));
 
     const samplesPromise = alphaComponentClassesPromise.then(async () => {
       if (this.testMode) {
@@ -559,13 +602,13 @@ class AppContext {
 
 
     // htmlDepsPromise
-    // await Promise.all([alphaComponentClassesPromise, dbSetupPromise, enumPromise, depsPromise, sessionSocketPromise])
+    // await Promise.all([alphaComponentClassesPromise, dbSetupPromise, enumPromise, depsPromise])
 
     await new Promise(resolve => {
       requestAnimationFrame(resolve);
     });
 
-    await this.#loadRootComponent(data, await samplesPromise);
+    await this.#loadRootComponent(data, await samplesPromise, htmlDepsPromise);
 
 
     this.#setupComponentsNodePruneTask();
@@ -580,18 +623,21 @@ class AppContext {
 
     setTimeout(
       async () => {
+        console.info('start migration');
         await this.#connectDatabase();
+        console.info('finish migration');
       },
       AppContext.DB_PERSISTENCE_TIMEOUT,
     );
   }
 
   async #connectDatabase() {
+    const { CREATE_DB_WORKER } = AppContext;
 
     await Promise.all(
       Object.entries(this.#dbConnections)
-        .map(([dbName, { connections }]) =>
-          connections[0].createPersistenceLayer()
+        .map(([dbName, { connections, storeInfoList }]) =>
+          connections[0].createPersistenceLayer(true)
             .then(() => {
               const promises = [];
 
@@ -601,9 +647,11 @@ class AppContext {
                 );
               }
 
-              promises.push(
-                this.#createDbWorker(dbName)
-              );
+              if (CREATE_DB_WORKER) {
+                promises.push(
+                  this.#createDbWorker(dbName, storeInfoList)
+                );
+              }
 
               return Promise.all(promises);
             }))
@@ -612,22 +660,14 @@ class AppContext {
     this.#indexedDbReady = true;
   }
 
-  static #getComponentAssetURLs(assetId) {
-    return {
-      schemaURL: `/components/${assetId}/schema.json`,
-      metadataURL: `/components/${assetId}/metadata.min.js`,
-      jsURL: `/components/${assetId}/index.min.js`,
-      testJsURL: `/components/${assetId}/index.test.min.js`
-    }
-  }
-
-  async #loadComponentClasses(list, preLoadPromise) {
+  async loadComponentClasses(list, preLoadPromise) {
+    const { getComponentAssetURLs } = AppContext;
 
     Object.entries(list)
       .forEach(async ([className, assetId]) => {
         const metadataMap = this.getComponentClassMetadataMap()[className] = {};
 
-        const { schemaURL, metadataURL } = AppContext.#getComponentAssetURLs(assetId);
+        const { schemaURL, metadataURL } = getComponentAssetURLs(assetId);
 
         this.fetch({ url: schemaURL, asJson: true }).then(schema => {
           metadataMap.schema = schema;
@@ -640,8 +680,9 @@ class AppContext {
 
     return Promise.all(
       Object.entries(list)
+        .filter(([className]) => !self.components[className])
         .map(async ([className, assetId]) => {
-          const { jsURL, testJsURL } = AppContext.#getComponentAssetURLs(assetId);
+          const { jsURL, testJsURL } = getComponentAssetURLs(assetId);
 
           return [
             className,
@@ -651,7 +692,9 @@ class AppContext {
         })
     )
       .then(async componentsData => {
-        await preLoadPromise;
+        if (preLoadPromise) {
+          await preLoadPromise;
+        }
 
         componentsData.forEach(([className, mainSrc, testSrc]) => {
 
@@ -945,13 +988,18 @@ class AppContext {
     return this.#dbSpec;
   }
 
-  async #createDbWorker(dbName) {
-    const worker = new Worker('/assets/js/web_workers/db_web_worker.min.js');
+  async #createDbWorker(dbName, storeInfoList) {
+    const worker = new Worker(`/assets/js/web_workers/db_web_worker.min.js?v=${new Date().getTime()}`);
     this.#dbWorkers[dbName] = worker;
 
-    return RootProxy.runTask(
-      worker, 'connectDatabase', dbName,
-    )
+    await Promise.all([
+      RootProxy.runTask(
+        worker, 'connectDatabase', dbName, storeInfoList,
+      ),
+      RootProxy.runTask(
+        worker, 'createPathTries', RootProxy.getPathList(),
+      ),
+    ]);
   }
 
   #createDatabaseConnections(dbName, storeInfoList) {
@@ -968,48 +1016,23 @@ class AppContext {
     connections.push(connection);
 
     for (let i = 1; i < CONNECTIONS_PER_DB; i++) {
-      const connection = new K_Database(dbName);
+      const connection = new K_Database(dbName, storeInfoList);
       connections.push(connection);
     }
 
     this.#dbConnections[dbName] = {
-      currentIndex: -1, connections,
+      currentIndex: -1, connections, storeInfoList,
     }
   }
 
-  static #getDependencies() {
-    return [
-      '/assets/js/lib/event_handler.min.js',
-      '/assets/js/lib/trie.min.js',
-      '/assets/js/data/interned_strings_6480.js',
-      '/assets/js/client-bundles/hyntax.js',
-      { url: '/assets/js/client-utils.min.js', namespace: 'clientUtils' },
-      { url: '/assets/js/template-runtime.min.js', namespace: 'TemplateRuntime' },
-      { url: '/assets/js/custom-ctx-helpers.min.js', namespace: 'customCtxHelpers' },
-    ];
-  }
-
-  static #getBaseDependencies() {
-    return [
-      '/assets/js/lib/database.min.js',
-      { url: '/assets/js/lib/lokijs.min.js', namespace: 'Loki' },
-      '/assets/js/lib/loki_database.min.js',
-
-      '/assets/js/base-renderer.min.js',
-      '/assets/js/root-ctx-renderer.min.js',
-      '/assets/js/custom-ctx-renderer.min.js',
-      '/assets/js/web-renderer.min.js',
-      '/assets/js/proxy.min.js',
-      '/assets/js/base-component.min.js',
-    ]
-  }
-
   #loadDependencies() {
-    return this.fetchAll(AppContext.#getDependencies(), true);
+    const { getDependencies } = AppContext;
+    return this.fetchAll(getDependencies(), true);
   }
 
   #loadBaseDependencies() {
-    return this.fetchAll(AppContext.#getBaseDependencies());
+    const { getBaseDependencies } = AppContext;
+    return this.fetchAll(getBaseDependencies());
   }
 
   #loadEnums() {
@@ -1027,14 +1050,20 @@ class AppContext {
   #addComponentConstructorPruneFinalizer(componentNames) {
     const { INITIAL_LOAD_TIME_SEC } = AppContext;
 
-    this.#finalizers.push(() => {
+    const fn = () => {
       setTimeout(() => {
         componentNames
           .forEach(name => {
             this.#pruneComponentConstructor(name)
           });
       }, INITIAL_LOAD_TIME_SEC * 1000);
-    });
+    };
+
+    if (this.#finalizers) {
+      this.#finalizers.push(fn);
+    } else {
+      fn();
+    }
   }
 
   #pruneComponentConstructor(className) {
@@ -1044,7 +1073,7 @@ class AppContext {
     delete classMetadata.metadata;
   }
 
-  async #loadRootComponent(data, samples) {
+  async #loadRootComponent(data, samples, htmlDepsPromise) {
     const { testMode } = this;
 
     let component;
@@ -1052,10 +1081,10 @@ class AppContext {
     if (testMode) {
 
       component = new self.components[this.#className]({
-        input:
-          samples[
+        input: samples[
           self.clientUtils.getRandomInt(0, samples.length - 1)
-          ],
+        ],
+        isRoot: true
       });
 
     } else {
@@ -1064,16 +1093,20 @@ class AppContext {
       component = data();
     }
 
-    const container = document.createElement('div');
-    container.id = 'app-container';
-    container.style.display = 'contents';
+    if (component.awaitHtmlDependencies()) {
+      await htmlDepsPromise;
+    }
 
-    document.body.appendChild(container);
+    component.addConfig('useWeakRef', false);
 
     this.#loaded = true;
     this.#rootComponent = component;
 
-    return component.load({ container: `#${container.id}` });
+    if (testMode) {
+      global.Component = component;
+    }
+
+    return component.load();
   }
 
   #processScript({ contents, scope, namespace }) {
@@ -1130,6 +1163,11 @@ class AppContext {
       response;
   }
 
+  #getSessionQueryParams() {
+    const { SESSION_QUERY_PARAMS } = AppContext;
+    return SESSION_QUERY_PARAMS || ''
+  }
+
   async #fetchFn({ url, asJson }) {
     const resourceType = asJson ? 'json' : 'text';
 
@@ -1148,7 +1186,7 @@ class AppContext {
     }
 
     if (!data) {
-      data = await self.fetch(url, { method: 'GET' });
+      data = await self.fetch(url + this.#getSessionQueryParams(), { method: 'GET' });
     }
 
     if (data.ok) {
@@ -1159,6 +1197,10 @@ class AppContext {
   }
 
   loadCSSDependencies(requests) {
+    return this.#loadCSSDependencies(requests, false);
+  }
+
+  #loadCSSDependencies(requests, isRoot = true) {
     // eslint-disable-next-line consistent-return
     return new Promise((resolve, reject) => {
       const loaded = [];
@@ -1166,6 +1208,7 @@ class AppContext {
       const styles = [
         ...new Set(
           requests
+            .map(req => ({ ...req, url: req.url + this.#getSessionQueryParams() }))
             .filter(({ url }) => !this.#loadedStyles.includes(url))
             .filter(({ screenTargets }) => !screenTargets || screenTargets.includes(AppContext.#getScreenSize()))
             .map(({ url }) => url)
@@ -1196,7 +1239,9 @@ class AppContext {
           }
         };
         link.onerror = () => reject(link.href);
-        document.body.appendChild(link);
+
+        (isRoot ? document.head : document.body)
+          .appendChild(link);
 
         this.#loadedStyles.push(url);
       });
@@ -1204,41 +1249,43 @@ class AppContext {
   }
 
   loadJSDependencies(requests) {
+    return this.#loadJSDependencies(requests, false)
+  }
+
+  #loadJSDependencies(requests, isRoot = true) {
     requests = requests.map((req) => {
       if (req.constructor.name === 'String') {
         return { url: req };
       }
       return req;
     })
-      .filter(({ url }) => !this.#loadedScripts.includes(url))
+      .filter(({ url }) => !this.#loadedScripts.has(url))
       .filter(({ screenTargets }) => !screenTargets || screenTargets.includes(AppContext.#getScreenSize()))
 
-    return Promise.all(
-      requests.map((req) => {
-        const { url } = req;
-        if (!this.#loadedScripts.includes(url)) {
-          this.#loadedScripts.push(url);
-        }
-        return this.fetch(req);
-      })
-    );
-  }
+    requests.forEach(({ url }) => {
+      this.#loadedScripts.add(url);
+    });
 
-  static #getMaxUrlLength() {
-    const userAgent = navigator.userAgent;
-    if (/Chrome/.test(userAgent) && /Google Inc/.test(userAgent)) {
-      return 2048;
-    } else if (/Firefox/.test(userAgent)) {
-      return 2083;
-    } else if (/Edg/.test(userAgent)) {
-      return 2083;
-    } else if (/Safari/.test(userAgent) && !/Chrome/.test(userAgent)) {
-      return 80000;
-    } else if (/MSIE|Trident/.test(userAgent)) {
-      return 2083;
-    } else {
-      return 'Unknown browser';
-    }
+    var groups = {};
+
+    requests.forEach((req) => {
+      const { group = AppContext.#getRandomString() } = req;
+
+      if (!groups[group]) {
+        groups[group] = [];
+      }
+
+      groups[group].push(() => this.fetch(req));
+    });
+
+    return Promise.all(
+      Object.values(groups)
+        .map(async requests => {
+          for (const req of requests) {
+            await req();
+          }
+        })
+    );
   }
 
   static #getScreenSize() {
@@ -1252,7 +1299,6 @@ class AppContext {
       return 'desktop';
     }
   }
-
 
   // Utility methods
 
@@ -1314,6 +1360,16 @@ class AppContext {
     min = Math.ceil(min);
     max = Math.floor(max);
     return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  static #getRandomString(len = 6) {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let randomString = '';
+    for (let i = 0; i < len; i++) {
+      const randomIndex = Math.floor(Math.random() * characters.length);
+      randomString += characters.charAt(randomIndex);
+    }
+    return randomString;
   }
 }
 

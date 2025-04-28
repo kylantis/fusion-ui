@@ -3,6 +3,12 @@ class Grid extends components.GridElement {
 
     #hasBump;
 
+    initializers() {
+        return {
+            ['columns']: () => ([]),
+        };
+    }
+
     eventHandlers() {
         return {
             ['insert.columns_$']: ({ value }) => {

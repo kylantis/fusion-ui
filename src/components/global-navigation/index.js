@@ -46,14 +46,15 @@ class GlobalNavigation extends components.LightningComponent {
 
     initializers() {
         return {
-            ['tabs_$.identifier']: () => this.randomString()
+            ['tabs_$.identifier']: () => this.randomString(),
+            ['useWaffleIcon']: () => true
         };
     }
 
     transformers() {
         return {
             ['tabs_$.identifier']: (tabId) => {
-                if (this.#tabIds.includes(tabId)) {
+                if (!tabId || this.#tabIds.includes(tabId)) {
                     tabId = this.randomString();
                 }
                 this.#tabIds.push(tabId);
@@ -72,18 +73,17 @@ class GlobalNavigation extends components.LightningComponent {
         super.destroy();
     }
 
-    isSolidIcon(icon) {
-        return icon.isSolid();
-    }
 
-    onTabIconSolidStateChange(icon) {
-        const input = icon.getInput();
-        input.marginRight = icon.isSolid() ? 'x-small' : null;
+    behaviours() {
+        return [
+            'showSpinner', 'hideSpinner', 'setActiveItem', 'closeOpenSubMenu',
+            'toggleSubMenuVisibility', 'closeSubMenu'
+        ];
     }
 
     events() {
         return [
-            'tabActive', 'tabInactive', 'tabItemClick', 'tabClose'
+            'tabActive', 'tabInactive', 'tabItemClick', 'tabClose', 'waffleClick'
         ]
     }
 
@@ -139,15 +139,17 @@ class GlobalNavigation extends components.LightningComponent {
         };
     }
 
-    behaviours() {
-        return [
-            'showSpinner', 'hideSpinner', 'setActiveItem', 'closeOpenSubMenu',
-            'toggleSubMenuVisibility', 'closeSubMenu'
-        ];
-    }
-
     #getItems() {
         return this.#items;
+    }
+
+    isSolidIcon(icon) {
+        return icon.isSolid();
+    }
+
+    onTabIconSolidStateChange(icon) {
+        const input = icon.getInput();
+        input.marginRight = icon.isSolid() ? 'x-small' : null;
     }
 
     #getTabSubmenuTriggerButton(identifier) {
@@ -316,11 +318,9 @@ class GlobalNavigation extends components.LightningComponent {
 
         this.#beforeContentLoaded(containerSelector);
 
-        content.awaitExtendedFutures().then(() => {
-            this.#showContent(identifier);
-        });
-
         await content.load({ container: containerSelector, domRelayTimeout: this.isMounted() ? 50 : 0 });
+
+        this.#showContent(identifier);
 
         this.hideSpinner();
 
@@ -639,5 +639,8 @@ class GlobalNavigation extends components.LightningComponent {
         }
     }
 
+    onWaffleButtonClick() {
+        this.dispatchEvent('waffleClick');
+    }
 }
 module.exports = GlobalNavigation;

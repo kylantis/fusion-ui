@@ -20,10 +20,7 @@
     },
     "footer.theme": {
       "type": "String",
-      "allowed": "colorTheme",
-      "defaults": [
-        null
-      ]
+      "allowed": "colorTheme"
     },
     "footer.leftButton": {
       "type": "Button",
@@ -37,6 +34,5 @@
   "sample": {
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false
 }

@@ -1,0 +1,47 @@
+{
+  "enableTypeMerging": false,
+  "collections": {},
+  "scalars": {
+    "consoleUrl": {
+      "type": "String",
+      "defaults": [
+        "/console"
+      ]
+    },
+    "salesEmailAddress": {
+      "type": "String",
+      "defaults": [
+        "sales@kylantis.com"
+      ]
+    },
+    "companyName": {
+      "type": "String",
+      "defaults": [
+        "Kylantis"
+      ]
+    },
+    "forresterReportUrl": {
+      "type": "String",
+      "defaults": [
+        "https://www.forrester.com/report/SaaS-Marketplaces-Are-The-New-Frontier-Of-Enterprise-Software/RES137354"
+      ]
+    },
+    "companyEmail": {
+      "type": "String",
+      "defaults": [
+        "hello@kylantis.com"
+      ]
+    },
+    "contactUrl": {
+      "type": "String",
+      "defaults": [
+        "/components/kylantis_site_landing/client.html"
+      ]
+    }
+  },
+  "sample": {
+    "nullifyRandomly": []
+  },
+  "escapeDynamicHtml": false,
+  "loadAfterCompile": false
+}

@@ -1,0 +1,61 @@
+{
+  "enableTypeMerging": false,
+  "collections": {
+    "elements": {
+      "minLength": 5
+    },
+    "elements_$": {
+      "minLength": 2
+    },
+    "formValues": {
+      "minLength": 1,
+      "keyType": "String",
+      "clientOnly": true
+    }
+  },
+  "scalars": {
+    "layoutType": {
+      "type": "String",
+      "allowed": "formLayoutType"
+    },
+    "editing": {
+      "type": "Boolean"
+    },
+    "autoComplete": {
+      "type": "String",
+      "allowed": "formAutoComplete"
+    },
+    "elements_$_$": {
+      "type": "FormElement",
+      "isNull": false
+    },
+    "formValues.$_": {
+      "type": "String"
+    },
+    "action": {
+      "type": "String"
+    },
+    "method": {
+      "type": "String",
+      "allowed": [
+        "get",
+        "post"
+      ]
+    }
+  },
+  "events": {
+    "submit": {
+      "parameters": {
+        "formValues": {
+          "type": {
+            "$ref": "formValues"
+          }
+        }
+      }
+    }
+  },
+  "sample": {
+    "nullifyRandomly": []
+  },
+  "escapeDynamicHtml": false
+}

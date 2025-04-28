@@ -1,15 +1,9 @@
 {
   "enableTypeMerging": false,
   "collections": {},
-  "scalars": {
-    "X.y": {
-      "type": "String",
-      "defaults": []
-    }
-  },
+  "scalars": {},
   "sample": {
     "nullifyRandomly": []
   },
-  "useCollectionLengthProperty": false,
   "escapeDynamicHtml": false
 }

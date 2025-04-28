@@ -1,19 +1,22 @@
 
 class MultiOptionFormElement extends components.FormElement {
 
-    #items = {};
-
     static isAbstract() {
         return true;
     }
 
+    beforeCompile() {
+        this.getInput().items[0].name;
+        this.getInput().items[0].inputId;
+    }
+
     eventHandlers() {
         return {
-            ['remove.items_$']: ({ value: item }) => {
+            ['insert.items_$']: ({ value: item }) => {
                 if (!item) return;
 
-                delete this.getItems()[this.getItemInputId(item)];
-            }
+                item.inputId = this.generateItemInputId(item);
+            },
         }
     }
 
@@ -35,7 +38,7 @@ class MultiOptionFormElement extends components.FormElement {
             }
         }
 
-        this.on('remove.items_$', 'remove.items_$');
+        this.on('insert.items_$', 'insert.items_$');
     }
 
     isLoadable() {
@@ -54,13 +57,15 @@ class MultiOptionFormElement extends components.FormElement {
         return super.isLoadable();
     }
 
-    isCompound() {
-        const { items } = this.getInput();
-        return super.isCompound() || items.length > 1;
+    initializers() {
+        return {
+            ['items_$.name']: () => this.randomString()
+        };
     }
 
-    getItems() {
-        return this.#items;
+    isCompound() {
+        const { items } = this.getInput();
+        return items.length > 1;
     }
 
     isMultiCheckable() {
@@ -68,21 +73,12 @@ class MultiOptionFormElement extends components.FormElement {
         return type == 'checkbox';
     }
 
-    getItemInputName(item) {
+    generateItemInputName() {
         const { random } = this.getGlobalVariables();
-
-        if (this.isMultiCheckable()) {
-            if (!item.name) {
-                item.name = this.randomString();
-            }
-        } else {
-            item.name = random;
-        }
-
-        return item.name;
+        return `${this.getId()}-${this.isMultiCheckable() ? this.randomString() : random}`;
     }
 
-    getItemInputId(item) {
+    generateItemInputId(item) {
         const { randomProperty } = BaseComponent.CONSTANTS;
 
         const id = `${this.getId()}${this.isCompound() ? `-${item[randomProperty]}` : ''}`;
@@ -98,39 +94,38 @@ class MultiOptionFormElement extends components.FormElement {
         return this.getCheckedItems()[0];
     }
 
-    registerItem(item) {
-
-        if (!this.isMultiCheckable() && item.checked) {
-            this.uncheck();
-        }
-
-        const inputId = this.getItemInputId(item);
-        this.getItems()[inputId] = item;
-
-        return '';
-    }
-
     uncheck() {
         const checkeditem = this.getCheckedItem();
 
         if (checkeditem) {
             checkeditem.checked = false;
 
-            this.dispatchEvent('change', checkeditem.name, false);
+            this.dispatchEvent('unselect', checkeditem.name);
         }
     }
 
     onChange(evt) {
+        const { items } = this.getInput();
         const { checked, id } = evt.target;
 
         if (!this.isMultiCheckable()) {
             this.uncheck();
         }
 
-        const item = this.getItems()[id];
+        const [item] = items.filter(({ inputId }) => inputId == id);
         item.checked = checked;
 
-        this.dispatchEvent('change', item.name, checked);
+        this.dispatchEvent(checked ? 'select' : 'unselect', item.name);
+
+        if (checked) {
+            this.dispatchEvent('change', item.name);
+        }
+    }
+
+    getValue() {
+        return this.isMultiCheckable() ?
+            this.getCheckedItems().map(({ name }) => name).join(',') :
+            (this.getCheckedItem() || { name: null }).name;
     }
 }
 

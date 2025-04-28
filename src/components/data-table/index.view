@@ -194,8 +194,8 @@
 
 {{#if inlineEdit}}
     <div class="slds-table_edit_container slds-is-relative">
-        {{> render_table runtime=true}}
+        {{> render_table}}
     </div>
 {{else}}
-    {{> render_table runtime=true}}
+    {{> render_table}}
 {{/if}}

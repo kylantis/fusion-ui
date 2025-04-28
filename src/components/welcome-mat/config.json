@@ -1,10 +1,73 @@
 {
   "enableTypeMerging": false,
-  "collections": {},
-  "scalars": {},
-  "sample": {
-    "nullifyRandomly": []
+  "collections": {
+    "tasks": {
+      "minLength": 5,
+      "singularType": "TasksElement"
+    }
   },
-  "useCollectionLengthProperty": false,
+  "scalars": {
+    "progressBar": {
+      "type": "ProgressBar",
+      "isNull": false
+    },
+    "header": {
+      "type": "String",
+      "defaults": [
+        "The Lightning Experience is here!"
+      ]
+    },
+    "description": {
+      "type": "String",
+      "defaults": [
+        "Welcome to Lightning Experience, the modern, beautiful user experience from Salesforce. With a sales-and service-centric mindset, we focused on reinventing the desktop environment to better support your business processes."
+      ]
+    },
+    "tasks_$.identifier": {
+      "type": "String"
+    },
+    "tasks_$.completed": {
+      "type": "Boolean",
+      "defaultValue": true
+    },
+    "tasks_$.icon": {
+      "type": "String",
+      "allowed": "utilityIconName",
+      "defaults": []
+    },
+    "tasks_$.title": {
+      "type": "String",
+      "defaults": [
+        "Welcome to Salesforce!",
+        "Learn About OpenCTI",
+        "Power Up the Utility Bar",
+        "Customize your view",
+        "Share the Knowledge"
+      ]
+    },
+    "tasks_$.description": {
+      "type": "String",
+      "defaults": [
+        "Lorem ipsum dolor sit amet, lorem ipsum dolor sit amet.",
+        "Tap into case history or share notes with fellow agents—it all happens on the utility bar.",
+        "Tailor your cases to your team's workflow with custom list views.",
+        "Harness your team's collective know-how with our powerful knowledge base."
+      ]
+    }
+  },
+  "events": {
+    "taskClick": {
+      "parameters": {
+        "identifier": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "sample": {
+    "nullifyRandomly": [
+      "tasks_$.completed"
+    ]
+  },
   "escapeDynamicHtml": false
 }

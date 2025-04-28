@@ -473,10 +473,7 @@
     },
     "foregroundColor": {
       "type": "String",
-      "allowed": "cssColor",
-      "defaults": [
-        null
-      ]
+      "allowed": "cssColor"
     },
     "foreground": {
       "type": "String",
