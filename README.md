@@ -2,7 +2,7 @@
 
 ## Fusion UI
 
-Fusion UI is a next-generation web framework used for building the world's best enterprise app experiences. Our library allows you to create UI components using web technologies, that can then be embedded into any server-side language.
+Fusion UI is an open source web framework that enables developers create UI components using web technologies, and then embed the components into their server-side applications written in java and other languages. We currently support Java, but support for other languages is coming soon.
 
 This repository contains the tools needed to compile component libraries for the Kylantis enterprise server (or any server that implements the fusion archiecture). The tools include:
 - The core compiler
@@ -15,16 +15,16 @@ The sample components to help you quickly learn how to build your own components
 
 ### Philosophy
 
-We believe that the future of web development is templating-based and model-driven, and this cutting edge web ui framework aims to explore this new frontier.
+We believe that the future of web development is templating-based and model-driven, and this cutting edge web framework aims to explore this new frontier.
 
 From our research, we know that the current paradigm for building web applications is not sustainable, as it is unable to evolve to meet the demands of tomorrow's data-driven applications.
 
 Hence, we propose a new paradigm for architecting web applications.
 
 Our approach is simple
-- Developers create a Component using the technologies you know and love HTML, CSS and Javascript. We have designed a custom handlebars dialect that allows developers to embed control flow logic into their markup.
+- Developers create components using the familiar technologies they know and love, i.e. HTML, CSS and Javascript. We have designed a custom handlebars dialect that allows developers to embed control flow logic into their markup.
 - As part of the development process, developers are able model the component's data domain - using multiple paradigms.
-- The Component is then compiled into a format - which can be embedded into any server-side application.
+- Components are compiled into a format - which can be embedded into any server-side application.
 - The Kylantis enterprise server natively integrates with Fusion UI framework - so you can seamlessly create UI pages using only Java - This is unprecedented.
 
 
