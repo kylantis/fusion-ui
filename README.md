@@ -2,9 +2,11 @@
 
 ## Fusion UI
 
-Fusion UI is a next-generation UI framework that enables developers create UI components using web technologies, and then embed these components into their server-side applications written in java and other server-side languages. We currently support Java, but support for other languages is coming soon.
+Fusion UI is a next-generation UI framework that enables developers create UI components using web technologies, and then embed these components into their server-side applications written in java and other server-side languages. For the first time ever, app developers can seamlessly create the world's best enterprise app experiences using only Java (or any server-side language) - This is unprecedented.
 
-This repository contains the tools needed to compile component libraries for the Kylantis enterprise server (or any server that implements the fusion archiecture). The tools include:
+We currently support Java, but support for other languages is coming soon. If you want to add support for your favorite server-side language, feel free to issue a PR.
+
+This repository contains the tools needed to compile ui component libraries for the Kylantis enterprise server (or any server that implements the fusion archiecture). The tools include:
 - The core compiler
 - UI rendering engine
 - Schema modelling tooling
@@ -25,7 +27,6 @@ Our approach is simple
 - Developers create components using the familiar technologies they know and love, i.e. HTML, CSS and Javascript. We have designed a custom handlebars dialect that allows developers to embed control flow logic into their markup.
 - As part of the development process, developers are able model the component's data domain - using multiple paradigms.
 - Components are compiled into a format - which can be embedded into any server-side application.
-- The Kylantis enterprise server natively integrates with Fusion UI framework - so you can seamlessly create UI pages using only Java - This is unprecedented.
 
 
 ### Setup
