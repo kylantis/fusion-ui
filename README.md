@@ -38,6 +38,6 @@ Our approach is simple
 
 
 
-## Contact
-Feel free to reach me at: tony@kylantis.com
+### Project lead
+Tony Anyanwu - tony@kylantis.com
 
