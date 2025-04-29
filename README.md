@@ -37,7 +37,6 @@ Our approach is simple
 - Visit `localhost:8090/components/<component_name>` to render a component
 
 
-
-### Project lead
-Tony Anyanwu - tony@kylantis.com
+### Contact
+Feel free to drop us a line - web_engineering@kylantis.com
 
