@@ -1,7 +1,7 @@
 
 const fs = require('fs');
 const pathLib = require('path');
-const { spawn } = require('child_process');
+const { spawn } = require('cross-spawn');
 const gulp = require('gulp');
 const through = require('through2');
 const utils = require('../lib/utils');
