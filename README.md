@@ -25,16 +25,16 @@ Hence, we propose a new paradigm for architecting web applications.
 
 Our approach is simple
 - Developers create components using the familiar technologies they know and love, i.e. HTML, CSS and Javascript. We have designed a custom handlebars dialect that allows developers to embed control flow logic into their markup.
-- As part of the development process, developers are able model the component's data domain - using multiple paradigms.
+- As part of the development process, developers are able to model the component's data domain - using multiple paradigms.
 - Components are compiled into a format - which can be embedded into any server-side application.
 
 
 ### Setup
 - Clone the repository
 - Run `npm install` (If you use nvm, run `nvm use` first)
-- Run `npm run build-all` to build all assets
+- Run `npm run build` to build all assets
 - Run `npm run start-server`
-- Visit `localhost:8090/components/<component_name>` to render a component
+- Visit `localhost:8090/components/<component_name>` to render a component (each compiled component is stored in `dist/components/<component_name>` folder)
 
 
 ### Contact
