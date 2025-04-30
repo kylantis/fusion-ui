@@ -1,7 +1,7 @@
 
 const fs = require('fs');
 const pathLib = require('path');
-const { spawn } = require('cross-spawn');
+const { spawn } = require('child_process');
 const gulp = require('gulp');
 const through = require('through2');
 const utils = require('../lib/utils');
@@ -13,6 +13,9 @@ const componentNameArgPrefix = '--component=';
 const segmentArg = '--segment';
 const performPurgeArg = '--performPurge';
 const fromWatchArg = '--fromWatch';
+
+const isWindows = process.platform === 'win32';
+const npmCommand = isWindows ? 'npm.cmd' : 'npm';
 
 let componentName;
 let componentList;
@@ -150,7 +153,7 @@ gulp.task('compile-components', gulp.series(componentList
       return new Promise((resolve, reject) => {
 
         const childProcess = spawn(
-          'npm', ['run', 'compile-component', '--silent', '--', '--silent', ...args],
+          npmCommand, ['run', 'compile-component', '--silent', '--', '--silent', ...args],
           { stdio: "inherit" }
         );
 
@@ -229,7 +232,7 @@ gulp.task('compile-components:watch', () => {
     const args = [`${componentNameArgPrefix}${componentName}`, segmentArg, fromWatchArg];
 
     const childProcess = spawn(
-      'npm', ['run', 'compile-component', '--silent', '--', '--silent', ...args],
+      npmCommand, ['run', 'compile-component', '--silent', '--', '--silent', ...args],
       { stdio: "inherit" }
     );
 
