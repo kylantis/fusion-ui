@@ -1,13 +1,13 @@
 {
-    "name": "kylantis-ui-compiler",
+    "name": "fusion-ui",
     "version": "1.0.0",
-    "description": "Imagine UI",
-    "author": "Tony <tonyobanon@gmail.com>",
+    "description": "Fusion UI - Framework for building full-stack UI components",
+    "author": "Kylantis, Inc",
     "repository": {
         "type": "git",
-        "url": "https://github.com/tonyobanon/project_panther_fe"
+        "url": "https://github.com/kylantis/fusion-ui"
     },
-    "license": "MIT",
+    "license": "GPL-3.0-only",
     "git": {
         "hash": "%GIT_HASH%",
         "ref": "%GIT_REF%",
