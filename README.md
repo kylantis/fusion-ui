@@ -21,7 +21,8 @@ From our research, we know that the current paradigm for building web applicatio
 
 Hence, we propose a new paradigm for architecting web applications.
 
-Our approach is simple
+Our approach is simple:
+
 - Developers create components using the familiar technologies they know and love, i.e. HTML, CSS and Javascript. Using a custom handlebars dialect, control flow logic can be embedded into the markup.
 - As part of the development process, developers are able to model the component's data domain - using a myriad of techniques.
 - Components are compiled into a format - which can be embedded into any server-side application.
