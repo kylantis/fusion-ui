@@ -6,12 +6,12 @@ Fusion UI is a next-generation UI framework that enables developers create UI co
 We currently support Java, but support for other languages is coming soon. If you want to add support for your favorite server-side language, feel free to issue a PR.
 
 This repository contains the tools needed to compile ui component libraries for the Kylantis enterprise server (or any server that implements the fusion archiecture). The tools include:
-- The core compiler
+- The template compiler
 - UI rendering engine
 - Schema modelling tooling
 - Sample components
 
-The sample components to help you quickly learn how to build your own components. The sample components are provided for your reference and based on Lightning Design, but you can use any css library of your choice. There are almost 100 UI components for you to choose from.
+Out of the box, we provide 100+ reference components to help you quickly learn how to build your own components. These reference components are based on Salesforce Lightning Design, but you can use any css library of your choice.
 
 ### Philosophy
 
@@ -22,8 +22,8 @@ From our research, we know that the current paradigm for building web applicatio
 Hence, we propose a new paradigm for architecting web applications.
 
 Our approach is simple
-- Developers create components using the familiar technologies they know and love, i.e. HTML, CSS and Javascript. We have designed a custom handlebars dialect that allows developers to embed control flow logic into their markup.
-- As part of the development process, developers are able to model the component's data domain - using multiple paradigms.
+- Developers create components using the familiar technologies they know and love, i.e. HTML, CSS and Javascript. Using a custom handlebars dialect, control flow logic can be embedded into the markup.
+- As part of the development process, developers are able to model the component's data domain - using a myriad of techniques.
 - Components are compiled into a format - which can be embedded into any server-side application.
 
 ### Setup
