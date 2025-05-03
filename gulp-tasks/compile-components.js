@@ -31,9 +31,6 @@ const segmentArg = '--segment';
 const performPurgeArg = '--performPurge';
 const fromWatchArg = '--fromWatch';
 
-const isWindows = process.platform === 'win32';
-const npmCommand = isWindows ? 'npm.cmd' : 'npm';
-
 let componentName;
 let componentList;
 let performPurge;
@@ -170,7 +167,7 @@ gulp.task('compile-components', gulp.series(componentList
       return new Promise((resolve, reject) => {
 
         const childProcess = spawn(
-          npmCommand, ['run', 'compile-component', '--silent', '--', '--silent', ...args],
+          'npm', ['run', 'compile-component', '--silent', '--', '--silent', ...args],
           { stdio: "inherit" }
         );
 
@@ -249,7 +246,7 @@ gulp.task('compile-components:watch', () => {
     const args = [`${componentNameArgPrefix}${componentName}`, segmentArg, fromWatchArg];
 
     const childProcess = spawn(
-      npmCommand, ['run', 'compile-component', '--silent', '--', '--silent', ...args],
+      'npm', ['run', 'compile-component', '--silent', '--', '--silent', ...args],
       { stdio: "inherit" }
     );
 
