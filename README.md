@@ -9,7 +9,7 @@ This repository contains the tools needed to compile ui component libraries for 
 - The template compiler
 - UI rendering engine
 - Schema modelling tooling
-- Sample components
+- Reference components
 
 Out of the box, we provide 100+ reference components to help you quickly learn how to build your own components. These reference components are based on Salesforce Lightning Design, but you can use any css library of your choice.
 
@@ -17,8 +17,7 @@ Out of the box, we provide 100+ reference components to help you quickly learn h
 
 We believe that the future of web development is templating-based and model-driven, and this cutting edge web framework aims to explore this new frontier.
 
-From our research, we know that the current paradigm for building web applications is not sustainable, as it is unable to evolve to meet the demands of tomorrow's data-driven applications.
-
+From our research, we know that the current paradigm for building web applications is unable to evolve to meet the demands of tomorrow's data-driven applications.
 Hence, we propose a new paradigm for architecting web applications.
 
 Our approach is simple:
@@ -33,6 +32,7 @@ Our approach is simple:
 - Run `npm run build` to build all assets
 - Run `npm run start-server`
 - Visit `localhost:8090/components/<component_name>` to render a component (each compiled component is stored in `dist/components/<component_name>` folder)
+- Your component pack is available as a jar file - `build/jar/fusion-ui.jar`, this jar file should be added to your kylantis application
 
 ### Contact
 Feel free to drop us a line - web_engineering@kylantis.com
