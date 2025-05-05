@@ -45,15 +45,13 @@ class FormElement extends components.LightningComponent {
             ['insert.dependsOnRef']: ({ value: dependsOnRef, parentObject }) => {
                 if (!dependsOnRef) return;
 
-                const componentsByRef = BaseComponent.getComponentsByRef(dependsOnRef)
+                const componentByRef = BaseComponent.getComponentByRef(dependsOnRef)
 
-                if (componentsByRef) {
-                    const component = componentsByRef.values().next().value;
-    
-                    if (!(component instanceof FormElement)) {
-                        this.logger.error(null, 'Unknown component: ', component);
+                if (componentByRef) {
+                    if (!(componentByRef instanceof FormElement)) {
+                        this.logger.error(null, 'Unknown component: ', componentByRef);
                     } else {
-                        parentObject.dependsOn = component;
+                        parentObject.dependsOn = componentByRef;
                     }
                 }
             },

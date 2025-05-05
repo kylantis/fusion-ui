@@ -138,6 +138,11 @@ class BaseComponent extends WebRenderer {
     return BaseComponent.#refsMap.get(ref);
   }
 
+  static getComponentByRef(ref) {
+    const componentsByRef = BaseComponent.getComponentsByRef(ref);
+    return componentsByRef ? componentsByRef.values().next().value : null;
+  }
+
   #addDomUpdateHook(fn) {
     this.#domUpdateHooks.push(fn);
   }
@@ -559,6 +564,10 @@ class BaseComponent extends WebRenderer {
         }
       }
     }
+  }
+
+  isServerRendered() {
+    return !!this.#serverEventListeners;
   }
 
   async #dispatchServerEvent(event, ...args) {

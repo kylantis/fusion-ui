@@ -35,7 +35,7 @@ class WebRenderer extends CustomCtxRenderer {
   load(opts) {
     let deps = [];
     // eslint-disable-next-line no-restricted-globals
-    if (!this.isHeadlessContext() && !this.isRoot()) {
+    if (!this.isHeadlessContext() && !this.isRoot() && !this.isServerRendered()) {
       deps = [
         this.loadCSSDependencies(),
         this.loadJSDependencies(),

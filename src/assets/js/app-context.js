@@ -1222,25 +1222,24 @@ class AppContext {
     return new Promise((resolve, reject) => {
       const loaded = [];
 
-      const styles = [
-        ...new Set(
-          requests
-            .map(req => ({ ...req, url: req.url + this.#getSessionQueryParams() }))
-            .filter(({ url }) => !this.#loadedStyles.includes(url))
-            .filter(({ screenTargets }) => !screenTargets || screenTargets.includes(AppContext.#getScreenSize()))
-            .map(({ url }) => url)
-        )
-      ];
+      const styles = requests
+        .map(req => ({ ...req, url: req.url + this.#getSessionQueryParams() }))
+        .filter(({ url }) => {
+          if (!this.#loadedStyles.includes(url)) {
+            this.#loadedStyles.push(url);
+            return true;
+          } else {
+            return false;
+          }
+        })
+        .filter(({ screenTargets }) => !screenTargets || screenTargets.includes(AppContext.#getScreenSize()))
+        .map(({ url }) => url);
 
       if (!styles.length) {
         return resolve([]);
       }
 
       styles.forEach(url => {
-        if (this.#loadedStyles.includes(url)) {
-          return;
-        }
-
         const link = document.createElement('link');
         link.rel = 'stylesheet';
         link.href = url;
@@ -1259,8 +1258,6 @@ class AppContext {
 
         (isRoot ? document.head : document.body)
           .appendChild(link);
-
-        this.#loadedStyles.push(url);
       });
     });
   }
@@ -1276,14 +1273,17 @@ class AppContext {
       }
       return req;
     })
-      .filter(({ url }) => !this.#loadedScripts.has(url))
+      .filter(({ url }) => {
+        if (!this.#loadedScripts.has(url)) {
+          this.#loadedScripts.add(url);
+          return true;
+        } else {
+          return false;
+        }
+      })
       .filter(({ screenTargets }) => !screenTargets || screenTargets.includes(AppContext.#getScreenSize()))
 
-    requests.forEach(({ url }) => {
-      this.#loadedScripts.add(url);
-    });
-
-    var groups = {};
+    const groups = {};
 
     requests.forEach((req) => {
       const { group = AppContext.#getRandomString() } = req;
