@@ -82,7 +82,7 @@ const gulpTransform = ({ componentList, performPurge } = {}) => {
     if (performPurge) {
       // prune the list.json file inorder to clear the component cache
 
-      const file = pathLib.join(process.env.PWD, destFolder, 'list.json');
+      const file = pathLib.join(process.cwd(), destFolder, 'list.json');
       if (fs.existsSync(file)) {
         fs.rmSync(file);
       }
@@ -212,7 +212,7 @@ gulp.task('compile-components:watch', () => {
       const astFile = getComponentJsAstFile(assetId);
 
       if (fs.existsSync(astFile)) {
-        const srcDir = pathLib.join(process.env.PWD, srcFolder, componentName);
+        const srcDir = pathLib.join(process.cwd(), srcFolder, componentName);
 
         console.info(`\x1b[90m[writeComponentJsToFileSystem: ${srcDir}]\x1b[0m`);
 

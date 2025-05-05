@@ -53,7 +53,7 @@ const addPipes = (path, relativize) => {
     stream = stream.pipe(
       through.obj((chunk, enc, cb) => {
         const vinylFile = chunk.clone();
-        vinylFile.base = pathLib.join(process.env.PWD, srcFolder);
+        vinylFile.base = pathLib.join(process.cwd(), srcFolder);
         cb(null, vinylFile);
       })
     );

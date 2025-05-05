@@ -19,7 +19,7 @@
 const path = require('path');
 const fs = require('fs');
 
-const iconsDir = path.join(process.env.PWD, 'src', 'assets', 'icons');
+const iconsDir = path.join(process.cwd(), 'src', 'assets', 'icons');
 
 const icons = {};
 
