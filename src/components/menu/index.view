@@ -41,7 +41,8 @@
 
                 {{#if leftIcon}}
                     {{> leftIcon 
-                          marginRight='x-small' 
+                          marginRight='x-small'
+                          size='small'
                           useCurrentColor=(feedbackState eq 'warning')
                           useWeakRef=false
                     }}
@@ -53,7 +54,8 @@
 
                 {{#if rightIcon}}
                   {{> rightIcon 
-                        marginLeft='small' 
+                        marginLeft='small'
+                        size='small'
                         useCurrentColor=(feedbackState eq 'warning')
                         useWeakRef=false
                   }}

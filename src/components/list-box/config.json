@@ -10,7 +10,8 @@
       "singularType": "Item"
     },
     "selectedItems": {
-      "minLength": 10
+      "minLength": 10,
+      "clientOnly": true
     }
   },
   "scalars": {
@@ -124,8 +125,7 @@
       "clientOnly": true
     },
     "selectedItems_$": {
-      "type": "String",
-      "clientOnly": true
+      "type": "String"
     }
   },
   "events": {
@@ -146,6 +146,13 @@
           "type": {
             "$ref": "groups_$.items"
           }
+        }
+      }
+    },
+    "click": {
+      "parameters": {
+        "identifier": {
+          "type": "string"
         }
       }
     }

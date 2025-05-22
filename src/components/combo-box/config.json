@@ -8,7 +8,7 @@
     },
     "multiSelect": {
       "type": "Boolean",
-      "defaultValue": true
+      "defaultValue": false
     },
     "selectedOptions": {
       "type": "Pill",
@@ -26,7 +26,7 @@
         "autocomplete-select"
       ],
       "defaults": [
-        "autocomplete-select"
+        "select"
       ]
     },
     "searchIconPosition": {

@@ -1,20 +1,3 @@
-/*
- *  Fusion UI
- *  Copyright (C) 2025 Kylantis, Inc
- *  
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *  
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *  
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 
 class LightningComponent extends BaseComponent {
 
@@ -25,6 +8,7 @@ class LightningComponent extends BaseComponent {
     }
 
     beforeCompile() {
+        this.getInput().viewportCssStyles['@mapKey']['@mapKey'];
         this.getInput().cssStyles['@mapKey'];
         this.getInput().cssClass;
         this.getInput().assistiveText;
@@ -51,14 +35,49 @@ class LightningComponent extends BaseComponent {
     }
 
     onMount() {
-        const { cssStyles } = this.getInput();
+        const { cssStyles, viewportCssStyles } = this.getInput();
         const node = this.getNode();
 
-        if (node && cssStyles && cssStyles.size) {
-            for (var name of cssStyles.keys()) {
-                node.style[name] = cssStyles[name];
+        if (node) {
+            this.#addCssStyles(node, null, cssStyles)
+
+            if (viewportCssStyles) {
+                for (var breakpoint of viewportCssStyles.keys()) {
+                    this.#addCssStyles(node, breakpoint, viewportCssStyles[breakpoint])
+                }
             }
         }
+    }
+
+    #addCssStyles(node, breakpoint, cssStyles) {
+        if (!cssStyles || !cssStyles.size) return;
+
+        const className = clientUtils.randomString();
+        const cssString = `
+            ${breakpoint ? `@media (max-width: ${breakpoint}px) {` : ''}
+            .${className} {
+                ${cssStyles.entries().map(([k, v]) => `${k}: ${v};`).join('\n')}
+            }
+             ${breakpoint ? `}` : ''}
+        `;
+
+        if (document.adoptedStyleSheets) {
+            const sheet = new CSSStyleSheet();
+            sheet.replaceSync(cssString);
+
+            document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+        } else {
+            const styleEl = document.createElement('style');
+            styleEl.textContent = cssString;
+
+            if (node == document.body) {
+                document.head.appendChild(styleEl);
+            } else {
+                node.parentNode.insertBefore(styleEl, node);
+            }
+        }
+
+        node.classList.add(className);
     }
 
     getNode() {
@@ -180,14 +199,6 @@ class LightningComponent extends BaseComponent {
     }
 
     showTooltip() {
-        if (!this.tooltip) {
-            const { assistiveText } = this.getInput();
-
-            if (assistiveText) {
-                this.setTooltipText(assistiveText);
-            }
-        }
-
         if (this.tooltip) {
             this.tooltip.showPopover();
         }
@@ -241,6 +252,12 @@ class LightningComponent extends BaseComponent {
             isMouseHover = true;
             setTimeout(async () => {
                 if (isMouseHover) {
+                    if (!this.tooltip) {
+                        const { assistiveText } = this.getInput();
+                        if (assistiveText) {
+                           await this.setTooltipText(assistiveText);
+                        }
+                    }
                     await this.tooltip.setPosition();
                     this.showTooltip();
                 }
@@ -259,7 +276,7 @@ class LightningComponent extends BaseComponent {
     }
 
     getTooltipPositions() {
-        return ["top", "bottom", "right", "left"];
+        return ["right", "left", "top", "bottom"];
     }
 
     getTooltipTarget() {

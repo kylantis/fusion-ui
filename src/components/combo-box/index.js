@@ -1,20 +1,3 @@
-/*
- *  Fusion UI
- *  Copyright (C) 2025 Kylantis, Inc
- *  
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *  
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *  
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 
 class ComboBox extends components.FormElement {
 
@@ -55,7 +38,7 @@ class ComboBox extends components.FormElement {
         this.getSelectedOptions()
             .forEach(item => {
                 item.selected = false;
-                item.focus = false;
+                // item.focus = false;
 
                 this.dispatchEvent('unselect', item.identifier);
             });
@@ -102,6 +85,14 @@ class ComboBox extends components.FormElement {
                 .forEach(item => {
                     item.selected = false;
                 });
+        }
+
+        if (options) {
+
+            options.on('onMount', () => {
+                const target = this.getNode().querySelector(`#${this.getId()}-readonly`);
+                options.renderDecorator('readonly', target, {});
+            });
         }
     }
 
@@ -165,19 +156,6 @@ class ComboBox extends components.FormElement {
         this.#dispatchChangeEvent();
     }
 
-    loadReadonly() {
-        const { options } = this.getInput();
-
-        if (!options) return;
-
-        this.afterRender(() => {
-            const target = this.getNode().querySelector(`#${this.getId()}-readonly`);
-            options.renderDecorator('readonly', target, {});
-        });
-
-        return "";
-    }
-
     selectedOptionPredicate({ identifier }) {
         return this.getSelectedIdentifiers().includes(identifier);
     }
@@ -224,6 +202,7 @@ class ComboBox extends components.FormElement {
     #setupOptions(options) {
         assert(this.isSelectable());
 
+        // TODO: why is this here??
         if (!options) return;
 
         const input = this.getInput();
@@ -289,7 +268,7 @@ class ComboBox extends components.FormElement {
                     if (i) {
                         this.#unselectValueFromOptions(item.identifier);
                     } else {
-                        item.focus = true;
+                        // item.focus = true;
                     }
                 });
             }
@@ -362,7 +341,7 @@ class ComboBox extends components.FormElement {
             }
             selectedOptions.refreshItem(identifier);
         } else {
-            item.focus = false;
+            // item.focus = false;
         }
 
         this.dispatchEvent('unselect', identifier);
@@ -412,7 +391,7 @@ class ComboBox extends components.FormElement {
         if (multiSelect) {
             selectedOptions.refreshItem(identifier);
         } else {
-            item.focus = true;
+            // item.focus = true;
         }
 
         this.#updateComboBoxInput();

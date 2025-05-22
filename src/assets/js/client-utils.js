@@ -1,20 +1,3 @@
-/*
- *  Fusion UI
- *  Copyright (C) 2025 Kylantis, Inc
- *  
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *  
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *  
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 
 const tailArrayIndexSegment = /\[[0-9]+\]$/g;
 const arrayIndexSegment = /\[[0-9]+\]/g;
@@ -512,9 +495,7 @@ module.exports = {
     }
   },
 
-  toCanonicalPath0: (fqPath) => {
-    const separator = '.';
-
+  toCanonicalPath0: (fqPath, separator = '.') => {
     return (typeof fqPath == 'string' ? fqPath.split(separator) : fqPath)
       .map(
         p => clientUtils.getSegments({
@@ -646,7 +627,7 @@ module.exports = {
   }),
 
   updateCollChild: async (db, hooklistStoreName, componentId, parent, key, info, timestamp) => {
-    const { toFqPath, isNumber, isCanonicalArrayIndex, toCanonicalPath } = clientUtils;
+    const { toFqPath, isNumber, isCanonicalArrayIndex, toCanonicalPath0 } = clientUtils;
 
     const { DEFAULT_PRIMARY_KEY: primaryKey } = K_Database;
 
@@ -658,7 +639,7 @@ module.exports = {
 
     const isArray = isNumber(key);
 
-    const canonicalParent = toCanonicalPath(parent);
+    const canonicalParent = toCanonicalPath0(parent);
 
     const path = toFqPath({ isArray, isMap: !isArray, parent, prop: key });
     const newPath = (isArray && (info.index != undefined)) ? toFqPath({ isArray, parent, prop: `${info.index}` }) : null;
@@ -675,7 +656,10 @@ module.exports = {
         let blockDataKey;
 
         for (let k of Object.keys(blockData)) {
-          if ((k.includes('[') ? toCanonicalPath(k) : k) == canonicalParent) {
+          if (
+            (k.includes('[') ? toCanonicalPath0(k, pathSeparator) : k)
+              .replace(pathSeparator, '.') == canonicalParent
+          ) {
             blockDataKey = k;
             break;
           }

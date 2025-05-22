@@ -1,20 +1,3 @@
-/*
- *  Fusion UI
- *  Copyright (C) 2025 Kylantis, Inc
- *  
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *  
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *  
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 
 /* eslint-disable no-eval */
 /* eslint-disable no-restricted-globals */
@@ -42,7 +25,7 @@ class AppContext {
 
   static RTL = false;
 
-  #loadedStyles = [];
+  #loadedStyles = new Set();
   #loadedScripts = new Set();
 
   #logger;
@@ -134,7 +117,7 @@ class AppContext {
 
   static getAllDependencies(assetId, bootConfig, componentList, testMode) {
     const { getComponentAssetURLs, getDependencies, getBaseDependencies } = AppContext;
-    const { renderTree } = bootConfig;
+    const { renderTree, cssDependencies, jsDependencies } = bootConfig;
 
     const toURL = (dep) => (typeof dep == 'object') ? dep.url : dep;
 
@@ -143,6 +126,8 @@ class AppContext {
       ...getBaseDependencies().map(toURL),
       '/components/enums.json',
       ...getDependencies().map(toURL),
+      ...cssDependencies.map(toURL),
+      ...jsDependencies.map(toURL).filter(url => url.startsWith('/')),
       ...Object.values(componentList)
         .filter(_assetId => _assetId != assetId)
         .map(assetId => `/components/${assetId}/boot-config.json`),
@@ -474,11 +459,9 @@ class AppContext {
     const rootBootConfig = this.#bootConfigs[this.#className];
     const _rootBootConfig = runtimeBootConfig || rootBootConfig;
 
-    const cacheFilePromise = this.#requestNetworkCacheFile(_rootBootConfig);
+    await this.#requestNetworkCacheFile(_rootBootConfig);
 
     let htmlDepsPromise = this.#loadCSSDependencies(_rootBootConfig.cssDependencies)
-
-    await cacheFilePromise;
 
     let alphaListPromise;
     let alphaBootConfigsPromise;
@@ -1218,48 +1201,26 @@ class AppContext {
   }
 
   #loadCSSDependencies(requests, isRoot = true) {
-    // eslint-disable-next-line consistent-return
-    return new Promise((resolve, reject) => {
-      const loaded = [];
+    return this.#loadHTMLDependencies(
+      requests, this.#loadedStyles,
+      ({ url }) => this.fetch({ url, process: false })
+        .then(cssString => {
+          const blob = new Blob([cssString], { type: 'text/css' });
+          const url = URL.createObjectURL(blob);
 
-      const styles = requests
-        .map(req => ({ ...req, url: req.url + this.#getSessionQueryParams() }))
-        .filter(({ url }) => {
-          if (!this.#loadedStyles.includes(url)) {
-            this.#loadedStyles.push(url);
-            return true;
-          } else {
-            return false;
-          }
+          const linkEl = document.createElement('link');
+          linkEl.rel = 'stylesheet';
+          linkEl.href = url;
+          document.head.appendChild(linkEl);
+
+          return new Promise(resolve => {
+            linkEl.onload = () => {
+              URL.revokeObjectURL(url);
+              resolve();
+            };
+          });
         })
-        .filter(({ screenTargets }) => !screenTargets || screenTargets.includes(AppContext.#getScreenSize()))
-        .map(({ url }) => url);
-
-      if (!styles.length) {
-        return resolve([]);
-      }
-
-      styles.forEach(url => {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = url;
-        link.type = 'text/css';
-        link.async = true;
-        // eslint-disable-next-line func-names
-        const _this = this;
-        link.onload = function () {
-          loaded.push(this.href);
-          // _this.logger.info(null, `Loaded ${this.href}`);
-          if (loaded.length === styles.length) {
-            resolve();
-          }
-        };
-        link.onerror = () => reject(link.href);
-
-        (isRoot ? document.head : document.body)
-          .appendChild(link);
-      });
-    });
+    )
   }
 
   loadJSDependencies(requests) {
@@ -1267,6 +1228,12 @@ class AppContext {
   }
 
   #loadJSDependencies(requests, isRoot = true) {
+    return this.#loadHTMLDependencies(
+      requests, this.#loadedScripts, req => this.fetch(req)
+    )
+  }
+
+  #loadHTMLDependencies(requests, cacheSet, requestProducer) {
     requests = requests.map((req) => {
       if (req.constructor.name === 'String') {
         return { url: req };
@@ -1274,8 +1241,8 @@ class AppContext {
       return req;
     })
       .filter(({ url }) => {
-        if (!this.#loadedScripts.has(url)) {
-          this.#loadedScripts.add(url);
+        if (!cacheSet.has(url)) {
+          cacheSet.add(url);
           return true;
         } else {
           return false;
@@ -1292,7 +1259,7 @@ class AppContext {
         groups[group] = [];
       }
 
-      groups[group].push(() => this.fetch(req));
+      groups[group].push(() => requestProducer(req));
     });
 
     return Promise.all(

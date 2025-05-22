@@ -1,3 +1,5 @@
+{{style url="/components/card/style.min.css"}}
+
 {{component alias="content"}}
 {{component Link alias="footerLink"}}
 
@@ -5,20 +7,26 @@
 
     {{#if einsteinHeader}}
         {{#with einsteinHeader}}
-            <div class="slds-grid slds-einstein-header slds-card__header">
+            {{component Icon alias="icon"}}
+
+            <div class="slds-grid slds-einstein-header slds-card__header" style="height: 84px;">
                 <header class="slds-media slds-media_center slds-has-flexi-truncate">
                 <div class="slds-grid slds-grid_vertical-align-center slds-size_3-of-4 slds-medium-size_2-of-3">
                     <div class="slds-media__figure">
                         {{#if icon}}
-                            {{> Icon name=icon type='utility' size="small"}}
+                            {{> icon}}
                         {{/if}}
                     </div>
                     <div class="slds-media__body">
-                    <h2 class="slds-truncate" title="Einstein (10+)">
-                        <a href="#" class="slds-card__header-link" title="{{title}}">
-                            <span class="slds-text-heading_small">{{title}}</span>
-                        </a>
-                    </h2>
+                        <h2 class="slds-truncate" title="{{title}}">
+                            {{#if url}}
+                                <a href="{{url}}" class="slds-card__header-link" title="{{title}}">
+                                    <span class="slds-text-heading_small">{{title}}</span>
+                                </a>
+                            {{else}}
+                                <span class="slds-text-heading_small">{{title}}</span>
+                            {{/if}}
+                        </h2>
                     </div>
                 </div>
                 <div class="slds-einstein-header__figure slds-size_1-of-4 slds-medium-size_1-of-3"></div>

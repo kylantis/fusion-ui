@@ -7,17 +7,17 @@
   },
   "scalars": {
     "einsteinHeader.icon": {
-      "type": "String",
-      "allowed": "utilityIconName",
-      "defaults": [
-        "salesforce1"
-      ]
+      "type": "Icon",
+      "isNull": false
     },
     "einsteinHeader.title": {
       "type": "String",
       "defaults": [
         "Einstein (10+)"
       ]
+    },
+    "einsteinHeader.url": {
+      "type": "String"
     },
     "einsteinHeader.actions_$": {
       "type": "ButtonIcon",

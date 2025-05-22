@@ -9,7 +9,7 @@
 
     <div class="slds-combobox_container" {{overlayAttribute}}="true">
 
-        <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click">
+        <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click {{disabled ? "disabled" : ""}}">
 
             <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_left-right" role="none">
 
@@ -94,6 +94,12 @@
                             assistiveText="Clear" title="Clear"
                         }}
                     {{else}}
+                        {{#if loading}}
+                            <div class="slds-input__icon-group slds-input__icon-group_right">
+                                {{> Spinner size='x-small' cssClass="slds-input__spinner" }}
+                            </div>
+                        {{/if}}
+
                         {{#if options}}
                             {{> Icon 
                                     type='utility' name='down' cssClass='slds-input__icon slds-input__icon_right'
@@ -131,8 +137,6 @@
     id="{{@root.componentId}}-readonly" 
     class="{{not readonly ? "slds-hide" : "slds-show"}}">
   </div>
-  
-  {{loadReadonly}}
 
 {{/inline}}
 

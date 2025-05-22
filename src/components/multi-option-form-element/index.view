@@ -1,4 +1,3 @@
-{{style url="/components/multi_option_form_element/style.min.css"}}
 
 {{#*inline "render_input_element" item eager=true}}
     {{var id=item.inputId}}

@@ -4,12 +4,6 @@
     "name": {
       "type": "String"
     },
-    "titleText": {
-      "type": "String",
-      "defaults": [
-        "My FormElement Label"
-      ]
-    },
     "message": {
       "type": "String"
     },
@@ -18,8 +12,10 @@
       "isNull": false
     },
     "title": {
-      "type": "Text",
-      "isNull": false
+      "type": "String",
+      "defaults": [
+        "My FormElement Label"
+      ]
     },
     "disabled": {
       "type": "Boolean",
@@ -89,6 +85,15 @@
         "message": {
           "type": {
             "$ref": "message"
+          }
+        }
+      }
+    },
+    "setDisabled": {
+      "parameters": {
+        "message": {
+          "type": {
+            "$ref": "disabled"
           }
         }
       }

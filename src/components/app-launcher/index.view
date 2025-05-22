@@ -9,7 +9,7 @@
     <div class="slds-app-launcher__header-search">
 
       {{> Input 
-            placeholder="${searchPlaceholder}" titleText=(searchPlaceholder ? "${searchPlaceholder}" : "")
+            placeholder="${searchPlaceholder}" title=(searchPlaceholder ? "${searchPlaceholder}" : "")
             leftIcon="search" type="search" ref="searchBar" readonly=false controlOnly=true
       }}
 

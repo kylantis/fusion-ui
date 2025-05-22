@@ -1,20 +1,3 @@
-/*
- *  Fusion UI
- *  Copyright (C) 2025 Kylantis, Inc
- *  
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *  
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *  
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 
 class FormElement extends components.LightningComponent {
 
@@ -70,10 +53,16 @@ class FormElement extends components.LightningComponent {
             if (dependsOn.getValue() == null) {
                 input.disabled = true;
 
-                dependsOn.once('change', value => {
-                    this.dispatchEvent('activate', value);
-                    input.disabled = false;
-                });
+                dependsOn.on(
+                    'change', new EventHandler(
+                        function (value) {
+                            _this.dispatchEvent('activate', value);
+                            _input.disabled = false;
+                        },
+                        null,
+                        { _this: this, _input: input }
+                    )
+                );
             }
         }
     }
@@ -102,7 +91,7 @@ class FormElement extends components.LightningComponent {
     }
 
     behaviours() {
-        return ['setError', 'setMessage'];
+        return ['setError', 'setMessage', 'setDisabled'];
     }
 
     events() {
@@ -117,6 +106,11 @@ class FormElement extends components.LightningComponent {
     setMessage(message) {
         const input = this.getInput();
         input.message = message;
+    }
+
+    setDisabled(disabled) {
+        const input = this.getInput();
+        input.disabled = disabled;
     }
 
     getTooltipTarget() {

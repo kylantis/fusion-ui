@@ -7,7 +7,7 @@
         "type": "git",
         "url": "https://github.com/kylantis/fusion-ui"
     },
-    "license": "GPL-3.0-only",
+    "license": "MIT",
     "git": {
         "hash": "%GIT_HASH%",
         "ref": "%GIT_REF%",
@@ -39,7 +39,7 @@
         "html-validate": "^4.6.0",
         "hyntax": "^1.1.9",
         "import-fresh": "^3.2.1",
-        "jsdom": "^24.1.1",
+        "jsdom": "^26.1.0",
         "line-column": "^1.0.2",
         "lodash": "^4.17.21",
         "normalize-scss": "7.0.1",

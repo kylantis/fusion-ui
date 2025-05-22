@@ -32,18 +32,20 @@
   {{#each groups as |group groupIndex|}}
     <ul class="slds-listbox {{../type ? 'slds-listbox_${../type}' : ''}}" role="presentation">
       
-      <li role="presentation" class="slds-listbox__item">
-            <div id="group-{{groupIndex}}-title" class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small" role="presentation">
-                <h3 class="slds-listbox__option-header" role="presentation">{{title}}</h3>
-            </div>
-      </li>
+      {{#if title}}
+        <li role="presentation" class="slds-listbox__item">
+              <div id="group-{{groupIndex}}-title" class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small" role="presentation">
+                  <h3 class="slds-listbox__option-header" role="presentation">{{title}}</h3>
+              </div>
+        </li>
+      {{/if}}
       
       {{#each items as |item itemIndex|}}
         {{var entity = (@root.entity and metaText) clone=true}}
 
         <li role="presentation" class="slds-listbox__item" onclick="{{fn 'onClick'}}('{{identifier}}')" >
           <div
-            id="{{@root.componentId}}-{{identifier}}" 
+            id="{{@root.componentId}}-{{identifier transform="sanitizeIdentifier"}}" 
             class="slds-media slds-listbox__option 
             {{entity ? "slds-listbox__option_entity slds-listbox__option_has-meta" : "slds-listbox__option_plain slds-media_small"}}
             {{selected ? 'slds-is-selected' : ''}} {{focus ? "slds-has-focus" : ''}}" 

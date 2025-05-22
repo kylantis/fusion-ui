@@ -1,7 +1,16 @@
+
 .slds-listbox_selection-group {
     visibility: hidden;
 
     &.visible {
         visibility: visible;
+    }
+}
+
+.slds-combobox {
+    &.disabled {
+        pointer-events: none;
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 }

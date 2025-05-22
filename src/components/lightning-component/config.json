@@ -3,17 +3,28 @@
   "collections": {
     "cssStyles": {
       "minLength": 0,
-      "keyType": "String"
+      "keyType": "cssPropertyName"
+    },
+    "viewportCssStyles": {
+      "minLength": 0,
+      "keyType": "Number"
+    },
+    "viewportCssStyles.$_": {
+      "minLength": 0,
+      "keyType": "cssPropertyName"
     }
   },
   "scalars": {
     "cssStyles.$_": {
       "type": "String"
     },
-    "cssClass": {
+    "viewportCssStyles.$_.$_": {
       "type": "String"
     },
     "assistiveText": {
+      "type": "String"
+    },
+    "cssClass": {
       "type": "String"
     }
   },
@@ -27,10 +38,16 @@
       "requires": [
         "Tooltip"
       ]
+    },
+    "showTooltipOnHover": {
+      "requires": [
+        "Tooltip"
+      ]
     }
   },
   "sample": {
-    "nullifyRandomly": []
+    "nullifyRandomly": [],
+    "nullify": []
   },
   "escapeDynamicHtml": false,
   "loadAfterCompile": false

@@ -1,20 +1,3 @@
-/*
- *  Fusion UI
- *  Copyright (C) 2025 Kylantis, Inc
- *  
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *  
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *  
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 
 class ListBox extends components.LightningComponent {
 
@@ -53,12 +36,12 @@ class ListBox extends components.LightningComponent {
                     selectedItems.push(identifier);
                 } else if (!initial) {
                     const idx = selectedItems.indexOf(identifier);
-                    assert(idx >= 0);
-
-                    selectedItems.splice(idx, 1);
+                    if (idx >= 0) {
+                        selectedItems.splice(idx, 1);
+                    }
                 }
             },
-            ['remove.groups_$.items_$']: ({ value: item }) => {
+            ['remove.groups_$.items_$']: ({ value: item, initial }) => {
                 if (!item) return;
 
                 const { identifier } = item;
@@ -190,12 +173,12 @@ class ListBox extends components.LightningComponent {
     }
 
     titleTransform(identifier) {
-        const { selectedItems } = this.getInput();
-
         const { title } = this.#items[identifier];
-        const idx = selectedItems.indexOf(identifier);
-
         return title;
+    }
+
+    sanitizeIdentifier(identifier, repl='_') {
+        return (identifier && typeof identifier === 'string') ? identifier.replace(/[^a-zA-Z0-9_-]/g, repl) : '';
     }
 
     removeWhitespaceTransform(node) {
@@ -299,7 +282,7 @@ class ListBox extends components.LightningComponent {
         const { entity } = this.getInput();
 
         return Object.values(this.getItems()).map(({ identifier, metaText }) => this.#mainSiemaChild.querySelector(
-            `#${this.getId()}-${identifier} .slds-media__body ${(entity && metaText) ? '.slds-listbox__option-text_entity > span' : 'span.slds-truncate'}`
+            `#${this.getId()}-${this.sanitizeIdentifier(identifier)} .slds-media__body ${(entity && metaText) ? '.slds-listbox__option-text_entity > span' : 'span.slds-truncate'}`
         ));
     }
 

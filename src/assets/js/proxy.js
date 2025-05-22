@@ -1,20 +1,3 @@
-/*
- *  Fusion UI
- *  Copyright (C) 2025 Kylantis, Inc
- *  
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *  
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *  
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 
 class RootProxy {
 
@@ -106,6 +89,8 @@ class RootProxy {
   static mapSizeProperty = 'size';
 
   static mapKeysProperty = 'keys';
+
+  static mapEntriesProperty = 'entries';
 
   static mapIndexOfProperty = 'indexOf';
 
@@ -1249,9 +1234,11 @@ class RootProxy {
     const path0 = path.replace(dataPathPrefix, '');
 
     const hookFilter = async (hook) => {
-      const { [HookList.primaryKey]: id, selector } = hook;
+      const { [HookList.primaryKey]: id, selector, parentHook } = hook;
 
-      if (!selector) return true;
+      if (!selector) {
+        return await hookFilter(parentHook);
+      };
 
       const b = !!document.querySelector(
         this.#getFullyQualifiedSelector(hook)
@@ -1752,6 +1739,7 @@ class RootProxy {
               for (let i = 0; i < len; i++) {
 
                 blockData0[canonicalPath].index = i;
+                blockData0[canonicalPath].random = this.component.randomString('random');
 
                 const blockData = this.component.cloneBlockData(blockData0);
 
@@ -2190,7 +2178,7 @@ class RootProxy {
 
             const blockData = {
               ...hookInfo.blockData,
-              [canonicalPath]: { type, length, index },
+              [canonicalPath]: { type, length, index, random: this.component.randomString('random') },
             };
 
             const backfillSparseElements = async () => {
@@ -2873,30 +2861,26 @@ class RootProxy {
     const changeEvents = {};
 
     if (mutationType == mutationType_SPLICE) {
-      [parent, ...(sParent != parent) ? [sParent] : []]
-        .forEach(p => {
-          changeEvents[`${mutationType}.${p}`] = {
-            mutationType,
-            path: parent,
-            sPath: sParent,
-            parentObject: obj,
-            newLength: length + offset,
-            delIndexes: [prop],
-            newIndexes: [],
-            offsetIndexes: { ...offsetIndexes },
-          };
-        });
+      changeEvents[`${mutationType}.${parent}`] = {
+        mutationType,
+        path: parent,
+        sPath: sParent,
+        parentObject: obj,
+        newLength: length + offset,
+        delIndexes: [prop],
+        newIndexes: [],
+        offsetIndexes: { ...offsetIndexes },
+        secondaryKey: (sParent != parent) ? `${mutationType}.${sParent}` : null
+      };
     }
 
     const addEventsForLeaf = (eventType, leaf) => {
       const { path, sPath } = leaf;
 
-      [path, ...(sPath != path) ? [sPath] : []]
-        .forEach(p => {
-          changeEvents[`${eventType}.${p}`] = {
-            mutationType, ...leaf,
-          }
-        });
+      changeEvents[`${eventType}.${path}`] = {
+        mutationType, ...leaf,
+        secondaryKey: (sPath != path) ? `${eventType}.${sPath}` : null
+      }
     }
 
 
@@ -3378,29 +3362,25 @@ class RootProxy {
 
     const changeEvents = {};
 
-    [parent, ...(sParent != parent) ? [sParent] : []]
-      .forEach(p => {
-        changeEvents[`${mutationType}.${p}`] = {
-          mutationType,
-          path: parent,
-          sPath: sParent,
-          parentObject: obj,
-          newLength: newLength,
-          delIndexes: [...delIndexes],
-          newIndexes: [...newIndexes],
-          offsetIndexes: { ...offsetIndexes },
-        };
-      });
+    changeEvents[`${mutationType}.${parent}`] = {
+      mutationType,
+      path: parent,
+      sPath: sParent,
+      parentObject: obj,
+      newLength: newLength,
+      delIndexes: [...delIndexes],
+      newIndexes: [...newIndexes],
+      offsetIndexes: { ...offsetIndexes },
+      secondaryKey: (sParent != parent) ? `${mutationType}.${sParent}` : null
+    };
 
     const addEventsForLeaf = (eventType, leaf) => {
       const { path, sPath } = leaf;
 
-      [path, ...(sPath != path) ? [sPath] : []]
-        .forEach(p => {
-          changeEvents[`${eventType}.${p}`] = {
-            mutationType, ...leaf,
-          }
-        });
+      changeEvents[`${eventType}.${path}`] = {
+        mutationType, ...leaf,
+        secondaryKey: (sPath != path) ? `${eventType}.${sPath}` : null
+      }
     }
 
 
@@ -3645,17 +3625,14 @@ class RootProxy {
 
     const changeEvents = {};
 
-    [parent, ...(sParent != parent) ? [sParent] : []]
-      .forEach(p => {
-        changeEvents[`${mutationType}.${p}`] = {
-          mutationType,
-          path: parent,
-          sPath: sParent,
-          parentObject: obj,
-          offsetIndexes: { ...offsetIndexes },
-        };
-      });
-
+    changeEvents[`${mutationType}.${parent}`] = {
+      mutationType,
+      path: parent,
+      sPath: sParent,
+      parentObject: obj,
+      offsetIndexes: { ...offsetIndexes },
+      secondaryKey: (sParent != parent) ? `${mutationType}.${sParent}` : null
+    };
 
 
     let collChildHookUpdateResolve;
@@ -3730,26 +3707,38 @@ class RootProxy {
 
     Object.entries(changeEvents)
       .forEach(([k, v]) => {
-        const { path } = v;
+        const { path, secondaryKey } = v;
 
-        if (handle) {
-          this.#pushOpenHandle(handle);
-        }
+        const fn = key => {
+          if (handle) {
+            this.#pushOpenHandle(handle);
+          }
 
-        const { defaultPrevented } = this.component.dispatchEvent(
-          k, {
-          ...v,
-          afterMount: getLifecycleMethod('afterMount'),
-          onMount: getLifecycleMethod('onMount')
-        },
-        );
+          if (!v.parentObject) {
+            v.parentObject = this.lookupInputMap(v.parentPath);
+          }
 
-        if (handle) {
-          this.#popOpenHandle(handle);
-        }
+          const { defaultPrevented } = this.component.dispatchEvent(
+            key, {
+            ...v,
+            afterMount: getLifecycleMethod('afterMount'),
+            onMount: getLifecycleMethod('onMount')
+          },
+          );
 
-        if (!handle && defaultPrevented) {
-          exclusionSet.add(`${dataPathRoot}${pathSeparator}${path}`);
+          if (handle) {
+            this.#popOpenHandle(handle);
+          }
+
+          if (!handle && defaultPrevented) {
+            exclusionSet.add(`${dataPathRoot}${pathSeparator}${path}`);
+          }
+        };
+
+        fn(k);
+
+        if (secondaryKey) {
+          fn(secondaryKey);
         }
       });
 
@@ -3758,8 +3747,9 @@ class RootProxy {
 
   #buildObjectFromMap(path, sPath, parentObject, key, primary, entries, visitor) {
     const {
-      isMapProperty, mapKeyPrefix, mapSizeProperty, mapKeysProperty, mapIndexOfProperty,
-      isLiveProperty, pathProperty, toFqPath, setObjectParentRef, addNonEnumerableProperty,
+      isMapProperty, mapKeyPrefix, mapSizeProperty, mapKeysProperty, mapEntriesProperty,
+      mapIndexOfProperty, isLiveProperty, pathProperty, toFqPath, setObjectParentRef,
+      addNonEnumerableProperty,
     } = RootProxy;
 
     assert(typeof key == 'string');
@@ -3844,6 +3834,11 @@ class RootProxy {
             addNonEnumerableProperty(ret, mapIndexOfProperty, (k) => ownKeys.indexOf(
               `${k.startsWith(mapKeyPrefix) ? '' : mapKeyPrefix}${k}`
             ));
+
+            addNonEnumerableProperty(
+              ret, mapEntriesProperty, () => Object.entries(ret)
+                .map(([k, v]) => [k.replace(mapKeyPrefix, ''), v])
+            );
           }
 
           ownKeys
@@ -3920,14 +3915,32 @@ class RootProxy {
       return { error: true };
     }
 
-    visitor({ path, sPath, key, value, parentObject, primary: true });
+    const type = (!!value && !!this.getMapDefinition(sPath)) ? 'map' : this.#getValueType(value);
+
+    const isScalar = ['literal', 'component'].includes(type);
+    const refId = !isScalar ? clientUtils.randomString('refId') : null;
+
+    visitor({
+      path, sPath, key, parentObject, primary: true,
+      value: isScalar ? value : this.#getDynamicObjectProxy(type, path, this.#inputMap, refId),
+      type,
+    });
 
     if (value != null && ['Object', 'Array'].includes(value.constructor.name)) {
 
       const b = this.#tryOrLogError(
         () => {
           this.#toCanonicalTree({
-            path, sPath, obj: value, visitor, parentObject,
+            path, sPath, obj: value, parentObject,
+            visitor: leaf => {
+              const { path, refId, type } = leaf;
+
+              if (!['literal', 'component'].includes(type)) {
+                leaf.value = this.#getDynamicObjectProxy(type, path, this.#inputMap, refId)
+              }
+
+              visitor(leaf);
+            },
           });
         }
       );
@@ -3941,8 +3954,6 @@ class RootProxy {
 
     this.#addPathToTrie(path, segments);
 
-    const type = this.#getValueType(value);
-
     this.#addPathToTrie(`${path}.@type`, [...segments, '@type']);
     this.#addToInputMap(`${path}.@type`, type);
 
@@ -3953,7 +3964,7 @@ class RootProxy {
       this.#addToInputMap(`${path}.@keys`, Object.keys(value));
     }
 
-    if (['literal', 'component'].includes(type)) {
+    if (isScalar) {
       this.#addToInputMap(path, value);
 
       if (typeof value == 'string') {
@@ -3961,8 +3972,7 @@ class RootProxy {
         this.#addToInputMap(`${path}.length`, value.length);
       }
     } else {
-      const refId = clientUtils.randomString('refId');
-
+      
       this.#addPathToTrie(`${path}.@refId`, [...segments, '@refId']);
       this.#addToInputMap(`${path}.@refId`, refId);
 
@@ -4040,11 +4050,11 @@ class RootProxy {
     }
   }
 
-  #getDynamicObjectProxy(type, path, map) {
+  #getDynamicObjectProxy(type, path, map, _refId) {
     const {
-      pathProperty, isMapProperty, mapSizeProperty, mapKeysProperty, mapIndexOfProperty,
-      parentRefProperty, isLiveProperty, mapKeyPrefix, getReservedObjectKeys, getReservedMapKeys,
-      toFqPath, getReferencesForInputMap,
+      pathProperty, isMapProperty, mapSizeProperty, mapKeysProperty, mapEntriesProperty, mapIndexOfProperty,
+      parentRefProperty, isLiveProperty, mapKeyPrefix, getReservedObjectKeys, getReservedMapKeys, toFqPath,
+      getReferencesForInputMap,
     } = RootProxy;
 
     assert(['array', 'map', 'object'].includes(type));
@@ -4055,7 +4065,7 @@ class RootProxy {
     const _this = this;
 
     const isRoot = path === '';
-    const refId = !isRoot ? map.get(`${path}.@refId`) : null;
+    const refId = !isRoot ? _refId || map.get(`${path}.@refId`) : null;
 
     assert(typeof refId == 'string' || isRoot);
 
@@ -4282,6 +4292,9 @@ class RootProxy {
 
               case mapKeysProperty:
                 return () => Reflect.ownKeys(proxy).map(k => k.replace(mapKeyPrefix, ''));
+
+              case mapEntriesProperty:
+                return () => Reflect.ownKeys(proxy).map(k => ([k.replace(mapKeyPrefix, ''), proxy[k]]));
             }
           }
 
@@ -4765,7 +4778,7 @@ class RootProxy {
         toDefinitionName(clientUtils.toCanonicalPath(parent))
       ];
 
-      if (keyType != 'String') {
+      if (!['string', 'number', 'boolean'].includes(keyType.toLowerCase())) {
         const allowedKeys = getEnum(keyType);
 
         if (!allowedKeys.includes(`${key}`)) {
@@ -4964,7 +4977,12 @@ class RootProxy {
 
       this.validateSchema(_path, _sPath, obj[prop], obj);
 
-      visitor({ path: _path, sPath: _sPath, key: prop, parentPath: path, value: obj[prop] });
+      const type = (!!obj[prop] && !!this.getMapDefinition(_sPath)) ? 'map' : this.#getValueType(obj[prop]);
+
+      const isScalar = ['literal', 'component'].includes(type);
+      const refId = !isScalar ? clientUtils.randomString('refId') : null;
+
+      visitor({ path: _path, sPath: _sPath, key: prop, parentPath: path, value: obj[prop], refId, type });
 
       if (obj[prop] != null && ['Object', 'Array'].includes(obj[prop].constructor.name)) {
 
@@ -4978,8 +4996,6 @@ class RootProxy {
 
       this.#addPathToTrie(_path, _segments);
 
-      const type = this.#getValueType(obj[prop]);
-
       this.#addPathToTrie(`${_path}.@type`, [..._segments, '@type']);
       this.#addToInputMap(`${_path}.@type`, type);
 
@@ -4990,7 +5006,7 @@ class RootProxy {
         this.#addToInputMap(`${_path}.@keys`, Object.keys(obj[prop]));
       }
 
-      if (['literal', 'component'].includes(type)) {
+      if (isScalar) {
         this.#addToInputMap(_path, obj[prop]);
 
         if (typeof obj[prop] == 'string') {
@@ -4998,7 +5014,6 @@ class RootProxy {
           this.#addToInputMap(`${_path}.length`, obj[prop].length);
         }
       } else {
-        const refId = clientUtils.randomString('refId');
 
         this.#addPathToTrie(`${_path}.@refId`, [..._segments, '@refId']);
         this.#addToInputMap(`${_path}.@refId`, refId);
@@ -5063,8 +5078,8 @@ class RootProxy {
   }
 
   static getReservedMapKeys() {
-    const { mapSizeProperty, mapKeysProperty, mapIndexOfProperty } = RootProxy;
-    return [mapSizeProperty, mapKeysProperty, mapIndexOfProperty];
+    const { mapSizeProperty, mapKeysProperty, mapEntriesProperty, mapIndexOfProperty } = RootProxy;
+    return [mapSizeProperty, mapKeysProperty, mapEntriesProperty, mapIndexOfProperty];
   }
 
   static isMapObject(obj) {

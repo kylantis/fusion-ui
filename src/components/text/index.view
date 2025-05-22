@@ -1,5 +1,5 @@
 <div class="
-slds-text-{{type}} 
+{{type ? "slds-text-${type}" : ""}}
 {{align ? "slds-text-align_${align}" : ""}}
 {{color ? "slds-text-color_${color}" : ""}}
 {{font ? "slds-text-font_${font}" : ""}}

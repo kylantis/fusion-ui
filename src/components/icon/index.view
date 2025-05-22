@@ -6,11 +6,9 @@
         {{!-- RTL Support --}}
         {{rtl ? "slds-icon_flip" : ""}}
         {{!-- 
-            utility and doctype icons do not support a round look, and
-            action icons are circular by default
+            utility and doctype icons do not support a round look
          --}}
-        {{circular and (type neq 'doctype') and (type neq 'utility') 
-            and (type neq 'action')
+        {{circular and (type neq 'doctype') and (type neq 'utility')
             ? ' slds-icon_container_circle' : ''
         }}
         {{useCurrentColor ? ' slds-current-color' : ''}}
